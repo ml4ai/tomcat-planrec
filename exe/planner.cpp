@@ -106,16 +106,6 @@ travel_by_taxi(State state, string a, string x, string y) {
     }
 }
 
-// auto operators = unordered_map<string, any>({"walk", walk});
-
-// void expand(Operator op) {
-
-//}
-
-// void expand(Method m) {
-
-//}
-
 variant<vector<any>, bool> seek_plan(State state,
                                      vector<vector<string>> tasks,
                                      vector<any> plan,
@@ -128,6 +118,7 @@ variant<vector<any>, bool> seek_plan(State state,
     auto task1 = tasks[0];
     if (in(task1[0], operators)) {
         auto op = operators[task1[0]];
+        auto newstate = op(state,task1[1]);
     }
 }
 
