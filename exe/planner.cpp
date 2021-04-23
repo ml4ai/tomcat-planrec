@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <variant>
 #include <vector>
+#include <tuple>
 
 using namespace std;
 
@@ -17,10 +18,24 @@ class State {
     unordered_map<string, double> cash;
 };
 
+template<class... Types> class Operator {
+    public:
+        string name;
+        function<Types...> func;
+        Operator(string name, function<Types...> func) : name(name), func(func) {};
+
+        template<class ...Ts>
+        variant<State, bool> operator()(Ts ...args) {
+            return this->func(args...);
+        }
+};
+
+
 auto taxi_rate(double dist) { return 1.5 + 0.5 * dist; }
 
 // Operators
 variant<State, bool> walk(State& state, string a, string x, string y) {
+    cout << "FLAG" << endl;
     if (state.loc[a] == x) {
         state.loc[a] = y;
         return state;
@@ -81,18 +96,18 @@ travel_by_taxi(State& state, string a, string x, string y) {
     }
 }
 
-auto operators = make_tuple(walk, call_taxi, ride_taxi, pay_driver);
+//auto operators = unordered_map<string, any>({"walk", walk});
 
 
 variant<vector<any>, bool>
-seek_plan(State& state, vector<any> tasks, vector<any> plan, int depth) {
+seek_plan(State& state, vector<vector<string>> tasks, vector<any> plan, int depth) {
     if (tasks.size() == 0) {
         return plan;
     }
     auto task1 = tasks[0];
 }
 
-variant<vector<any>, bool> pyhop(State& state, vector<any> tasks) {
+variant<vector<any>, bool> pyhop(State& state, vector<vector<string>> tasks) {
     auto result = seek_plan(state, tasks, {}, 0);
     return result;
 }
@@ -107,7 +122,9 @@ int main(int argc, char* argv[]) {
     // Declare methods
     unordered_map<string, any> methods = {};
     methods["travel"] = make_tuple(&travel_by_foot, &travel_by_taxi);
-    vector<any> tasks = {make_tuple("travel", "me", "home", "park")};
-    pyhop(state1, tasks);
+    vector<vector<string>> tasks = {{"travel", "me", "home", "park"}};
+    auto op1 = Operator("op1", function(walk));
+    op1(state1, "me", "park", "home");
+    //pyhop(state1, tasks);
     return EXIT_SUCCESS;
 }
