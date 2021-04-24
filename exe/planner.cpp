@@ -153,12 +153,24 @@ bTasks seek_plan(State state,
         auto relevant = methods[task.first];
         for (auto method : relevant) {
             auto subtasks = method(state, task.second);
+            if (subtasks.first) {
+                tasks.pop_back();
+                for (auto i = subtasks.second.end();
+                     i != subtasks.second.begin();) {
+                    tasks.push_back(*(--i));
+                }
+                bTasks solution = seek_plan(
+                    state, tasks, plan, operators, methods, depth + 1);
+                if (solution.first) {
+                    return solution;
+                }
+            }
         }
+        return {false, {}};
     }
 }
 
-bTasks
-pyhop(State state, vector<Task> tasks, Operators operators, Methods methods) {
+bTasks pyhop(State state, Tasks tasks, Operators operators, Methods methods) {
     auto result = seek_plan(state, tasks, {}, operators, methods, 0);
     return result;
 }
