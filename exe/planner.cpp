@@ -34,16 +34,31 @@ bool in(Element element, AssociativeContainer container) {
     return container.count(element);
 }
 
-template <class... Types> class Operator {
-  public:
-    string name;
-    function<Types...> func;
-    Operator(string name, function<Types...> func) : name(name), func(func){};
-
-    template <class... Ts> bState operator()(Ts... args) {
-        return this->func(args...);
+void print(Operators operators) {
+    for (auto [operator_name, operator_func] : operators) {
+        cout << operator_name << ", ";
     }
-};
+    cout << endl;
+}
+
+void print(Methods methods) {
+    for (auto [method_name, method_func] : methods) {
+        cout << method_name << ", ";
+    }
+    cout << endl;
+}
+
+void print(Tasks tasks) {
+    for (auto task : tasks) {
+        cout << task.first << ", ";
+    }
+    cout << endl;
+}
+
+void print(bTasks btasks) {
+    print(btasks.second);
+}
+
 
 auto taxi_rate(double dist) { return 1.5 + 0.5 * dist; }
 
@@ -130,6 +145,10 @@ bTasks seek_plan(State state,
                  Operators operators,
                  Methods methods,
                  int depth) {
+    cout << "depth:" << depth << endl;
+    cout << "tasks:" << endl;
+    print(tasks);
+    cout << endl;
     if (tasks.size() == 0) {
         return bTasks(true, plan.second);
     }
@@ -172,6 +191,7 @@ bTasks seek_plan(State state,
 
 bTasks pyhop(State state, Tasks tasks, Operators operators, Methods methods) {
     auto result = seek_plan(state, tasks, {}, operators, methods, 0);
+    print(result);
     return result;
 }
 
@@ -190,9 +210,14 @@ int main(int argc, char* argv[]) {
     operators["call_taxi"] = call_taxi;
     operators["pay_driver"] = pay_driver;
 
+    cout << "Operators: ";
+    print(operators);
+
     // Declare methods
     Methods methods = {};
     methods["travel"] = {travel_by_foot, travel_by_taxi};
+    cout << "Methods: ";
+    print(methods);
 
     Tasks tasks = {
         {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}))}};
