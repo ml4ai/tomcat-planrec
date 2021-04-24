@@ -38,9 +38,10 @@ auto taxi_rate(double dist) { return 1.5 + 0.5 * dist; }
 
 // Operators
 
-variant<State, bool> walk(State state, string a, string x, string y) {
-    cout << "FLAG" << endl;
-    if (state.loc[a] == x) {
+typedef unordered_map<string, string> Args;
+
+variant<State, bool> walk(State state, Args args) {
+    if (state.loc[a] == Args["x"]) {
         state.loc[a] = y;
         return state;
     }
