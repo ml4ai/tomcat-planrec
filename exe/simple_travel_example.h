@@ -92,21 +92,23 @@ class TravelState {
 
 template <class State> class TravelDomain {
   public:
-    Operators<State> operators = {};
-    Methods<State> methods = {};
+    // Declare operators
+    Operators<State> operators = Operators<State>({
+        {"walk", walk},
+        {"call_taxi", call_taxi},
+        {"ride_taxi", ride_taxi},
+        {"pay_driver", pay_driver}
+    });
+
+    // Declare methods
+    Methods<State> methods = Methods<State>({
+        {"travel", {travel_by_foot, travel_by_taxi}},
+    });
 
     TravelDomain() {
-        // Declare operators
-        this->operators["walk"] = walk;
-        this->operators["ride_taxi"] = ride_taxi;
-        this->operators["call_taxi"] = call_taxi;
-        this->operators["pay_driver"] = pay_driver;
-
         std::cout << "Operators: ";
         print(this->operators);
 
-        // Declare methods
-        this->methods["travel"] = {travel_by_foot, travel_by_taxi};
         std::cout << "Methods: ";
         print(this->methods);
     };
