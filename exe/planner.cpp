@@ -1,64 +1,6 @@
-#include <any>
-#include <iostream>
-#include <optional>
-#include <string>
-#include <tuple>
-#include <unordered_map>
-#include <utility>
-#include <vector>
+#include "cpphop.h"
 
 using namespace std;
-
-class State {
-  public:
-    State(string name) : name(name){};
-    string name;
-    unordered_map<string, string> loc;
-    unordered_map<string, unordered_map<string, double>> dist;
-    unordered_map<string, double> owe;
-    unordered_map<string, double> cash;
-};
-
-using Args = unordered_map<string, string>;
-using bState = optional<State>;
-using Task = pair<string, Args>;
-using Tasks = vector<Task>;
-using bTasks = pair<bool, Tasks>;
-using Ptr2Operator = bState (*)(State, Args);
-using Operators = unordered_map<string, Ptr2Operator>;
-using Ptr2Method = bTasks (*)(State, Args);
-using Methods = unordered_map<string, vector<Ptr2Method>>;
-
-template <class Element, class AssociativeContainer>
-bool in(Element element, AssociativeContainer container) {
-    return container.count(element);
-}
-
-void print(Operators operators) {
-    for (auto [operator_name, operator_func] : operators) {
-        cout << operator_name << ", ";
-    }
-    cout << endl;
-}
-
-void print(Methods methods) {
-    for (auto [method_name, method_func] : methods) {
-        cout << method_name << ", ";
-    }
-    cout << endl;
-}
-
-void print(Tasks tasks) {
-    for (auto task : tasks) {
-        cout << task.first << ", ";
-    }
-    cout << endl;
-}
-
-void print(bTasks btasks) {
-    print(btasks.second);
-}
-
 
 auto taxi_rate(double dist) { return 1.5 + 0.5 * dist; }
 
@@ -139,61 +81,6 @@ bTasks travel_by_taxi(State state, Args args) {
     }
 }
 
-bTasks seek_plan(State state,
-                 vector<Task> tasks,
-                 bTasks plan,
-                 Operators operators,
-                 Methods methods,
-                 int depth) {
-    cout << "depth:" << depth << endl;
-    cout << "tasks:" << endl;
-    print(tasks);
-    cout << endl;
-    if (tasks.size() == 0) {
-        return bTasks(true, plan.second);
-    }
-    Task task = tasks.back();
-    if (in(task.first, operators)) {
-        auto op = operators[task.first];
-        bState newstate = op(state, task.second);
-        if (newstate) {
-            tasks.pop_back();
-            plan.second.push_back(task);
-            bTasks solution = seek_plan(
-                newstate.value(), tasks, plan, operators, methods, depth + 1);
-            if (solution.first) {
-                return solution;
-            }
-        }
-        return {false, {}};
-    }
-
-    if (in(task.first, methods)) {
-        auto relevant = methods[task.first];
-        for (auto method : relevant) {
-            auto subtasks = method(state, task.second);
-            if (subtasks.first) {
-                tasks.pop_back();
-                for (auto i = subtasks.second.end();
-                     i != subtasks.second.begin();) {
-                    tasks.push_back(*(--i));
-                }
-                bTasks solution = seek_plan(
-                    state, tasks, plan, operators, methods, depth + 1);
-                if (solution.first) {
-                    return solution;
-                }
-            }
-        }
-        return {false, {}};
-    }
-}
-
-bTasks pyhop(State state, Tasks tasks, Operators operators, Methods methods) {
-    auto result = seek_plan(state, tasks, {}, operators, methods, 0);
-    print(result);
-    return result;
-}
 
 int main(int argc, char* argv[]) {
     State state1 = State("state1");
