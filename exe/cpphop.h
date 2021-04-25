@@ -108,6 +108,7 @@ bTasks seek_plan(State state,
     }
 }
 
+template<class State>
 bTasks pyhop(State state, Tasks tasks, Operators operators, Methods methods) {
     bTasks result = seek_plan(state, tasks, {}, operators, methods, 0);
     print(result);
