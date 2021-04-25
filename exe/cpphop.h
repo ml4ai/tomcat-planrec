@@ -23,11 +23,13 @@ template <class State> using Method = bTasks (*)(State, Args);
 template <class State>
 using Methods = std::unordered_map<std::string, std::vector<Method<State>>>;
 
+// Utility method to see if an element is in an associative container
 template <class Element, class AssociativeContainer>
 bool in(Element element, AssociativeContainer container) {
     return container.count(element);
 }
 
+// Utility methods for printing information to stdout.
 template <class State> void print(Operators<State> operators) {
     for (auto [operator_name, operator_func] : operators) {
         std::cout << operator_name << ", ";
@@ -43,9 +45,16 @@ template <class State> void print(Methods<State> methods) {
 }
 
 void print(Tasks tasks) {
+        std::cout << "[";
     for (auto task : tasks) {
-        std::cout << task.first << ", ";
+        std::cout << "(";
+        std::cout << task.first << ",";
+        for (auto [k, v] : task.second) {
+            std::cout << v << ",";
+        }
+        std::cout << ")";
     }
+    std::cout << "]";
     std::cout << std::endl;
 }
 
