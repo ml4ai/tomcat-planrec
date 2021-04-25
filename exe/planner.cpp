@@ -9,25 +9,10 @@ int main(int argc, char* argv[]) {
     state1.owe["me"] = 0;
     state1.dist["home"]["park"] = 8;
     state1.dist["park"]["home"] = 8;
-
-    // Declare operators
-    Operators<TravelState> operators = {};
-    operators["walk"] = walk;
-    operators["ride_taxi"] = ride_taxi;
-    operators["call_taxi"] = call_taxi;
-    operators["pay_driver"] = pay_driver;
-
-    cout << "Operators: ";
-    print(operators);
-
-    // Declare methods
-    Methods<TravelState> methods = {};
-    methods["travel"] = {travel_by_foot, travel_by_taxi};
-    cout << "Methods: ";
-    print(methods);
+    auto domain = TravelDomain<TravelState>();
 
     Tasks tasks = {
         {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}))}};
-    pyhop(state1, tasks, operators, methods);
+    pyhop(state1, tasks, domain);
     return EXIT_SUCCESS;
 }

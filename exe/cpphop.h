@@ -13,8 +13,7 @@ using Task = std::pair<std::string, Args>;
 using Tasks = std::vector<Task>;
 using bTasks = std::pair<bool, Tasks>;
 
-template <class State>
-using Operator = std::optional<State> (*)(State, Args);
+template <class State> using Operator = std::optional<State> (*)(State, Args);
 
 template <class State>
 using Operators = std::unordered_map<std::string, Operator<State>>;
@@ -52,12 +51,11 @@ void print(Tasks tasks) {
 
 void print(bTasks btasks) { print(btasks.second); }
 
-template <class State>
+template <class State, class Domain>
 bTasks seek_plan(State state,
                  std::vector<Task> tasks,
                  bTasks plan,
-                 Operators<State> operators,
-                 Methods<State> methods,
+                 Domain domain,
                  int depth) {
     std::cout << "depth: " << depth << std::endl;
     std::cout << "tasks: ";
@@ -68,14 +66,14 @@ bTasks seek_plan(State state,
     }
 
     Task task = tasks.back();
-    if (in(task.first, operators)) {
-        auto op = operators[task.first];
+    if (in(task.first, domain.operators)) {
+        auto op = domain.operators[task.first];
         std::optional<State> newstate = op(state, task.second);
         if (newstate) {
             tasks.pop_back();
             plan.second.push_back(task);
             bTasks solution = seek_plan(
-                newstate.value(), tasks, plan, operators, methods, depth + 1);
+                newstate.value(), tasks, plan, domain, depth + 1);
             if (solution.first) {
                 return solution;
             }
@@ -83,8 +81,8 @@ bTasks seek_plan(State state,
         return {false, {}};
     }
 
-    if (in(task.first, methods)) {
-        auto relevant = methods[task.first];
+    if (in(task.first, domain.methods)) {
+        auto relevant = domain.methods[task.first];
         for (auto method : relevant) {
             auto subtasks = method(state, task.second);
             if (subtasks.first) {
@@ -94,7 +92,7 @@ bTasks seek_plan(State state,
                     tasks.push_back(*(--i));
                 }
                 bTasks solution = seek_plan(
-                    state, tasks, plan, operators, methods, depth + 1);
+                    state, tasks, plan, domain, depth + 1);
                 if (solution.first) {
                     return solution;
                 }
@@ -104,12 +102,11 @@ bTasks seek_plan(State state,
     }
 }
 
-template <class State>
+template <class State, class Domain>
 bTasks pyhop(State state,
              Tasks tasks,
-             Operators<State> operators,
-             Methods<State> methods) {
-    bTasks result = seek_plan(state, tasks, {}, operators, methods, 0);
+             Domain domain) {
+    bTasks result = seek_plan(state, tasks, {}, domain, 0);
     print(result);
     return result;
 }
