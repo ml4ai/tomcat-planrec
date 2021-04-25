@@ -14,15 +14,15 @@ using Tasks = std::vector<Task>;
 using bTasks = std::pair<bool, Tasks>;
 
 template <class State>
-using Ptr2Operator = std::optional<State> (*)(State, Args);
+using Operator = std::optional<State> (*)(State, Args);
 
 template <class State>
-using Operators = std::unordered_map<std::string, Ptr2Operator<State>>;
+using Operators = std::unordered_map<std::string, Operator<State>>;
 
-template <class State> using Ptr2Method = bTasks (*)(State, Args);
+template <class State> using Method = bTasks (*)(State, Args);
 
 template <class State>
-using Methods = std::unordered_map<std::string, std::vector<Ptr2Method<State>>>;
+using Methods = std::unordered_map<std::string, std::vector<Method<State>>>;
 
 template <class Element, class AssociativeContainer>
 bool in(Element element, AssociativeContainer container) {
@@ -66,6 +66,7 @@ bTasks seek_plan(State state,
     if (tasks.size() == 0) {
         return bTasks(true, plan.second);
     }
+
     Task task = tasks.back();
     if (in(task.first, operators)) {
         auto op = operators[task.first];
