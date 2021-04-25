@@ -13,16 +13,15 @@ using Task = std::pair<std::string, Args>;
 using Tasks = std::vector<Task>;
 using bTasks = std::pair<bool, Tasks>;
 
-template<class State>
-using Ptr2Operator = std::optional<State>(*)(State, Args);
+template <class State>
+using Ptr2Operator = std::optional<State> (*)(State, Args);
 
-template<class State>
+template <class State>
 using Operators = std::unordered_map<std::string, Ptr2Operator<State>>;
 
-template<class State>
-using Ptr2Method = bTasks (*)(State, Args);
+template <class State> using Ptr2Method = bTasks (*)(State, Args);
 
-template<class State>
+template <class State>
 using Methods = std::unordered_map<std::string, std::vector<Ptr2Method<State>>>;
 
 template <class Element, class AssociativeContainer>
@@ -30,16 +29,14 @@ bool in(Element element, AssociativeContainer container) {
     return container.count(element);
 }
 
-template<class State>
-void print(Operators<State> operators) {
+template <class State> void print(Operators<State> operators) {
     for (auto [operator_name, operator_func] : operators) {
         std::cout << operator_name << ", ";
     }
     std::cout << std::endl;
 }
 
-template<class State>
-void print(Methods<State> methods) {
+template <class State> void print(Methods<State> methods) {
     for (auto [method_name, method_func] : methods) {
         std::cout << method_name << ", ";
     }
@@ -53,11 +50,9 @@ void print(Tasks tasks) {
     std::cout << std::endl;
 }
 
-void print(bTasks btasks) {
-    print(btasks.second);
-}
+void print(bTasks btasks) { print(btasks.second); }
 
-template<class State>
+template <class State>
 bTasks seek_plan(State state,
                  std::vector<Task> tasks,
                  bTasks plan,
@@ -108,8 +103,11 @@ bTasks seek_plan(State state,
     }
 }
 
-template<class State>
-bTasks pyhop(State state, Tasks tasks, Operators<State> operators, Methods<State> methods) {
+template <class State>
+bTasks pyhop(State state,
+             Tasks tasks,
+             Operators<State> operators,
+             Methods<State> methods) {
     bTasks result = seek_plan(state, tasks, {}, operators, methods, 0);
     print(result);
     return result;
