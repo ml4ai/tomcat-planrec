@@ -7,39 +7,39 @@
 #include <utility>
 #include <vector>
 
-class State {
-  public:
-    State(std::string name) : name(name){};
-    std::string name;
-    std::unordered_map<std::string, std::string> loc;
-    std::unordered_map<std::string, std::unordered_map<std::string, double>> dist;
-    std::unordered_map<std::string, double> owe;
-    std::unordered_map<std::string, double> cash;
-};
-
 using Args = std::unordered_map<std::string, std::string>;
-using bState = std::optional<State>;
+
 using Task = std::pair<std::string, Args>;
 using Tasks = std::vector<Task>;
 using bTasks = std::pair<bool, Tasks>;
-using Ptr2Operator = bState (*)(State, Args);
-using Operators = std::unordered_map<std::string, Ptr2Operator>;
+
+template<class State>
+using Ptr2Operator = std::optional<State>(*)(State, Args);
+
+template<class State>
+using Operators = std::unordered_map<std::string, Ptr2Operator<State>>;
+
+template<class State>
 using Ptr2Method = bTasks (*)(State, Args);
-using Methods = std::unordered_map<std::string, std::vector<Ptr2Method>>;
+
+template<class State>
+using Methods = std::unordered_map<std::string, std::vector<Ptr2Method<State>>>;
 
 template <class Element, class AssociativeContainer>
 bool in(Element element, AssociativeContainer container) {
     return container.count(element);
 }
 
-void print(Operators operators) {
+template<class State>
+void print(Operators<State> operators) {
     for (auto [operator_name, operator_func] : operators) {
         std::cout << operator_name << ", ";
     }
     std::cout << std::endl;
 }
 
-void print(Methods methods) {
+template<class State>
+void print(Methods<State> methods) {
     for (auto [method_name, method_func] : methods) {
         std::cout << method_name << ", ";
     }
@@ -61,8 +61,8 @@ template<class State>
 bTasks seek_plan(State state,
                  std::vector<Task> tasks,
                  bTasks plan,
-                 Operators operators,
-                 Methods methods,
+                 Operators<State> operators,
+                 Methods<State> methods,
                  int depth) {
     std::cout << "depth: " << depth << std::endl;
     std::cout << "tasks: ";
@@ -74,7 +74,7 @@ bTasks seek_plan(State state,
     Task task = tasks.back();
     if (in(task.first, operators)) {
         auto op = operators[task.first];
-        bState newstate = op(state, task.second);
+        std::optional<State> newstate = op(state, task.second);
         if (newstate) {
             tasks.pop_back();
             plan.second.push_back(task);
@@ -109,7 +109,7 @@ bTasks seek_plan(State state,
 }
 
 template<class State>
-bTasks pyhop(State state, Tasks tasks, Operators operators, Methods methods) {
+bTasks pyhop(State state, Tasks tasks, Operators<State> operators, Methods<State> methods) {
     bTasks result = seek_plan(state, tasks, {}, operators, methods, 0);
     print(result);
     return result;

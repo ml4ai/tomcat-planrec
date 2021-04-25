@@ -2,11 +2,21 @@
 
 using namespace std;
 
+class State {
+  public:
+    State(std::string name) : name(name){};
+    std::string name;
+    std::unordered_map<std::string, std::string> loc;
+    std::unordered_map<std::string, std::unordered_map<std::string, double>> dist;
+    std::unordered_map<std::string, double> owe;
+    std::unordered_map<std::string, double> cash;
+};
+
 auto taxi_rate(double dist) { return 1.5 + 0.5 * dist; }
 
 // Operators
 
-bState walk(State state, Args args) {
+std::optional<State> walk(State state, Args args) {
     auto a = args["a"];
     auto x = args["x"];
     auto y = args["y"];
@@ -19,12 +29,12 @@ bState walk(State state, Args args) {
     }
 }
 
-bState call_taxi(State state, Args args) {
+std::optional<State> call_taxi(State state, Args args) {
     state.loc["taxi"] = args["x"];
     return state;
 }
 
-bState ride_taxi(State state, Args args) {
+std::optional<State> ride_taxi(State state, Args args) {
     auto x = args["x"];
     auto y = args["y"];
     auto a = args["a"];
@@ -39,7 +49,7 @@ bState ride_taxi(State state, Args args) {
     }
 }
 
-bState pay_driver(State state, Args args) {
+std::optional<State> pay_driver(State state, Args args) {
     auto a = args["a"];
     if (state.cash[a] >= state.owe[a]) {
         state.cash[a] = state.cash[a] - state.owe[a];
@@ -91,7 +101,7 @@ int main(int argc, char* argv[]) {
     state1.dist["park"]["home"] = 8;
 
     // Declare operators
-    Operators operators = {};
+    Operators<State> operators = {};
     operators["walk"] = walk;
     operators["ride_taxi"] = ride_taxi;
     operators["call_taxi"] = call_taxi;
@@ -101,7 +111,7 @@ int main(int argc, char* argv[]) {
     print(operators);
 
     // Declare methods
-    Methods methods = {};
+    Methods<State> methods = {};
     methods["travel"] = {travel_by_foot, travel_by_taxi};
     cout << "Methods: ";
     print(methods);
