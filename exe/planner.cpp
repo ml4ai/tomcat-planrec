@@ -7,7 +7,8 @@ class State {
     State(std::string name) : name(name){};
     std::string name;
     std::unordered_map<std::string, std::string> loc;
-    std::unordered_map<std::string, std::unordered_map<std::string, double>> dist;
+    std::unordered_map<std::string, std::unordered_map<std::string, double>>
+        dist;
     std::unordered_map<std::string, double> owe;
     std::unordered_map<std::string, double> cash;
 };
@@ -90,7 +91,6 @@ bTasks travel_by_taxi(State state, Args args) {
         return {false, {}};
     }
 }
-
 
 int main(int argc, char* argv[]) {
     State state1 = State("state1");
