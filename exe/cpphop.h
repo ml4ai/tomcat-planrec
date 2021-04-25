@@ -57,14 +57,15 @@ void print(bTasks btasks) {
     print(btasks.second);
 }
 
+template<class State>
 bTasks seek_plan(State state,
                  std::vector<Task> tasks,
                  bTasks plan,
                  Operators operators,
                  Methods methods,
                  int depth) {
-    std::cout << "depth:" << depth << std::endl;
-    std::cout << "tasks:" << std::endl;
+    std::cout << "depth: " << depth << std::endl;
+    std::cout << "tasks: ";
     print(tasks);
     std::cout << std::endl;
     if (tasks.size() == 0) {
@@ -108,8 +109,7 @@ bTasks seek_plan(State state,
 }
 
 bTasks pyhop(State state, Tasks tasks, Operators operators, Methods methods) {
-    auto result = seek_plan(state, tasks, {}, operators, methods, 0);
+    bTasks result = seek_plan(state, tasks, {}, operators, methods, 0);
     print(result);
     return result;
 }
-
