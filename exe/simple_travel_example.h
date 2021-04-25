@@ -93,12 +93,10 @@ class TravelState {
 template <class State> class TravelDomain {
   public:
     // Declare operators
-    Operators<State> operators = Operators<State>({
-        {"walk", walk},
-        {"call_taxi", call_taxi},
-        {"ride_taxi", ride_taxi},
-        {"pay_driver", pay_driver}
-    });
+    Operators<State> operators = Operators<State>({{"walk", walk},
+                                                   {"call_taxi", call_taxi},
+                                                   {"ride_taxi", ride_taxi},
+                                                   {"pay_driver", pay_driver}});
 
     // Declare methods
     Methods<State> methods = Methods<State>({
