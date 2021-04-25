@@ -75,9 +75,12 @@ bTasks seek_plan(State state,
     }
 
     Task task = tasks.back();
-    if (in(task.first, domain.operators)) {
-        auto op = domain.operators[task.first];
-        std::optional<State> newstate = op(state, task.second);
+    std::string task_id = task.first;
+    Args args = task.second;
+    
+    if (in(task_id, domain.operators)) {
+        Operator<State> op = domain.operators[task_id];
+        std::optional<State> newstate = op(state, args);
         if (newstate) {
             tasks.pop_back();
             plan.second.push_back(task);
@@ -90,10 +93,10 @@ bTasks seek_plan(State state,
         return {false, {}};
     }
 
-    if (in(task.first, domain.methods)) {
-        auto relevant = domain.methods[task.first];
+    if (in(task_id, domain.methods)) {
+        auto relevant = domain.methods[task_id];
         for (auto method : relevant) {
-            auto subtasks = method(state, task.second);
+            auto subtasks = method(state, args);
             if (subtasks.first) {
                 tasks.pop_back();
                 for (auto i = subtasks.second.end();
