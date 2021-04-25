@@ -2,16 +2,6 @@
 
 using namespace std;
 
-class State {
-  public:
-    State(std::string name) : name(name){};
-    std::string name;
-    std::unordered_map<std::string, std::string> loc;
-    std::unordered_map<std::string, std::unordered_map<std::string, double>>
-        dist;
-    std::unordered_map<std::string, double> owe;
-    std::unordered_map<std::string, double> cash;
-};
 
 auto taxi_rate(double dist) { return 1.5 + 0.5 * dist; }
 
@@ -98,8 +88,19 @@ bTasks travel_by_taxi(State state, Args args) {
     }
 }
 
+class TravelState {
+  public:
+    TravelState(std::string name) : name(name){};
+    std::string name;
+    std::unordered_map<std::string, std::string> loc;
+    std::unordered_map<std::string, std::unordered_map<std::string, double>>
+        dist;
+    std::unordered_map<std::string, double> owe;
+    std::unordered_map<std::string, double> cash;
+};
+
 int main(int argc, char* argv[]) {
-    State state1 = State("state1");
+    auto state1 = TravelState("state1");
     state1.loc["me"] = "home";
     state1.cash["me"] = 20;
     state1.owe["me"] = 0;
@@ -107,7 +108,7 @@ int main(int argc, char* argv[]) {
     state1.dist["park"]["home"] = 8;
 
     // Declare operators
-    Operators<State> operators = {};
+    Operators<TravelState> operators = {};
     operators["walk"] = walk;
     operators["ride_taxi"] = ride_taxi;
     operators["call_taxi"] = call_taxi;
@@ -117,7 +118,7 @@ int main(int argc, char* argv[]) {
     print(operators);
 
     // Declare methods
-    Methods<State> methods = {};
+    Methods<TravelState> methods = {};
     methods["travel"] = {travel_by_foot, travel_by_taxi};
     cout << "Methods: ";
     print(methods);
