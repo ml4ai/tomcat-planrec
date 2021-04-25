@@ -9,10 +9,10 @@ int main(int argc, char* argv[]) {
     state1.owe["me"] = 0;
     state1.dist["home"]["park"] = 8;
     state1.dist["park"]["home"] = 8;
-    auto domain = TravelDomain<TravelState>();
+    auto domain = TravelDomain();
 
     Tasks tasks = {
         {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}))}};
-    pyhop(state1, tasks, domain);
+    cpphop(state1, tasks, domain);
     return EXIT_SUCCESS;
 }

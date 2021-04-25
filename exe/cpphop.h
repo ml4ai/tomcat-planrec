@@ -103,7 +103,7 @@ bTasks seek_plan(State state,
 }
 
 template <class State, class Domain>
-bTasks pyhop(State state,
+bTasks cpphop(State state,
              Tasks tasks,
              Domain domain) {
     bTasks result = seek_plan(state, tasks, {}, domain, 0);

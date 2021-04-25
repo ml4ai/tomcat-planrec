@@ -90,16 +90,17 @@ class TravelState {
     std::unordered_map<std::string, double> cash;
 };
 
-template <class State> class TravelDomain {
+class TravelDomain {
   public:
     // Declare operators
-    Operators<State> operators = Operators<State>({{"walk", walk},
-                                                   {"call_taxi", call_taxi},
-                                                   {"ride_taxi", ride_taxi},
-                                                   {"pay_driver", pay_driver}});
+    Operators<TravelState> operators =
+        Operators<TravelState>({{"walk", walk},
+                                {"call_taxi", call_taxi},
+                                {"ride_taxi", ride_taxi},
+                                {"pay_driver", pay_driver}});
 
     // Declare methods
-    Methods<State> methods = Methods<State>({
+    Methods<TravelState> methods = Methods<TravelState>({
         {"travel", {travel_by_foot, travel_by_taxi}},
     });
 
