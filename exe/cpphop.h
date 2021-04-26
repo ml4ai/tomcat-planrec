@@ -75,8 +75,7 @@ bTasks seek_plan(State state,
     }
 
     Task task = tasks.back();
-    std::string task_id = task.first;
-    Args args = task.second;
+    auto [task_id, args] = task;
     
     if (in(task_id, domain.operators)) {
         Operator<State> op = domain.operators[task_id];
