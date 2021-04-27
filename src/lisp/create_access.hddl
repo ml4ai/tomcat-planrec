@@ -1,0 +1,104 @@
+(define (domain create_access)
+
+  (:requirements
+     :negative-preconditions
+     :hierarchy
+     :typing
+     :method-preconditions
+     )
+
+  (:types agent block location - object
+          hazmat medic searcher - agent
+     )
+
+  (:predicates 
+            ; social committments
+             (hazmat_committed ?h - hazmat ?l - location)
+             (medic_committed ?m - medic ?l - location)
+             (searcher_committed ?s - searcher ?l - location) 
+
+            ; agents
+            (at ?a - agent ?l - location)  ;any agent at a door
+            (hazmat_at ?h - hazmat ?l - location)
+            (medic_at ?m - medic ?l - location)
+            (searcher_at ?s - searcher ?l - location)
+
+            (inside ?a - agent ?l location) ;inside room
+
+            ; blocks
+             (in ?b -block ?l - location)
+             (observed ?b - block ?l - location)
+             (uttered ?b - block ?l - location)
+     )
+
+  (:task
+     )
+
+  (:method 
+     )
+
+
+  (:action 
+   :parameters ()
+   :precondition ()
+   :effect ()
+  ); end action()
+
+  (:action break_block
+   :parameters (?b - block
+                ?l - location
+                ?a - agent)
+   :precondition (and (hazmat_committed ?a ?l)
+                      (in ?b ?l)
+                      (observed ?b ?l))
+   :effect (and (not (in ?b ?l)
+                     (observed ?b ?l)
+                     (hazmat_committed ?a ?l)))
+  ); end action()
+
+
+  (:action enter_room
+   :parameters (?a - agent
+                ?l - location)
+   :precondition (at ?a ?l)
+   :effect (and (inside ?a ?l)
+                not (at ?a ?l))
+  ); end action()
+
+
+  (:action observe_block 
+   :parameters (?a - agent
+                ?b - block
+                ?l - location)
+   :precondition (and (hazmat_at ?h ?l)
+                      (in ?b ?l)
+                      not (observed ?b ?l))
+   :effect (observed ?b ?l)
+  ); end action()
+
+
+  (:action utter_block
+   :parameters (?a - agent ;any agent can mention block
+                ?b - block
+                ?h - hazmat ;efficient only if hazmat exists
+                ?l - location)
+   :precondition (and (at ?a ?l)
+                      (in ?b ?l)
+                      not (at ?h ?l))
+                      ;this assumes that you would not mention unless there
+                      were a hazmat specialist in the game. 
+   :effect (and (uttered ?b ?l)
+                (observed ?b ?l))
+  ); end action()
+
+
+  (:action walk 
+   :parameters (?loc1 loc2 - location
+                ?a - agent)
+   :precondition (at ?a ?loc1)
+   :effect (and (at ?a ?loc1)
+                not (at ?a ?loc2))
+  ); end action()
+
+
+  ); end domain definition
