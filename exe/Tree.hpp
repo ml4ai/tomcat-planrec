@@ -3,7 +3,7 @@
 #include <string>
 #include <boost/graph/adjacency_list.hpp>
 #include "Node.hpp"
-#include "util.hpp"
+#include "util.h"
 
 //adjacency_list<OutEdgeList, VertexList, Directed,
 //                VertexProperties, EdgeProperties,
@@ -14,7 +14,7 @@
 class TreeData {
   public:
     Plans plans;
-}
+};
 
 
 template <class State>

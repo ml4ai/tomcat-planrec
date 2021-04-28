@@ -60,7 +60,7 @@ void print(Tasks tasks) {
 void print(bTasks btasks) { print(btasks.second); }
 
 void print(Plans plans) {
-  std::cout << "Plans Found:" << endl;
+  std::cout << "Plans Found:" << std::endl;
   int i = 0;
   for (auto bt : plans ) {
     std::cout << "Plan " << i << ": ";
@@ -131,8 +131,8 @@ void seek_planDFS(Tree<State> t,
     print(t[v].tasks);
     std::cout << std::endl;
     if (t[v].tasks.size() == 0) {
-        t[graph_bundle].plans.push_back(t[v].plan);
-        std::cout << "Plan found at depth " << t[v].depth << endl;
+        t[boost::graph_bundle].plans.push_back(t[v].plan);
+        std::cout << "Plan found at depth " << t[v].depth << std::endl;
         return;
     }
 
@@ -154,7 +154,7 @@ void seek_planDFS(Tree<State> t,
             seek_planDFS(t,w,domain);
             return;
         }
-        std::cout << "Action Preconditions Failed at depth " << t[v].depth << ", BackTracking!" << endl;
+        std::cout << "Action Preconditions Failed at depth " << t[v].depth << ", BackTracking!" << std::endl;
         return;
     }
 
@@ -201,6 +201,6 @@ Plans cpphopDFS(State state,
     root.depth = 0;
     int v = boost::add_vertex(root,t);
     seek_planDFS(t,v,domain);
-    print(t[graph_bundle].plans);
-    return t[graph_bundle].plans;
+    print(t[boost::graph_bundle].plans);
+    return t[boost::graph_bundle].plans;
 }
