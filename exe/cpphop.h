@@ -1,3 +1,5 @@
+#pragma once
+
 #include <any>
 #include <iostream>
 #include <optional>
@@ -6,12 +8,9 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-using Args = std::unordered_map<std::string, std::string>;
-
-using Task = std::pair<std::string, Args>;
-using Tasks = std::vector<Task>;
-using bTasks = std::pair<bool, Tasks>;
+#include "Node.hpp"
+#include "Tree.hpp"
+#include "util.h"
 
 template <class State> using Operator = std::optional<State> (*)(State, Args);
 
@@ -114,10 +113,83 @@ bTasks seek_plan(State state,
 }
 
 template <class State, class Domain>
+void seek_planDFS(Tree<State> t,
+                 int v,
+                 Domain domain) {
+    std::cout << "depth: " << t[v].depth << std::endl;
+    std::cout << "tasks: ";
+    print(t[v].tasks);
+    std::cout << std::endl;
+    if (t[v].tasks.size() == 0) {
+        t[graph_bundle].plans.push_back(t[v].plan);
+        std::cout << "Plan found at depth " << t[v].depth << endl;
+        return;
+    }
+
+    Task task = t[v].tasks.back();
+    auto [task_id, args] = task;
+    
+    if (in(task_id, domain.operators)) {
+        Operator<State> op = domain.operators[task_id];
+        std::optional<State> newstate = op(state, args);
+        if (newstate) {
+            Node<State> n;
+            n.state = newstate;
+            n.tasks = t[v].tasks;
+            n.tasks.pop_back();
+            n.depth = t[v].depth + 1;
+            n.plan = t[v].plan;
+            n.plan.second.push_back(task);
+            int w = boost::add_vertex(n,t);
+            seek_planDFS(t,w,domain);
+            return;
+        }
+        std::cout << "Action Preconditions Failed at depth " << t[v].depth << ", BackTracking!" << endl;
+        return;
+    }
+
+    if (in(task_id, domain.methods)) {
+        auto relevant = domain.methods[task_id];
+        for (auto method : relevant) {
+            auto subtasks = method(state, args);
+            if (subtasks.first) {
+                tasks.pop_back();
+                for (auto i = subtasks.second.end();
+                     i != subtasks.second.begin();) {
+                    tasks.push_back(*(--i));
+                }
+                bTasks solution = seek_plan(
+                    state, tasks, plan, domain, depth + 1);
+                if (solution.first) {
+                    return solution;
+                }
+            }
+        }
+        return;
+    }
+}
+
+template <class State, class Domain>
 bTasks cpphop(State state,
              Tasks tasks,
              Domain domain) {
     bTasks result = seek_plan(state, tasks, {}, domain, 0);
+    print(result);
+    return result;
+}
+
+template <class State, class Domain>
+Plans cpphopDFS(State state,
+             Tasks tasks,
+             Domain domain) {
+    Tree<State> t;
+    Node<State> root;
+    root.state = state;
+    root.tasks = tasks;
+    root.plan = {};
+    root.depth = 0;
+    int v = boost::add_vertex(root,t);
+    seek_planDFS(t,v,domain);
     print(result);
     return result;
 }
