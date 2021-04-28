@@ -59,6 +59,16 @@ void print(Tasks tasks) {
 
 void print(bTasks btasks) { print(btasks.second); }
 
+void print(Plans plans) {
+  std::cout << "Plans Found:" << endl;
+  int i = 0;
+  for (auto bt : plans ) {
+    std::cout << "Plan " << i << ": ";
+    print(bt);
+    i++;
+  }
+}
+
 template <class State, class Domain>
 bTasks seek_plan(State state,
                  std::vector<Task> tasks,
@@ -131,7 +141,7 @@ void seek_planDFS(Tree<State> t,
     
     if (in(task_id, domain.operators)) {
         Operator<State> op = domain.operators[task_id];
-        std::optional<State> newstate = op(state, args);
+        std::optional<State> newstate = op(t[v].state, args);
         if (newstate) {
             Node<State> n;
             n.state = newstate;
@@ -151,18 +161,19 @@ void seek_planDFS(Tree<State> t,
     if (in(task_id, domain.methods)) {
         auto relevant = domain.methods[task_id];
         for (auto method : relevant) {
-            auto subtasks = method(state, args);
+            auto subtasks = method(t[v].state, args);
             if (subtasks.first) {
-                tasks.pop_back();
+                Node<State> n;
+                n.state = t[v].state;
+                n.tasks = t[v].tasks;
+                n.tasks.pop_back();
+                n.depth = t[v].depth + 1;
                 for (auto i = subtasks.second.end();
                      i != subtasks.second.begin();) {
-                    tasks.push_back(*(--i));
+                    n.tasks.push_back(*(--i));
                 }
-                bTasks solution = seek_plan(
-                    state, tasks, plan, domain, depth + 1);
-                if (solution.first) {
-                    return solution;
-                }
+                int w = boost::add_vertex(n,t);
+                seek_planDFS(t,w,domain);
             }
         }
         return;
@@ -190,6 +201,6 @@ Plans cpphopDFS(State state,
     root.depth = 0;
     int v = boost::add_vertex(root,t);
     seek_planDFS(t,v,domain);
-    print(result);
-    return result;
+    print(t[graph_bundle].plans);
+    return t[graph_bundle].plans;
 }
