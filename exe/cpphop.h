@@ -123,7 +123,7 @@ bTasks seek_plan(State state,
 }
 
 template <class State, class Domain>
-void seek_planDFS(Tree<State> t,
+Tree<State> seek_planDFS(Tree<State> t,
                  int v,
                  Domain domain) {
     std::cout << "depth: " << t[v].depth << std::endl;
@@ -133,7 +133,7 @@ void seek_planDFS(Tree<State> t,
     if (t[v].tasks.size() == 0) {
         t[boost::graph_bundle].plans.push_back(t[v].plan);
         std::cout << "Plan found at depth " << t[v].depth << std::endl;
-        return;
+        return t;
     }
 
     Task task = t[v].tasks.back();
@@ -144,18 +144,17 @@ void seek_planDFS(Tree<State> t,
         std::optional<State> newstate = op(t[v].state, args);
         if (newstate) {
             Node<State> n;
-            n.state = newstate;
+            n.state = newstate.value();
             n.tasks = t[v].tasks;
             n.tasks.pop_back();
             n.depth = t[v].depth + 1;
             n.plan = t[v].plan;
             n.plan.second.push_back(task);
             int w = boost::add_vertex(n,t);
-            seek_planDFS(t,w,domain);
-            return;
+            return seek_planDFS(t,w,domain);
         }
         std::cout << "Action Preconditions Failed at depth " << t[v].depth << ", BackTracking!" << std::endl;
-        return;
+        return t;
     }
 
     if (in(task_id, domain.methods)) {
@@ -173,10 +172,10 @@ void seek_planDFS(Tree<State> t,
                     n.tasks.push_back(*(--i));
                 }
                 int w = boost::add_vertex(n,t);
-                seek_planDFS(t,w,domain);
+                t = seek_planDFS(t,w,domain);
             }
         }
-        return;
+        return t;
     }
 }
 
@@ -200,7 +199,7 @@ Plans cpphopDFS(State state,
     root.plan = {};
     root.depth = 0;
     int v = boost::add_vertex(root,t);
-    seek_planDFS(t,v,domain);
+    t = seek_planDFS(t,v,domain);
     print(t[boost::graph_bundle].plans);
     return t[boost::graph_bundle].plans;
 }

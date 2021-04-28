@@ -81,7 +81,6 @@ template <class State> bTasks travel_by_taxi(State state, Args args) {
 
 class TravelState {
   public:
-    TravelState(std::string name) : name(name){};
     std::string name;
     std::unordered_map<std::string, std::string> loc;
     std::unordered_map<std::string, std::unordered_map<std::string, double>>
