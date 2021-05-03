@@ -1,2 +1,5 @@
 set(CMAKE_CXX_STANDARD 20)
 add_executable(planner planner.cpp)
+find_package(Boost REQUIRED)
+add_executable(hddlParser hddlParser.cpp)
+target_include_directories(hddlParser PRIVATE ${Boost_INCLUDE_DIRS})
