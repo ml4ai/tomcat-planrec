@@ -198,6 +198,126 @@ template <class State> bTasks leave_left(State state, Args args) {
   }
 }
 
+template <class State> bTasks search_right(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time <= 590 && state.loc[agent] != "entrance") {
+    return {true, 
+      {Task("search",Args({{"agent",agent},{"area",state.loc[agent]}})),
+      Task("explore_right_region",Args({{"agent",agent}}))}};
+  }
+  else {
+    return {false,{}};
+  }
+}
+
+template <class State> bTasks triageGreen_right(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time <= 590 && state.g_seen[agent] > 0 && state.loc[agent] != "entrance") {
+    return {true, 
+      {Task("triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}})),
+      Task("explore_right_region",Args({{"agent",agent}}))}}; 
+  }
+  else {
+    return {false,{}};
+  }
+}
+
+template <class State> bTasks triageYellow_right(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time <= 405 && state.y_seen[agent] > 0 && state.loc[agent] != "entrance") {
+    return {true, 
+      {Task("triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}})),
+      Task("explore_right_region",Args({{"agent",agent}}))}}; 
+  }
+  else {
+    return {false,{}};
+  }
+}
+
+template <class State> bTasks move_right(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time <= 590 && !state.right_region.empty()) {
+    std::string n_area = state.right_region.back();
+    state.right_region.pop_back();
+    return {true, 
+      {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
+      Task("explore_right_region",Args({{"agent",agent}}))}}; 
+  }
+  else {
+    return {false,{}};
+  }
+}
+
+template <class State> bTasks leave_right(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time >= 590 || state.right_region.empty()) {
+    return {true,{}}; 
+  }
+  else {
+    return {false,{}};
+  }
+}
+
+template <class State> bTasks search_mid(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time <= 590 && state.loc[agent] != "entrance") {
+    return {true, 
+      {Task("search",Args({{"agent",agent},{"area",state.loc[agent]}})),
+      Task("explore_mid_region",Args({{"agent",agent}}))}};
+  }
+  else {
+    return {false,{}};
+  }
+}
+
+template <class State> bTasks triageGreen_mid(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time <= 590 && state.g_seen[agent] > 0 && state.loc[agent] != "entrance") {
+    return {true, 
+      {Task("triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}})),
+      Task("explore_mid_region",Args({{"agent",agent}}))}}; 
+  }
+  else {
+    return {false,{}};
+  }
+}
+
+template <class State> bTasks triageYellow_mid(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time <= 405 && state.y_seen[agent] > 0 && state.loc[agent] != "entrance") {
+    return {true, 
+      {Task("triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}})),
+      Task("explore_mid_region",Args({{"agent",agent}}))}}; 
+  }
+  else {
+    return {false,{}};
+  }
+}
+
+template <class State> bTasks move_mid(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time <= 590 && !state.mid_region.empty()) {
+    std::string n_area = state.mid_region.back();
+    state.mid_region.pop_back();
+    return {true, 
+      {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
+      Task("explore_mid_region",Args({{"agent",agent}}))}}; 
+  }
+  else {
+    return {false,{}};
+  }
+}
+
+template <class State> bTasks leave_mid(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.time >= 590 || state.mid_region.empty()) {
+    return {true,{}}; 
+  }
+  else {
+    return {false,{}};
+  }
+}
+
 class SARState {
   public:
     std::unordered_map<std::string, std::string> loc;
@@ -213,7 +333,7 @@ class SARState {
     std::vector<std::string> right_region;
     std::vector<std::string> mid_region;
     int time;
-}
+};
 
 class SARDomain {
   public:
@@ -229,5 +349,31 @@ class SARDomain {
                           {explore_left_to_right,
                            explore_right_to_left,
                            explore_mid_left_right,
-                           explore_mid_right_left}}}); 
-}
+                           explore_mid_right_left}},
+                         {"explore_left_region",
+                          {search_left,
+                           triageYellow_left,
+                           triageGreen_left,
+                           move_left,
+                           leave_left}},
+                         {"explore_right_region",
+                          {search_right,
+                           triageYellow_right,
+                           triageGreen_right,
+                           move_right,
+                           leave_right}},
+                         {"explore_mid_region",
+                          {search_mid,
+                           triageYellow_mid,
+                           triageGreen_mid,
+                           move_mid,
+                           leave_mid}}});
+
+    SARDomain() {
+      std::cout << "Operators: ";
+      print(this->operators);
+
+      std::cout << "Method: ";
+      print(this->methods);
+    };
+};
