@@ -28,6 +28,12 @@ bool in(Element element, AssociativeContainer container) {
     return container.count(element);
 }
 
+// Utility method to see if an element is in a vector
+template <class Element>
+bool in(Element element, std::vector<Element> v) {
+    return std::count(v.begin(),v.end(), element);
+}
+
 // Utility methods for printing information to stdout.
 template <class State> void print(Operators<State> operators) {
     for (auto [operator_name, operator_func] : operators) {

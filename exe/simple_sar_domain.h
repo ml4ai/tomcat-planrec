@@ -11,7 +11,7 @@ template <class State> std::optional<State> search(State state, Args args) {
     if (state.time < 420) {
       std::poisson_distribution<int> y_dist(state.y_vic[area]/2);
       int y_vic = y_dist(gen);
-      if y_vic > state.y_vic[area] {
+      if (y_vic > state.y_vic[area]) {
         y_vic = state.y_vic[area];
       }
       state.y_seen[agent] = state.y_seen[agent] + y_vic;
@@ -24,7 +24,7 @@ template <class State> std::optional<State> search(State state, Args args) {
 
     int g_vic = g_dist(gen);
 
-    if g_vic > state.g_vic[area] {
+    if (g_vic > state.g_vic[area]) {
       g_vic = state.g_vic[area];
     }
 
@@ -80,8 +80,8 @@ template <class State> std::optional<State> move(State state, Args args) {
     state.loc[agent] = n_area;
     state.y_seen[agent] = 0;
     state.g_seen[agent] = 0;
-
-
+    
+    state.visited["me"].push_back(n_area);
     state.time = state.time + 10;
 
     return state;
@@ -92,12 +92,7 @@ template <class State> std::optional<State> move(State state, Args args) {
 }
 
 template <class State> std::optional<State> exit(State state, Args args) {
-  if (state.time >= 600) {
     return state;
-  }
-  else {
-    return std::nullopt;
-  }
 }
 
 // Methods
@@ -175,9 +170,14 @@ template <class State> bTasks triageYellow_left(State state, Args args) {
 
 template <class State> bTasks move_left(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time <= 590 && !state.left_region.empty()) {
-    std::string n_area = state.left_region.back();
-    state.left_region.pop_back();
+  std::string n_area = "none";
+  for(auto a : state.left_region) {
+    if (!in(a,state.visited[agent])) {
+      n_area = a;
+      break;
+    }
+  }
+  if (state.time <= 590 && n_area != "none") {
     return {true, 
       {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
       Task("explore_left_region",Args({{"agent",agent}}))}}; 
@@ -189,7 +189,7 @@ template <class State> bTasks move_left(State state, Args args) {
 
 template <class State> bTasks leave_left(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time >= 590 || state.left_region.empty()) {
+  if (state.time > 590 || state.left_region.empty()) {
     return {true,{}}; 
   }
   else {
@@ -235,9 +235,14 @@ template <class State> bTasks triageYellow_right(State state, Args args) {
 
 template <class State> bTasks move_right(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time <= 590 && !state.right_region.empty()) {
-    std::string n_area = state.right_region.back();
-    state.right_region.pop_back();
+  std::string n_area = "none";
+  for(auto a : state.right_region) {
+    if (!in(a,state.visited[agent])) {
+      n_area = a;
+      break;
+    }
+  }
+  if (state.time <= 590 && n_area != "none") {
     return {true, 
       {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
       Task("explore_right_region",Args({{"agent",agent}}))}}; 
@@ -249,7 +254,7 @@ template <class State> bTasks move_right(State state, Args args) {
 
 template <class State> bTasks leave_right(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time >= 590 || state.right_region.empty()) {
+  if (state.time > 590 || state.right_region.empty()) {
     return {true,{}}; 
   }
   else {
@@ -295,7 +300,14 @@ template <class State> bTasks triageYellow_mid(State state, Args args) {
 
 template <class State> bTasks move_mid(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time <= 590 && !state.mid_region.empty()) {
+  std::string n_area = "none";
+  for(auto a : state.mid_region) {
+    if (!in(a,state.visited[agent])) {
+      n_area = a;
+      break;
+    }
+  }
+  if (state.time <= 590 && n_area != "none") {
     std::string n_area = state.mid_region.back();
     state.mid_region.pop_back();
     return {true, 
@@ -309,7 +321,7 @@ template <class State> bTasks move_mid(State state, Args args) {
 
 template <class State> bTasks leave_mid(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time >= 590 || state.mid_region.empty()) {
+  if (state.time > 590 || state.mid_region.empty()) {
     return {true,{}}; 
   }
   else {
@@ -322,14 +334,15 @@ class SARState {
     std::unordered_map<std::string, std::string> loc;
     std::unordered_map<std::string, int> y_vic;
     std::unordered_map<std::string, int> g_vic;
-    std::unordered_map<std::string, int> y_total;
-    std::unordered_map<std::string, int> g_total;
+    int y_total;
+    int g_total;
     std::unordered_map<std::string, int> y_seen;
     std::unordered_map<std::string, int> g_seen;
     std::vector<std::string> left_region;
     std::vector<std::string> right_region;
     std::vector<std::string> mid_region;
     int time;
+    std::unordered_map<std::string, std::vector<std::string>> visited; 
 };
 
 class SARDomain {

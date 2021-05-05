@@ -44,25 +44,25 @@ int main(int argc, char* argv[]) {
     state1.g_vic[area11] = 2;
     state1.g_vic[area12] = 0;
 
-    state1.left_region.push_back(area4);
-    state1.left_region.push_back(area3);
-    state1.left_region.push_back(area2);
     state1.left_region.push_back(area1);
+    state1.left_region.push_back(area2);
+    state1.left_region.push_back(area3);
+    state1.left_region.push_back(area4);
 
-    state1.right_region.push_back(area8);
-    state1.right_region.push_back(area7);
-    state1.right_region.push_back(area6);
     state1.right_region.push_back(area5);
+    state1.right_region.push_back(area6);
+    state1.right_region.push_back(area7);
+    state1.right_region.push_back(area8);
 
-    state1.mid_region.push_back(area12);
-    state1.mid_region.push_back(area11);
-    state1.mid_region.push_back(area10);
     state1.mid_region.push_back(area9);
+    state1.mid_region.push_back(area10);
+    state1.mid_region.push_back(area11);
+    state1.mid_region.push_back(area12);
 
     state1.y_seen["me"] = 0;
     state1.g_seen["me"] = 0;
-    state1.y_total["me"] = 0;
-    state1.g_total["me"] = 0;
+    state1.y_total = 0;
+    state1.g_total = 0;
     state1.time = 0;
 
     auto domain = SARDomain();
