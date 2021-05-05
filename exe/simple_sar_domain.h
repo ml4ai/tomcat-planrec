@@ -30,7 +30,6 @@ template <class State> std::optional<State> search(State state, Args args) {
 
     state.g_seen[agent] = state.g_seen[agent] + g_vic;
 
-    state.searched[agent] = true;
 
     state.time = state.time + 10;
 
@@ -78,10 +77,10 @@ template <class State> std::optional<State> move(State state, Args args) {
   auto c_area = args["c_area"];
   auto n_area = args["n_area"];
   if (state.loc[agent] == c_area && state.time <= 590) {
+    state.loc[agent] = n_area;
     state.y_seen[agent] = 0;
     state.g_seen[agent] = 0;
 
-    state.searched[agent] = false;
 
     state.time = state.time + 10;
 
@@ -327,8 +326,6 @@ class SARState {
     std::unordered_map<std::string, int> g_total;
     std::unordered_map<std::string, int> y_seen;
     std::unordered_map<std::string, int> g_seen;
-    std::unordered_map<std::string, bool> searched;
-    std::unordered_map<std::string, std::string> areas;
     std::vector<std::string> left_region;
     std::vector<std::string> right_region;
     std::vector<std::string> mid_region;
