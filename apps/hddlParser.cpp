@@ -6,8 +6,8 @@
 =============================================================================*/
 ///////////////////////////////////////////////////////////////////////////////
 //
-//  This sample demontrates a parser for a comma separated list of numbers.
-//  No actions.
+//  This sample demontrates a parser for a comma separated list of strings.
+//  The strings are inserted in a vector using phoenix.
 //
 //  [ JDG May 10, 2002 ]    spirit1
 //  [ JDG March 24, 2007 ]  spirit2
@@ -16,6 +16,9 @@
 
 #include <boost/config/warning_disable.hpp>
 #include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/phoenix_core.hpp>
+#include <boost/spirit/include/phoenix_operator.hpp>
+#include <boost/spirit/include/phoenix_stl.hpp>
 
 #include <iostream>
 #include <string>
@@ -27,22 +30,27 @@ namespace client
     namespace ascii = boost::spirit::ascii;
 
     ///////////////////////////////////////////////////////////////////////////
-    //  Our number list parser
+    //  Our string list compiler
     ///////////////////////////////////////////////////////////////////////////
-    //[tutorial_numlist1
+    //[tutorial_numlist4
     template <typename Iterator>
-    bool parse_numbers(Iterator first, Iterator last)
+    bool parse_strings(Iterator first, Iterator last, std::vector<std::string>& v)
     {
         using qi::double_;
-        using qi::phrase_parse;
+        using qi::parse;
         using ascii::space;
 
-        bool r = phrase_parse(
-            first,                          /*< start iterator >*/
-            last,                           /*< end iterator >*/
-            double_ >> *(',' >> double_),   /*< the parser >*/
-            space                           /*< the skip-parser >*/
-        );
+        bool r = parse(first, last,
+
+            //  Begin grammar
+            (
+                '(' >> qi::lexeme[+(qi::char_ - ')' - ' ')] % ' ' >> ')'
+            )
+            ,
+            //  End grammar
+
+            v);
+
         if (first != last) // fail if we did not get a full match
             return false;
         return r;
@@ -60,7 +68,8 @@ main()
     std::cout << "\t\tA comma separated list parser for Spirit...\n\n";
     std::cout << "/////////////////////////////////////////////////////////\n\n";
 
-    std::cout << "Give me a comma separated list of numbers.\n";
+    std::cout << "Give me a comma separated list of strings.\n";
+    std::cout << "The strings will be inserted in a vector of strings\n";
     std::cout << "Type [q or Q] to quit\n\n";
 
     std::string str;
@@ -69,11 +78,17 @@ main()
         if (str.empty() || str[0] == 'q' || str[0] == 'Q')
             break;
 
-        if (client::parse_numbers(str.begin(), str.end()))
+        std::vector<std::string> v;
+        if (client::parse_strings(str.begin(), str.end(), v))
         {
             std::cout << "-------------------------\n";
             std::cout << "Parsing succeeded\n";
             std::cout << str << " Parses OK: " << std::endl;
+
+            for (std::vector<std::string>::size_type i = 0; i < v.size(); ++i)
+                std::cout << i << ": " << v[i] << std::endl;
+
+            std::cout << "\n-------------------------\n";
         }
         else
         {
