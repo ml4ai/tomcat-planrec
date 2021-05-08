@@ -32,7 +32,16 @@ namespace client
     ///////////////////////////////////////////////////////////////////////////
     //  Our string list compiler
     ///////////////////////////////////////////////////////////////////////////
-    //[tutorial_numlist4
+
+    template<class Iterator>
+    class HDDLParser : qi::grammar<Iterator, unsigned()> {
+        HDDLParser() : HDDLParser::base_type(start) {
+            start = qi::eps >> '(' >> qi::lexeme[+(qi::alnum)] % qi::space >> ')';
+        }
+        qi::rule<Iterator, unsigned()> start;
+    };
+
+
     template <typename Iterator>
     bool parse_strings(Iterator first, Iterator last, std::vector<std::string>& v)
     {
@@ -40,16 +49,8 @@ namespace client
         using qi::parse;
         using ascii::space;
 
-        bool r = parse(first, last,
-
-            //  Begin grammar
-            (
-                '(' >> qi::lexeme[+(qi::char_ - ')' - ' ')] % ' ' >> ')'
-            )
-            ,
-            //  End grammar
-
-            v);
+        HDDLParser<std::string::const_iterator> parser;
+        bool r = parse(first, last, parser, v);
 
         if (first != last) // fail if we did not get a full match
             return false;
