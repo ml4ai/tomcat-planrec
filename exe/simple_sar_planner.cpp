@@ -67,8 +67,10 @@ int main(int argc, char* argv[]) {
 
     auto domain = SARDomain();
 
+    auto selector = SARSelector();
+
     Tasks tasks = {
         {Task("SAR", Args({{"agent", "me"}}))}};
-    cpphopDFS(state1, tasks, domain);
+    cpphopDFS(state1, tasks, domain, selector);
     return EXIT_SUCCESS;
 }

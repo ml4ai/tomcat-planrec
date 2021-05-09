@@ -1,36 +1,20 @@
 #include "cpphop.h"
-#include <random>
+#include <math.h>
 
-std::default_random_engine gen;
 
 // operators
 template <class State> std::optional<State> search(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
   if (state.loc[agent] == area && state.time <= 590) {
-    if (state.time < 420) {
-      std::poisson_distribution<int> y_dist(state.y_vic[area]/2);
-      int y_vic = y_dist(gen);
-      if (y_vic > state.y_vic[area]) {
-        y_vic = state.y_vic[area];
-      }
-      state.y_seen[agent] = state.y_seen[agent] + y_vic;
+    if (state.time < 420 && (state.y_vic[area] - state.y_seen[agent]) > 0) {
+      state.y_seen[agent] = state.y_seen[agent] + 1;
     }
-    else {
-      state.y_seen[agent] = 0;
-    }
+
+    if ((state.g_vic[area] - state.g_seen[agent]) > 0) {
+      state.g_seen[agent] = state.g_seen[agent] + 1;
+    } 
  
-    std::poisson_distribution<int> g_dist(state.g_vic[area]/2);
-
-    int g_vic = g_dist(gen);
-
-    if (g_vic > state.g_vic[area]) {
-      g_vic = state.g_vic[area];
-    }
-
-    state.g_seen[agent] = state.g_seen[agent] + g_vic;
-
-
     state.time = state.time + 10;
 
     return state;
@@ -336,6 +320,8 @@ class SARState {
     std::unordered_map<std::string, int> g_vic;
     int y_total;
     int g_total;
+    int y_max;
+    int g_max;
     std::unordered_map<std::string, int> y_seen;
     std::unordered_map<std::string, int> g_seen;
     std::vector<std::string> left_region;
@@ -343,6 +329,51 @@ class SARState {
     std::vector<std::string> mid_region;
     int time;
     std::unordered_map<std::string, std::vector<std::string>> visited; 
+
+    friend bool operator== (SARState & lhs, SARState & rhs) {
+      return (
+             lhs.loc == rhs.loc && 
+             lhs.y_vic == rhs.y_vic &&
+             lhs.g_vic == rhs.g_vic &&
+             lhs.y_total == rhs.y_total &&
+             lhs.g_total == rhs.g_total &&
+             lhs.y_seen == rhs.y_seen &&
+             lhs.g_seen == rhs.g_seen &&
+             lhs.left_region == rhs.left_region &&
+             lhs.right_region == rhs.right_region &&
+             lhs.mid_region == rhs.mid_region &&
+             lhs.time == rhs.time &&
+             lhs.visited == rhs.visited &&
+             lhs.y_max == rhs.y_max &&
+             lhs.g_max == rhs.g_max
+          );
+    }
+    void set_max_vic() {
+      g_max = 0;
+      for (auto i = g_vic.begin(); i != g_vic.end(); ++i) {
+        g_max += i->second;
+      }
+
+      y_max = 0;
+      for (auto i = y_vic.begin(); i != y_vic.end(); ++i) {
+        y_max += i->second;
+      }
+    }
+};
+
+class SARSelector {
+  public:
+    double mean = 0;
+    int sims = 0;
+
+    double selectFunc(int pSims, double c, int r_l, int r_t) {
+      return this->mean + ((c*r_l)/r_t)*sqrt(log(pSims)/this->sims);
+    }
+
+    double rewardFunc(SARState s) {
+      return (50.00*s.y_total + 10.00*s.g_total)/(50.00*s.y_max + 10.00*s.g_max);
+    }
+
 };
 
 class SARDomain {
