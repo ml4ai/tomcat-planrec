@@ -11,8 +11,10 @@ int main(int argc, char* argv[]) {
     state1.dist["park"]["home"] = 1;
     auto domain = TravelDomain();
 
+    auto selector = TravelSelector();
+
     Tasks tasks = {
         {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}))}};
-    cpphopDFS(state1, tasks, domain);
+    cpphopDFS(state1, tasks, domain, selector);
     return EXIT_SUCCESS;
 }

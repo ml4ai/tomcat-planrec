@@ -89,6 +89,11 @@ class TravelState {
     std::unordered_map<std::string, double> cash;
 };
 
+class TravelSelector {
+
+
+};
+
 class TravelDomain {
   public:
     // Declare operators
