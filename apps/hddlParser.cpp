@@ -1,100 +1,54 @@
-/*=============================================================================
-    Copyright (c) 2002-2010 Joel de Guzman
+/*==============================================================================
+    Copyright (c) 2001-2011 Hartmut Kaiser
+    Copyright (c) 2001-2011 Joel de Guzman
+    Copyright (c) 2010-2011 Bryce Lelbach
 
     Distributed under the Boost Software License, Version 1.0. (See accompanying
-    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-=============================================================================*/
-///////////////////////////////////////////////////////////////////////////////
-//
-//  This sample demontrates a parser for a comma separated list of strings.
-//  The strings are inserted in a vector using phoenix.
-//
-//  [ JDG May 10, 2002 ]    spirit1
-//  [ JDG March 24, 2007 ]  spirit2
-//
-///////////////////////////////////////////////////////////////////////////////
+    file BOOST_LICENSE_1_0.rst or copy at http://www.boost.org/LICENSE_1_0.txt)
+==============================================================================*/
 
-#include <boost/config/warning_disable.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix_core.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-#include <boost/spirit/include/phoenix_stl.hpp>
+#include <boost/spirit/include/qi_parse.hpp>
+#include <boost/spirit/include/support_istream_iterator.hpp>
+#include <boost/spirit/include/support_line_pos_iterator.hpp>
+#include <boost/spirit/home/support/utree.hpp>
 
-#include <iostream>
-#include <string>
-#include <vector>
+#include "sexpr_parser.hpp"
 
-namespace client
-{
-    namespace qi = boost::spirit::qi;
-    namespace ascii = boost::spirit::ascii;
+int main() {
+    using boost::spirit::qi::phrase_parse;
 
-    ///////////////////////////////////////////////////////////////////////////
-    //  Our string list compiler
-    ///////////////////////////////////////////////////////////////////////////
+    std::cout << "sexpr parser...\n\n";
+    std::cout << "Type an expression... or [q or Q] to quit\n\n";
 
-    template<class Iterator>
-    class HDDLParser : qi::grammar<Iterator, unsigned()> {
-        HDDLParser() : HDDLParser::base_type(start) {
-            start = qi::eps >> '(' >> qi::lexeme[+(qi::alnum)] % qi::space >> ')';
-        }
-        qi::rule<Iterator, unsigned()> start;
-    };
+    typedef std::string::const_iterator iterator_type;
+    typedef sexpr::parser<iterator_type> parser;
+    typedef sexpr::whitespace<iterator_type> space;
 
-
-    template <typename Iterator>
-    bool parse_strings(Iterator first, Iterator last, std::vector<std::string>& v)
-    {
-        using qi::double_;
-        using qi::parse;
-        using ascii::space;
-
-        HDDLParser<std::string::const_iterator> parser;
-        bool r = parse(first, last, parser, v);
-
-        if (first != last) // fail if we did not get a full match
-            return false;
-        return r;
-    }
-    //]
-}
-
-////////////////////////////////////////////////////////////////////////////
-//  Main program
-////////////////////////////////////////////////////////////////////////////
-int
-main()
-{
-    std::cout << "/////////////////////////////////////////////////////////\n\n";
-    std::cout << "\t\tA comma separated list parser for Spirit...\n\n";
-    std::cout << "/////////////////////////////////////////////////////////\n\n";
-
-    std::cout << "Give me a comma separated list of strings.\n";
-    std::cout << "The strings will be inserted in a vector of strings\n";
-    std::cout << "Type [q or Q] to quit\n\n";
+    parser p;
+    space ws;
+    boost::spirit::utree ut;
 
     std::string str;
-    while (getline(std::cin, str))
-    {
+    while (std::getline(std::cin, str)) {
         if (str.empty() || str[0] == 'q' || str[0] == 'Q')
             break;
 
-        std::vector<std::string> v;
-        if (client::parse_strings(str.begin(), str.end(), v))
-        {
+        std::string::const_iterator iter = str.begin();
+        std::string::const_iterator end = str.end();
+        bool r = phrase_parse(iter, end, p, ws, ut);
+
+        if (r && iter == end) {
             std::cout << "-------------------------\n";
             std::cout << "Parsing succeeded\n";
-            std::cout << str << " Parses OK: " << std::endl;
-
-            for (std::vector<std::string>::size_type i = 0; i < v.size(); ++i)
-                std::cout << i << ": " << v[i] << std::endl;
-
-            std::cout << "\n-------------------------\n";
+            std::cout << "-------------------------\n";
+            auto print = boost::spirit::utree_print(std::cout);
+            for ( auto x : ut ) { std::cout << x << ":" << x.which() << std::endl; }
         }
-        else
-        {
+        else {
+            std::string rest(iter, end);
             std::cout << "-------------------------\n";
             std::cout << "Parsing failed\n";
+            std::cout << "stopped at: \": " << rest << "\"\n";
             std::cout << "-------------------------\n";
         }
     }
