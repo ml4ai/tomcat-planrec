@@ -26,6 +26,8 @@ using Tree = boost::adjacency_list<boost::vecS,
                               boost::no_property,
                               TreeData>;
 
+//Keeping these functions just in case we can fix them.
+//For now, DO NOT USE THEM! They cause weird behaviors/segfaults
 template <class State, class Selector>
 auto get_successors(Tree<State,Selector> t,int i) {
     return boost::make_iterator_range(boost::adjacent_vertices(i, t));

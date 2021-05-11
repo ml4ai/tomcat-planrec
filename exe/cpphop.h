@@ -216,6 +216,9 @@ Plans cpphopDFS(State state,
     return t[boost::graph_bundle].plans;
 }
 
+//MCTS algorithms
+//See Tree.hpp for why boost::edges are not used and why
+//the successor/predecessor functions are not used
 template <class State, class Selector>
 std::pair<Tree<State, Selector>,int> selection(Tree<State,Selector> t, int v, double c, int r_l, int r_t) {
   if (t[v].successors.empty()) {

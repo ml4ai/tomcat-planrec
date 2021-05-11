@@ -13,6 +13,8 @@ class Node {
     int depth;
     bTasks plan;
     Selector selector;
+
+    //See Tree.hpp note for why these are needed
     int pred = -1;
     std::vector<int> successors = {};
 
