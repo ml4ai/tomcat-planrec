@@ -13,7 +13,88 @@
 #include <boost/spirit/home/support/utree.hpp>
 
 #include "sexpr_parser.hpp"
+struct utree_print_2
+{
+    typedef void result_type;
 
+    std::ostream& out;
+    utree_print_2(std::ostream& out) : out(out) {}
+
+    void operator()(utree::invalid_type) const
+    {
+        out << "<invalid> ";
+    }
+
+    void operator()(utree::nil_type) const
+    {
+        out << "<nil> ";
+    }
+
+    template <typename T>
+    void operator()(T val) const
+    {
+        out << val << ' ';
+    }
+
+    void operator()(bool b) const
+    {
+        out << (b ? "true" : "false") << ' ';
+    }
+
+    void operator()(binary_range_type const& b) const
+    {
+        boost::io::ios_all_saver saver(out);
+        out << "#";
+        out.width(2);
+        out.fill('0');
+
+        typedef binary_range_type::const_iterator iterator;
+        for (iterator i = b.begin(); i != b.end(); ++i)
+            out << std::hex << int((unsigned char)*i);
+        out << "# ";
+    }
+
+    void operator()(utf8_string_range_type const& str) const
+    {
+        typedef utf8_string_range_type::const_iterator iterator;
+        iterator i = str.begin();
+        out << '"';
+        for (; i != str.end(); ++i)
+            out << *i;
+        out << "\" ";
+    }
+
+    void operator()(utf8_symbol_range_type const& str) const
+    {
+        typedef utf8_symbol_range_type::const_iterator iterator;
+        iterator i = str.begin();
+        for (; i != str.end(); ++i)
+            out << *i;
+        out << ' ';
+    }
+
+    template <typename Iterator>
+    void operator()(boost::iterator_range<Iterator> const& range) const
+    {
+        typedef typename boost::iterator_range<Iterator>::const_iterator iterator;
+        (*this)('(');
+        for (iterator i = range.begin(); i != range.end(); ++i)
+        {
+            boost::spirit::utree::visit(*i, *this);
+        }
+        (*this)(')');
+    }
+
+    void operator()(any_ptr const&) const
+    {
+        return (*this)("<pointer>");
+    }
+
+    void operator()(function_base const&) const
+    {
+        return (*this)("<function>");
+    }
+};
 int main() {
     using boost::spirit::qi::phrase_parse;
 
@@ -41,7 +122,7 @@ int main() {
             std::cout << "-------------------------\n";
             std::cout << "Parsing succeeded\n";
             std::cout << "-------------------------\n";
-            auto print = boost::spirit::utree_print(std::cout);
+            auto print = boost::spirit::utree_print_2(std::cout);
             for ( auto x : ut ) { std::cout << x << ":" << x.which() << std::endl; }
         }
         else {
