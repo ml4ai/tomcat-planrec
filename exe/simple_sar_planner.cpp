@@ -64,6 +64,10 @@ int main(int argc, char* argv[]) {
     state1.y_total = 0;
     state1.g_total = 0;
     state1.time = 0;
+    state1.g_max = 32;
+    state1.y_max = 20;
+
+   // state1.set_max_vic();
 
     auto domain = SARDomain();
 

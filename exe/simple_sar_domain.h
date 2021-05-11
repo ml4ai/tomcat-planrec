@@ -173,7 +173,15 @@ template <class State> bTasks move_left(State state, Args args) {
 
 template <class State> bTasks leave_left(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time > 590 || state.left_region.empty()) {
+  bool explored = true;
+  for(auto a : state.left_region) {
+    if (!in(a,state.visited[agent])) {
+      explored = false;
+      break;
+    }
+  }
+ 
+  if (state.time > 590 || explored) {
     return {true,{}}; 
   }
   else {
@@ -238,7 +246,15 @@ template <class State> bTasks move_right(State state, Args args) {
 
 template <class State> bTasks leave_right(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time > 590 || state.right_region.empty()) {
+  bool explored = true;
+  for(auto a : state.right_region) {
+    if (!in(a,state.visited[agent])) {
+      explored = false;
+      break;
+    }
+  }
+ 
+  if (state.time > 590 || explored) {
     return {true,{}}; 
   }
   else {
@@ -292,8 +308,6 @@ template <class State> bTasks move_mid(State state, Args args) {
     }
   }
   if (state.time <= 590 && n_area != "none") {
-    std::string n_area = state.mid_region.back();
-    state.mid_region.pop_back();
     return {true, 
       {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
       Task("explore_mid_region",Args({{"agent",agent}}))}}; 
@@ -305,7 +319,15 @@ template <class State> bTasks move_mid(State state, Args args) {
 
 template <class State> bTasks leave_mid(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time > 590 || state.mid_region.empty()) {
+  bool explored = true;
+  for(auto a : state.mid_region) {
+    if (!in(a,state.visited[agent])) {
+      explored = false;
+      break;
+    }
+  }
+ 
+  if (state.time > 590 || explored) {
     return {true,{}}; 
   }
   else {
