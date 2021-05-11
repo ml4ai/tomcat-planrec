@@ -81,6 +81,7 @@ template <class State> bTasks travel_by_taxi(State state, Args args) {
 
 class TravelState {
   public:
+    TravelState() = default;
     TravelState(std::string name) : name(name){};
     std::string name;
     std::unordered_map<std::string, std::string> loc;
@@ -88,6 +89,11 @@ class TravelState {
         dist;
     std::unordered_map<std::string, double> owe;
     std::unordered_map<std::string, double> cash;
+};
+
+class TravelSelector {
+
+
 };
 
 class TravelDomain {

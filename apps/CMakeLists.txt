@@ -1,5 +1,10 @@
 set(CMAKE_CXX_STANDARD 20)
-add_executable(planner planner.cpp)
-find_package(Boost REQUIRED)
-add_executable(hddlParser hddlParser.cpp)
-target_include_directories(hddlParser PRIVATE ${Boost_INCLUDE_DIRS})
+
+find_package(Boost COMPONENTS graph REQUIRED)
+add_executable(simple_travel_planner simple_travel_planner.cpp)
+add_executable(simple_sar_planner simple_sar_planner.cpp)
+add_executable(simple_sar_MCTS_planner simple_sar_MCTS_planner.cpp)
+
+target_include_directories(simple_travel_planner PRIVATE ${Boost_INCLUDE_DIR})
+target_include_directories(simple_sar_planner PRIVATE ${Boost_INCLUDE_DIR})
+target_include_directories(simple_sar_MCTS_planner PRIVATE ${Boost_INCLUDE_DIR})
