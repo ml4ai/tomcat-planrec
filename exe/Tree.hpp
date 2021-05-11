@@ -21,7 +21,7 @@ class TreeData {
 template <class State, class Selector>
 using Tree = boost::adjacency_list<boost::vecS,
                               boost::vecS,
-                              boost::directedS,
+                              boost::bidirectionalS,
                               Node<State, Selector>,
                               boost::no_property,
                               TreeData>;
@@ -35,7 +35,9 @@ template <class State, class Selector>
 std::vector<int> get_successor_list(Tree<State,Selector> t,int i) {
     std::vector<int> successors = {};
     for (int successor : get_successors(t,i)) {
-      successors.push_back(successor);
+      if (successor != i) {
+        successors.push_back(successor);
+      }
     }
     return successors;
 }
@@ -49,7 +51,9 @@ template <class State, class Selector>
 std::vector<int> get_predecessor_list(Tree<State,Selector> t,int i) {
     std::vector<int> predecessors = {};
     for (int predecessor : get_predecessors(t,i)) {
-      predecessors.push_back(predecessor);
+      if (predecessor != i) {
+        predecessors.push_back(predecessor);
+      }
     }
     return predecessors;
 }
