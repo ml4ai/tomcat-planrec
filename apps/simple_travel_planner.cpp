@@ -1,4 +1,4 @@
-#include "simple_travel_example.h"
+#include "domains/simple_travel.h"
 
 using namespace std;
 
