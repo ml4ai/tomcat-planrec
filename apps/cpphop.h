@@ -1,8 +1,5 @@
 #pragma once
 
-#include "Node.hpp"
-#include "Tree.hpp"
-#include "util.h"
 #include <any>
 #include <iostream>
 #include <optional>
@@ -11,6 +8,9 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "Node.hpp"
+#include "Tree.hpp"
+#include "util.h"
 
 using Args = std::unordered_map<std::string, std::string>;
 using Task = std::pair<std::string, Args>;
@@ -34,8 +34,9 @@ bool in(Element element, AssociativeContainer container) {
 }
 
 // Utility method to see if an element is in a vector
-template <class Element> bool in(Element element, std::vector<Element> v) {
-    return std::count(v.begin(), v.end(), element);
+template <class Element>
+bool in(Element element, std::vector<Element> v) {
+    return std::count(v.begin(),v.end(), element);
 }
 
 // Utility methods for printing information to stdout.
@@ -95,7 +96,6 @@ bTasks seek_plan(State state,
 
     Task task = tasks.back();
     auto [task_id, args] = task;
-
     if (in(task_id, domain.operators)) {
         Operator<State> op = domain.operators[task_id];
         std::optional<State> newstate = op(state, args);
@@ -149,7 +149,6 @@ seek_planDFS(Tree<State, Selector> t, int v, Domain domain) {
 
     Task task = t[v].tasks.back();
     auto [task_id, args] = task;
-
     if (in(task_id, domain.operators)) {
         Operator<State> op = domain.operators[task_id];
         std::optional<State> newstate = op(t[v].state, args);
