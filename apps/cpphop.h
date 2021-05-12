@@ -12,69 +12,6 @@
 #include "Tree.h"
 #include "util.h"
 
-template <class State> using Operator = std::optional<State> (*)(State, Args);
-
-template <class State>
-using Operators = std::unordered_map<std::string, Operator<State>>;
-
-template <class State> using Method = bTasks (*)(State, Args);
-
-template <class State>
-using Methods = std::unordered_map<std::string, std::vector<Method<State>>>;
-
-// Utility method to see if an element is in an associative container
-template <class Element, class AssociativeContainer>
-bool in(Element element, AssociativeContainer container) {
-    return container.count(element);
-}
-
-// Utility method to see if an element is in a vector
-template <class Element>
-bool in(Element element, std::vector<Element> v) {
-    return std::count(v.begin(),v.end(), element);
-}
-
-// Utility methods for printing information to stdout.
-template <class State> void print(Operators<State> operators) {
-    for (auto [operator_name, operator_func] : operators) {
-        std::cout << operator_name << ", ";
-    }
-    std::cout << std::endl;
-}
-
-template <class State> void print(Methods<State> methods) {
-    for (auto [method_name, method_func] : methods) {
-        std::cout << method_name << ", ";
-    }
-    std::cout << std::endl;
-}
-
-void print(Tasks tasks) {
-    std::cout << "[";
-    for (auto task : tasks) {
-        std::cout << "(";
-        std::cout << task.first << ",";
-        for (auto [k, v] : task.second) {
-            std::cout << v << ",";
-        }
-        std::cout << ")";
-    }
-    std::cout << "]";
-    std::cout << std::endl;
-}
-
-void print(bTasks btasks) { print(btasks.second); }
-
-void print(Plans plans) {
-    std::cout << "Plans Found:" << std::endl;
-    int i = 0;
-    for (auto bt : plans) {
-        std::cout << "Plan " << i << ": ";
-        print(bt);
-        i++;
-    }
-}
-
 template <class State, class Domain>
 bTasks seek_plan(State state,
                  std::vector<Task> tasks,
