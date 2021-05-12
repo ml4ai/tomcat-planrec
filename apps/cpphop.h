@@ -8,8 +8,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "Node.hpp"
-#include "Tree.hpp"
+#include "Node.h"
+#include "Tree.h"
 #include "util.h"
 
 template <class State> using Operator = std::optional<State> (*)(State, Args);
