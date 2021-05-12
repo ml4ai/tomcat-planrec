@@ -16,6 +16,7 @@ To build:
     make -j
 
 # Generate plans for Simple Travel Domain
+
 To run:
 
     ./simple_travel_planner

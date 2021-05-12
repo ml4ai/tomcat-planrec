@@ -1,9 +1,9 @@
-#include "simple_travel_example.h"
+#include "domains/simple_travel.h"
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    auto state1 = TravelState();
+    auto state1 = TravelState("state1");
     state1.loc["me"] = "home";
     state1.cash["me"] = 20;
     state1.owe["me"] = 0;

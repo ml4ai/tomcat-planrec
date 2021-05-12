@@ -1,4 +1,4 @@
-#include "simple_sar_domain.h"
+#include "domains/simple_sar.h"
 #include <math.h>
 
 using namespace std;
