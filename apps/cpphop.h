@@ -12,11 +12,6 @@
 #include "Tree.hpp"
 #include "util.h"
 
-using Args = std::unordered_map<std::string, std::string>;
-using Task = std::pair<std::string, Args>;
-using Tasks = std::vector<Task>;
-using bTasks = std::pair<bool, Tasks>;
-
 template <class State> using Operator = std::optional<State> (*)(State, Args);
 
 template <class State>
