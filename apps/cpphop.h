@@ -11,6 +11,9 @@
 #include "Node.h"
 #include "Tree.h"
 #include "util.h"
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::ordered_json;
 
 template <class State, class Domain>
 bTasks seek_plan(State state,
@@ -301,7 +304,11 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
                                     int seed) {
     if (t[v].tasks.size() == 0) {
         t[boost::graph_bundle].plans.push_back(t[v].plan);
-        std::cout << "Plan found at depth " << t[v].depth << std::endl;
+        std::cout << "Plan found at depth " << t[v].depth << " and score of " << t[v].selector.rewardFunc(t[v].state) << std::endl;
+        std::cout << std::endl;
+        std::cout << "Final State:" << std::endl;
+        std::cout << t[v].state.to_json() << std::endl;
+        std::cout << std::endl;
         return t;
     }
     Tree<State, Selector> m;
@@ -349,7 +356,7 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
 }
 
 template <class State, class Domain, class Selector>
-bTasks cpphopMCTS(State state,
+std::pair<Tree<State,Selector>,int> cpphopMCTS(State state,
                   Tasks tasks,
                   Domain domain,
                   Selector selector,
@@ -364,7 +371,12 @@ bTasks cpphopMCTS(State state,
     root.depth = 0;
     root.selector = selector;
     int v = boost::add_vertex(root, t);
+    std::cout << std::endl;
+    std::cout << "Initial State:" << std::endl;
+    std::cout << t[v].state.to_json() << std::endl;
+    std::cout << std::endl;
     t = seek_planMCTS(t, v, domain, selector, c, r, seed);
+    std::cout << "Plan:" << std::endl;
     print(t[boost::graph_bundle].plans.back());
-    return t[boost::graph_bundle].plans.back();
+    return std::make_pair(t,v);
 }
