@@ -37,6 +37,16 @@ void print(Tasks tasks) {
     std::cout << std::endl;
 }
 
+std::string task2string(Task task) {
+  std::string stask = "(" + task.first + ",";
+  for (auto [k, v] : task.second) {
+    stask += v + ",";
+  }
+  stask += ")";
+
+  return stask;
+}
+
 void print(bTasks btasks) { print(btasks.second); }
 
 void print(Plans plans) {

@@ -1,5 +1,8 @@
 #include "../cpphop.h"
 #include <math.h>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::ordered_json;
 
 
 // operators
@@ -380,6 +383,23 @@ class SARState {
       for (auto i = y_vic.begin(); i != y_vic.end(); ++i) {
         y_max += i->second;
       }
+    }
+
+    json to_json() {
+      return json{{"loc", this->loc},
+               {"y_vic",this->y_vic},
+               {"g_vic",this->g_vic},
+               {"y_total",this->y_total},
+               {"g_total",this->g_total},
+               {"y_seen",this->y_seen},
+               {"g_seen",this->g_seen},
+               {"left_region",this->left_region},
+               {"right_region",this->right_region},
+               {"mid_region",this->mid_region},
+               {"time",this->time},
+               {"visited",this->visited},
+               {"y_max",this->y_max},
+               {"g_max",this->g_max}};
     }
 };
 
