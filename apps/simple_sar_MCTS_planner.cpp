@@ -1,9 +1,18 @@
 #include "domains/simple_sar.h"
 #include <math.h>
+#include <stdlib.h>
+#include "plan_trace.h"
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
+    int r;
+    if (argc > 1) {
+      r = strtol(argv[1], nullptr, 0);
+    }
+    else {
+      r = 30;
+    }
     auto state1 = SARState();
     state1.loc["me"] = "entrance";
     std::string area1 = "R1";
@@ -76,6 +85,8 @@ int main(int argc, char* argv[]) {
 
     Tasks tasks = {
         {Task("SAR", Args({{"agent", "me"}}))}};
-    cpphopMCTS(state1, tasks, domain, selector,sqrt(2),30);
+    auto pt = cpphopMCTS(state1, tasks, domain, selector,sqrt(2),r);
+    generate_plan_trace_tree(pt.first,pt.second,true,"simple_sar_trace_tree.json");
+    generate_plan_trace(pt.first,pt.second,true,"simple_sar_trace.json");
     return EXIT_SUCCESS;
 }
