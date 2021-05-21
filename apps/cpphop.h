@@ -16,9 +16,9 @@
 using json = nlohmann::ordered_json;
 
 template <class State, class Domain>
-bTasks seek_plan(State state,
+pTasks seek_plan(State state,
                  std::vector<Task> tasks,
-                 bTasks plan,
+                 pTasks plan,
                  Domain domain,
                  int depth) {
     std::cout << "depth: " << depth << std::endl;
@@ -26,7 +26,7 @@ bTasks seek_plan(State state,
     print(tasks);
     std::cout << std::endl;
     if (tasks.size() == 0) {
-        return bTasks(true, plan.second);
+        return pTasks(true, plan.second);
     }
 
     Task task = tasks.back();
@@ -37,7 +37,7 @@ bTasks seek_plan(State state,
         if (newstate) {
             tasks.pop_back();
             plan.second.push_back(task);
-            bTasks solution =
+            pTasks solution =
                 seek_plan(newstate.value(), tasks, plan, domain, depth + 1);
             if (solution.first) {
                 return solution;
@@ -56,7 +56,7 @@ bTasks seek_plan(State state,
                      i != subtasks.second.begin();) {
                     tasks.push_back(*(--i));
                 }
-                bTasks solution =
+                pTasks solution =
                     seek_plan(state, tasks, plan, domain, depth + 1);
                 if (solution.first) {
                     return solution;
@@ -129,8 +129,8 @@ seek_planDFS(Tree<State, Selector> t, int v, Domain domain) {
 }
 
 template <class State, class Domain>
-bTasks cpphop(State state, Tasks tasks, Domain domain) {
-    bTasks result = seek_plan(state, tasks, {}, domain, 0);
+pTasks cpphop(State state, Tasks tasks, Domain domain) {
+    pTasks result = seek_plan(state, tasks, {}, domain, 0);
     print(result);
     return result;
 }

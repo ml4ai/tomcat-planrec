@@ -11,7 +11,7 @@ class Node {
     State state;
     Tasks tasks;
     int depth;
-    bTasks plan;
+    pTasks plan;
     Selector selector;
 
     //See Tree.hpp note for why these are needed

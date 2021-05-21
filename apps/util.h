@@ -15,8 +15,13 @@ using Plans = std::vector<bTasks>;
 
 template <class State> using Operator = std::optional<State> (*)(State, Args);
 
+template <class State> using POperator = double (*)(State,State,Args);
+
 template <class State>
 using Operators = std::unordered_map<std::string, Operator<State>>;
+
+template <class State>
+using POperators = std::unordered_map<std::string, POperator<State>>;
 
 template <class State> using Method = bTasks (*)(State, Args);
 
