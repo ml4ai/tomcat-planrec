@@ -50,32 +50,32 @@ template <class State> std::optional<State> pay_driver(State state, Args args) {
 }
 
 // Methods
-template <class State> bTasks travel_by_foot(State state, Args args) {
+template <class State> pTasks travel_by_foot(State state, Args args) {
     auto x = args["x"];
     auto y = args["y"];
     auto a = args["a"];
 
     if (state.dist[x][y] <= 2) {
-        return {true, {Task("walk", Args({{"a", a}, {"x", x}, {"y", y}}))}};
+        return {0.50, {Task("walk", Args({{"a", a}, {"x", x}, {"y", y}}))}};
     }
     else {
-        return {false, {}};
+        return {0.00, {}};
     }
 }
 
-template <class State> bTasks travel_by_taxi(State state, Args args) {
+template <class State> pTasks travel_by_taxi(State state, Args args) {
     auto a = args["a"];
     auto x = args["x"];
     auto y = args["y"];
 
     if (state.cash[a] >= taxi_rate(state.dist[x][y])) {
-        return {true,
+        return {0.50,
                 {Task("call_taxi", Args({{"a", a}, {"x", x}})),
                  Task("ride_taxi", Args({{"a", a}, {"x", x}, {"y", y}})),
                  Task("pay_driver", Args({{"a", a}}))}};
     }
     else {
-        return {false, {}};
+        return {0.00, {}};
     }
 }
 
