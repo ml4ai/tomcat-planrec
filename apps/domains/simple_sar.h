@@ -27,6 +27,33 @@ template <class State> std::optional<State> search(State state, Args args) {
   }
 }
 
+template <class State> double search(State pre_state, State post_state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+  if (pre_state.loc[agent] == area && post_state.loc[agent] == area && pre_state.time <= 590) {
+    if (pre_state.time < 420 && (pre_state.y_vic[area] - pre_state.y_seen[agent]) > 0) {
+      if ((post_state.y_seen[agent] - pre_state.y_seen[agent]) != 1) {
+        return 0.00;
+      } 
+    }
+
+    if ((pre_state.g_vic[area] - pre_state.g_seen[agent]) > 0) {
+      if ((post_state.g_seen[agent] - pre_state.g_seen[agent]) != 1) {
+        return 0.00;
+      }
+    } 
+ 
+    if ((post_state.time - pre_state.time) != 10) {
+      return 0.00;
+    } 
+    return 1.00;
+
+  }
+  else {
+    return 0.00;
+  }
+}
+
 template <class State> std::optional<State> triageGreen(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
@@ -40,6 +67,23 @@ template <class State> std::optional<State> triageGreen(State state, Args args) 
   }
   else {
     return std::nullopt;
+  }
+}
+
+template <class State> double triageGreen(State pre_state,State post_state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+  if (pre_state.loc[agent] == area && post_state.loc[agent] == area && pre_state.g_vic[area] > 0 && pre_state.time <= 593) {
+    if ((pre_state.g_seen[agent] - post_state.g_seen[agent]) == 1 && 
+        (pre_state.g_vic[agent] - post_state.g_vic[agent]) == 1 &&
+        (post_state.g_total - pre_state.g_total) == 1 &&
+        (post_state.time - pre_state.time) == 7) {
+      return 1.00;
+    } 
+    return 0.00;
+  }
+  else {
+    return 0.00;
   }
 }
 
@@ -59,6 +103,23 @@ template <class State> std::optional<State> triageYellow(State state, Args args)
   }
 }
 
+template <class State> double triageYellow(State pre_state,State post_state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+  if (pre_state.loc[agent] == area && post_state.loc[agent] == area && pre_state.y_vic[area] > 0 && pre_state.time <= 405) {
+    if ((pre_state.y_seen[agent] - post_state.y_seen[agent]) == 1 && 
+        (pre_state.y_vic[agent] - post_state.y_vic[agent]) == 1 &&
+        (post_state.y_total - pre_state.y_total) == 1 &&
+        (post_state.time - pre_state.time) == 15) {
+      return 1.00;
+    } 
+    return 0.00;
+  }
+  else {
+    return 0.00;
+  }
+}
+
 template <class State> std::optional<State> move(State state, Args args) {
   auto agent = args["agent"];
   auto c_area = args["c_area"];
@@ -68,7 +129,7 @@ template <class State> std::optional<State> move(State state, Args args) {
     state.y_seen[agent] = 0;
     state.g_seen[agent] = 0;
     
-    state.visited["me"].push_back(n_area);
+    state.visited[agent].push_back(n_area);
     state.time = state.time + 10;
 
     return state;
@@ -78,12 +139,42 @@ template <class State> std::optional<State> move(State state, Args args) {
   }
 }
 
+template <class State> double move(State pre_state, State post_state, Args args) {
+  auto agent = args["agent"];
+  auto c_area = args["c_area"];
+  auto n_area = args["n_area"];
+  if (pre_state.loc[agent] == c_area && pre_state.time <= 590) {
+    if (post_state.loc[agent] != n_area) {
+      return 0.00;
+    }
+
+    if (post_state.y_seen[agent] != 0 || post_state.g_seen[agent] != 0) {
+      return 0.00;
+    }
+    
+    if (post_state.visited[agent] != n_area) {
+      return 0.00;
+    }
+    
+    if ((post_state.time - pre_state.time) != 10) {
+      return 0.00;
+    }
+
+    return 1.00;
+  }
+  else {
+    return 0.00;
+  }
+}
 template <class State> std::optional<State> exit(State state, Args args) {
     return state;
 }
 
+template <class State> double exit(State pre_state, State post_state, Args args) {
+    return 1.00;
+}
 // Methods
-template <class State> bTasks explore_left_to_right(State state, Args args) {
+template <class State> pTasks explore_left_to_right(State state, Args args) {
   auto agent = args["agent"];
   return {true, 
     {Task("explore_left_region",Args({{"agent",agent}})),
@@ -92,7 +183,7 @@ template <class State> bTasks explore_left_to_right(State state, Args args) {
      Task("exit",Args({}))}}; 
 }
 
-template <class State> bTasks explore_right_to_left(State state, Args args) {
+template <class State> pTasks explore_right_to_left(State state, Args args) {
   auto agent = args["agent"];
   return {true, 
     {Task("explore_right_region",Args({{"agent",agent}})),
@@ -101,7 +192,7 @@ template <class State> bTasks explore_right_to_left(State state, Args args) {
      Task("exit",Args({}))}}; 
 }
 
-template <class State> bTasks explore_mid_left_right(State state, Args args) {
+template <class State> pTasks explore_mid_left_right(State state, Args args) {
   auto agent = args["agent"];
   return {true, 
     {Task("explore_mid_region",Args({{"agent",agent}})),
@@ -110,7 +201,7 @@ template <class State> bTasks explore_mid_left_right(State state, Args args) {
      Task("exit",Args({}))}}; 
 }
 
-template <class State> bTasks explore_mid_right_left(State state, Args args) {
+template <class State> pTasks explore_mid_right_left(State state, Args args) {
   auto agent = args["agent"];
   return {true, 
     {Task("explore_mid_region",Args({{"agent",agent}})),
@@ -119,7 +210,7 @@ template <class State> bTasks explore_mid_right_left(State state, Args args) {
      Task("exit",Args({}))}}; 
 }
 
-template <class State> bTasks search_left(State state, Args args) {
+template <class State> pTasks search_left(State state, Args args) {
   auto agent = args["agent"];
   if (state.time <= 590 && state.loc[agent] != "entrance") {
     return {true, 
@@ -131,7 +222,7 @@ template <class State> bTasks search_left(State state, Args args) {
   }
 }
 
-template <class State> bTasks triageGreen_left(State state, Args args) {
+template <class State> pTasks triageGreen_left(State state, Args args) {
   auto agent = args["agent"];
   if (state.time <= 590 && state.g_seen[agent] > 0 && state.loc[agent] != "entrance") {
     return {true, 
@@ -143,7 +234,7 @@ template <class State> bTasks triageGreen_left(State state, Args args) {
   }
 }
 
-template <class State> bTasks triageYellow_left(State state, Args args) {
+template <class State> pTasks triageYellow_left(State state, Args args) {
   auto agent = args["agent"];
   if (state.time <= 405 && state.y_seen[agent] > 0 && state.loc[agent] != "entrance") {
     return {true, 
@@ -155,7 +246,7 @@ template <class State> bTasks triageYellow_left(State state, Args args) {
   }
 }
 
-template <class State> bTasks move_left(State state, Args args) {
+template <class State> pTasks move_left(State state, Args args) {
   auto agent = args["agent"];
   std::string n_area = "none";
   for(auto a : state.left_region) {
@@ -174,7 +265,7 @@ template <class State> bTasks move_left(State state, Args args) {
   }
 }
 
-template <class State> bTasks leave_left(State state, Args args) {
+template <class State> pTasks leave_left(State state, Args args) {
   auto agent = args["agent"];
   bool explored = true;
   for(auto a : state.left_region) {
@@ -192,7 +283,7 @@ template <class State> bTasks leave_left(State state, Args args) {
   }
 }
 
-template <class State> bTasks search_right(State state, Args args) {
+template <class State> pTasks search_right(State state, Args args) {
   auto agent = args["agent"];
   if (state.time <= 590 && state.loc[agent] != "entrance") {
     return {true, 
@@ -204,7 +295,7 @@ template <class State> bTasks search_right(State state, Args args) {
   }
 }
 
-template <class State> bTasks triageGreen_right(State state, Args args) {
+template <class State> pTasks triageGreen_right(State state, Args args) {
   auto agent = args["agent"];
   if (state.time <= 590 && state.g_seen[agent] > 0 && state.loc[agent] != "entrance") {
     return {true, 
@@ -216,7 +307,7 @@ template <class State> bTasks triageGreen_right(State state, Args args) {
   }
 }
 
-template <class State> bTasks triageYellow_right(State state, Args args) {
+template <class State> pTasks triageYellow_right(State state, Args args) {
   auto agent = args["agent"];
   if (state.time <= 405 && state.y_seen[agent] > 0 && state.loc[agent] != "entrance") {
     return {true, 
@@ -228,7 +319,7 @@ template <class State> bTasks triageYellow_right(State state, Args args) {
   }
 }
 
-template <class State> bTasks move_right(State state, Args args) {
+template <class State> pTasks move_right(State state, Args args) {
   auto agent = args["agent"];
   std::string n_area = "none";
   for(auto a : state.right_region) {
@@ -247,7 +338,7 @@ template <class State> bTasks move_right(State state, Args args) {
   }
 }
 
-template <class State> bTasks leave_right(State state, Args args) {
+template <class State> pTasks leave_right(State state, Args args) {
   auto agent = args["agent"];
   bool explored = true;
   for(auto a : state.right_region) {
@@ -265,7 +356,7 @@ template <class State> bTasks leave_right(State state, Args args) {
   }
 }
 
-template <class State> bTasks search_mid(State state, Args args) {
+template <class State> pTasks search_mid(State state, Args args) {
   auto agent = args["agent"];
   if (state.time <= 590 && state.loc[agent] != "entrance") {
     return {true, 
@@ -277,7 +368,7 @@ template <class State> bTasks search_mid(State state, Args args) {
   }
 }
 
-template <class State> bTasks triageGreen_mid(State state, Args args) {
+template <class State> pTasks triageGreen_mid(State state, Args args) {
   auto agent = args["agent"];
   if (state.time <= 590 && state.g_seen[agent] > 0 && state.loc[agent] != "entrance") {
     return {true, 
@@ -289,7 +380,7 @@ template <class State> bTasks triageGreen_mid(State state, Args args) {
   }
 }
 
-template <class State> bTasks triageYellow_mid(State state, Args args) {
+template <class State> pTasks triageYellow_mid(State state, Args args) {
   auto agent = args["agent"];
   if (state.time <= 405 && state.y_seen[agent] > 0 && state.loc[agent] != "entrance") {
     return {true, 
@@ -301,7 +392,7 @@ template <class State> bTasks triageYellow_mid(State state, Args args) {
   }
 }
 
-template <class State> bTasks move_mid(State state, Args args) {
+template <class State> pTasks move_mid(State state, Args args) {
   auto agent = args["agent"];
   std::string n_area = "none";
   for(auto a : state.mid_region) {
@@ -320,7 +411,7 @@ template <class State> bTasks move_mid(State state, Args args) {
   }
 }
 
-template <class State> bTasks leave_mid(State state, Args args) {
+template <class State> pTasks leave_mid(State state, Args args) {
   auto agent = args["agent"];
   bool explored = true;
   for(auto a : state.mid_region) {
