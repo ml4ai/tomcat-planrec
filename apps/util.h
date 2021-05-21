@@ -10,20 +10,20 @@
 using Args = std::unordered_map<std::string, std::string>;
 using Task = std::pair<std::string, Args>;
 using Tasks = std::vector<Task>;
-using bTasks = std::pair<bool, Tasks>;
-using Plans = std::vector<bTasks>;
+using pTasks = std::pair<double, Tasks>;
+using Plans = std::vector<pTasks>;
 
 template <class State> using Operator = std::optional<State> (*)(State, Args);
 
-template <class State> using POperator = double (*)(State,State,Args);
+template <class State> using pOperator = double (*)(State,State,Args);
 
 template <class State>
 using Operators = std::unordered_map<std::string, Operator<State>>;
 
 template <class State>
-using POperators = std::unordered_map<std::string, POperator<State>>;
+using pOperators = std::unordered_map<std::string, pOperator<State>>;
 
-template <class State> using Method = bTasks (*)(State, Args);
+template <class State> using Method = pTasks (*)(State, Args);
 
 template <class State>
 using Methods = std::unordered_map<std::string, std::vector<Method<State>>>;
@@ -52,7 +52,7 @@ std::string task2string(Task task) {
   return stask;
 }
 
-void print(bTasks btasks) { print(btasks.second); }
+void print(pTasks ptasks) { print(ptasks.second); }
 
 void print(Plans plans) {
     std::cout << "Plans Found:" << std::endl;
