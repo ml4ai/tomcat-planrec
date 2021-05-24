@@ -29,6 +29,9 @@ To run:
 
   ./simple_sar_planner
 
+WARNING: This is a brute force algorithm that attempts to generate all possible plans and 
+would most likely take several hours or days to complete.  
+
 # Generate plans and plan traces for Simple SAR Domain (MCTS Algorithm)
 
 To run:
