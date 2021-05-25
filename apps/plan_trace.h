@@ -15,6 +15,7 @@ std::pair<json,int> gptt(Tree<State,Selector> t, int v) {
   json j;
 
   j["task"] = task2string(t[v].tasks.back());
+  j["log_likelihood"] = t[v].log_likelihood;
   j["pre-state"] = t[v].state.to_json();
 
   int w = t[v].successors.back();
@@ -51,6 +52,7 @@ json gpt(Tree<State,Selector> t, int v, json j) {
   if (t[w].tasks.size() < t[v].tasks.size()) {
     json g;
     g["task"] = task2string(t[v].tasks.back());
+    g["log_likelihood"] = t[v].log_likelihood;
     g["pre-state"] = t[v].state.to_json();
     g["post-state"] = t[w].state.to_json();
     j.push_back(g);

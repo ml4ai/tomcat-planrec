@@ -12,6 +12,7 @@
 #include "Tree.h"
 #include "util.h"
 #include <nlohmann/json.hpp>
+#include <math.h>
 
 using json = nlohmann::ordered_json;
 
@@ -189,6 +190,7 @@ std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector> t,
         Operator<State> op = domain.operators[task_id];
         std::optional<State> newstate = op(t[v].state, args);
         if (newstate) {
+            pOperator<State> pop = domain.poperators[task_id];
             Node<State, Selector> n;
             n.state = newstate.value();
             n.tasks = t[v].tasks;
@@ -198,6 +200,7 @@ std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector> t,
             n.plan.second.push_back(task);
             n.selector = selector;
             n.pred = v;
+            n.log_likelihood = t[v].log_likelihood + log(pop(t[v].state,n.state,args)); 
             int w = boost::add_vertex(n, t);
             t[v].successors.push_back(w);
             return std::make_pair(t, w);
@@ -209,7 +212,7 @@ std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector> t,
         auto relevant = domain.methods[task_id];
         std::vector<int> c = {};
         for (auto method : relevant) {
-            auto subtasks = method(t[v].state, args);
+            pTasks subtasks = method(t[v].state, args);
             if (subtasks.first) {
                 Node<State, Selector> n;
                 n.state = t[v].state;
@@ -218,6 +221,7 @@ std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector> t,
                 n.depth = t[v].depth + 1;
                 n.plan = t[v].plan;
                 n.selector = selector;
+                n.log_likelihood = t[v].log_likelihood + log(subtasks.first);
                 for (auto i = subtasks.second.end();
                      i != subtasks.second.begin();) {
                     n.tasks.push_back(*(--i));
@@ -304,7 +308,8 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
                                     int seed) {
     if (t[v].tasks.size() == 0) {
         t[boost::graph_bundle].plans.push_back(t[v].plan);
-        std::cout << "Plan found at depth " << t[v].depth << " and score of " << t[v].selector.rewardFunc(t[v].state) << std::endl;
+        std::cout << "Plan found at depth " << t[v].depth << " and score of " << t[v].selector.rewardFunc(t[v].state);
+        std::cout << " with likelihood " << exp(t[v].log_likelihood) << std::endl;
         std::cout << std::endl;
         std::cout << "Final State:" << std::endl;
         std::cout << t[v].state.to_json() << std::endl;
@@ -318,6 +323,7 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
     n.depth = t[v].depth;
     n.plan = t[v].plan;
     n.selector = selector;
+    n.log_likelihood = t[v].log_likelihood;
     int w = boost::add_vertex(n, m);
     std::pair<Tree<State, Selector>, int> mp(m, w);
     for (int i = 0; i < r; ++i) {
@@ -350,6 +356,7 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
     k.selector = selector;
     k.depth = t[v].depth + 1;
     k.pred = v;
+    k.log_likelihood = mp.first[arg_max].log_likelihood;
     int y = boost::add_vertex(k, t);
     t[v].successors.push_back(y);
     return seek_planMCTS(t, y, domain, selector, c, r, ++seed);
@@ -370,6 +377,7 @@ std::pair<Tree<State,Selector>,int> cpphopMCTS(State state,
     root.plan = {};
     root.depth = 0;
     root.selector = selector;
+    root.log_likelihood = 0;
     int v = boost::add_vertex(root, t);
     std::cout << std::endl;
     std::cout << "Initial State:" << std::endl;

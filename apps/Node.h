@@ -4,6 +4,7 @@
 #include <map>
 #include "cpphop.h"
 #include "util.h"
+#include <math.h>
 
 template <class State,class Selector>
 class Node {
@@ -13,6 +14,7 @@ class Node {
     int depth;
     pTasks plan;
     Selector selector;
+    double log_likelihood;
 
     //See Tree.hpp note for why these are needed
     int pred = -1;

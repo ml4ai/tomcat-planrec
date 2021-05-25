@@ -76,7 +76,7 @@ template <class State> double triageGreen(State pre_state,State post_state, Args
   auto area = args["area"];
   if (pre_state.loc[agent] == area && post_state.loc[agent] == area && pre_state.g_vic[area] && pre_state.time <= 593) {
     if ((pre_state.g_seen[agent] - post_state.g_seen[agent]) == 1 && 
-        (pre_state.g_vic[agent] - post_state.g_vic[agent]) == 1 &&
+        (pre_state.g_vic[area] - post_state.g_vic[area]) == 1 &&
         (post_state.g_total - pre_state.g_total) == 1 &&
         (post_state.time - pre_state.time) == 7) {
       return 1;
@@ -109,7 +109,7 @@ template <class State> double triageYellow(State pre_state,State post_state, Arg
   auto area = args["area"];
   if (pre_state.loc[agent] == area && post_state.loc[agent] == area && pre_state.y_vic[area] && pre_state.time <= 405) {
     if ((pre_state.y_seen[agent] - post_state.y_seen[agent]) == 1 && 
-        (pre_state.y_vic[agent] - post_state.y_vic[agent]) == 1 &&
+        (pre_state.y_vic[area] - post_state.y_vic[area]) == 1 &&
         (post_state.y_total - pre_state.y_total) == 1 &&
         (post_state.time - pre_state.time) == 15) {
       return 1;
@@ -224,7 +224,7 @@ template <class State> pTasks search_left_O(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.left_region));
   if (state.time <= 590 && !need_to_move) {
-    bool prob;
+    double prob;
     if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
       prob = 0.025;
     }
@@ -245,7 +245,7 @@ template <class State> pTasks triageGreen_left_O(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.left_region));
   if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    bool prob; 
+    double prob; 
     if (state.y_seen[agent] && state.time <= 405) {
       prob = 0.475;
     }
@@ -266,7 +266,7 @@ template <class State> pTasks triageYellow_left_O(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.left_region));
   if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
-    bool prob;
+    double prob;
     if (state.g_seen[agent]) {
       prob = 0.475;
     }
@@ -301,7 +301,7 @@ template <class State> pTasks move_left_O(State state, Args args) {
         {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
         Task("explore_left_region_O",Args({{"agent",agent}}))}}; 
     }
-    bool prob;
+    double prob;
     if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
       prob = 0.025;
     }
@@ -332,7 +332,7 @@ template <class State> pTasks leave_left_O(State state, Args args) {
   }
 
   if (explored) {
-    bool prob;
+    double prob;
     if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
       prob = 0.025;
     }
@@ -351,7 +351,7 @@ template <class State> pTasks search_right_O(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.right_region));
   if (state.time <= 590 && !need_to_move) {
-    bool prob;
+    double prob;
     if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
       prob = 0.025;
     }
@@ -372,7 +372,7 @@ template <class State> pTasks triageGreen_right_O(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.right_region));
   if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    bool prob; 
+    double prob; 
     if (state.y_seen[agent] && state.time <= 405) {
       prob = 0.475;
     }
@@ -393,7 +393,7 @@ template <class State> pTasks triageYellow_right_O(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.right_region));
   if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
-    bool prob;
+    double prob;
     if (state.g_seen[agent]) {
       prob = 0.475;
     }
@@ -428,7 +428,7 @@ template <class State> pTasks move_right_O(State state, Args args) {
         {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
         Task("explore_right_region_O",Args({{"agent",agent}}))}}; 
     }
-    bool prob;
+    double prob;
     if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
       prob = 0.025;
     }
@@ -459,7 +459,7 @@ template <class State> pTasks leave_right_O(State state, Args args) {
   }
 
   if (explored) {
-    bool prob;
+    double prob;
     if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
       prob = 0.025;
     }
@@ -478,7 +478,7 @@ template <class State> pTasks search_mid_O(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.mid_region));
   if (state.time <= 590 && !need_to_move) {
-    bool prob;
+    double prob;
     if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
       prob = 0.025;
     }
@@ -499,7 +499,7 @@ template <class State> pTasks triageGreen_mid_O(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.mid_region));
   if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    bool prob; 
+    double prob; 
     if (state.y_seen[agent] && state.time <= 405) {
       prob = 0.475;
     }
@@ -520,7 +520,7 @@ template <class State> pTasks triageYellow_mid_O(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.mid_region));
   if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
-    bool prob;
+    double prob;
     if (state.g_seen[agent]) {
       prob = 0.475;
     }
@@ -555,7 +555,7 @@ template <class State> pTasks move_mid_O(State state, Args args) {
         {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
         Task("explore_mid_region_O",Args({{"agent",agent}}))}}; 
     }
-    bool prob;
+    double prob;
     if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
       prob = 0.025;
     }
@@ -586,7 +586,7 @@ template <class State> pTasks leave_mid_O(State state, Args args) {
   }
 
   if (explored) {
-    bool prob;
+    double prob;
     if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
       prob = 0.025;
     }
@@ -647,7 +647,7 @@ template <class State> pTasks search_left_YF(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.left_region));
   if (state.time <= 590 && !need_to_move) {
-    bool prob;
+    double prob;
     if (state.y_seen[agent] && state.time <= 405) {
       if (state.g_seen[agent]) {
         prob = 0.05/3;
@@ -683,7 +683,7 @@ template <class State> pTasks triageGreen_left_YF(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.left_region));
   if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    bool prob; 
+    double prob; 
     if (state.time > 405) {
       prob = 0.95;
     }
@@ -732,7 +732,7 @@ template <class State> pTasks move_left_YF(State state, Args args) {
         {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
         Task("explore_left_region_YF",Args({{"agent",agent}}))}}; 
     }
-    bool prob;
+    double prob;
     if (state.y_seen[agent] && state.time <= 405) {
       if (state.g_seen[agent]) {
         prob = 0.05/3;
@@ -778,7 +778,7 @@ template <class State> pTasks leave_left_YF(State state, Args args) {
   }
 
   if (explored) {
-    bool prob;
+    double prob;
     if (state.y_seen[agent] && state.time <= 405) {
       if (state.g_seen[agent]) {
         prob = 0.05/3;
@@ -812,7 +812,7 @@ template <class State> pTasks search_right_YF(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.right_region));
   if (state.time <= 590 && !need_to_move) {
-    bool prob;
+    double prob;
     if (state.y_seen[agent] && state.time <= 405) {
       if (state.g_seen[agent]) {
         prob = 0.05/3;
@@ -848,7 +848,7 @@ template <class State> pTasks triageGreen_right_YF(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.right_region));
   if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    bool prob; 
+    double prob; 
     if (state.time > 405) {
       prob = 0.95;
     }
@@ -897,7 +897,7 @@ template <class State> pTasks move_right_YF(State state, Args args) {
         {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
         Task("explore_right_region_YF",Args({{"agent",agent}}))}}; 
     }
-    bool prob;
+    double prob;
     if (state.y_seen[agent] && state.time <= 405) {
       if (state.g_seen[agent]) {
         prob = 0.05/3;
@@ -943,7 +943,7 @@ template <class State> pTasks leave_right_YF(State state, Args args) {
   }
 
   if (explored) {
-    bool prob;
+    double prob;
     if (state.y_seen[agent] && state.time <= 405) {
       if (state.g_seen[agent]) {
         prob = 0.05/3;
@@ -977,7 +977,7 @@ template <class State> pTasks search_mid_YF(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.mid_region));
   if (state.time <= 590 && !need_to_move) {
-    bool prob;
+    double prob;
     if (state.y_seen[agent] && state.time <= 405) {
       if (state.g_seen[agent]) {
         prob = 0.05/3;
@@ -1013,7 +1013,7 @@ template <class State> pTasks triageGreen_mid_YF(State state, Args args) {
   bool need_to_move = (state.loc[agent] == "entrance" || 
                        !in(state.loc[agent], state.mid_region));
   if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    bool prob; 
+    double prob; 
     if (state.time > 405) {
       prob = 0.95;
     }
@@ -1062,7 +1062,7 @@ template <class State> pTasks move_mid_YF(State state, Args args) {
         {Task("move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
         Task("explore_mid_region_YF",Args({{"agent",agent}}))}}; 
     }
-    bool prob;
+    double prob;
     if (state.y_seen[agent] && state.time <= 405) {
       if (state.g_seen[agent]) {
         prob = 0.05/3;
@@ -1108,7 +1108,7 @@ template <class State> pTasks leave_mid_YF(State state, Args args) {
   }
 
   if (explored) {
-    bool prob;
+    double prob;
     if (state.y_seen[agent] && state.time <= 405) {
       if (state.g_seen[agent]) {
         prob = 0.05/3;
