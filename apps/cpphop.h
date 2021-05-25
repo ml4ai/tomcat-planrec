@@ -26,7 +26,7 @@ pTasks seek_plan(State state,
     print(tasks);
     std::cout << std::endl;
     if (tasks.size() == 0) {
-        return pTasks(true, plan.second);
+        return pTasks(1, plan.second);
     }
 
     Task task = tasks.back();
@@ -43,7 +43,7 @@ pTasks seek_plan(State state,
                 return solution;
             }
         }
-        return {false, {}};
+        return {0, {}};
     }
 
     if (in(task_id, domain.methods)) {
@@ -63,7 +63,7 @@ pTasks seek_plan(State state,
                 }
             }
         }
-        return {false, {}};
+        return {0, {}};
     }
 }
 
