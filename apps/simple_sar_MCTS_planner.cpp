@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
     selector.sims = 0;
 
     Tasks tasks = {
-        {Task("SAR", Args({{"agent", "me"}}))}};
+        {Task("SAR_O", Args({{"agent", "me"}}))}};
     auto pt = cpphopMCTS(state1, tasks, domain, selector,sqrt(2),r);
     generate_plan_trace_tree(pt.first,pt.second,true,"simple_sar_trace_tree.json");
     generate_plan_trace(pt.first,pt.second,true,"simple_sar_trace.json");
