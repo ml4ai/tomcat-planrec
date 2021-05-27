@@ -3,6 +3,8 @@
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
+#include <boost/spirit/home/x3/support/ast/variant.hpp>
+#include <boost/fusion/include/deque.hpp>
 
 #include <iostream>
 #include <string>
@@ -11,11 +13,19 @@ namespace client {
     namespace ast {
         namespace x3 = boost::spirit::x3;
 
-        struct TypedList;
+        using name = std::string;
+
+        struct Entity {
+            std::string name;
+            std::string type;
+            Entity(const std::string name, const std::string type = "object") : name(name), type(type) {};
+        };
+
+        using TypedList = std::vector<Entity>;
 
         struct Action {
             std::string name;
-            std::vector<std::string> parameters;
+            TypedList parameters;
         };
 
         struct Domain {
@@ -33,6 +43,8 @@ namespace client {
 // to make it a first-class fusion citizen. This has to
 // be in global scope.
 
+BOOST_FUSION_ADAPT_STRUCT(client::ast::Entity, name, type)
+//BOOST_FUSION_ADAPT_STRUCT(client::ast::TypedList)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Action, name, parameters)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Domain, name, requirements, types, actions)
 
@@ -48,22 +60,42 @@ namespace client {
         using x3::lexeme;
         using x3::lit;
         using x3::double_;
+        using x3::_attr;
+        using boost::fusion::at_c;
 
-        auto const name = lexeme[+(char_ - '(' - ')' - '?')];
+        auto const name = lexeme[+x3::alnum];
         auto const variable = '?' >> name;
+        auto const require_def = '(' >> lit(":requirements") >> +name >> ')';
+        auto const types_def = '(' >> lit(":types") >> +name >> ')';
+
+
+        x3::rule<class TTypedList, ast::TypedList> const typed_list = "typed_list";
+
+        auto pb = [](auto& ctx){
+            x3::_val(ctx).push_back(ast::Entity(x3::_attr(ctx)));
+        };
+
+        auto pb2 = [](auto& ctx){
+            for (auto x : at_c<0>(_attr(ctx))) {
+                std::cout << x << std::endl;
+                x3::_val(ctx).push_back(ast::Entity(x, at_c<1>(_attr(ctx))));
+            }
+        };
+
+        auto const typed_list_def =
+            (+name >> '-' >> name)[pb2] | 
+            *name[pb]
+            ;
 
         x3::rule<class TAction, ast::Action> const action = "action";
         auto const action_def = 
             '('
             >> lit(":action")
             >> name
-            >> '(' >> lit(":parameters") >> +variable >> ')'
+            >> '(' >> lit(":parameters") >> typed_list >> ')'
             >> ')';
 
         x3::rule<class TDomain, ast::Domain> const domain = "domain";
-        auto const require_def = '(' >> lit(":requirements") >> +name >> ')';
-        auto const types_def = '(' >> lit(":types") >> +name >> ')';
-
         auto const domain_def = 
             '(' 
             >> lit("define") >> '(' >> lit("domain") >> name >> ')' 
@@ -72,7 +104,7 @@ namespace client {
             >> +action
             >> ')';
 
-        BOOST_SPIRIT_DEFINE(action, domain);
+        BOOST_SPIRIT_DEFINE(typed_list, action, domain);
 
     } // namespace parser
 } // namespace client
@@ -80,22 +112,24 @@ namespace client {
 void print(client::ast::Domain dom) {
     using namespace std;
     cout << "Name: " << dom.name << endl;
-    cout << "Requirements: ";
+    cout << "Requirements: " << endl;
     for (auto x: dom.requirements) {
-        cout << x;
+        cout << '"' << x  << '"' << endl;
     }
     cout << endl;
-    cout << "Types: ";
+    cout << "Types: " << endl;
     for (auto x: dom.types) {
         cout << x;
     }
     cout << endl;
 
-    cout << "Actions:";
+    cout << "Actions:" << endl;
     for (auto x: dom.actions) {
-        cout << x.name;
+        cout << x.name << endl;
+        cout << "parameters: " << endl;
         for (auto p : x.parameters) {
-            cout << p;
+            cout << "parameter name: " << p.name << endl;
+            cout << "type: " << p.type << endl;
         }
         cout << endl;
     }
