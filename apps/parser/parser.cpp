@@ -40,9 +40,8 @@ namespace client {
     } // namespace ast
 } // namespace client
 
-// We need to tell fusion about our domain struct
-// to make it a first-class fusion citizen. This has to
-// be in global scope.
+// We need to tell fusion about our domain structs to make them first-class
+// fusion citizens. This has to be in global scope.
 
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Entity, name, type)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Action, name, parameters)
@@ -54,17 +53,13 @@ namespace client {
     ///////////////////////////////////////////////////////////////////////////////
     namespace parser {
         namespace x3 = boost::spirit::x3;
-        namespace ascii = boost::spirit::x3::ascii;
 
-        using ascii::char_;
-        using x3::lexeme;
-        using x3::lit;
-        using x3::double_;
-        using x3::_attr, x3::_val;
+        using x3::ascii::char_, x3::lexeme, x3::lit, x3::alnum, x3::_attr,
+              x3::_val;
         using boost::fusion::at_c;
         using client::ast::Entity;
 
-        auto const name = lexeme[+x3::alnum];
+        auto const name = lexeme[+alnum];
         auto const requirement = ':' >> name;
         auto const variable = '?' >> name;
         auto const require_def = '(' >> lit(":requirements") >> +requirement >> ')';
