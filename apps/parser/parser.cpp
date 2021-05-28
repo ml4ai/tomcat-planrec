@@ -82,10 +82,9 @@ namespace client {
             }
         };
 
-        auto const typed_list_def =
-            (+name >> '-' >> name)[pb2] | 
-            *name[pb]
-            ;
+        auto const implicitly_typed_list = *name[pb];
+        auto const explicitly_typed_list = (+name >> '-' >> name)[pb2];
+        auto const typed_list_def = *explicitly_typed_list >> -implicitly_typed_list;
 
         x3::rule<class TAction, ast::Action> const action = "action";
         auto const action_def = 
