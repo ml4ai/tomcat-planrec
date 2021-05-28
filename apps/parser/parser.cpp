@@ -18,7 +18,8 @@ namespace client {
         struct Entity {
             std::string name;
             std::string type;
-            Entity(const std::string name, const std::string type = "object") : name(name), type(type) {};
+            Entity(const std::string name, const std::string type = "object")
+                : name(name), type(type){};
         };
 
         using TypedList = std::vector<Entity>;
@@ -35,7 +36,7 @@ namespace client {
             std::vector<Action> actions;
         };
 
-        //using boost::fusion::operator<<;
+        // using boost::fusion::operator<<;
     } // namespace ast
 } // namespace client
 
@@ -44,7 +45,6 @@ namespace client {
 // be in global scope.
 
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Entity, name, type)
-//BOOST_FUSION_ADAPT_STRUCT(client::ast::TypedList)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Action, name, parameters)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Domain, name, requirements, types, actions)
 
@@ -60,8 +60,9 @@ namespace client {
         using x3::lexeme;
         using x3::lit;
         using x3::double_;
-        using x3::_attr;
+        using x3::_attr, x3::_val;
         using boost::fusion::at_c;
+        using client::ast::Entity;
 
         auto const name = lexeme[+x3::alnum];
         auto const requirement = ':' >> name;
@@ -73,12 +74,12 @@ namespace client {
         x3::rule<class TTypedList, ast::TypedList> const typed_list = "typed_list";
 
         auto pb = [](auto& ctx){
-            x3::_val(ctx).push_back(ast::Entity(x3::_attr(ctx)));
+            _val(ctx).push_back(Entity(_attr(ctx)));
         };
 
         auto pb2 = [](auto& ctx){
             for (auto x : at_c<0>(_attr(ctx))) {
-                x3::_val(ctx).push_back(ast::Entity(x, at_c<1>(_attr(ctx))));
+                _val(ctx).push_back(Entity(x, at_c<1>(_attr(ctx))));
             }
         };
 
