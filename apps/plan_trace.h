@@ -52,7 +52,6 @@ json gpt(Tree<State,Selector> t, int v, json j) {
   if (t[w].tasks.size() < t[v].tasks.size()) {
     json g;
     g["task"] = task2string(t[v].tasks.back());
-    g["log_likelihood"] = t[v].log_likelihood;
     g["pre-state"] = t[v].state.to_json();
     g["post-state"] = t[w].state.to_json();
     j.push_back(g);

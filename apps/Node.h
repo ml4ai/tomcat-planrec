@@ -5,6 +5,9 @@
 #include "cpphop.h"
 #include "util.h"
 #include <math.h>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::ordered_json;
 
 template <class State,class Selector>
 class Node {
@@ -13,6 +16,7 @@ class Node {
     Tasks tasks;
     int depth;
     pTasks plan;
+    json plan_trace;
     Selector selector;
     double log_likelihood;
 
