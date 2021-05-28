@@ -64,8 +64,9 @@ namespace client {
         using boost::fusion::at_c;
 
         auto const name = lexeme[+x3::alnum];
+        auto const requirement = ':' >> name;
         auto const variable = '?' >> name;
-        auto const require_def = '(' >> lit(":requirements") >> +name >> ')';
+        auto const require_def = '(' >> lit(":requirements") >> +requirement >> ')';
         auto const types_def = '(' >> lit(":types") >> +name >> ')';
 
 
@@ -77,7 +78,6 @@ namespace client {
 
         auto pb2 = [](auto& ctx){
             for (auto x : at_c<0>(_attr(ctx))) {
-                std::cout << x << std::endl;
                 x3::_val(ctx).push_back(ast::Entity(x, at_c<1>(_attr(ctx))));
             }
         };
