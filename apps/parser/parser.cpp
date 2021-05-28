@@ -73,18 +73,25 @@ namespace client {
 
         x3::rule<class TTypedList, ast::TypedList> const typed_list = "typed_list";
 
-        auto pb = [](auto& ctx){
+        auto add_implicitly_typed_entity = [](auto& ctx){
             _val(ctx).push_back(Entity(_attr(ctx)));
         };
 
-        auto pb2 = [](auto& ctx){
-            for (auto x : at_c<0>(_attr(ctx))) {
-                _val(ctx).push_back(Entity(x, at_c<1>(_attr(ctx))));
+        auto add_explicitly_typed_entities = [](auto& ctx){
+
+            auto dq = _attr(ctx);
+            std::vector<std::string> names = at_c<0>(dq);
+            std::string type = at_c<1>(dq);
+
+            for (std::string& name : names) {
+                Entity entity = Entity(name, type);
+                _val(ctx).push_back(entity);
             }
         };
 
-        auto const implicitly_typed_list = *name[pb];
-        auto const explicitly_typed_list = (+name >> '-' >> name)[pb2];
+
+        auto const implicitly_typed_list = *variable[add_implicitly_typed_entity];
+        auto const explicitly_typed_list = (+variable >> '-' >> name)[add_explicitly_typed_entities];
         auto const typed_list_def = *explicitly_typed_list >> -implicitly_typed_list;
 
         x3::rule<class TAction, ast::Action> const action = "action";
@@ -92,7 +99,7 @@ namespace client {
             '('
             >> lit(":action")
             >> name
-            >> '(' >> lit(":parameters") >> typed_list >> ')'
+            >> '(' >> lit(":parameters") >> '(' >> typed_list >> ')' >> ')'
             >> ')';
 
         x3::rule<class TDomain, ast::Domain> const domain = "domain";
