@@ -13,11 +13,15 @@ using json = nlohmann::ordered_json;
 template<class State, class Selector> 
 std::pair<json,int> gptt(Tree<State,Selector> t, int v) {
   json j;
+  
+  if (t[v].successors.empty()) {
+    return std::make_pair(j,-1);
+  }
 
   j["task"] = task2string(t[v].tasks.back());
-  j["log_likelihood"] = t[v].log_likelihood;
+  j["likelihood"] = t[v].likelihood;
   j["pre-state"] = t[v].state.to_json();
-
+  
   int w = t[v].successors.back();
 
   if (t[w].tasks.size() < t[v].tasks.size()) {
@@ -27,11 +31,13 @@ std::pair<json,int> gptt(Tree<State,Selector> t, int v) {
   }
   int r = (t[w].tasks.size() - t[v].tasks.size()) + 1;
   for (int i = 0; i < r; i++) {
-   std::pair temp = gptt(t,w);
-   j["children"].push_back(temp.first);
-   w = temp.second;
+    std::pair temp = gptt(t,w);
+    if (temp.second == -1) {
+      break;
+    }
+    j["children"].push_back(temp.first);
+    w = temp.second;
   }
-
   return std::make_pair(j,w);
 }
 
