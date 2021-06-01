@@ -1,11 +1,10 @@
 #pragma once
-
+#include <nlohmann/json.hpp>
 #include <iostream>
 #include <map>
 #include "cpphop.h"
 #include "util.h"
 #include <math.h>
-#include <nlohmann/json.hpp>
 
 using json = nlohmann::ordered_json;
 
@@ -18,7 +17,7 @@ class Node {
     pTasks plan;
     json plan_trace;
     Selector selector;
-    double log_likelihood;
+    double likelihood;
 
     //See Tree.hpp note for why these are needed
     int pred = -1;
