@@ -200,7 +200,7 @@ std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector> t,
             n.plan.second.push_back(task);
             n.selector = selector;
             n.pred = v;
-            n.log_likelihood = t[v].log_likelihood + log(pop(t[v].state,n.state,args)); 
+            n.likelihood = t[v].likelihood*pop(t[v].state,n.state,args); 
             int w = boost::add_vertex(n, t);
             t[v].successors.push_back(w);
             return std::make_pair(t, w);
@@ -221,7 +221,7 @@ std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector> t,
                 n.depth = t[v].depth + 1;
                 n.plan = t[v].plan;
                 n.selector = selector;
-                n.log_likelihood = t[v].log_likelihood + log(subtasks.first);
+                n.likelihood = t[v].likelihood*subtasks.first;
                 for (auto i = subtasks.second.end();
                      i != subtasks.second.begin();) {
                     n.tasks.push_back(*(--i));
@@ -281,21 +281,20 @@ double simulation(
 }
 
 template <class State, class Selector>
-std::pair<Tree<State, Selector>, int> backprop(Tree<State, Selector> t, int w) {
-    if (!(t[w].successors.empty())) {
-        t[w].selector.mean = 0;
-        t[w].selector.sims = t[w].selector.sims + 1;
-        int total = t[w].successors.size();
-        for (int c : t[w].successors) {
-            t[w].selector.mean += t[c].selector.mean;
-        }
-        t[w].selector.mean /= total;
-    }
+std::pair<Tree<State, Selector>, int> backprop(Tree<State, Selector> t, int w, double r) {
+  if (t[w].successors.empty()) {
+    t[w].selector.mean = r;
+    t[w].selector.sims++;
+  }
+  else {
+    t[w].selector.mean = (r + t[w].selector.sims*t[w].selector.mean)/(t[w].selector.sims + 1);
+    t[w].selector.sims++;
+  }
+  if (t[w].pred == -1) {
+    return std::make_pair(t,w);
+  }
+  return backprop(t,t[w].pred,r);
 
-    if (t[w].pred == -1) {
-        return std::make_pair(t, w);
-    }
-    return backprop(t, t[w].pred);
 }
 
 template <class State, class Domain, class Selector>
@@ -309,7 +308,7 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
     if (t[v].tasks.size() == 0) {
         t[boost::graph_bundle].plans.push_back(t[v].plan);
         std::cout << "Plan found at depth " << t[v].depth << " and score of " << t[v].selector.rewardFunc(t[v].state);
-        std::cout << " with likelihood " << exp(t[v].log_likelihood) << std::endl;
+        std::cout << " with likelihood " << t[v].likelihood << std::endl;
         std::cout << std::endl;
         std::cout << "Final State:" << std::endl;
         std::cout << t[v].state.to_json() << std::endl;
@@ -323,7 +322,7 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
     n.depth = t[v].depth;
     n.plan = t[v].plan;
     n.selector = selector;
-    n.log_likelihood = t[v].log_likelihood;
+    n.likelihood = t[v].likelihood;
     int w = boost::add_vertex(n, m);
     std::pair<Tree<State, Selector>, int> mp(m, w);
     for (int i = 0; i < r; ++i) {
@@ -332,10 +331,7 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
         State cState = mp.first[mp.second].state;
         Tasks cTasks = mp.first[mp.second].tasks;
         double results = simulation(cState, cTasks, domain, selector, ++seed);
-        mp.first[mp.second].selector.mean = results;
-        mp.first[mp.second].selector.sims =
-            mp.first[mp.second].selector.sims + 1;
-        mp = backprop(mp.first, mp.second);
+        mp = backprop(mp.first, mp.second, results);
     }
     if (mp.first[mp.second].successors.empty()) {
         throw std::logic_error("MCTS failed");
@@ -356,7 +352,7 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
     k.selector = selector;
     k.depth = t[v].depth + 1;
     k.pred = v;
-    k.log_likelihood = mp.first[arg_max].log_likelihood;
+    k.likelihood = mp.first[arg_max].likelihood;
     int y = boost::add_vertex(k, t);
     t[v].successors.push_back(y);
     return seek_planMCTS(t, y, domain, selector, c, r, ++seed);
@@ -377,7 +373,7 @@ std::pair<Tree<State,Selector>,int> cpphopMCTS(State state,
     root.plan = {};
     root.depth = 0;
     root.selector = selector;
-    root.log_likelihood = 0;
+    root.likelihood = 1;
     int v = boost::add_vertex(root, t);
     std::cout << std::endl;
     std::cout << "Initial State:" << std::endl;
