@@ -97,9 +97,13 @@ namespace client {
             *explicitly_typed_list >> -implicitly_typed_list;
 
         x3::rule<class TAction, ast::Action> const action = "action";
-        auto const action_def = '(' >> lit(":action") >> name >>
-                                lit(":parameters") >> '(' >> typed_list
-                                >> ')' >> ')';
+        auto const action_def =
+            '('
+            >> lit(":action")
+            >> name
+            >> lit(":parameters")
+            >> '(' >> typed_list >> ')'
+            >> ')';
 
         x3::rule<class TDomain, ast::Domain> const domain = "domain";
         auto const domain_def = '(' >> lit("define") >> '(' >>
