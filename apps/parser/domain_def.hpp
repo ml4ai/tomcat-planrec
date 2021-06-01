@@ -16,7 +16,7 @@ namespace client
         using boost::fusion::at_c;
         using client::ast::Entity;
         using x3::lexeme, x3::lit, x3::alnum, x3::_attr,
-            x3::_val, x3::space, x3::eol;
+            x3::_val, x3::space, x3::eol, x3::rule;
 
         ///////////////////////////////////////////////////////////////////////
         //  Our annotation handler
@@ -47,10 +47,9 @@ namespace client
             >> ')';
         auto const types_def = '(' >> lit(":types") >> +name >> ')';
 
-        x3::rule<class TTypedList, ast::TypedList> const typed_list =
-            "typed_list";
-        x3::rule<class TAction, ast::Action> const action = "action";
-        x3::rule<class TDomain, ast::Domain> const domain = "domain";
+        rule<class TTypedList, ast::TypedList> const typed_list = "typed_list";
+        rule<class TAction, ast::Action> const action = "action";
+        rule<class TDomain, ast::Domain> const domain = "domain";
 
         auto add_implicitly_typed_entity = [](auto& ctx) {
             _val(ctx).push_back(Entity(_attr(ctx)));
@@ -80,11 +79,21 @@ namespace client
             >> name
             >> lit(":parameters")
             >> '(' >> typed_list >> ')'
-            >> ')';
+            >> ')'
+            ;
 
-        auto const domain_def = '(' >> lit("define") >> '(' >>
-                                lit("domain") >> name >> ')' >> -require_def >>
-                                -types_def >> +action >> ')';
+        auto const domain_def = 
+            '('
+            >> lit("define")
+            >> '('
+            >> lit("domain")
+            >> name
+            >> ')'
+            >> -require_def
+            >> -types_def
+            >> +action
+            >> ')'
+            ;
 
         BOOST_SPIRIT_DEFINE(typed_list, action, domain);
 
