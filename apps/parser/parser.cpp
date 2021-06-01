@@ -64,8 +64,11 @@ namespace client {
         auto const name = lexeme[+(char_ - '?' - '(' - ')' - ':' - space)];
         auto const requirement = ':' >> name;
         auto const variable = '?' >> name;
-        auto const require_def = '(' >> lit(":requirements") >> +requirement >>
-                                 ')';
+        auto const require_def =
+            '('
+            >> lit(":requirements")
+            >> +requirement
+            >> ')';
         auto const types_def = '(' >> lit(":types") >> +name >> ')';
 
         x3::rule<class TTypedList, ast::TypedList> const typed_list =
