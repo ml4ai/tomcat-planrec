@@ -4,9 +4,9 @@
 
 #include "ast.hpp"
 #include "ast_adapted.hpp"
+#include "config.hpp"
 #include "domain.hpp"
 #include "error_handler.hpp"
-#include "config.hpp"
 
 void print(client::ast::Domain dom) {
     using namespace std;
@@ -73,9 +73,8 @@ int main(int argc, char* argv[]) {
 
     error_handler_type error_handler(iter, end, std::cerr);
 
-    auto const parser = with<client::parser::error_handler_tag>(std::ref(error_handler)) [
-        domain()
-    ];
+    auto const parser = with<client::parser::error_handler_tag>(
+        std::ref(error_handler))[domain()];
 
     bool r = phrase_parse(iter, end, parser, client::parser::skipper, dom);
 
