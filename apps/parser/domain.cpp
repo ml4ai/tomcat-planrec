@@ -3,6 +3,6 @@
 
 namespace client {
     namespace parser {
-        BOOST_SPIRIT_INSTANTIATE(domain_type, iterator_type, phrase_context_type);
+        BOOST_SPIRIT_INSTANTIATE(domain_type, iterator_type, context_type);
     }
 } // namespace client

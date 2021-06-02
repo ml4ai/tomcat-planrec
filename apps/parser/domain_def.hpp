@@ -1,9 +1,11 @@
 #pragma once
 #include <boost/config/warning_disable.hpp>
 #include <boost/spirit/home/x3.hpp>
+#include <boost/spirit/home/x3/support/utility/annotate_on_success.hpp>
 
 #include "ast.hpp"
 #include "ast_adapted.hpp"
+#include "error_handler.hpp"
 #include "domain.hpp"
 
 namespace client
@@ -18,25 +20,6 @@ namespace client
         using x3::lexeme, x3::lit, x3::alnum, x3::_attr,
             x3::_val, x3::space, x3::eol, x3::rule;
 
-        ///////////////////////////////////////////////////////////////////////
-        //  Our annotation handler
-        ///////////////////////////////////////////////////////////////////////
-
-        // tag used to get the position cache from the context
-        struct position_cache_tag;
-
-        struct annotate_position
-        {
-            template <typename T, typename Iterator, typename Context>
-            inline void on_success(Iterator const& first, Iterator const& last
-            , T& ast, Context const& context)
-            {
-                auto& position_cache = x3::get<position_cache_tag>(context).get();
-                position_cache.annotate(ast, first, last);
-            }
-        };
-
-
         auto const name = lexeme[+(char_ - '?' - '(' - ')' - ':' - space)];
         auto const requirement = ':' >> name;
         auto const variable = '?' >> name;
@@ -47,9 +30,17 @@ namespace client
             >> ')';
         auto const types_def = '(' >> lit(":types") >> +name >> ')';
 
+        // Rule IDs
+        struct TTypedList;
+        struct TAction;
+        struct TDomain;
+
+        // Rules
         rule<class TTypedList, ast::TypedList> const typed_list = "typed_list";
         rule<class TAction, ast::Action> const action = "action";
         rule<class TDomain, ast::Domain> const domain = "domain";
+
+        // Grammar
 
         auto add_implicitly_typed_entity = [](auto& ctx) {
             _val(ctx).push_back(Entity(_attr(ctx)));
@@ -97,15 +88,14 @@ namespace client
 
         BOOST_SPIRIT_DEFINE(typed_list, action, domain);
 
-
-        // Set up the skip parser so that it can be used from parser.cpp
-        using skipper_type=decltype(skipper);
-        using phrase_context_type = x3::phrase_parse_context<skipper_type>::type;
+        // Annotation and error handling
+        struct TTypedList : x3::annotate_on_success {};
+        struct TAction: x3::annotate_on_success {};
+        struct TDomain: error_handler, x3::annotate_on_success{};
 
     }
 
-    parser::domain_type domain()
-    {
+    parser::domain_type domain() {
         return parser::domain;
     }
 }

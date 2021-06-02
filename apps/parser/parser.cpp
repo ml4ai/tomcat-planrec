@@ -5,6 +5,8 @@
 #include "ast.hpp"
 #include "ast_adapted.hpp"
 #include "domain.hpp"
+#include "error_handler.hpp"
+#include "config.hpp"
 
 void print(client::ast::Domain dom) {
     using namespace std;
@@ -66,7 +68,16 @@ int main(int argc, char* argv[]) {
     string::const_iterator end = storage.end();
     client::ast::Domain dom;
 
-    bool r = phrase_parse(iter, end, domain(), client::parser::skipper, dom);
+    using boost::spirit::x3::with;
+    using client::parser::error_handler_type;
+
+    error_handler_type error_handler(iter, end, std::cerr);
+
+    auto const parser = with<client::parser::error_handler_tag>(std::ref(error_handler)) [
+        domain()
+    ];
+
+    bool r = phrase_parse(iter, end, parser, client::parser::skipper, dom);
 
     if (r && iter == end) {
         std::cout << "-------------------------\n";
@@ -79,6 +90,7 @@ int main(int argc, char* argv[]) {
         std::cout << "-------------------------\n";
         std::cout << "Parsing failed\n";
         std::cout << "-------------------------\n";
+        error_handler(iter, "Error! Expecting end of input here: ");
         return 1;
     }
     return 0;
