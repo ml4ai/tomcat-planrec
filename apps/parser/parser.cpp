@@ -18,7 +18,7 @@ void print(client::ast::Domain dom) {
     cout << endl;
     cout << "Types: " << endl;
     for (auto x : dom.types) {
-        cout << x;
+        cout << x << endl;;
     }
     cout << endl;
 
@@ -27,8 +27,7 @@ void print(client::ast::Domain dom) {
         cout << x.name << endl;
         cout << "parameters: " << endl;
         for (auto p : x.parameters) {
-            cout << "parameter name: " << p.name << endl;
-            cout << "type: " << p.type << endl;
+            cout << p << endl;
         }
         cout << endl;
     }
