@@ -4,4 +4,4 @@
   (domain construction)
   (:requirements :strips :typing)
   (:action build-wall 
-   :parameters (?s - site ?b - bricks)))
+   :parameters (s - site ?b - bricks)))

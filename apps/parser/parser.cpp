@@ -69,12 +69,13 @@ int main(int argc, char* argv[]) {
     client::ast::Domain dom;
 
     using boost::spirit::x3::with;
+    using client::parser::error_handler_tag;
     using client::parser::error_handler_type;
 
     error_handler_type error_handler(iter, end, std::cerr);
 
-    auto const parser = with<client::parser::error_handler_tag>(
-        std::ref(error_handler))[domain()];
+    auto const parser =
+        with<error_handler_tag>(std::ref(error_handler))[domain()];
 
     bool r = phrase_parse(iter, end, parser, client::parser::skipper, dom);
 
@@ -83,13 +84,12 @@ int main(int argc, char* argv[]) {
         std::cout << "Parsing succeeded\n";
         std::cout << "-------------------------\n";
         print(dom);
-        return 0;
     }
     else {
         std::cout << "-------------------------\n";
         std::cout << "Parsing failed\n";
         std::cout << "-------------------------\n";
-        error_handler(iter, "Error! Expecting end of input here: ");
+        error_handler(iter, "Error!");
         return 1;
     }
     return 0;

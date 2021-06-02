@@ -89,9 +89,9 @@ namespace client
         BOOST_SPIRIT_DEFINE(typed_list, action, domain);
 
         // Annotation and error handling
-        struct TTypedList : x3::annotate_on_success {};
-        struct TAction: x3::annotate_on_success {};
-        struct TDomain: error_handler, x3::annotate_on_success{};
+        struct TTypedList : x3::annotate_on_success, error_handler_base {};
+        struct TAction: x3::annotate_on_success, error_handler_base {};
+        struct TDomain: x3::annotate_on_success, error_handler_base {};
 
     }
 
