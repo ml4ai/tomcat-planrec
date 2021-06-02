@@ -29,7 +29,7 @@ namespace client {
         struct Domain : x3::position_tagged {
             std::string name;
             std::vector<std::string> requirements;
-            std::vector<std::string> types;
+            TypedList types;
             std::vector<Action> actions;
         };
 

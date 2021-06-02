@@ -28,7 +28,6 @@ namespace client
             >> lit(":requirements")
             >> +requirement
             >> ')';
-        auto const types_def = '(' >> lit(":types") >> +name >> ')';
 
         // Rule IDs
         struct TTypedList;
@@ -57,12 +56,22 @@ namespace client
             }
         };
 
-        auto const implicitly_typed_list =
-            *variable[add_implicitly_typed_entity];
-        auto const explicitly_typed_list =
-            (+variable >> '-' >> name)[add_explicitly_typed_entities];
-        auto const typed_list_def =
-            *explicitly_typed_list >> -implicitly_typed_list;
+
+        template<class T> auto typed_list_parser(T parser) {
+            auto const implicitly_typed_list =
+                *parser[add_implicitly_typed_entity];
+            auto const explicitly_typed_list =
+                (+parser >> '-' >> name)[add_explicitly_typed_entities];
+            auto const typed_list_def =
+                *explicitly_typed_list >> -implicitly_typed_list;
+            return  typed_list_def;
+        }
+
+
+        auto const typed_list_def = 
+            typed_list_parser(name) | typed_list_parser(variable);
+
+        auto const types_def = '(' >> lit(":types") >> typed_list >> ')';
 
         auto const action_def =
             '('
@@ -92,7 +101,6 @@ namespace client
         struct TTypedList : x3::annotate_on_success, error_handler_base {};
         struct TAction: x3::annotate_on_success, error_handler_base {};
         struct TDomain: x3::annotate_on_success, error_handler_base {};
-
     }
 
     parser::domain_type domain() {
