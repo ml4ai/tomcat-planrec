@@ -4,6 +4,7 @@
     (domain construction)
     (:requirements :strips :typing)
     (:types site bricks)
+    (:constants mainsite - site)
     (:predicates
         (walls-built ?s - site)
         (windows-fitted ?s - site)

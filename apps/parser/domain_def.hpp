@@ -20,7 +20,7 @@ namespace client
         using x3::lexeme, x3::lit, x3::alnum, x3::_attr,
             x3::_val, x3::space, x3::eol, x3::rule;
 
-        auto const name = lexeme[+(char_ - '?' - '(' - ')' - ':' - space)];
+        auto const name = lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
         auto const requirement = ':' >> name;
         auto const variable = '?' >> name;
 

@@ -33,9 +33,16 @@ void print(client::ast::Domain dom) {
     }
     cout << endl;
 
+    cout << "Constants:" << endl;
+    for (auto constant : dom.constants) {
+        cout << constant;
+    }
+    cout << endl;
+    cout << endl;
+
     cout << "Predicates:" << endl;
     for (auto x : dom.predicates) {
-        cout << x.predicate << endl;
+        cout << x.predicate;
         for (auto variable : x.variables) {
             cout << variable << endl;
         }
