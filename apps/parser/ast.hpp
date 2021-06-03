@@ -26,10 +26,18 @@ namespace client {
             TypedList parameters;
         };
 
+
+        struct AtomicFormulaSkeleton : x3::position_tagged {
+            std::string predicate;
+            TypedList variables;
+        };
+
         struct Domain : x3::position_tagged {
             std::string name;
             std::vector<std::string> requirements;
             TypedList types;
+            TypedList constants;
+            std::vector<AtomicFormulaSkeleton> predicates;
             std::vector<Action> actions;
         };
 

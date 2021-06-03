@@ -16,7 +16,7 @@ namespace client
     namespace parser
     {
         using boost::fusion::at_c;
-        using ast::Entity, ast::TypedList, ast::Action, ast::Domain;
+        using ast::Entity, ast::TypedList, ast::Action, ast::Domain, ast::AtomicFormulaSkeleton;
         using x3::lexeme, x3::lit, x3::alnum, x3::_attr,
             x3::_val, x3::space, x3::eol, x3::rule;
 
@@ -32,6 +32,7 @@ namespace client
         // Rules
         rule<class TypedListNames, TypedList> const typed_list_names = "typed_list_names";
         rule<class TypedListVariables, TypedList> const typed_list_variables = "typed_list_variables";
+        rule<class TAtomicFormulaSkeleton, AtomicFormulaSkeleton> const atomic_formula_skeleton = "atomic_formula_skeleton";
         rule<class TAction, Action> const action = "action";
         rule<class TDomain, Domain> const domain = "domain";
 
@@ -59,19 +60,19 @@ namespace client
         };
 
 
-        template<class T> auto typed_list_parser(T parser) {
+        template<class T> auto typed_list(T parser) {
             auto const implicitly_typed_list =
                 *parser[add_implicitly_typed_entity];
             auto const explicitly_typed_list =
                 (+parser >> '-' >> name)[add_explicitly_typed_entities];
-            auto const typed_list_parser_def =
+            auto const typed_list_def =
                 *explicitly_typed_list >> -implicitly_typed_list;
-            return  typed_list_parser_def;
+            return  typed_list_def;
         }
 
 
-        auto const typed_list_names_def = typed_list_parser(name);
-        auto const typed_list_variables_def = typed_list_parser(variable);
+        auto const typed_list_names_def = typed_list(name);
+        auto const typed_list_variables_def = typed_list(variable);
 
         auto const parameters_def = lit(":parameters") >> '(' >> typed_list_variables >> ')';
 
@@ -99,8 +100,8 @@ namespace client
         // TODO Predicates
         auto const structure_def = action_def;
         auto const predicate = name;
-        auto const atomic_formula_skeleton = '(' >> predicate >> typed_list_variables >> ')';
-        auto const predicates_def = '(' >> lit(":predicates") >> atomic_formula_skeleton >> ')';
+        auto const atomic_formula_skeleton_def = '(' >> predicate >> typed_list_variables >> ')';
+        auto const predicates_def = '(' >> lit(":predicates") >> +atomic_formula_skeleton >> ')';
 
         auto const constants_def = '(' >> lit(":constants") >> typed_list_names >> ')';
         auto const types_def = '(' >> lit(":types") >> typed_list_names >> ')';
@@ -110,11 +111,13 @@ namespace client
             '(' >> lit("define") >> '(' >> lit("domain") >> name >> ')'
             >> -require_def
             >> -types_def
+            >> -constants_def
+            >> -predicates_def
             >> *structure_def
             >> ')'
             ;
 
-        BOOST_SPIRIT_DEFINE(typed_list_names, typed_list_variables, action, domain);
+        BOOST_SPIRIT_DEFINE(typed_list_names, typed_list_variables, atomic_formula_skeleton, action, domain);
 
         // Annotation and error handling
         struct TypedListNames : x3::annotate_on_success, error_handler_base {};
