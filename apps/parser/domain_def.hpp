@@ -30,8 +30,8 @@ namespace client
         struct TDomain;
 
         // Rules
-        rule<class TypedListNames, TypedList> const typed_list_names = "typed_list_names";
-        rule<class TypedListVariables, TypedList> const typed_list_variables = "typed_list_variables";
+        rule<class TypedListNames, TypedList<Entity>> const typed_list_names = "typed_list_names";
+        rule<class TypedListVariables, TypedList<Variable>> const typed_list_variables = "typed_list_variables";
         rule<class TAtomicFormulaSkeleton, AtomicFormulaSkeleton> const atomic_formula_skeleton = "atomic_formula_skeleton";
         rule<class TAction, Action> const action = "action";
         rule<class TDomain, Domain> const domain = "domain";
