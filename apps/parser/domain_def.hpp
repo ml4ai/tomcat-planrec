@@ -25,14 +25,14 @@ namespace client
         auto const variable = '?' >> name;
 
         // Rule IDs
-        struct TypedListNames;
-        struct TypedListVariables;
+        struct Entities;
+        struct Variables;
         struct TAction;
         struct TDomain;
 
         // Rules
-        rule<class TypedListNames, std::vector<Entity>> const typed_list_names = "typed_list_names";
-        rule<class TypedListVariables, std::vector<Variable>> const typed_list_variables = "typed_list_variables";
+        rule<class Entities, std::vector<Entity>> const typed_list_names = "typed_list_names";
+        rule<class Variables, std::vector<Variable>> const typed_list_variables = "typed_list_variables";
         rule<class TAtomicFormulaSkeleton, AtomicFormulaSkeleton> const atomic_formula_skeleton = "atomic_formula_skeleton";
         rule<class TAction, Action> const action = "action";
         rule<class TDomain, Domain> const domain = "domain";
@@ -123,8 +123,8 @@ namespace client
         BOOST_SPIRIT_DEFINE(typed_list_names, typed_list_variables, atomic_formula_skeleton, action, domain);
 
         // Annotation and error handling
-        struct TypedListNames : x3::annotate_on_success, error_handler_base {};
-        struct TypedListVariables : x3::annotate_on_success, error_handler_base {};
+        struct Entities : x3::annotate_on_success, error_handler_base {};
+        struct Variables : x3::annotate_on_success, error_handler_base {};
         struct TAction: x3::annotate_on_success, error_handler_base {};
         struct TDomain: x3::annotate_on_success, error_handler_base {};
     }
