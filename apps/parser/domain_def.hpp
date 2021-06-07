@@ -44,35 +44,37 @@ namespace client
 
         auto const type = primitive_type;
 
+        template<class T>
         auto add_implicitly_typed_entity = [](auto& ctx) {
-            _val(ctx).push_back(Entity(_attr(ctx)));
+            _val(ctx).push_back(T(_attr(ctx)));
         };
 
+        template<class T>
         auto add_explicitly_typed_entities = [](auto& ctx) {
             auto dq = _attr(ctx);
             std::vector<std::string> names = at_c<0>(dq);
             std::string type = at_c<1>(dq);
 
             for (std::string& name : names) {
-                Entity entity = Entity(name, type);
+                T entity = T(name, type);
                 _val(ctx).push_back(entity);
             }
         };
 
 
-        template<class T> auto typed_list(T parser) {
+        template<class U, class T> auto typed_list(T parser) {
             auto const implicitly_typed_list =
-                *parser[add_implicitly_typed_entity];
+                *parser[add_implicitly_typed_entity<U>];
             auto const explicitly_typed_list =
-                (+parser >> '-' >> name)[add_explicitly_typed_entities];
+                (+parser >> '-' >> name)[add_explicitly_typed_entities<U>];
             auto const typed_list_def =
                 *explicitly_typed_list >> -implicitly_typed_list;
             return  typed_list_def;
         }
 
 
-        auto const typed_list_names_def = typed_list(name);
-        auto const typed_list_variables_def = typed_list(variable);
+        auto const typed_list_names_def = typed_list<Entity>(name);
+        auto const typed_list_variables_def = typed_list<Variable>(variable);
 
         auto const parameters_def = lit(":parameters") >> '(' >> typed_list_variables >> ')';
 
