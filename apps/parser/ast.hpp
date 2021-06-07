@@ -21,7 +21,10 @@ namespace client {
 
         using TypedList = std::vector<Entity>;
 
-        struct Variable : Entity, x3::position_tagged {};
+        struct Variable : Entity, x3::position_tagged {
+            // Inherit all constructors of the Entity class
+            using Entity::Entity;
+        };
 
         struct Action : x3::position_tagged {
             std::string name;

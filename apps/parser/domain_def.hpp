@@ -16,7 +16,7 @@ namespace client
     namespace parser
     {
         using boost::fusion::at_c;
-        using ast::Entity, ast::TypedList, ast::Action, ast::Domain, ast::AtomicFormulaSkeleton;
+        using ast::Entity, ast::Variable, ast::TypedList, ast::Action, ast::Domain, ast::AtomicFormulaSkeleton;
         using x3::lexeme, x3::lit, x3::alnum, x3::_attr,
             x3::_val, x3::space, x3::eol, x3::rule;
 
