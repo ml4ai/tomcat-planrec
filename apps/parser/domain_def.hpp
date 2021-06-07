@@ -16,7 +16,7 @@ namespace client
     namespace parser
     {
         using boost::fusion::at_c;
-        using ast::Entity, ast::Variable, ast::TypedList, ast::Action, ast::Domain, ast::AtomicFormulaSkeleton;
+        using ast::Entity, ast::Variable, ast::Action, ast::Domain, ast::AtomicFormulaSkeleton;
         using x3::lexeme, x3::lit, x3::alnum, x3::_attr,
             x3::_val, x3::space, x3::eol, x3::rule;
 
@@ -26,12 +26,13 @@ namespace client
 
         // Rule IDs
         struct TypedListNames;
+        struct TypedListVariables;
         struct TAction;
         struct TDomain;
 
         // Rules
-        rule<class TypedListNames, TypedList<Entity>> const typed_list_names = "typed_list_names";
-        rule<class TypedListVariables, TypedList<Variable>> const typed_list_variables = "typed_list_variables";
+        rule<class TypedListNames, std::vector<Entity>> const typed_list_names = "typed_list_names";
+        rule<class TypedListVariables, std::vector<Variable>> const typed_list_variables = "typed_list_variables";
         rule<class TAtomicFormulaSkeleton, AtomicFormulaSkeleton> const atomic_formula_skeleton = "atomic_formula_skeleton";
         rule<class TAction, Action> const action = "action";
         rule<class TDomain, Domain> const domain = "domain";

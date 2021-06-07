@@ -19,9 +19,6 @@ namespace client {
                 : name(name), type(type){};
         };
 
-        template<class T>
-        using TypedList = std::vector<T>;
-
         struct Variable : Entity, x3::position_tagged {
             // Inherit all constructors of the Entity class
             using Entity::Entity;
@@ -29,20 +26,20 @@ namespace client {
 
         struct Action : x3::position_tagged {
             std::string name;
-            TypedList<Entity> parameters;
+            std::vector<Entity> parameters;
         };
 
 
         struct AtomicFormulaSkeleton : x3::position_tagged {
             std::string predicate;
-            TypedList<Variable> variables;
+            std::vector<Variable> variables;
         };
 
         struct Domain : x3::position_tagged {
             std::string name;
             std::vector<std::string> requirements;
-            TypedList<Entity> types;
-            TypedList<Entity> constants;
+            std::vector<Entity> types;
+            std::vector<Entity> constants;
             std::vector<AtomicFormulaSkeleton> predicates;
             std::vector<Action> actions;
         };
