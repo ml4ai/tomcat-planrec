@@ -31,8 +31,6 @@ namespace client
         struct TDomain;
 
         // Rules
-        rule<class Entities, std::vector<Entity>> const typed_list_names = "typed_list_names";
-        rule<class Variables, std::vector<Variable>> const typed_list_variables = "typed_list_variables";
         rule<class TAtomicFormulaSkeleton, AtomicFormulaSkeleton> const atomic_formula_skeleton = "atomic_formula_skeleton";
         rule<class TAction, Action> const action = "action";
         rule<class TDomain, Domain> const domain = "domain";
@@ -63,7 +61,7 @@ namespace client
         };
 
 
-        template<class U, class T> auto typed_list(T parser) {
+        template<class U, class T> auto typed_list_parser(T parser) {
             auto const implicitly_typed_list =
                 *parser[add_implicitly_typed_entity<U>];
             auto const explicitly_typed_list =
@@ -74,8 +72,13 @@ namespace client
         }
 
 
-        auto const typed_list_names_def = typed_list<Entity>(name);
-        auto const typed_list_variables_def = typed_list<Variable>(variable);
+        template<class RuleID, class U, class Parser>
+        auto typed_list_rule(Parser parser) {
+            return rule<RuleID, std::vector<U>> {"typed_list_names"} = typed_list_parser<U>(parser);
+        }
+
+        auto const typed_list_names = typed_list_rule<class Entities, Entity>(name);
+        auto const typed_list_variables = typed_list_rule<class Variables, Variable>(variable);
 
         auto const parameters_def = lit(":parameters") >> '(' >> typed_list_variables >> ')';
 
@@ -120,7 +123,7 @@ namespace client
             >> ')'
             ;
 
-        BOOST_SPIRIT_DEFINE(typed_list_names, typed_list_variables, atomic_formula_skeleton, action, domain);
+        BOOST_SPIRIT_DEFINE(atomic_formula_skeleton, action, domain);
 
         // Annotation and error handling
         struct Entities : x3::annotate_on_success, error_handler_base {};
