@@ -21,6 +21,8 @@ namespace client {
 
         using TypedList = std::vector<Entity>;
 
+        struct Variable : Entity, x3::position_tagged {};
+
         struct Action : x3::position_tagged {
             std::string name;
             TypedList parameters;

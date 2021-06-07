@@ -7,6 +7,7 @@
 // fusion citizens. This has to be in global scope.
 
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Entity, name, type)
+BOOST_FUSION_ADAPT_STRUCT(client::ast::Variable, name, type)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Action, name, parameters)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::AtomicFormulaSkeleton, predicate, variables)
 BOOST_FUSION_ADAPT_STRUCT(
