@@ -9,12 +9,12 @@
 
 namespace client {
     namespace ast {
-        using name = std::string;
+        using Name = std::string;
         namespace x3 = boost::spirit::x3;
 
         struct Entity {
-            std::string name;
-            std::string type;
+            Name name;
+            Name type;
             Entity(const std::string name, const std::string type = "object")
                 : name(name), type(type){};
         };
@@ -25,18 +25,41 @@ namespace client {
         };
 
         struct Action : x3::position_tagged {
-            std::string name;
-            std::vector<Entity> parameters;
+            Name name;
+            std::vector<Variable> parameters;
         };
 
 
+        using Term = std::variant<Name, Variable>;
+
+        template<class T>
+        struct AtomicFormula {
+            Name predicate;
+            std::vector<T> args;
+        };
+
+        struct GoalDescription;
+
+        struct GoalDescriptionValue : x3::variant<
+            std::string,
+            x3::forward_ast<GoalDescription>
+        >
+        {
+            using base_type::base_type;
+            using base_type::operator=;
+        };
+
+        struct GoalDescription {
+            std::vector<GoalDescriptionValue> entries;
+        };
+
         struct AtomicFormulaSkeleton : x3::position_tagged {
-            std::string predicate;
+            Name predicate;
             std::vector<Variable> variables;
         };
 
         struct Domain : x3::position_tagged {
-            std::string name;
+            Name name;
             std::vector<std::string> requirements;
             std::vector<Entity> types;
             std::vector<Entity> constants;

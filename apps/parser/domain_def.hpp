@@ -16,7 +16,8 @@ namespace client
     namespace parser
     {
         using boost::fusion::at_c;
-        using ast::Entity, ast::Variable, ast::Action, ast::Domain, ast::AtomicFormulaSkeleton;
+        using ast::Entity, ast::Variable, ast::Action, ast::Domain,
+              ast::AtomicFormulaSkeleton, ast::Term, ast::AtomicFormula;
         using x3::lexeme, x3::lit, x3::alnum, x3::_attr,
             x3::_val, x3::space, x3::eol, x3::rule;
 
@@ -72,9 +73,12 @@ namespace client
         }
 
 
+        auto const predicate = name;
+        auto const term = name | variable;
+
         template<class RuleID, class U, class Parser>
         auto typed_list_rule(Parser parser) {
-            return rule<RuleID, std::vector<U>> {"typed_list_names"} = typed_list_parser<U>(parser);
+            return rule<RuleID, std::vector<U>> {"typed_list"} = typed_list_parser<U>(parser);
         }
 
         auto const typed_list_names = typed_list_rule<class Entities, Entity>(name);
@@ -84,12 +88,25 @@ namespace client
 
         auto const action_symbol = name;
 
+        template<class U, class T> auto atomic_formula_parser(T parser) {
+            auto const atomic_formula_def = predicate >> *parser;
+            return atomic_formula_def;
+        }
+
+        template<class RuleID, class U, class Parser>
+        auto atomic_formula_rule(Parser parser) {
+            return rule<RuleID, AtomicFormula<U>> {"atomic_formula"} = atomic_formula_parser<U>(parser);
+        }
+
+        auto const atomic_formula_term = atomic_formula_rule<class TAtomicFormula, Term>(term);
+
         // TODO extend definitions of effect and GD
-        auto const effect = ('(' >> lit(")"));
-        auto const GD = ('(' >> lit(")"));
+        auto const nil = ('(' >> lit(")"));
+        auto const effect = nil; 
+        auto const goal_description = nil; 
 
         auto const action_def_body = 
-            -(lit(":precondition") >> GD)
+            -(lit(":precondition") >> goal_description)
             >> -(lit(":effect") >> effect);
 
         // Actions
@@ -98,6 +115,7 @@ namespace client
             >> lit(":action")
             >> action_symbol
             >> parameters_def 
+            //>> action_def_body
             >> ')'
             ;
 
@@ -105,7 +123,6 @@ namespace client
 
         // TODO Predicates
         auto const structure_def = action_def;
-        auto const predicate = name;
         auto const atomic_formula_skeleton_def = '(' >> predicate >> typed_list_variables >> ')';
         auto const predicates_def = '(' >> lit(":predicates") >> +atomic_formula_skeleton >> ')';
 

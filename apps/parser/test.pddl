@@ -21,6 +21,7 @@
 
     (:action BUILD-WALL
         :parameters (?s - site ?b - bricks)
+        ;:precondition (()
         ;:precondition (and
             ;(on-site ?b ?s)
             ;(foundations-set ?s)

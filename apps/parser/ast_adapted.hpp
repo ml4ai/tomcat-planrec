@@ -9,6 +9,8 @@
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Entity, name, type)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Variable, name, type)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Action, name, parameters)
+BOOST_FUSION_ADAPT_STRUCT(client::ast::AtomicFormula<client::ast::Variable>, predicate, args)
+BOOST_FUSION_ADAPT_STRUCT(client::ast::GoalDescription, entries)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::AtomicFormulaSkeleton, predicate, variables)
 BOOST_FUSION_ADAPT_STRUCT(
     client::ast::Domain, name, requirements, types, constants, predicates, actions)
