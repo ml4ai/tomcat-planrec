@@ -248,7 +248,7 @@ std::pair<Tree<State, Selector>, int> expansion_rec(Tree<State, Selector> t,
 
 template <class State, class Selector>
 Tree<State, Selector>
-get_optimal_branch(Tree<State, Selector> t, Tree<State,Selector> o, int t_n, int o_n) {
+get_optimal_branch_rec(Tree<State, Selector> t, Tree<State,Selector> o, int t_n, int o_n) {
   if (t[t_n].successors.empty()) {
     return o;
   }
@@ -273,7 +273,7 @@ get_optimal_branch(Tree<State, Selector> t, Tree<State,Selector> o, int t_n, int
   int w = boost::add_vertex(v, o);
   o[o_n].successors.push_back(w);
 
-  return get_optimal_branch(t,o,arg_max,w);
+  return get_optimal_branch_rec(t,o,arg_max,w);
  
 }
 
@@ -332,6 +332,6 @@ seek_planrecMCTS(json trace,
   o_root.likelihood = t[v].likelihood; 
   o_root.plan_trace = t[v].plan_trace;
   int o_n = boost::add_vertex(o_root,o);
-  o = get_optimal_branch(t,o,v,o_n);
+  o = get_optimal_branch_rec(t,o,v,o_n);
   return generate_plan_trace_tree(o,o_n, gen_file, outfile);
 }
