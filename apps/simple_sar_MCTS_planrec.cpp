@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
 
     auto state1 = SARState();
     state1.loc["me"] = "entrance";
+    state1.visited["me"]["entrance"] = 1;
     std::string area1 = "R1";
     std::string area2 = "R2";
     std::string area3 = "R3";
@@ -88,6 +89,9 @@ int main(int argc, char* argv[]) {
     state1.y_total = 0;
     state1.g_total = 0;
     state1.time = 0;
+    state1.left_explored = false;
+    state1.right_explored = false;
+    state1.mid_explored = false;
 
     state1.set_max_vic();
 
@@ -106,16 +110,20 @@ int main(int argc, char* argv[]) {
       trace.push_back(*it);
     }
 
-     seek_planrecMCTS(trace,
-                      state1,
-                      tasks,
-                      domain,
-                      selector,
-                      N,
-                      0.4,
-                      2021,
-                      true,
-                      "simple_sar_exp.json");
+    state1.loc_tracker = get_loc_seq(trace,
+                                    state1.left_region,
+                                    state1.right_region,
+                                    state1.mid_region);
+    seek_planrecMCTS(trace,
+                     state1,
+                     tasks,
+                     domain,
+                     selector,
+                     N,
+                     0.4,
+                     2021,
+                     true,
+                     "simple_sar_exp.json");
 
     return EXIT_SUCCESS;
 }

@@ -6,15 +6,23 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    int r;
+    int N;
     if (argc > 1) {
-      r = strtol(argv[1], nullptr, 0);
+      N = strtol(argv[1], nullptr, 0);
     }
     else {
-      r = 30;
+      N = 30;
+    }
+    int e;
+    if (argc > 2) {
+       e = strtol(argv[2],nullptr,0);
+    }
+    else {
+      e = 0.4; 
     }
     auto state1 = SARState();
     state1.loc["me"] = "entrance";
+    state1.visited["me"]["entrance"] = 1;
     std::string area1 = "R1";
     std::string area2 = "R2";
     std::string area3 = "R3";
@@ -74,18 +82,25 @@ int main(int argc, char* argv[]) {
     state1.y_total = 0;
     state1.g_total = 0;
     state1.time = 0;
+    state1.left_explored = false;
+    state1.right_explored = false;
+    state1.mid_explored = false;
+
+    state1.times_searched = 0;
 
     state1.set_max_vic();
+
+    state1.loc_tracker["left"] = {};
+    state1.loc_tracker["right"] = {};
+    state1.loc_tracker["mid"] = {};
 
     auto domain = SARDomain();
 
     auto selector = SARSelector();
-    selector.mean = 0;
-    selector.sims = 0;
 
     Tasks tasks = {
-        {Task("SAR_O", Args({{"agent", "me"}}))}};
-    auto pt = cpphopMCTS(state1, tasks, domain, selector,sqrt(2),r);
+        {Task("sweep_left_YF", Args({{"agent", "me"}}))}};
+    auto pt = cpphopMCTS(state1, tasks, domain, selector,N,e);
     generate_plan_trace_tree(pt.first,pt.second,true,"simple_sar_trace_tree.json");
     generate_plan_trace(pt.first,pt.second,true,"simple_sar_trace.json");
     return EXIT_SUCCESS;
