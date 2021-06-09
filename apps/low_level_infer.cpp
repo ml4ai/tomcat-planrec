@@ -14,12 +14,6 @@ int main() {
     int map[51][91] = {1}; // initialize the matrix with 1
     ifstream infile;
     infile.open("../data/maps/Falcon_" + diff + ".txt");
-    //    if (infile.is_open()) {
-    //        cout << "File has been opened" << endl;
-    //    }
-    //    else {
-    //        cout << "NO FILE HAS BEEN OPENED" << endl;
-    //    }
     for (int i = 0; i < 51; i++) {
         for (int j = 0; j < 91; j++) {
             infile >> map[i][j];
@@ -29,49 +23,42 @@ int main() {
 
     string hsd_path = "../data/hsd";
     json j_file;
-    for (const auto & entry : fs::directory_iterator(hsd_path)){
+    auto pre_x = 0, pre_z = 0, curr_x = 0, curr_z = 0;
+    for (const auto& entry : fs::directory_iterator(hsd_path)) {
         string file_name = entry.path();
         fstream fst;
-//    newfile.open(
-//        file_name,
-//        ios::out); // open a file to perform write operation using file object
-//    if (newfile.is_open()) // checking whether the file is open
-//    {
-//        newfile << "Tutorials point \n"; // inserting text
-//        newfile.close();                 // close the file object
-//    }
-        fst.open(
-            file_name,
-            ios::in); // open a file to perform read operation using file object
-        if (fst.is_open()) { // checking whether the file is open
-            string tp;
-            while (
-                getline(fst,
-                        tp)) { // read data from file object and put it into string.
-
-                j_file = json::parse(tp);
-//            cout << tp << "\n";
-                cout << j_file << "\n"; // print the data of the string
-            }
-            fst.close(); // close the file object.
-        }
-
-//    json j_file;
         try {
-            std::ifstream in(file_name);
-            if (!in) {
-                std::cout << "Failed to open file" << endl;
+            fst.open(file_name, ios::in);
+            if (fst.is_open()) {
+                string tp;
+                while (getline(fst, tp)) {
+                    j_file = json::parse(tp);
+                    //                    cout << j_file << "\n";
+                    if (j_file["data"].find("mission_timer") !=
+                            j_file["data"].end() and
+                        j_file["data"]["mission_timer"] !=
+                            "Mission Timer not initialized.")
+                        if (j_file["data"].find("x") !=
+                            j_file["data"].end()){
+                            curr_x = floor(float(j_file["data"].at("x")));
+                            curr_z = floor(float(j_file["data"].at("z")));
+                            if ((curr_x != pre_x or curr_z != pre_z) and (abs(curr_x - pre_x) + abs(curr_z - pre_z)) > 2){
+                                cout << j_file["data"].at("mission_timer") << endl;
+                                cout << curr_x << endl;
+                                cout << curr_z << endl;
+                                pre_x = curr_x;
+                                pre_z = curr_z;
+                            }
+
+                        }
+
+                }
+                fst.close();
             }
-            j_file = json::parse(in);
         }
         catch (std::exception& e) {
             std::cout << "Exception:" << endl;
             std::cout << e.what() << endl;
         }
-
-        cout << j_file;
     }
-
-
-
 }
