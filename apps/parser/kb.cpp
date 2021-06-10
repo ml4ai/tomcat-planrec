@@ -41,7 +41,6 @@ struct Function {
     };
 };
 
-
 struct Predicate {
     string name;
     vector<Term> args;
@@ -63,6 +62,19 @@ struct ComplexSentence;
 
 using AtomicSentence = Predicate;
 
+struct Sentence;
+
+struct Sentence {
+    auto value = variant<AtomicSentence,
+    tuple<LogicalConnective, Sentence>, // Negated sentences
+    tuple<LogicalConnective,
+          Sentence,
+          Sentence>, // and/or/implies/iff
+    tuple<Quantifier, vector<Variable>, Sentence> // quantified
+                                                            // sentence
+>
+
+};
 using Sentence = make_recursive_variant<
     AtomicSentence,
     tuple<LogicalConnective, recursive_variant_>, // Negated sentences
@@ -81,13 +93,20 @@ struct KnowledgeBase {
     vector<Sentence> sentences;
 };
 
+void tell(KnowledgeBase& kb, Sentence sentence) {
+    kb.sentences.push_back(sentence);
+}
+
 int main(int argc, char* argv[]) {
     auto c = Constant{"c"};
     auto v = Variable{"v"};
-    auto p = Predicate{"p", {c, v}};
     auto f = Function{"func", {c, v}};
+    auto p = Predicate{"p", {c, v, f}};
     cout << p << endl;
     cout << f << endl;
+    auto kb = KnowledgeBase();
+    auto sentence = p;
+    tell(kb, p);
 
     return EXIT_SUCCESS;
 }
