@@ -62,40 +62,44 @@ struct ComplexSentence;
 
 using AtomicSentence = Predicate;
 
-struct Sentence;
+struct FOLNode;
 
-struct Sentence {
-    auto value = variant<AtomicSentence,
-    tuple<LogicalConnective, Sentence>, // Negated sentences
-    tuple<LogicalConnective,
-          Sentence,
-          Sentence>, // and/or/implies/iff
-    tuple<Quantifier, vector<Variable>, Sentence> // quantified
-                                                            // sentence
->
-
+struct FOLNode {
+    variant<AtomicSentence, tuple<variant<Quantifier, LogicalConnective>, vector<FOLNode>>> args;
 };
-using Sentence = make_recursive_variant<
-    AtomicSentence,
-    tuple<LogicalConnective, recursive_variant_>, // Negated sentences
-    tuple<LogicalConnective,
-          recursive_variant_,
-          recursive_variant_>, // and/or/implies/iff
-    tuple<Quantifier, vector<Variable>, recursive_variant_> // quantified
-                                                            // sentence
-    >::type;
+
+//};
+//using Sentence = make_recursive_variant<
+    //AtomicSentence,
+    //tuple<LogicalConnective, recursive_variant_>, // Negated sentences
+    //tuple<LogicalConnective,
+          //recursive_variant_,
+          //recursive_variant_>, // and/or/implies/iff
+    //tuple<Quantifier, vector<Variable>, recursive_variant_> // quantified
+                                                            //// sentence
+    //>::type;
 
 using NotSentence = tuple<LogicalConnective, Sentence>;
 using ConnectedSentence = tuple<LogicalConnective, Sentence, Sentence>;
 using QuantifiedSentence = tuple<Quantifier, vector<Variable>, Sentence>;
 
-struct KnowledgeBase {
-    vector<Sentence> sentences;
+//struct KnowledgeBase {
+    //vector<Sentence> sentences;
+//};
+
+//void tell(KnowledgeBase& kb, Sentence sentence) {
+    //kb.sentences.push_back(sentence);
+//}
+
+struct Foo
+{
+    std::variant<int, float, std::vector<Foo>> _data;
 };
 
-void tell(KnowledgeBase& kb, Sentence sentence) {
-    kb.sentences.push_back(sentence);
-}
+typedef boost::make_recursive_variant<
+      int
+    , std::vector< boost::recursive_variant_ >
+    >::type int_tree_t;
 
 int main(int argc, char* argv[]) {
     auto c = Constant{"c"};
@@ -104,9 +108,13 @@ int main(int argc, char* argv[]) {
     auto p = Predicate{"p", {c, v, f}};
     cout << p << endl;
     cout << f << endl;
-    auto kb = KnowledgeBase();
+    //auto kb = KnowledgeBase();
     auto sentence = p;
-    tell(kb, p);
+    //vector<Sentence> vec;
+    //tell(kb, p);
+    std::vector< int_tree_t > subresult;
+    subresult.push_back(3);
+    subresult.push_back(5);
 
     return EXIT_SUCCESS;
 }
