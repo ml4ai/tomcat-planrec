@@ -11,14 +11,19 @@ using json = nlohmann::json;
 
 int main() {
     // read the map matrix into a array
-    string diff = "easy";
-    int map[51][91] = {1}; // initialize the matrix with 1
+//    string diff = "easy";
+    vector<string> difficulties = {"easy", "medium", "difficult"};
+    int map[3][51][91] = {1}; // initialize the matrix with 1
     ifstream infile;
-    infile.open("../data/maps/Falcon_" + diff + ".txt");
-    for (int i = 0; i < 51; i++) {
-        for (int j = 0; j < 91; j++) {
-            infile >> map[i][j];
+    int d = 0;
+    for(const auto &diff : difficulties){
+        infile.open("../data/maps/Falcon_" + diff + ".txt");
+        for (int i = 0; i < 51; i++) {
+            for (int j = 0; j < 91; j++) {
+                infile >> map[d][i][j];
+            }
         }
+        d = d + 1;
     }
     infile.close();
 
@@ -38,10 +43,21 @@ int main() {
         fstream fst;
         bool finished = false;
         stack<state> traj;
-        string delimiter = " : ";
+        int diff = 0;
+        string timer_delimiter = " : ";
         try {
 //            file_name = "../data/hsd/study-1_2020.08_HSRData_TrialMessages_CondBtwn-TriageNoSignal_CondWin-FalconMed-StaticMap_Trial-110_Team-na_Member-48_Vers-3.metadata";
             fst.open(file_name, ios::in);
+            if (file_name.find("FalconEasy") != string::npos){
+                diff = 0;
+            }
+            else if (file_name.find("FalconMed") != string::npos){
+                diff = 1;
+            }
+            else if (file_name.find("FalconHard") != string::npos){
+                diff = 2;
+            }
+
             if (fst.is_open()) {
                 string tp;
                 while (getline(fst, tp)) {
@@ -51,8 +67,8 @@ int main() {
                         j_file["data"]["mission_timer"] !=
                             "Mission Timer not initialized.") {
                         string mt = string(j_file["data"]["mission_timer"]);
-                        int minutes = stoi(mt.substr(0, mt.find(delimiter)));
-                        int seconds = stoi(mt.erase(0, mt.find(delimiter) + delimiter.length()));
+                        int minutes = stoi(mt.substr(0, mt.find(timer_delimiter)));
+                        int seconds = stoi(mt.erase(0, mt.find(timer_delimiter) + timer_delimiter.length()));
                         int timer = minutes * 60 + seconds;
                         //
                     //
@@ -131,5 +147,7 @@ int main() {
         }
 
     }
+//    std::ofstream output_file("./example.txt");
+//    for (const auto &e : st_traj) output_file << e << "\n";
     cout << endl;
 }
