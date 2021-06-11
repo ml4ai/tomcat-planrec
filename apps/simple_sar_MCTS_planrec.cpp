@@ -5,6 +5,7 @@
 #include "plan_trace.h"
 #include <istream>
 #include "planrec.h"
+#include "plangrapher.h"
 
 using json = nlohmann::ordered_json;
 

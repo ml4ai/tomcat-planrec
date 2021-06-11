@@ -2,6 +2,10 @@
 #include <math.h>
 #include <stdlib.h>
 #include "plan_trace.h"
+#include "plangrapher.h"
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::ordered_json;
 
 using namespace std;
 
@@ -101,7 +105,9 @@ int main(int argc, char* argv[]) {
     Tasks tasks = {
         {Task("sweep_left_YF", Args({{"agent", "me"}}))}};
     auto pt = cpphopMCTS(state1, tasks, domain, selector,N,e);
-    generate_plan_trace_tree(pt.first,pt.second,true,"simple_sar_trace_tree.json");
+
+    json j = generate_plan_trace_tree(pt.first,pt.second,true,"simple_sar_trace_tree.json");
+    generate_graph_from_json(j, "simple_sar_tree_graph.png");
     generate_plan_trace(pt.first,pt.second,true,"simple_sar_trace.json");
     return EXIT_SUCCESS;
 }
