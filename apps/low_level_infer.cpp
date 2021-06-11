@@ -74,9 +74,9 @@ int main() {
                     //
 
                     if (j_file["data"].find("x") != j_file["data"].end()) {
-                        curr_x = floor(float(j_file["data"].at("x")));
-                        curr_z = floor(float(j_file["data"].at("z")));
-                        if (curr_x < -2109 or
+                        curr_x = floor(float(j_file["data"].at("x"))) + 2110;
+                        curr_z = floor(float(j_file["data"].at("z"))) - 142;
+                        if (curr_x < 0 or
                             (pre_x != 0 and pre_z != 0 and
                              (abs(curr_x - pre_x) + abs(curr_z - pre_z)) > 6))
                             continue;
@@ -85,6 +85,11 @@ int main() {
                             //                                    cout << j_file["data"].at("mission_timer") << endl; cout << pre_x << endl; cout << pre_z << endl;
                             //                                    cout << j_file["data"].at("mission_timer") << endl; cout << curr_x << endl; cout << curr_z << endl; cout << endl;
                             //                                }
+                            if (map[diff][curr_z][curr_x] == 4){
+                                continue;
+                            }
+
+
                             pre_x = curr_x;
                             pre_z = curr_z;
                             state s;
@@ -100,20 +105,23 @@ int main() {
                         }
                         string tmp = string(j_file["data"]["mission_timer"]);
                         if ((timer < 60 and !finished)) {
-                            cout << "done!" << endl;
                             finished = true;
                         }
                     }
                     if (j_file["data"].find("triage_state") !=
                             j_file["data"].end() and
                         j_file["data"]["triage_state"] == "SUCCESSFUL") {
-                        curr_x = floor(float(j_file["data"].at("victim_x")));
-                        curr_z = floor(float(j_file["data"].at("victim_z")));
+                        curr_x = floor(float(j_file["data"].at("victim_x"))) + 2110;
+                        curr_z = floor(float(j_file["data"].at("victim_z"))) - 142;
                         if (curr_x != pre_x or curr_z != pre_z) {
                             //                                if ((abs(curr_x - pre_x) + abs(curr_z - pre_z)) > 1){
                             //                                    cout << j_file["data"].at("mission_timer") << endl; cout << pre_x << endl; cout << pre_z << endl;
                             //                                    cout << j_file["data"].at("mission_timer") << endl; cout << curr_x << endl; cout << curr_z << endl; cout << endl;
                             //                                }
+                            if (map[diff][curr_z][curr_x] == 4){
+                                continue;
+                            }
+
                             pre_x = curr_x;
                             pre_z = curr_z;
                             state s;
@@ -129,7 +137,6 @@ int main() {
                         }
 
                         if ((timer < 60 and !finished)) {
-                            cout << "done!" << endl;
                             finished = true;
                         }
                     }
@@ -147,7 +154,6 @@ int main() {
         }
 
     }
-//    std::ofstream output_file("./example.txt");
-//    for (const auto &e : st_traj) output_file << e << "\n";
+
     cout << endl;
 }
