@@ -10,11 +10,11 @@ using namespace std;
 using json = nlohmann::json;
 
 int main() {
-    // read the map into a matrix
+    // read the maps into matrices
     vector<string> difficulties = {"easy", "medium", "difficult"};
     int map[3][51][91] = {1}; // initialize the matrix with 1
     ifstream infile;
-    int d = 0;
+    int d = 0; // index for difficulty
     for (const auto& diff : difficulties) {
         infile.open("../data/maps/Falcon_" + diff + ".txt");
         for (int i = 0; i < 51; i++) {
@@ -26,17 +26,7 @@ int main() {
     }
     infile.close();
 
-//    Pair src(5, 5);
-//    Pair dest(25, 67);
-//    auto [num, Path] = find_path(src, dest, map[0]);
-//
-//    cout << num;
-//    while (!Path.empty()) {
-//        Pair p = Path.top();
-//        Path.pop();
-//        printf("-> (%d,%d) \n", p.first, p.second);
-//    }
-
+    // action parser
     string hsd_path = "../data/hsd";
     json j_file;
     auto pre_x = 0, pre_z = 0, curr_x = 0, curr_z = 0;
@@ -47,7 +37,7 @@ int main() {
         int triage;
         int timer;
     };
-    stack<stack<state>> st_traj[3];
+    stack<stack<state>> st_traj[3]; // 3 maps
     for (const auto& entry : fs::directory_iterator(hsd_path)) {
         string file_name = entry.path();
         fstream fst;
@@ -115,8 +105,6 @@ int main() {
                                         Path.pop();
                                     }
                                 }
-//                                if (map[diff][curr_z][curr_x] == 4)
-//                                    continue;
 
                                 pre_x = curr_x;
                                 pre_z = curr_z;
@@ -147,7 +135,8 @@ int main() {
                                 curr_z = floor(float(
                                              j_file["data"].at("victim_z"))) -
                                          142;
-
+                                if (map[diff][curr_z][curr_x] == 4)
+                                    continue;
                                 if ((abs(curr_x - pre_x) +
                                      abs(curr_z - pre_z)) > 1  and pre_x != 0 and pre_z != 0) {
                                     Pair src(pre_z, pre_x);
@@ -168,8 +157,6 @@ int main() {
                                         Path.pop();
                                     }
                                 }
-                                if (map[diff][curr_z][curr_x] == 4)
-                                    continue;
 
                                 pre_x = curr_x;
                                 pre_z = curr_z;
@@ -206,6 +193,5 @@ int main() {
             std::cout << e.what() << endl;
         }
     }
-
     cout << endl;
 }
