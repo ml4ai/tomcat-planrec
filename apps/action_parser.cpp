@@ -184,14 +184,26 @@ int main() {
                 fst.close();
             }
             cout << file_name << endl;
-            if (finished)
+
+            if (finished){
                 cout << "done!"<< endl;
                 st_traj[diff].push(traj);
+                ofstream myfile;
+                myfile.open ("../data/" + difficulties[diff] + ".txt", ios::app);
+                myfile << file_name + "\n";
+                myfile.close();
+            }
+            else{
+                cout << "undone!"<< endl;
+            }
         }
         catch (std::exception& e) {
             std::cout << "Exception:" << endl;
             std::cout << e.what() << endl;
         }
     }
+    cout << "easy trajectories: " << st_traj[0].size() << endl;
+    cout << "medium trajectories: " << st_traj[1].size() << endl;
+    cout << "difficult trajectories: " << st_traj[2].size() << endl;
     cout << endl;
 }
