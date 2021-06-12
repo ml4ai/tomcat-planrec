@@ -1,4 +1,5 @@
 #include "json.hpp"
+#include "utils.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -24,6 +25,17 @@ int main() {
         d = d + 1;
     }
     infile.close();
+
+//    Pair src(5, 5);
+//    Pair dest(25, 67);
+//    auto [num, Path] = find_path(src, dest, map[0]);
+//
+//    cout << num;
+//    while (!Path.empty()) {
+//        Pair p = Path.top();
+//        Path.pop();
+//        printf("-> (%d,%d) \n", p.first, p.second);
+//    }
 
     string hsd_path = "../data/hsd";
     json j_file;
@@ -80,21 +92,31 @@ int main() {
                                                (abs(curr_x - pre_x) +
                                                 abs(curr_z - pre_z)) > 6))
                                 continue;
+                            if (map[diff][curr_z][curr_x] == 4)
+                                continue;
                             if (curr_x != pre_x or curr_z != pre_z) {
                                 if ((abs(curr_x - pre_x) +
-                                     abs(curr_z - pre_z)) > 1) {
-                                    cout << j_file["data"].at("mission_timer")
-                                         << endl;
-                                    cout << pre_x << endl;
-                                    cout << pre_z << endl;
-                                    cout << j_file["data"].at("mission_timer")
-                                         << endl;
-                                    cout << curr_x << endl;
-                                    cout << curr_z << endl;
-                                    cout << endl;
+                                     abs(curr_z - pre_z)) > 1 and pre_x != 0 and pre_z != 0) {
+                                    Pair src(pre_z, pre_x);
+                                    Pair dest(curr_z, curr_x);
+                                    auto [num, Path] = find_path(src, dest, map[diff]);
+                                    while (!Path.empty()) {
+                                        Pair p = Path.top();
+                                        state s;
+                                        s.x = p.second;
+                                        s.z = p.first;
+                                        if (timer <= 300)
+                                            s.mid = 1;
+                                        else
+                                            s.mid = 0;
+                                        s.triage = 0;
+                                        s.timer = timer;
+                                        traj.push(s);
+                                        Path.pop();
+                                    }
                                 }
-                                if (map[diff][curr_z][curr_x] == 4)
-                                    continue;
+//                                if (map[diff][curr_z][curr_x] == 4)
+//                                    continue;
 
                                 pre_x = curr_x;
                                 pre_z = curr_z;
@@ -127,16 +149,24 @@ int main() {
                                          142;
 
                                 if ((abs(curr_x - pre_x) +
-                                     abs(curr_z - pre_z)) > 1) {
-                                    cout << j_file["data"].at("mission_timer")
-                                         << endl;
-                                    cout << pre_x << endl;
-                                    cout << pre_z << endl;
-                                    cout << j_file["data"].at("mission_timer")
-                                         << endl;
-                                    cout << curr_x << endl;
-                                    cout << curr_z << endl;
-                                    cout << endl;
+                                     abs(curr_z - pre_z)) > 1  and pre_x != 0 and pre_z != 0) {
+                                    Pair src(pre_z, pre_x);
+                                    Pair dest(curr_z, curr_x);
+                                    auto [num, Path] = find_path(src, dest, map[diff]);
+                                    while (!Path.empty()) {
+                                        Pair p = Path.top();
+                                        state s;
+                                        s.x = p.second;
+                                        s.z = p.first;
+                                        if (timer <= 300)
+                                            s.mid = 1;
+                                        else
+                                            s.mid = 0;
+                                        s.triage = 0;
+                                        s.timer = timer;
+                                        traj.push(s);
+                                        Path.pop();
+                                    }
                                 }
                                 if (map[diff][curr_z][curr_x] == 4)
                                     continue;
@@ -168,6 +198,7 @@ int main() {
             }
             cout << file_name << endl;
             if (finished)
+                cout << "done!"<< endl;
                 st_traj[diff].push(traj);
         }
         catch (std::exception& e) {
