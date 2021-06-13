@@ -17,7 +17,7 @@ using namespace std;
 
 // client::ast::Entity // constants
 // client::ast::Variable // variable
-// client::ast::AtomicFormula // predicate however a little to restrictive right now for the recursion I need I think
+// client::ast::AtomicFormula // predicate however a little too restrictive right now for the recursion I need I think
 
 class KnowledgeBase {
 
@@ -103,22 +103,26 @@ class KnowledgeBase {
         else if (x.args.size() > 1) {
             for(int i=0; i < x.args.size(); i++) {
                 // we now need to ignore the already unified statements, if unified their names will be the same
-                if (x.args[i].name != y.args[i].name) { 
-                    if (type_check(x.args[i]) == "Variable") {
+                if (type_check(x.args[i]) == "Variable") {
+                    if (x.args[i].name != y.args[i].name) {
                         // substitute x for y
                         substitute(x.args[i], y.args[i], z);
                         return unification(x, y, z);
                     }
-                    else if (type_check(y.args[i]) == "Variable") {
+                }
+                else if (type_check(y.args[i]) == "Variable") {
+                    if (x.args[i].name != y.args[i].name) {
                         // substitute y for x
                         substitute(y.args[i], x.args[i], z);
                         return unification(x, y, z);
                     }
-                    else if (type_check(x.args[i]) == "Predicate" && type_check(y.args[i]) == "Predicate") {
+                }
+                else if (type_check(x.args[i]) == "Predicate" && type_check(y.args[i]) == "Predicate") {
                         // run arguments of predicates through function 
                         return unification(x.args[i], y.args[i], z);
                     }
-                    else if (type_check(x.args[i]) == "Entity" && type_check(y.args[i]) == "Entity") {
+                else if (type_check(x.args[i]) == "Entity" && type_check(y.args[i]) == "Entity") {
+                    if (x.args[i].name != y.args[i].name) {
                         // if 2 constants that are not equal are in the expresison, unification is not possible
                         z.clear();
                         return z;
