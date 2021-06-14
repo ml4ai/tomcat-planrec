@@ -9,6 +9,11 @@
 using namespace std;
 using boost::recursive_variant_, boost::make_recursive_variant;
 
+// Helpers for std::visit
+template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+
 // Support for printing variants
 template <typename T, typename... Ts>
 std::ostream& operator<<(std::ostream& os, const std::variant<T, Ts...>& v) {
@@ -61,26 +66,23 @@ using Atom = variant<Constant, Variable, Predicate>;
 
 using Expr = make_recursive_variant<Atom, vector<recursive_variant_>>::type;
 
-struct KnowledgeBase {
-    vector<Predicate> literals;
-};
-
 struct Clause {
     vector<Predicate> literals;
 };
 
-template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+struct KnowledgeBase {
+    vector<Clause> clauses;
+};
 
-template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 using Sentence = variant<Predicate, Clause>;
 
 void tell(KnowledgeBase& kb, Sentence sentence) {
     visit(overloaded{
-              [&](Predicate predicate) { kb.literals.push_back(predicate); },
+              [&](Predicate predicate) { kb.clauses.push_back(Clause{{predicate}}); },
               [&](Clause clause) {
                   for (auto predicate : clause.literals) {
-                      kb.literals.push_back(predicate);
+                      kb.clauses.push_back(Clause{{predicate}});
                   }
               },
           },
