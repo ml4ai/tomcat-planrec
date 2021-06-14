@@ -31,18 +31,18 @@ int main() {
     json j_file;
     auto pre_x = 0, pre_z = 0, curr_x = 0, curr_z = 0;
     struct state {
-        int x;
-        int z;
-        int mid;
-        int triage;
-        int timer;
+        int x; // coordinate x
+        int z; // coordinate z
+        int mid; // if the timer passes the middle point 0: no 1: yes
+        int triage; // 0: not triaging 1: triage successfully 2: triage unsuccessfully
+        int timer; // the game timer
     };
-    stack<stack<state>> st_traj[3]; // 3 maps
+    vector<vector<state>> st_traj[3]; // 3 maps
     for (const auto& entry : fs::directory_iterator(hsd_path)) {
         string file_name = entry.path();
         fstream fst;
         bool finished = false;
-        stack<state> traj;
+        vector<state> traj;
         int diff = 0;
         string timer_delimiter = " : ";
         try {
@@ -101,7 +101,7 @@ int main() {
                                             s.mid = 0;
                                         s.triage = 0;
                                         s.timer = timer;
-                                        traj.push(s);
+                                        traj.push_back(s);
                                         Path.pop();
                                     }
                                 }
@@ -117,7 +117,7 @@ int main() {
                                     s.mid = 0;
                                 s.triage = 0;
                                 s.timer = timer;
-                                traj.push(s);
+                                traj.push_back(s);
                             }
                             if (timer < 60 and !finished)
                                 finished = true;
@@ -153,7 +153,7 @@ int main() {
                                             s.mid = 0;
                                         s.triage = 0;
                                         s.timer = timer;
-                                        traj.push(s);
+                                        traj.push_back(s);
                                         Path.pop();
                                     }
                                 }
@@ -173,7 +173,7 @@ int main() {
                                 else
                                     s.triage = 2;
                                 s.timer = timer;
-                                traj.push(s);
+                                traj.push_back(s);
 
                                 if (timer < 60 and !finished)
                                     finished = true;
@@ -187,7 +187,7 @@ int main() {
 
             if (finished){
                 cout << "done!"<< endl;
-                st_traj[diff].push(traj);
+                st_traj[diff].push_back(traj);
                 ofstream myfile;
                 myfile.open ("../data/" + difficulties[diff] + ".txt", ios::app);
                 myfile << file_name + "\n";
