@@ -49,12 +49,12 @@ using Term = variant<Constant, Variable, Function>;
 
 struct Function {
     string name;
-    vector<Term> args;
+    vector<Term> args = {};
 };
 
 struct Predicate {
     string name;
-    vector<Term> args;
+    vector<Term> args = {};
 };
 
 using Atom = variant<Constant, Variable, Predicate>;
@@ -75,7 +75,7 @@ template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 using Sentence = variant<Predicate, Clause>;
 
-void tell(KnowledgeBase& kb, Sentence s) {
+void tell(KnowledgeBase& kb, Sentence sentence) {
     visit(overloaded{
               [&](Predicate predicate) { kb.literals.push_back(predicate); },
               [&](Clause clause) {
@@ -84,7 +84,7 @@ void tell(KnowledgeBase& kb, Sentence s) {
                   }
               },
           },
-          s);
+          sentence);
 }
 
 int main(int argc, char* argv[]) {
