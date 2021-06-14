@@ -1,5 +1,6 @@
 #include <boost/variant/recursive_variant.hpp>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <variant>
@@ -8,22 +9,40 @@
 using namespace std;
 using boost::recursive_variant_, boost::make_recursive_variant;
 
-struct Constant {
-    string name;
-    friend ostream& operator<<(ostream& out, const Constant& constant) {
-        out << constant.name;
+// Support for printing variants
+template <typename T, typename... Ts>
+std::ostream& operator<<(std::ostream& os, const std::variant<T, Ts...>& v) {
+    std::visit([&os](auto&& arg) { os << arg; }, v);
+    return os;
+}
+
+// Define support for printing vectors
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const vector<T>& v) {
+    os << "( ";
+    for (auto x : v) {
+        os << x << ' ';
+    }
+    os << ')';
+    return os;
+}
+
+struct Symbol {
+    const string name;
+    string str() const { return this->name; }
+
+    // Equality operator
+    bool operator==(Symbol const& rhs) const { return this->name == rhs.name; }
+
+    // Support for printing symbols
+    friend ostream& operator<<(ostream& out, const Symbol& symbol) {
+        out << symbol.str();
         return out;
     };
 };
 
-struct Variable {
-    string name;
-    friend ostream& operator<<(ostream& out, const Variable& variable) {
-        out << variable.name;
-        return out;
-    };
-};
-
+struct Constant : Symbol {};
+struct Variable : Symbol {};
 struct Function;
 
 using Term = variant<Constant, Variable, Function>;
@@ -31,90 +50,51 @@ using Term = variant<Constant, Variable, Function>;
 struct Function {
     string name;
     vector<Term> args;
-    friend ostream& operator<<(ostream& out, const Function& f) {
-        out << "( " << f.name << ' ';
-        for (auto arg : f.args) {
-            visit([&](auto&& x) { out << x << ' '; }, arg);
-        };
-        out << ')';
-        return out;
-    };
 };
 
 struct Predicate {
     string name;
     vector<Term> args;
-    friend ostream& operator<<(ostream& out, const Predicate& predicate) {
-        out << "( " << predicate.name << ' ';
-        for (auto arg : predicate.args) {
-            visit([&](auto&& x) { out << x << ' '; }, arg);
-        };
-        out << ')';
-        return out;
-    };
 };
 
-enum LogicalConnective { Not, And, Or, Implies, Iff };
+using Atom = variant<Constant, Variable, Predicate>;
 
-enum Quantifier { Forall, Exists };
+using Expr = make_recursive_variant<Atom, vector<recursive_variant_>>::type;
 
-struct ComplexSentence;
-
-using AtomicSentence = Predicate;
-
-struct FOLNode;
-
-struct FOLNode {
-    variant<AtomicSentence, tuple<variant<Quantifier, LogicalConnective>, vector<FOLNode>>> args;
+struct KnowledgeBase {
+    vector<Predicate> literals;
 };
 
-//};
-//using Sentence = make_recursive_variant<
-    //AtomicSentence,
-    //tuple<LogicalConnective, recursive_variant_>, // Negated sentences
-    //tuple<LogicalConnective,
-          //recursive_variant_,
-          //recursive_variant_>, // and/or/implies/iff
-    //tuple<Quantifier, vector<Variable>, recursive_variant_> // quantified
-                                                            //// sentence
-    //>::type;
-
-using NotSentence = tuple<LogicalConnective, Sentence>;
-using ConnectedSentence = tuple<LogicalConnective, Sentence, Sentence>;
-using QuantifiedSentence = tuple<Quantifier, vector<Variable>, Sentence>;
-
-//struct KnowledgeBase {
-    //vector<Sentence> sentences;
-//};
-
-//void tell(KnowledgeBase& kb, Sentence sentence) {
-    //kb.sentences.push_back(sentence);
-//}
-
-struct Foo
-{
-    std::variant<int, float, std::vector<Foo>> _data;
+struct Clause {
+    vector<Predicate> literals;
 };
 
-typedef boost::make_recursive_variant<
-      int
-    , std::vector< boost::recursive_variant_ >
-    >::type int_tree_t;
+template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+using Sentence = variant<Predicate, Clause>;
+
+void tell(KnowledgeBase& kb, Sentence s) {
+    visit(overloaded{
+              [&](Predicate predicate) { kb.literals.push_back(predicate); },
+              [&](Clause clause) {
+                  for (auto predicate : clause.literals) {
+                      kb.literals.push_back(predicate);
+                  }
+              },
+          },
+          s);
+}
 
 int main(int argc, char* argv[]) {
-    auto c = Constant{"c"};
-    auto v = Variable{"v"};
-    auto f = Function{"func", {c, v}};
-    auto p = Predicate{"p", {c, v, f}};
-    cout << p << endl;
-    cout << f << endl;
-    //auto kb = KnowledgeBase();
-    auto sentence = p;
-    //vector<Sentence> vec;
-    //tell(kb, p);
-    std::vector< int_tree_t > subresult;
-    subresult.push_back(3);
-    subresult.push_back(5);
+    auto c = Constant{"const"};
+    auto v = Variable{"var"};
+    auto v2 = Variable{"var"};
+    // auto f = Function{"func"};
+    auto p = Predicate{"pred"};
+    auto kb = KnowledgeBase();
+    tell(kb, p);
 
     return EXIT_SUCCESS;
 }
