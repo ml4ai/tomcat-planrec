@@ -62,7 +62,7 @@ struct Predicate {
     vector<Term> args = {};
 };
 
-using Atom = variant<Constant, Variable, Predicate>;
+using Atom = variant<Constant, Variable, Predicate, Function>;
 
 using Expr = make_recursive_variant<Atom, vector<recursive_variant_>>::type;
 
@@ -94,9 +94,12 @@ int main(int argc, char* argv[]) {
     auto v = Variable{"var"};
     auto v2 = Variable{"var"};
     // auto f = Function{"func"};
-    auto p = Predicate{"pred"};
+    auto p = Predicate{"pred", {c, v}};
+    auto clause = Clause();
+    clause.literals.push_back(p);
     auto kb = KnowledgeBase();
     tell(kb, p);
+    tell(kb, clause);
 
     return EXIT_SUCCESS;
 }
