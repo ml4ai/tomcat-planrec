@@ -202,6 +202,19 @@ int main() {
             std::cout << e.what() << endl;
         }
     }
+
+    // save trajectories to file
+    std::ofstream outFile("../data/trajectories.txt", ios::out | ios::binary);
+    outFile.write(reinterpret_cast<char*>(st_traj), sizeof(st_traj));
+    outFile.close();
+
+    // read trajectories from file
+    std::ifstream inFile;
+    inFile.open("../data/trajectories.txt", ios::in);
+    vector<vector<state>> st_traj2[3]; // 3 maps
+    inFile.read(reinterpret_cast<char *>(st_traj2), sizeof(st_traj2));
+    inFile.close();
+
     cout << "easy trajectories: " << st_traj[0].size() << endl;
     cout << "medium trajectories: " << st_traj[1].size() << endl;
     cout << "difficult trajectories: " << st_traj[2].size() << endl;
