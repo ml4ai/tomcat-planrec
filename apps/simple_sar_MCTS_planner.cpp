@@ -24,6 +24,7 @@ int main(int argc, char* argv[]) {
     else {
       e = 0.4; 
     }
+
     auto state1 = SARState();
     state1.loc["me"] = "entrance";
     state1.visited["me"]["entrance"] = 1;

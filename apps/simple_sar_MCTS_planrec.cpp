@@ -115,7 +115,8 @@ int main(int argc, char* argv[]) {
                                     state1.left_region,
                                     state1.right_region,
                                     state1.mid_region);
-    seek_planrecMCTS(trace,
+    json g;
+    g = seek_planrecMCTS(trace,
                      state1,
                      tasks,
                      domain,
@@ -124,7 +125,16 @@ int main(int argc, char* argv[]) {
                      0.4,
                      2021,
                      true,
-                     "simple_sar_exp.json");
+                     "simple_sar_pred_exp.json");
 
+    generate_graph_from_json(g, "simple_sar_pred_exp_graph.png");
+
+    std::ifstream k("simple_sar_trace_tree.json");
+    json t;
+    k >> t;
+
+    json t_trim;
+    t_trim = trim_actions(t, s, true, "simple_sar_true_exp.json");
+    generate_graph_from_json(t_trim,"simple_sar_true_exp_graph.png");
     return EXIT_SUCCESS;
 }
