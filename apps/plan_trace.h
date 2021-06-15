@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <string>
 
 using json = nlohmann::ordered_json;
 
@@ -35,7 +36,12 @@ std::pair<json,int> gptt(Tree<State,Selector> t, int v) {
     if (temp.second == -1) {
       break;
     }
-    j["children"].push_back(temp.first);
+    if ((i == r - 1) && (temp.first["task"] == j["task"])) {
+      j["children"].insert(j["children"].end(),temp.first["children"].begin(),temp.first["children"].end());  
+    }
+    else {
+      j["children"].push_back(temp.first);
+    }
     w = temp.second;
   }
   return std::make_pair(j,w);
@@ -83,4 +89,37 @@ json generate_plan_trace(Tree<State,Selector> t, int v, bool gen_file = false, s
     o << std::setw(4) << g << std::endl;
   }
   return g;
+}
+
+std::pair<json,int> t_a(json g, json j, int acts) {
+  g["task"] = j["task"];
+  g["pre-state"] = j["pre-state"];
+  g["post_state"] = j["post-state"];
+  std::string tmp = g["task"].get<std::string>();
+  if (tmp[1] == '!') {
+    acts--;
+    return std::make_pair(g,acts);
+  }
+
+  for (auto& element : j["children"]) {
+    if (acts == 0) {
+      break;
+    }
+    json g_c;
+    std::pair<json,int> p = t_a(g_c,element,acts);
+    g["children"].push_back(p.first);
+    acts = p.second;
+  }
+  return std::make_pair(g,acts);
+}
+
+json trim_actions(json j, int acts, bool gen_file = false, std::string outfile = "trimmed_tree.json") {
+  json g;
+  auto t = t_a(g,j,acts);
+  if (gen_file) {
+    std::ofstream o(outfile);
+    o << std::setw(4) << t.first << std::endl;
+  }
+  return t.first;
+
 }
