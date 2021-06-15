@@ -2,11 +2,11 @@
 #include <iostream>
 #include <string>
 
-#include "ast.hpp"
-#include "ast_adapted.hpp"
-#include "config.hpp"
-#include "domain.hpp"
-#include "error_handler.hpp"
+#include "parsing/ast.hpp"
+#include "parsing/ast_adapted.hpp"
+#include "parsing/config.hpp"
+#include "parsing/domain.hpp"
+#include "parsing/error_handler.hpp"
 
 void print(client::ast::Domain dom) {
     using namespace std;
