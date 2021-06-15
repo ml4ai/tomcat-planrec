@@ -10,6 +10,7 @@
 #include <queue>
 #include <algorithm>
 #include <variant>
+#include <unordered_map>
 #include "boost/variant.hpp"
 #include "ast.hpp"
 
@@ -20,10 +21,10 @@ using namespace std;
 // client::ast::AtomicFormula // predicate however a little too restrictive right now for the recursion I need I think
 
 class KnowledgeBase {
-
+    public:
     // define our data types, we use our own predicate and the boost::variant for recursion purposes
     struct Predicate;
-    typedef boost::variant<client::ast::Entity, client::ast::Variable, Predicate> argument; // only boost::variant allows for recursion
+    typedef boost::variant< client::ast::Entity, client::ast::Variable, Predicate > argument; // only boost::variant allows for recursion
     typedef vector<argument> v_args;
 
 
@@ -34,7 +35,7 @@ class KnowledgeBase {
             v_args args;
 
             // constructor
-            predicate(string x, v_args y) {
+            Predicate(string x, v_args y) {
                 name = x;
                 args = y; 
         }
@@ -44,24 +45,26 @@ class KnowledgeBase {
     typedef unordered_map<string, string> sub_list;
 
     // this function below will return Term type as a string via overloading
-    string type_check(client::ast::Entity x) {
+    string type_check(client::ast::Entity &x) {
         return "Entity";
     }
-    string type_check(client::ast::Variable x) {
+    string type_check(client::ast::Variable &x) {
         return "Variable";
     }
-    string type_check(Predicate x) {
+    string type_check(Predicate &x) {
         return "Predicate";
     }
 
-    // now for the substition formula for replacing the variable in an atom/predicate
-    void substitute(Variable x, argument y, sub_list z) {
+    // now for the substition formula for replacing the variable in an atom/predicate, 
+    // make sure its a global change
+    // needs to know the object type at compile-time
+    void substitute(client::ast::Variable &x, argument &y, sub_list &z) {
         x = y;
-        z[x.name] = z[y.name];
+        z[x.name] = y.name;
     }
 
     // now we apply the unification algorithm on the predicate pairs
-    sub_list unification(Predicate x, Predicate y, sub_list z) {
+    sub_list unification(Predicate &x, Predicate &y, sub_list &z) {
         
         // make sure number of arguments of each expression are the same
         if (x.args.size() != y.args.size()) {
@@ -92,13 +95,14 @@ class KnowledgeBase {
                 // if the arguments are predicates we run them through the unification algorithm again
                 return unification(x.args[0], y.args[0], z);
                 }
-            }
+            
             else if (type_check(x.args[0]) == "Entity" && type_check(y.args[0]) == "Entity") {
                 // in this case there is no variable so unification is not possible
                 z.clear();
                 return z;
             }
         }
+
         // now for multiple arguments, we will iterate through them and send each one through the function
         else if (x.args.size() > 1) {
             for(int i=0; i < x.args.size(); i++) {
@@ -132,3 +136,36 @@ class KnowledgeBase {
         }
     }
 };
+
+//int main() {
+
+    // sample predicates for testing unification
+    //typedef boost::variant<client::ast::Entity, client::ast::Variable, Predicate> argument; // only boost::variant allows for recursion
+    //typedef vector<argument> v_args;
+
+    //client::ast::Entity John("John");
+
+    //client::ast::Entity Richard("Richard");
+
+    //client::ast::Variable X("X");
+
+    //argument J1=John;
+    //argument R1=Richard;
+    //argument X1=X;
+
+    //v_args v1 (J1, R1);
+    //v_args v2 (J1, X1);
+
+    //KnowledgeBase::Predicate P1("Knows", v1);
+    //KnowledgeBase::Predicate P2("Knows", v2);
+
+    // setting up to run unification 
+    //typedef unordered_map<string, string> subs;
+    //subs s1;
+
+    //s1 = KnowledgeBase.unification(P1, P2, s1);
+
+    //cout << s1;
+    
+
+//}
