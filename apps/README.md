@@ -38,5 +38,50 @@ To run:
 
   ./simple_sar_MCTS_planner
 
-This will generate 2 json files, one is the plan trace tree and the other is
-the plan trace.
+This will generate 2 json files, one is the plan tree and the other is
+the plan trace. Allows to parameters to be taken from the commandline. The
+first parameter is the number of resource loops allowed (default at N = 30) and
+the second is a exploration parameter (default at e = 0.4). For now, the loop
+parameter must be set manually to set the exploration parameter. It is
+currently set to have the agent utilize a yellow first triage strategy and to
+explore the regions from right to left (sweep left), rather than sampling a
+strategy.   
+
+EX:
+
+  ./simple_sar_MCTS_planner 100 0.4
+
+Note: The planner can run a little slow, it is recommended that you run this
+very sparingly. 
+
+# Generate plan explanation for a given plan trace of the Simple SAR Domain
+
+You must first generate a plan trace and a plan tree from the simple SAR domain to run the plan
+recognition algorithm. This can be done using the MCTS planner script discussed
+in the previous section. 
+
+Once a plan trace has been generated, run:
+
+  ./simple_sar_MCTS_planrec
+
+This will generate 2 json files, where one is a partial plan tree predicting
+the task hierarchy (i.e., the explanation) for the given plan trace and the
+other is the true partial plan tree. The explanation will start with the SAR
+task at it's root, whereas the true plan tree will just start with the chosen
+triage and navigation strategy task at its root (e.g., sweep_left_YF). This
+script also generates 2 png files with graphs that visualize the partial plan
+trees. In these graphs, compound tasks are oval with black outlines and actions
+are rectangular with blue outlines. 
+
+This script can take 2 command line arguments, the number of resource loops
+allowed and the size of the trace. The script itself reads a full plan trace,
+but can use the trace size parameter to simulate having only a partial trace.
+As with the MCTS planner, the loop parameter must be set manually to allow for
+the trace size to be set. 
+
+EX:
+  ./simple_sar_MCTS_planrec 30 2
+
+Note: Not allowing enough resource loops can cause odd behavior in the plan
+recognition. Also keep in mind that the larger the trace size, the more loops
+are needed for an accurate prediction.  
