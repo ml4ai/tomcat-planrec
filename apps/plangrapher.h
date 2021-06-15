@@ -46,7 +46,12 @@ int build_graph(Agraph_t *g, Agnode_t *n,json j,int count) {
   for (auto& e : j["children"]) {
     std::string tmp = std::to_string(count);
     m = add_node(g,tmp);
-    set_property(m,"label",e["task"]);
+    std::string task = e["task"].get<std::string>();
+    set_property(m,"label",task);
+    if (task[1] == '!') {
+      set_property(m,"shape","rectangle");
+      set_property(m,"color","blue");
+    } 
     v = agedge(g,n,m,0,1);
     count++;
     count = build_graph(g,m,e,count);
