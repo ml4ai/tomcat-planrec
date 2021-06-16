@@ -62,7 +62,6 @@ namespace client
             }
         };
 
-
         template<class U, class T> auto typed_list_parser(T parser) {
             auto const implicitly_typed_list =
                 *parser[add_implicitly_typed_entity<U>];

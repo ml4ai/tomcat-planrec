@@ -147,9 +147,38 @@ namespace client
         struct Variables : x3::annotate_on_success, error_handler_base {};
         struct TAction: x3::annotate_on_success, error_handler_base {};
         struct TDomain: x3::annotate_on_success, error_handler_base {};
-    }
+    }//namespace parser
 
     parser::domain_type domain() {
         return parser::domain;
     }
-}
+
+// Problem definition:
+        namespace parser {
+
+        using ast::Problem;
+        struct TProblem;
+
+        rule<class TProblem, Problem> const problem = "problem";
+        auto const probDomain_def = '(' >> lit(":domain") >> name >> ')';
+        auto const requireDomain_def = '(' >> lit(":requirements") >> +requirement >> ')';
+        auto const objects_def = '(' >> lit(":objects") >> typed_list_names >> ')';
+
+        auto const problem_def =
+              '(' >> lit("define") >> '(' >> lit("problem") >> name >> ')'
+              >> probDomain_def
+              >> -requireDomain_def
+              >> -objects_def
+              >> ')'
+              ;
+
+        BOOST_SPIRIT_DEFINE(problem);
+
+        struct TProblem: x3::annotate_on_success, error_handler_base {};
+    }// namespace parser
+
+    parser::problem_type problem() {
+        return parser::problem;
+    }
+
+}//namespace client

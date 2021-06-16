@@ -67,6 +67,13 @@ namespace client {
             std::vector<Action> actions;
         };
 
+       struct Problem : x3::position_tagged {
+            Name name;// to just get name of problem
+            Name probDomain;// for domain association
+            std::vector<std::string> requireDomain;//for any problem requirements
+            std::vector<Entity> objects;
+        };//end problem struct
+
         using boost::fusion::operator<<;
     } // namespace ast
 } // namespace client

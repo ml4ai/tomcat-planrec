@@ -13,8 +13,15 @@
 #include "parsing/error_handler.hpp"
 
 using boost::unit_test::framework::master_test_suite;
+using namespace boost;
+using namespace std;
 
-void print(client::ast::Domain dom) {
+
+
+class Print{
+
+  public:
+  void print(client::ast::Domain dom) {
     using namespace std;
     cout << "Name: " << dom.name << endl;
     cout << "Requirements: " << endl;
@@ -24,38 +31,68 @@ void print(client::ast::Domain dom) {
     cout << endl;
     cout << "Types: " << endl;
     for (auto x : dom.types) {
-        cout << x << endl;;
+        cout << "  " << x << endl;
     }
     cout << endl;
 
     cout << "Actions:" << endl;
     for (auto x : dom.actions) {
         cout << x.name << endl;
-        cout << "parameters: " << endl;
+        cout << "  parameters: " << endl;
         for (auto p : x.parameters) {
-            cout << p << endl;
+            cout << "  " << p << endl;
         }
         cout << endl;
+/* No precondition mentioned in this version:
+ *
+        cout << "  precondition: " << endl;
+        for (auto lit : x.precondition) {
+            cout << "  (" << lit.predicate << " ";
+            for (auto arg : lit.args) {
+                cout << arg.name << " ";
+            }
+            cout << ')' << endl;
+        }
+
+*/
+        cout << endl; // Line between each action parsed
     }
     cout << endl;
 
     cout << "Constants:" << endl;
     for (auto constant : dom.constants) {
-        cout << constant;
+        cout << "  " << constant  << endl;;
     }
     cout << endl;
-    cout << endl;
-
     cout << "Predicates:" << endl;
     for (auto x : dom.predicates) {
-        cout << x.predicate;
+        cout << "  " << x.predicate;
         for (auto variable : x.variables) {
-            cout << variable << endl;
+            cout << " " << variable;
         }
+        cout << endl;
     }
     cout << endl;
+  }// end print()
 
-}
+    void print(client::ast::Problem prob) {
+        using namespace std;
+        cout << "Problem Name: " << prob.name << endl;
+        cout << "Problem Domain: " << prob.probDomain << endl;
+        cout << "Requirements: " << endl;
+        for (auto x : prob.requireDomain) {
+            cout << '"' << x << '"' << endl;
+        }
+        cout << endl;
+        cout << "Objects: " << endl;
+        for (auto x : prob.objects) {
+            cout << "  " << x << endl;
+        }
+        cout << endl;
+  }//end print()
+};// end Print class
+
+
 ////////////////////////////////////////////////////////////////////////////
 //  Main program
 ////////////////////////////////////////////////////////////////////////////
@@ -63,6 +100,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     using namespace std;
     typedef string::const_iterator iterator_type;
     using client::domain;
+    using client::problem;
 
 
     char const* filename;
@@ -84,6 +122,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     string::const_iterator iter = storage.begin();
     string::const_iterator end = storage.end();
     client::ast::Domain dom;
+    client::ast::Problem prob;
 
     using boost::spirit::x3::with;
     using client::parser::error_handler_tag;
@@ -91,6 +130,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     error_handler_type error_handler(iter, end, std::cerr);
 
+
+    // Overloading print() for domain and problem:
+    Print data;
+
+    // Parsing Domain:
     auto const parser =
         with<error_handler_tag>(std::ref(error_handler))[domain()];
 
@@ -102,7 +146,42 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         std::cout << "-------------------------\n";
         error_handler(iter, "Error!");
     }
+    data.print(dom);
 
-    print(dom);
+    // Parsing Problem:
+    auto const pParser =
+        with<error_handler_tag>(std::ref(error_handler))[problem()];
+
+    bool s = phrase_parse(iter, end, pParser, client::parser::skipper, prob);
+
+    if (!(s && iter == end)) {
+        std::cout << "-------------------------\n";
+        std::cout << "Parsing failed\n";
+        std::cout << "-------------------------\n";
+        error_handler(iter, "Error!");
+    }
+    data.print(prob);
+
     BOOST_TEST(dom.name == "construction");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
