@@ -1,6 +1,7 @@
-# HTN Planner
-This code executes an HTN planner based off of SHOP and PYHOP. It is written in
-C++
+# HTN Planner and Plan Recognition
+This code executes an HTN planner based off of SHOP and PYHOP, a Monte Carlo
+Tree Search (MCTS) version of SHOP, and a MCTS plan recognition algorithm. 
+It is written in C++.
 
 # Requirements
 - Boost (Tested on version 1.71.0, obtained from `sudo port install boost`)
@@ -10,7 +11,7 @@ C++
 - Graphviz (Tested on version 2.40.1, obtained from `sudo port install graphviz`)
 - Tested with gcc compiler (version 9.3.0), but could possibly work with clang or other versions that support C++20. 
 
-# Building planner
+# Building planners and plan recognition algorithm
 To build:
 
     mkdir build
