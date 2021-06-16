@@ -1,6 +1,10 @@
+#define BOOST_TEST_MODULE TestKB
+
+#include <boost/test/included/unit_test.hpp>
+
 #include "kb.h"
 
-int main(int argc, char* argv[]) {
+BOOST_AUTO_TEST_CASE(test_kb) {
     auto c = Constant{"const"};
     auto v = Variable{"var"};
     auto v2 = Variable{"var"};
@@ -9,5 +13,6 @@ int main(int argc, char* argv[]) {
     auto kb = KnowledgeBase();
     tell(kb, p);
 
-    return EXIT_SUCCESS;
+    // Smokescreen test
+    BOOST_TEST(true);
 }
