@@ -3,7 +3,7 @@
 #include <iostream>
 #include <map>
 #include "cpphop.h"
-#include "util.h"
+#include "typedefs.h"
 
 template <class State,class Selector>
 class Node {
