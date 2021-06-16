@@ -13,6 +13,6 @@ target_include_directories(test_kb PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 add_executable(test_unification test_unification.cpp)
 target_include_directories(test_unification PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
-add_test(NAME test_parser COMMAND test_parser ../../test/test.pddl)
+add_test(NAME test_parser COMMAND test_parser -- ../../test/test.pddl)
 add_test(NAME test_kb COMMAND test_kb)
 add_test(NAME test_unification COMMAND test_unification)
