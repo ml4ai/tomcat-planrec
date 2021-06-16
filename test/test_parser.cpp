@@ -34,7 +34,6 @@ class Print{
         cout << "  " << x << endl;
     }
     cout << endl;
-
     cout << "Actions:" << endl;
     for (auto x : dom.actions) {
         cout << x.name << endl;
@@ -43,18 +42,6 @@ class Print{
             cout << "  " << p << endl;
         }
         cout << endl;
-/* No precondition mentioned in this version:
- *
-        cout << "  precondition: " << endl;
-        for (auto lit : x.precondition) {
-            cout << "  (" << lit.predicate << " ";
-            for (auto arg : lit.args) {
-                cout << arg.name << " ";
-            }
-            cout << ')' << endl;
-        }
-
-*/
         cout << endl; // Line between each action parsed
     }
     cout << endl;
@@ -162,7 +149,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     }
     data.print(prob);
 
-    BOOST_TEST(dom.name == "construction");
+//    BOOST_TEST(dom.name == "construction");
+    BOOST_TEST(prob.name == "adobe");
 }
 
 
