@@ -1,4 +1,4 @@
-#include "../cpphop.h"
+#include "cpphop.h"
 #include <math.h>
 #include <nlohmann/json.hpp>
 #include <string>

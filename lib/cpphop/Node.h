@@ -1,10 +1,11 @@
 #pragma once
+
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <map>
 #include "cpphop.h"
-#include "util.h"
 #include <math.h>
+#include "typedefs.h"
 
 using json = nlohmann::ordered_json;
 

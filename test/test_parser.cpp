@@ -1,12 +1,18 @@
+#define BOOST_TEST_MODULE TestParser
+
+#include <boost/test/included/unit_test.hpp>
+
 #include <fstream>
 #include <iostream>
 #include <string>
 
-#include "ast.hpp"
-#include "ast_adapted.hpp"
-#include "config.hpp"
-#include "domain.hpp"
-#include "error_handler.hpp"
+#include "parsing/ast.hpp"
+#include "parsing/ast_adapted.hpp"
+#include "parsing/config.hpp"
+#include "parsing/domain.hpp"
+#include "parsing/error_handler.hpp"
+
+using boost::unit_test::framework::master_test_suite;
 
 void print(client::ast::Domain dom) {
     using namespace std;
@@ -53,25 +59,20 @@ void print(client::ast::Domain dom) {
 ////////////////////////////////////////////////////////////////////////////
 //  Main program
 ////////////////////////////////////////////////////////////////////////////
-int main(int argc, char* argv[]) {
+BOOST_AUTO_TEST_CASE(test_parser) {
     using namespace std;
     typedef string::const_iterator iterator_type;
     using client::domain;
 
+
     char const* filename;
-    if (argc > 1) {
-        filename = argv[1];
-    }
-    else {
-        std::cerr << "Error: No input file provided." << std::endl;
-        return 1;
-    }
+    BOOST_TEST_REQUIRE(master_test_suite().argc == 2);
+    filename = master_test_suite().argv[1];
 
     ifstream in(filename, ios_base::in);
 
     if (!in) {
         cerr << "Error: Could not open input file: " << filename << endl;
-        return 1;
     }
 
     string storage;         // We will read the contents here.
@@ -95,18 +96,13 @@ int main(int argc, char* argv[]) {
 
     bool r = phrase_parse(iter, end, parser, client::parser::skipper, dom);
 
-    if (r && iter == end) {
-        std::cout << "-------------------------\n";
-        std::cout << "Parsing succeeded\n";
-        std::cout << "-------------------------\n";
-        print(dom);
-    }
-    else {
+    if (!(r && iter == end)) {
         std::cout << "-------------------------\n";
         std::cout << "Parsing failed\n";
         std::cout << "-------------------------\n";
         error_handler(iter, "Error!");
-        return 1;
     }
-    return 0;
+
+    print(dom);
+    BOOST_TEST(dom.name == "construction");
 }

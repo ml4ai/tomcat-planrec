@@ -10,7 +10,8 @@
 #include <vector>
 #include "Node.h"
 #include "Tree.h"
-#include "util.h"
+#include "../util.h"
+#include "printing.h"
 #include <nlohmann/json.hpp>
 #include <math.h>
 
