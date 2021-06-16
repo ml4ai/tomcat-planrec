@@ -23,13 +23,13 @@ To build:
 
 To run:
 
-    ./simple_travel_planner
+    ./planners/simple_travel_planner
 
 # Generate plans for Simple SAR Domain (DFS Algorithm)
 
 To run:
  
-    ./simple_sar_planner
+    ./planners/simple_sar_planner
 
 WARNING: This is a brute force algorithm that attempts to generate all possible plans and 
 would most likely take several hours or days to complete.  
@@ -38,7 +38,7 @@ would most likely take several hours or days to complete.
 
 To run:
 
-    ./simple_sar_MCTS_planner
+    ./planners/simple_sar_MCTS_planner
 
 This will generate 2 json files, one is the plan tree and the other is
 the plan trace. 
@@ -57,7 +57,7 @@ explore the regions from right to left (sweep left).
 
 EX:
 
-    ./simple_sar_MCTS_planner 100 0.4
+    ./planners/simple_sar_MCTS_planner 100 0.4
 
 Note: The planner can run a little slow, it is recommended that you run this
 very sparingly. You will only need to generate the json files from the planner once 
@@ -71,7 +71,7 @@ in the previous section.
 
 Once a plan trace has been generated, run:
 
-    ./simple_sar_MCTS_planrec
+    ./planrec/simple_sar_MCTS_planrec
 
 This will generate 2 json files, where one is a partial plan tree predicting
 the task hierarchy (i.e., the explanation) for the given plan trace and the
@@ -91,7 +91,7 @@ the trace size to be set.
 
 EX:
 
-    ./simple_sar_MCTS_planrec 30 2
+    ./planrec/simple_sar_MCTS_planrec 30 2
 
 Note: Not allowing enough resource loops can cause odd behavior in the plan
 recognition. Also keep in mind that the larger the trace size, the more loops
