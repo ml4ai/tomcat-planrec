@@ -8,6 +8,7 @@ using namespace std;
 
 BOOST_AUTO_TEST_CASE(test_unification) {
 
+    BOOST_TEST(true);
     // sample predicates for testing unification
     //typedef boost::variant<client::ast::Entity, client::ast::Variable, Predicate> argument; // only boost::variant allows for recursion
     //typedef vector<argument> v_args;
