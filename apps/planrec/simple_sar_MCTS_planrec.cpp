@@ -1,5 +1,5 @@
 #include <nlohmann/json.hpp>
-#include "domains/simple_sar.h"
+#include "../planners/domains/simple_sar.h"
 #include <math.h>
 #include <stdlib.h>
 #include "plan_trace.h"
