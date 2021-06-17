@@ -9,9 +9,14 @@
 
 using json = nlohmann::ordered_json;
 
+struct json_node {
+  json node;
+  int id;
+};
+
 //All of these are specifically made for MCTS algorithm
 template<class State, class Selector> 
-std::pair<json,int> gptt(Tree<State,Selector> t, int v) {
+json_node gptt(Tree<State,Selector> t, int v) {
   json j;
 
   j["task"] = task2string(t[v].tasks.back());
@@ -21,27 +26,33 @@ std::pair<json,int> gptt(Tree<State,Selector> t, int v) {
 
   if (t[w].tasks.size() < t[v].tasks.size()) {
     j["children"] = R"([])"_json;
-    return std::make_pair(j,w); 
+    json_node n;
+    n.node = j;
+    n.id = w;
+    return n; 
   }
   int r = (t[w].tasks.size() - t[v].tasks.size()) + 1;
   for (int i = 0; i < r; i++) {
-   std::pair temp = gptt(t,w);
-   j["children"].push_back(temp.first);
-   w = temp.second;
+   auto temp = gptt(t,w);
+   j["children"].push_back(temp.node);
+   w = temp.id;
   }
-
-  return std::make_pair(j,w);
+  
+  json_node n;
+  n.node = j;
+  n.id = w;
+  return n;
 }
 
 template<class State, class Selector>
 json generate_plan_trace_tree(Tree<State,Selector> t, int v, bool gen_file = false, std::string outfile = "plan_trace_tree.json") {
   auto g = gptt(t,v);
-  g.first["Final State"] = t[g.second].state.to_json();
+  g.node["Final State"] = t[g.id].state.to_json();
   if (gen_file) {
     std::ofstream o(outfile);
-    o << std::setw(4) << g.first << std::endl;
+    o << std::setw(4) << g.node << std::endl;
   }
-  return g.first;
+  return g.node;
 }
 
 template<class State, class Selector>
