@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(Boost REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-# Test parser
+# Parser testing
 add_executable(test_parser test_parser.cpp)
 target_link_libraries(test_parser tomcat)
 target_include_directories(test_parser PRIVATE ${Boost_INCLUDE_DIR} ../lib)
