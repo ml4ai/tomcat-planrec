@@ -1,7 +1,10 @@
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../apps/cmake")
 
 find_package(Boost REQUIRED)
 find_package(nlohmann_json 3.9.1 REQUIRED)
+find_package(Graphviz)
+
 add_executable(test_parser test_parser.cpp)
 target_include_directories(test_parser PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 target_link_libraries(test_parser tomcat)
@@ -23,6 +26,9 @@ target_include_directories(test_DFS_planner PRIVATE ${Boost_INCLUDE_DIR}
 add_executable(test_MCTS_planner test_MCTS_planner.cpp)
 target_include_directories(test_MCTS_planner PRIVATE ${Boost_INCLUDE_DIR}
   ../lib/cpphop)
+target_include_directories(test_MCTS_planner PRIVATE ${GRAPHVIZ_INCLUDE_DIR}
+    ../lib/cpphop)
+target_link_libraries(test_MCTS_planner PRIVATE ${GRAPHVIZ_LIBS})
 
 add_test(NAME test_parser COMMAND test_parser -- ../../test/test.pddl)
 add_test(NAME test_kb COMMAND test_kb)
