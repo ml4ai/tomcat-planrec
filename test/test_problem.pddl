@@ -1,3 +1,4 @@
+
 (define
     (problem adobe)
     (:domain construction)

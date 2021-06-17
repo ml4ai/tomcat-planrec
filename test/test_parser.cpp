@@ -17,7 +17,6 @@ using namespace boost;
 using namespace std;
 
 
-
 class Print{
 
   public:
@@ -99,13 +98,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST_REQUIRE(master_test_suite().argc == 3);
     domain_filename = master_test_suite().argv[1];
     problem_filename = master_test_suite().argv[2];
-
-    // Overloading print() for domain and problem:
     Print data;
 
 //domain_filename
     ifstream in(domain_filename, ios_base::in);
-
     if (!in) {
         cerr << "Error: Could not open input file: " << domain_filename << endl;
     }
@@ -136,6 +132,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     data.print(dom);
 
     BOOST_TEST(dom.name == "construction");
+    in.close();
 
 //problem_filename
     ifstream pin(problem_filename, ios_base::in);
@@ -145,8 +142,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     }
 
     string pstorage;         
-    in.unsetf(ios::skipws);
-    copy(istream_iterator<char>(in),
+    pin.unsetf(ios::skipws);
+    copy(istream_iterator<char>(pin),
          istream_iterator<char>(),
          back_inserter(pstorage));
 
