@@ -17,9 +17,9 @@ int main(int argc, char* argv[]) {
     else {
       N = 30;
     }
-    int e;
+    double e;
     if (argc > 2) {
-       e = strtol(argv[2],nullptr,0);
+       e = strtod(argv[2],nullptr);
     }
     else {
       e = 0.4; 
