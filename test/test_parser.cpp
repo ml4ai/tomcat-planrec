@@ -135,6 +135,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     }
     data.print(dom);
 
+    BOOST_TEST(dom.name == "construction");
 
 //problem_filename
     ifstream pin(problem_filename, ios_base::in);
@@ -168,6 +169,5 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     }
     data.print(prob);
 
-    BOOST_TEST(dom.name == "construction");
     BOOST_TEST(prob.name == "adobe");
 }
