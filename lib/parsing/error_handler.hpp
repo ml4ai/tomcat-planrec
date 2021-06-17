@@ -38,6 +38,7 @@ namespace client {
 
         inline error_handler_base::error_handler_base() {
             id_map["domain"] = "Domain";
+            id_map["problem"] = "Problem";
             id_map["action"] = "Action";
             id_map["typed_list"] = "TypedList";
         }

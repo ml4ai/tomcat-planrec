@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/config/warning_disable.hpp>
 #include <boost/spirit/home/x3.hpp>
 
 #include "ast.hpp"
@@ -17,7 +16,10 @@ namespace client {
         using skipper_type=decltype(skipper);
         using phrase_context_type = x3::phrase_parse_context<skipper_type>::type;
         using domain_type = x3::rule<class TDomain, ast::Domain>;
+        using problem_type = x3::rule<class TProblem, ast::Problem>;
+
         BOOST_SPIRIT_DECLARE(domain_type);
+        BOOST_SPIRIT_DECLARE(problem_type);
 
         // tag used to get the position cache from the context
         struct position_cache_tag;
@@ -25,4 +27,5 @@ namespace client {
     } // namespace parser
 
     parser::domain_type domain();
+    parser::problem_type problem();
 } // namespace client
