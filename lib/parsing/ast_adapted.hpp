@@ -14,3 +14,4 @@ BOOST_FUSION_ADAPT_STRUCT(client::ast::GoalDescription, entries)
 BOOST_FUSION_ADAPT_STRUCT(client::ast::AtomicFormulaSkeleton, predicate, variables)
 BOOST_FUSION_ADAPT_STRUCT(
     client::ast::Domain, name, requirements, types, constants, predicates, actions)
+BOOST_FUSION_ADAPT_STRUCT(client::ast::Problem, name, probDomain, requireDomain, objects)
