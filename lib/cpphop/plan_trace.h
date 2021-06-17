@@ -114,7 +114,7 @@ json_node t_a(json g, json j, int acts) {
     acts--;
     json_node n;
     n.node = g;
-    n.id = acts
+    n.id = acts;
     return n;
   }
 
@@ -129,7 +129,7 @@ json_node t_a(json g, json j, int acts) {
   }
   json_node n;
   n.node = g;
-  n.id = acts
+  n.id = acts;
   return n;
 }
 
