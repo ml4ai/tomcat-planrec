@@ -2,7 +2,7 @@
 (define
     (problem adobe)
     (:domain construction)
-    (:requirements :testingOnly :whenDoProblemsNeedRequirements)
+    (:requirements :strips :typing)
     (:objects
         factory house - site
         adobe - material)
