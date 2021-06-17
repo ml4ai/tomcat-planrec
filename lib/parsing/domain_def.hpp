@@ -144,12 +144,6 @@ namespace client {
         struct Variables : x3::annotate_on_success, error_handler_base {};
         struct TAction : x3::annotate_on_success, error_handler_base {};
         struct TDomain : x3::annotate_on_success, error_handler_base {};
-    } // namespace parser
-
-    parser::domain_type domain() { return parser::domain; }
-
-    // Problem definition:
-    namespace parser {
 
         using ast::Problem;
         struct TProblem;
@@ -168,7 +162,10 @@ namespace client {
         BOOST_SPIRIT_DEFINE(problem);
 
         struct TProblem : x3::annotate_on_success, error_handler_base {};
+
     } // namespace parser
+
+    parser::domain_type domain() { return parser::domain; }
 
     parser::problem_type problem() { return parser::problem; }
 
