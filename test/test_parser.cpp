@@ -89,15 +89,25 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     using client::domain;
     using client::problem;
 
+    using boost::spirit::x3::with;
+    using client::parser::error_handler_tag;
+    using client::parser::error_handler_type;
 
-    char const* filename;
-    BOOST_TEST_REQUIRE(master_test_suite().argc == 2);
-    filename = master_test_suite().argv[1];
+///// Parsing Domain:
+    char const* domain_filename;
+    char const* problem_filename;
+    BOOST_TEST_REQUIRE(master_test_suite().argc == 3);
+    domain_filename = master_test_suite().argv[1];
+    problem_filename = master_test_suite().argv[2];
 
-    ifstream in(filename, ios_base::in);
+    // Overloading print() for domain and problem:
+    Print data;
+
+//domain_filename
+    ifstream in(domain_filename, ios_base::in);
 
     if (!in) {
-        cerr << "Error: Could not open input file: " << filename << endl;
+        cerr << "Error: Could not open input file: " << domain_filename << endl;
     }
 
     string storage;         // We will read the contents here.
@@ -109,17 +119,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     string::const_iterator iter = storage.begin();
     string::const_iterator end = storage.end();
     client::ast::Domain dom;
-    client::ast::Problem prob;
-
-    using boost::spirit::x3::with;
-    using client::parser::error_handler_tag;
-    using client::parser::error_handler_type;
-
     error_handler_type error_handler(iter, end, std::cerr);
-
-
-    // Overloading print() for domain and problem:
-    Print data;
 
     // Parsing Domain:
     auto const parser =
@@ -135,41 +135,39 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     }
     data.print(dom);
 
-    // Parsing Problem:
+
+//problem_filename
+    ifstream pin(problem_filename, ios_base::in);
+
+    if (!pin) {
+        cerr << "Error: Could not open input file: " << problem_filename << endl;
+    }
+
+    string pstorage;         
+    in.unsetf(ios::skipws);
+    copy(istream_iterator<char>(in),
+         istream_iterator<char>(),
+         back_inserter(pstorage));
+
+    string::const_iterator piter = pstorage.begin();
+    string::const_iterator pend = pstorage.end();
+    client::ast::Problem prob;
+    error_handler_type p_error_handler(piter, pend, std::cerr);
+
+// Parsing Problem:
     auto const pParser =
-        with<error_handler_tag>(std::ref(error_handler))[problem()];
+        with<error_handler_tag>(std::ref(p_error_handler))[problem()];
 
-    bool s = phrase_parse(iter, end, pParser, client::parser::skipper, prob);
+    bool s = phrase_parse(piter, pend, pParser, client::parser::skipper, prob);
 
-    if (!(s && iter == end)) {
+    if (!(s && piter == pend)) {
         std::cout << "-------------------------\n";
         std::cout << "Parsing failed\n";
         std::cout << "-------------------------\n";
-        error_handler(iter, "Error!");
+        p_error_handler(piter, "Error!");
     }
     data.print(prob);
 
-//    BOOST_TEST(dom.name == "construction");
+    BOOST_TEST(dom.name == "construction");
     BOOST_TEST(prob.name == "adobe");
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
