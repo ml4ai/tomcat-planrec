@@ -65,3 +65,14 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
     return os;
 }
 
+// Generic equals function for symbols
+template <class T>
+bool equals(T x, T y) {
+    return x.name == y.name;
+}
+
+// Generic equals function for symbols that are not of the same type
+template <class T, class U>
+bool equals(T x, U y) {
+    return x.name == y.name;
+}
