@@ -24,12 +24,9 @@ using namespace std;
 class KnowledgeBase {
     public:
     // define our data types, we use our own predicate and the boost::variant for recursion purposes
+    // still have recursive issues
     struct Predicate;
-    struct Uni_Variable : client::ast::Variable {
-        public:
-        bool replaced = false;
-    };
-    typedef boost::variant< client::ast::Entity, Uni_Variable, Predicate > argument; // only boost::variant allows for recursion
+    typedef boost::variant< client::ast::Entity, client::ast::Variable, Predicate > argument; // only boost::variant allows for recursion
     typedef vector<argument> v_args;
 
 
@@ -44,6 +41,29 @@ class KnowledgeBase {
                 name = x;
                 args = y; 
         }
+            // this requires names to be unique, database semantics
+            friend bool operator==(const Predicate &lhs, const Predicate &rhs) {
+                bool eq=true;
+                for(int i=0; i < lhs.args.size(); i++) {
+                    if (boost::apply_visitor(my_visitor(), (lhs.args).at(i)) == "Variable" || boost::apply_visitor(my_visitor(), (rhs.args).at(i)) == "Variable" ) {
+                        eq=false; // any variable means they aren't unified
+                    }
+                    else if (boost::apply_visitor(my_visitor(), (lhs.args).at(i)) != boost::apply_visitor(my_visitor(), (rhs.args).at(i))) {
+                        eq=false; // different data types
+                    }
+                    else if (boost::apply_visitor(my_visitor(), (lhs.args).at(i)) == "Entity") {
+                        if (get<client::ast::Entity>(lhs.args.at(i)).name != get<client::ast::Entity>(rhs.args.at(i)).name) {
+                            eq = false; // both entities but different ones
+                        }
+                    }
+                    else if (boost::apply_visitor(my_visitor(), (lhs.args).at(i)) == "Predicate") {
+                        if (get<Predicate>(lhs.args.at(i)).name != get<Predicate>(rhs.args.at(i)).name) {
+                            eq = false; // both predictes but different ones
+                        }
+                    }                    
+                }
+                return eq; // add condition where each element are equal
+            }
     };
 
     // setting up unordered_map for our substitution list
@@ -56,7 +76,7 @@ class KnowledgeBase {
         string operator()(client::ast::Entity x) const {
             return "Entity";
         }
-        string operator()(Uni_Variable x) const {
+        string operator()(client::ast::Variable x) const {
             return "Variable";
         }
         string operator()(Predicate x) const {
@@ -64,109 +84,66 @@ class KnowledgeBase {
         }
     };
 
-    // now for the substition formula for replacing the variable in an atom/predicate, 
-    // make sure its a global change
-    // needs to know the object type at compile-time
-    void substitute(Uni_Variable &x, v_args &y, sub_list &z, int i) {
-        if (boost::apply_visitor(my_visitor(), y[i]) == "Variable") {
-            x.name = get<Uni_Variable>(y[i]).name;
-            x.replaced = true;
-            z[x.name] = get<Uni_Variable>(y[i]).name;
+    // now for the substition formula for replacing the variable in an atom/predicate
+    void substitute(Predicate x, Predicate y, sub_list z, int ix) {
+        if (boost::apply_visitor(my_visitor(), (y.args).at(ix)) == "Variable") {
+            // write the substitution to z
+            z[get<client::ast::Variable>((x.args).at(ix)).name] = get<client::ast::Variable>((y.args).at(ix)).name;
+            // insert the new subbed element and then erase the old one
+            (x.args).insert(x.args.begin() + ix, get<client::ast::Variable>((y.args).at(ix)));
+            ix++;
+            (x.args).erase(x.args.begin() + ix);
         }
-        else if (boost::apply_visitor(my_visitor(), y[i]) == "Entity") {
-            x.name = get<client::ast::Entity>(y[i]).name;
-            x.replaced = true;
-            z[x.name] = get<client::ast::Entity>(y[i]).name;
+        else if (boost::apply_visitor(my_visitor(), (y.args).at(ix)) == "Entity") {
+            // write substitution to z
+            z[get<client::ast::Variable>((x.args).at(ix)).name] = get<client::ast::Entity>((y.args).at(ix)).name;
+            // insert substitution and then erase the old entry
+            (x.args).insert(x.args.begin() + ix, get<client::ast::Entity>((y.args).at(ix)));
+            ix++;
+            (x.args).erase(x.args.begin() + ix);
         }
-        else if (boost::apply_visitor(my_visitor(), y[i]) == "Predicate") {
-            x.name =  get<Predicate>(y[i]).name;
-            x.replaced = true;
-            z[x.name] = get<Predicate>(y[i]).name;
+        else if (boost::apply_visitor(my_visitor(), (y.args).at(ix)) == "Predicate") {
+            // write substitution to z
+            z[get<client::ast::Variable>((x.args).at(ix)).name] = get<Predicate>((y.args).at(ix)).name;
+            // insert substitution and then erase the old entry
+            (x.args).insert(x.args.begin() + ix, get<Predicate>((y.args).at(ix)));
+            ix++;
+            (x.args).erase(x.args.begin() + ix);
         }
 
     }
 
     // now we apply the unification algorithm on the predicate pairs
-    sub_list unification(Predicate &x, Predicate &y, sub_list &z) {
+    sub_list unification(Predicate x, Predicate y, sub_list z) {
         
         // make sure number of arguments of each expression are the same
-        if (x.args.size() != y.args.size()) {
+        if ((x.args).size() != (y.args).size()) {
             z.clear();
             return z; // need to make it return the substitution list with a fail
         }
-
-        // if already unified, algorithm is complete, make sure comparision of objects works in c++ conditionals
-        // need to update this, cause of final errors, if define == for these objects it might work
-        // rewrite to just check all the names
         // check for unification
-        bool unified=true;
-        for(int i=0; i < x.args.size(); i++) {
-            if (boost::apply_visitor(my_visitor(), x.args[i]) == "Variable") {
-                if (get<Uni_Variable>(x.args[i]).replaced == false){
-                    unified = false;
-                }
-            }
-            else if (boost::apply_visitor(my_visitor(), y.args[i]) == "Variable" ) {
-                if (get<Uni_Variable>(y.args[i]).replaced == false){
-                    unified = false;
-                }
-            }
-            else if (boost::apply_visitor(my_visitor(), x.args[i]) == "Entity" && boost::apply_visitor(my_visitor(), y.args[i])== "Entity") {
-                    if (get<client::ast::Entity>(x.args[i]).name != get<client::ast::Entity>(y.args[i]).name) {
-                        unified = false;
-                        return z;
-                    }
-            }
-            else if (boost::apply_visitor(my_visitor(), x.args[i]) == "Predicate" && boost::apply_visitor(my_visitor(), y.args[i])== "Predicate") {
-                    if (get<Predicate>(x.args[i]).name != get<Predicate>(y.args[i]).name) {
-                        unified = false;
-                        return z;
-                    }
-            }            
-        }
-        if (unified == true) {
+        if (x == y) {
             return z;
         }
-        // now if we have only 1 argument
-        else if (x.args.size() == 1) {
-            // if variable is explicit in x expression
-            if (boost::apply_visitor(my_visitor(), x.args[0]) == "Variable" && get<Uni_Variable>(x.args[0]).replaced == false) {
+
+        for(int ix=0; ix < (x.args).size(); ix++) {
+        // if variable is explicit in x expression
+            if (boost::apply_visitor(my_visitor(), x.args.at(ix)) == "Variable") {
                 // substitute x for y
-                substitute(get<Uni_Variable>(x.args[0]), y.args, z, 0);
+                substitute(x, y, z, ix);
                 return unification(x, y, z);
             }
             // if variable is explicit in y expression
-            else if (boost::apply_visitor(my_visitor(), y.args[0]) == "Variable" && get<Uni_Variable>(y.args[0]).replaced == false) {
+            else if (boost::apply_visitor(my_visitor(), (y.args).at(ix)) == "Variable") {
                 // substitute y for x
-                substitute(get<Uni_Variable>(y.args[0]), x.args, z, 0);
+                substitute(y, x, z, ix);
                 return unification(x, y, z);
             }
             // if they are predicates and thus the variable is implicit (hopefully)
-            else if (boost::apply_visitor(my_visitor(), x.args[0]) == "Predicate" && boost::apply_visitor(my_visitor(), y.args[0]) == "Predicate") {
+            else if (boost::apply_visitor(my_visitor(), (x.args).at(ix)) == "Predicate" && boost::apply_visitor(my_visitor(), (y.args).at(ix)) == "Predicate") {
                 // if the arguments are predicates we run them through the unification algorithm again
-                return unification(get<Predicate>(x.args[0]), get<Predicate>(y.args[0]), z);
+                return unification(get<Predicate>((x.args).at(ix)), get<Predicate>((y.args).at(ix)), z);
                 }
-        }
-
-        // now for multiple arguments, we will iterate through them and send each one through the function
-        else if (x.args.size() > 1) {
-            for(int i=0; i < x.args.size(); i++) {
-                // we now need to ignore the already unified statements, if unified their names will be the same
-                if (boost::apply_visitor(my_visitor(), x.args[i]) == "Variable" && get<Uni_Variable>(x.args[i]).replaced == false) {
-                        // substitute x for y
-                        substitute(get<Uni_Variable>(x.args[i]), y.args, z, i);
-                        return unification(x, y, z);
-                }
-                else if (boost::apply_visitor(my_visitor(), y.args[i]) == "Variable" && get<Uni_Variable>(y.args[0]).replaced == false) {
-                        // substitute y for x
-                        substitute(get<Uni_Variable>(y.args[i]), x.args, z, i);
-                        return unification(x, y, z);
-                }
-                else if (boost::apply_visitor(my_visitor(), x.args[i]) == "Predicate" && boost::apply_visitor(my_visitor(), y.args[i]) == "Predicate") {
-                        // run arguments of predicates through function 
-                        return unification(get<Predicate>(x.args[i]), get<Predicate>(y.args[i]), z);
-                    }
-            }
         }
     }
 };
@@ -174,16 +151,14 @@ class KnowledgeBase {
 int main() {
 
     // sample predicates for testing unification
-    typedef boost::variant<client::ast::Entity, KnowledgeBase::Uni_Variable, KnowledgeBase::Predicate> argument; // only boost::variant allows for recursion
+    typedef boost::variant<client::ast::Entity, client::ast::Variable, KnowledgeBase::Predicate> argument; // only boost::variant allows for recursion
     typedef vector<argument> v_args;
 
     client::ast::Entity John("John");
 
     client::ast::Entity Richard("Richard");
 
-    KnowledgeBase::Uni_Variable X;
-
-    X.name = "X";
+    client::ast::Variable X("X");
 
     argument J1=John;
     argument R1=Richard;
