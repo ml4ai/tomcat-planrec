@@ -75,13 +75,10 @@ void print(client::ast::Problem prob) {
 //  Main program
 ////////////////////////////////////////////////////////////////////////////
 BOOST_AUTO_TEST_CASE(test_parser) {
-    typedef string::const_iterator iterator_type;
-    using client::domain;
-    using client::problem;
+    using client::domain, client::problem;
+    using client::parser::error_handler_tag, client::parser::error_handler_type;
 
     using boost::spirit::x3::with;
-    using client::parser::error_handler_tag;
-    using client::parser::error_handler_type;
 
     string storage;
     storage = R"(
@@ -120,17 +117,17 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 ;)
             )
         )
-        )";
+    )";
 
     string::const_iterator iter = storage.begin();
     string::const_iterator end = storage.end();
 
-    error_handler_type error_handler(iter, end, std::cerr);
+    error_handler_type error_handler(iter, end, cerr);
 
     client::ast::Domain dom;
     // Parsing Domain:
     auto const domain_parser =
-        with<error_handler_tag>(std::ref(error_handler))[domain()];
+        with<error_handler_tag>(ref(error_handler))[domain()];
 
     bool r =
         phrase_parse(iter, end, domain_parser, client::parser::skipper, dom);
@@ -156,7 +153,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Parsing Problem:
     auto const problem_parser =
-        with<error_handler_tag>(std::ref(error_handler))[problem()];
+        with<error_handler_tag>(ref(error_handler))[problem()];
 
     r = phrase_parse(iter, end, problem_parser, client::parser::skipper, prob);
 
