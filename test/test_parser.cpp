@@ -13,15 +13,9 @@
 #include "parsing/error_handler.hpp"
 
 using boost::unit_test::framework::master_test_suite;
-using namespace boost;
 using namespace std;
 
-
-class Print{
-
-  public:
-  void print(client::ast::Domain dom) {
-    using namespace std;
+void print(client::ast::Domain dom) {
     cout << "Name: " << dom.name << endl;
     cout << "Requirements: " << endl;
     for (auto x : dom.requirements) {
@@ -47,7 +41,8 @@ class Print{
 
     cout << "Constants:" << endl;
     for (auto constant : dom.constants) {
-        cout << "  " << constant  << endl;;
+        cout << "  " << constant << endl;
+        ;
     }
     cout << endl;
     cout << "Predicates:" << endl;
@@ -59,31 +54,27 @@ class Print{
         cout << endl;
     }
     cout << endl;
-  }// end print()
+} // end print()
 
-    void print(client::ast::Problem prob) {
-        using namespace std;
-        cout << "Problem Name: " << prob.name << endl;
-        cout << "Problem Domain: " << prob.probDomain << endl;
-        cout << "Requirements: " << endl;
-        for (auto x : prob.requireDomain) {
-            cout << '"' << x << '"' << endl;
-        }
-        cout << endl;
-        cout << "Objects: " << endl;
-        for (auto x : prob.objects) {
-            cout << "  " << x << endl;
-        }
-        cout << endl;
-  }//end print()
-};// end Print class
-
+void print(client::ast::Problem prob) {
+    cout << "Problem Name: " << prob.name << endl;
+    cout << "Problem Domain: " << prob.probDomain << endl;
+    cout << "Requirements: " << endl;
+    for (auto x : prob.requireDomain) {
+        cout << '"' << x << '"' << endl;
+    }
+    cout << endl;
+    cout << "Objects: " << endl;
+    for (auto x : prob.objects) {
+        cout << "  " << x << endl;
+    }
+    cout << endl;
+} // end print()
 
 ////////////////////////////////////////////////////////////////////////////
 //  Main program
 ////////////////////////////////////////////////////////////////////////////
 BOOST_AUTO_TEST_CASE(test_parser) {
-    using namespace std;
     typedef string::const_iterator iterator_type;
     using client::domain;
     using client::problem;
@@ -92,79 +83,82 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     using client::parser::error_handler_tag;
     using client::parser::error_handler_type;
 
-///// Parsing Domain:
-    char const* domain_filename;
-    char const* problem_filename;
-    BOOST_TEST_REQUIRE(master_test_suite().argc == 3);
-    domain_filename = master_test_suite().argv[1];
-    problem_filename = master_test_suite().argv[2];
-    Print data;
+    string storage;
+    storage = R"(
+    ; Example domain for testing
+        (define
+            (domain construction)
+            (:requirements :strips :typing)
+            (:types
+                site material - object
+                bricks cables windows - material
+            )
+            (:constants mainsite - site)
 
-//domain_filename
-    ifstream in(domain_filename, ios_base::in);
-    if (!in) {
-        cerr << "Error: Could not open input file: " << domain_filename << endl;
-    }
+            (:predicates
+                (walls-built ?s - site)
+                (windows-fitted ?s - site)
+                (foundations-set ?s - site)
+                (cables-installed ?s - site)
+                (site-built ?s - site)
+                (on-site ?m - material ?s - site)
+                (material-used ?m - material)
+            )
 
-    string storage;         // We will read the contents here.
-    in.unsetf(ios::skipws); // No white space skipping!
-    copy(istream_iterator<char>(in),
-         istream_iterator<char>(),
-         back_inserter(storage));
+            (:action BUILD-WALL
+                :parameters (?s - site ?b - bricks)
+                ;:precondition (()
+                ;:precondition (and
+                    ;(on-site ?b ?s)
+                    ;(foundations-set ?s)
+                    ;(not (walls-built ?s))
+                    ;(not (material-used ?b))
+                ;)
+                ;:effect (and
+                    ;(walls-built ?s)
+                    ;(material-used ?b)
+                ;)
+            )
+        )
+        )";
 
     string::const_iterator iter = storage.begin();
     string::const_iterator end = storage.end();
-    client::ast::Domain dom;
+
     error_handler_type error_handler(iter, end, std::cerr);
 
+    client::ast::Domain dom;
     // Parsing Domain:
-    auto const parser =
+    auto const domain_parser =
         with<error_handler_tag>(std::ref(error_handler))[domain()];
 
-    bool r = phrase_parse(iter, end, parser, client::parser::skipper, dom);
-
-    if (!(r && iter == end)) {
-        std::cout << "-------------------------\n";
-        std::cout << "Parsing failed\n";
-        std::cout << "-------------------------\n";
-        error_handler(iter, "Error!");
-    }
-    data.print(dom);
+    bool r =
+        phrase_parse(iter, end, domain_parser, client::parser::skipper, dom);
 
     BOOST_TEST(dom.name == "construction");
-    in.close();
 
-//problem_filename
-    ifstream pin(problem_filename, ios_base::in);
+    storage = R"(
+        (define
+            (problem adobe)
+            (:domain construction)
+            (:requirements :testingOnly :whenDoProblemsNeedRequirements)
+            (:objects
+                factory house - site
+                adobe - material)
+        )
+    )";
 
-    if (!pin) {
-        cerr << "Error: Could not open input file: " << problem_filename << endl;
-    }
+    // Need to reset iter and end for every new string.
+    iter = storage.begin();
+    end = storage.end();
 
-    string pstorage;         
-    pin.unsetf(ios::skipws);
-    copy(istream_iterator<char>(pin),
-         istream_iterator<char>(),
-         back_inserter(pstorage));
-
-    string::const_iterator piter = pstorage.begin();
-    string::const_iterator pend = pstorage.end();
     client::ast::Problem prob;
-    error_handler_type p_error_handler(piter, pend, std::cerr);
 
-// Parsing Problem:
-    auto const pParser =
-        with<error_handler_tag>(std::ref(p_error_handler))[problem()];
+    // Parsing Problem:
+    auto const problem_parser =
+        with<error_handler_tag>(std::ref(error_handler))[problem()];
 
-    bool s = phrase_parse(piter, pend, pParser, client::parser::skipper, prob);
-
-    if (!(s && piter == pend)) {
-        std::cout << "-------------------------\n";
-        std::cout << "Parsing failed\n";
-        std::cout << "-------------------------\n";
-        p_error_handler(piter, "Error!");
-    }
-    data.print(prob);
+    r = phrase_parse(iter, end, problem_parser, client::parser::skipper, prob);
 
     BOOST_TEST(prob.name == "adobe");
 }

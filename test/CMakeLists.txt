@@ -26,7 +26,7 @@ add_executable(test_MCTS_planner test_MCTS_planner.cpp)
 target_include_directories(test_MCTS_planner PRIVATE ${Boost_INCLUDE_DIR}
   ../lib/cpphop)
 
-add_test(NAME test_parser COMMAND test_parser -- ../../test/test_domain.pddl ../../test/test_problem.pddl)
+add_test(NAME test_parser COMMAND test_parser)
 add_test(NAME test_kb COMMAND test_kb)
 add_test(NAME test_unification COMMAND test_unification)
 add_test(NAME test_DFS_planner COMMAND test_DFS_planner)
