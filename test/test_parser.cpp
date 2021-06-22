@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 
+#include "util.h"
 #include "parsing/ast.hpp"
 #include "parsing/ast_adapted.hpp"
 #include "parsing/config.hpp"
@@ -105,8 +106,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test either type parsing
     auto et = parse<ast::EitherType>("(either type0 type1)", either_type());
-    BOOST_TEST(et.primitive_types[0].name == "type0");
-    BOOST_TEST(et.primitive_types[1].name == "type1");
+    BOOST_TEST(in(ast::PrimitiveType{"type0"}, et.primitive_types));
+    BOOST_TEST(in(ast::PrimitiveType{"type1"}, et.primitive_types));
 
 
     storage = R"(
