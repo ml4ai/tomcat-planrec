@@ -40,9 +40,7 @@ namespace ast {
     using Type = x3::variant<PrimitiveType, EitherType>;
 
     template<class T>
-    struct ImplicitlyTypedList {
-        std::vector<T> entries;
-    };
+    using ImplicitlyTypedList = std::vector<T>;
 
     template<class T>
     struct ExplicitlyTypedList {
@@ -85,14 +83,14 @@ namespace ast {
     // std::vector<Variable> variables;
     //};
 
-    // struct Domain : x3::position_tagged {
-    // Name name;
-    // std::vector<std::string> requirements;
-    // std::vector<Entity> types;
-    // std::vector<Entity> constants;
-    // std::vector<AtomicFormulaSkeleton> predicates;
-    // std::vector<Action> actions;
-    //};
+     struct Domain : x3::position_tagged {
+        Name name;
+        std::vector<std::string> requirements;
+        TypedList<Name> types;
+        //std::vector<Entity> constants;
+        //std::vector<AtomicFormulaSkeleton> predicates;
+        //std::vector<Action> actions;
+    };
 
     // struct Problem : x3::position_tagged {
     // Name name;                              // to just get name of problem

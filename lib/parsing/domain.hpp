@@ -38,6 +38,12 @@ namespace parser {
     using typed_list_type = rule<class TTypedList, ast::TypedList<ast::Name>>;
     BOOST_SPIRIT_DECLARE(typed_list_type);
 
+    using requirements_type = rule<class TRequirements, std::vector<std::string>>;
+    BOOST_SPIRIT_DECLARE(requirements_type);
+
+    using domain_type = rule<class TDomain, ast::Domain>;
+    BOOST_SPIRIT_DECLARE(domain_type);
+
     // tag used to get the position cache from the context
     struct position_cache_tag;
 
@@ -51,3 +57,5 @@ parser::type_type type();
 parser::explicitly_typed_list_type explicitly_typed_list();
 parser::implicitly_typed_list_type implicitly_typed_list();
 parser::typed_list_type typed_list();
+parser::domain_type domain();
+parser::requirements_type requirements();

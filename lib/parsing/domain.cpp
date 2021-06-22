@@ -10,4 +10,5 @@ namespace parser {
     BOOST_SPIRIT_INSTANTIATE(implicitly_typed_list_type, iterator_type, context_type);
     BOOST_SPIRIT_INSTANTIATE(explicitly_typed_list_type, iterator_type, context_type);
     BOOST_SPIRIT_INSTANTIATE(typed_list_type, iterator_type, context_type);
+    BOOST_SPIRIT_INSTANTIATE(domain_type, iterator_type, context_type);
 } // namespace parser
