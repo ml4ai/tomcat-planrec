@@ -9,7 +9,7 @@ namespace parser {
     using x3::space, x3::lexeme, x3::char_, x3::eol, x3::rule;
     static auto const skipper = space | lexeme[';' >> *(char_ - eol) >> eol];
     // Set up the skip parser so that it can be used from parser.cpp
-    using skipper_type=decltype(skipper);
+    using skipper_type = decltype(skipper);
     using phrase_context_type = x3::phrase_parse_context<skipper_type>::type;
 
     using constant_type = rule<class TConstant, ast::Constant>;
@@ -27,15 +27,16 @@ namespace parser {
     using type_type = rule<class TType, ast::Type>;
     BOOST_SPIRIT_DECLARE(type_type);
 
-    using explicitly_typed_list_type = rule<class TExplicitlyTypedList, ast::ExplicitlyTypedList>;
+    using explicitly_typed_list_type =
+        rule<class TExplicitlyTypedList, ast::ExplicitlyTypedList<ast::Name>>;
     BOOST_SPIRIT_DECLARE(explicitly_typed_list_type);
 
-    using implicitly_typed_list_type = rule<class TImplicitlyTypedList, ast::ImplicitlyTypedList>;
+    using implicitly_typed_list_type =
+        rule<class TImplicitlyTypedList, ast::ImplicitlyTypedList<ast::Name>>;
     BOOST_SPIRIT_DECLARE(implicitly_typed_list_type);
 
-    using typed_list_type = rule<class TTypedList, ast::TypedList>;
+    using typed_list_type = rule<class TTypedList, ast::TypedList<ast::Name>>;
     BOOST_SPIRIT_DECLARE(typed_list_type);
-
 
     // tag used to get the position cache from the context
     struct position_cache_tag;

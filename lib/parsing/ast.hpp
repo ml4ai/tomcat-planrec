@@ -39,18 +39,21 @@ namespace ast {
 
     using Type = x3::variant<PrimitiveType, EitherType>;
 
+    template<class T>
     struct ImplicitlyTypedList {
-        std::vector<std::string> entries;
+        std::vector<T> entries;
     };
 
+    template<class T>
     struct ExplicitlyTypedList {
-        std::vector<std::string> entries;
+        std::vector<T> entries;
         Type type;
     };
 
+    template<class T>
     struct TypedList {
-        std::vector<ExplicitlyTypedList> explicitly_typed_lists;
-        boost::optional<ImplicitlyTypedList> implicitly_typed_list;
+        std::vector<ExplicitlyTypedList<T>> explicitly_typed_lists;
+        boost::optional<ImplicitlyTypedList<T>> implicitly_typed_list;
     };
 
     // struct Action : x3::position_tagged {

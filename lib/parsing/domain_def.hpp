@@ -10,7 +10,8 @@
 
 namespace parser {
     using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
-          ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList, ast::TypedList;
+          ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList, ast::TypedList,
+          ast::Name;
         
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -26,9 +27,9 @@ namespace parser {
     rule<class TPrimitiveType, PrimitiveType> const primitive_type = "primitive_type";
     rule<class TEitherType, EitherType> const either_type = "either_type";
     rule<class TType, Type> const type = "type";
-    rule<class TTypedList, TypedList> const typed_list = "typed_list";
-    rule<class TExplicitlyTypedList, ExplicitlyTypedList> const explicitly_typed_list = "explicitly_typed_list";
-    rule<class TImplicitlyTypedList, ImplicitlyTypedList> const implicitly_typed_list = "implicitly_typed_list";
+    rule<class TExplicitlyTypedList, ExplicitlyTypedList<Name>> const explicitly_typed_list = "explicitly_typed_list";
+    rule<class TImplicitlyTypedList, ImplicitlyTypedList<Name>> const implicitly_typed_list = "implicitly_typed_list";
+    rule<class TTypedList, TypedList<Name>> const typed_list = "typed_list";
 
     // Grammar
     auto const constant_def = name;

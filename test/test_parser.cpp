@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(in(ast::PrimitiveType{"type0"}, get<ast::EitherType>(et).primitive_types));
     BOOST_TEST(in(ast::PrimitiveType{"type1"}, get<ast::EitherType>(et).primitive_types));
 
-    auto tl = parse<ast::TypedList>("a b c", typed_list());
+    auto tl = parse<ast::TypedList<std::string>>("a b c", typed_list());
     BOOST_TEST(tl.explicitly_typed_lists.size() == 0);
     BOOST_TEST((tl.implicitly_typed_list.value().entries[0] == "a"));
 
