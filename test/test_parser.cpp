@@ -71,6 +71,21 @@ void print(client::ast::Problem prob) {
     cout << endl;
 } // end print()
 
+template<class T, class U>
+T parse(std::string storage, U parser) {
+    using client::parser::error_handler_tag, client::parser::error_handler_type;
+    string::const_iterator iter = storage.begin();
+    string::const_iterator end = storage.end();
+    error_handler_type error_handler(iter, end, cerr);
+    T object;
+    auto const error_handling_parser =
+        with<error_handler_tag>(ref(error_handler))[parser];
+    bool r =
+        phrase_parse(iter, end, error_handling_parser, client::parser::skipper, object);
+    return object;
+
+}
+
 ////////////////////////////////////////////////////////////////////////////
 //  Main program
 ////////////////////////////////////////////////////////////////////////////
@@ -119,19 +134,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         )
     )";
 
-    string::const_iterator iter = storage.begin();
-    string::const_iterator end = storage.end();
-
-    error_handler_type error_handler(iter, end, cerr);
-
-    client::ast::Domain dom;
-    // Parsing Domain:
-    auto const domain_parser =
-        with<error_handler_tag>(ref(error_handler))[domain()];
-
-    bool r =
-        phrase_parse(iter, end, domain_parser, client::parser::skipper, dom);
-
+    auto dom = parse<client::ast::Domain>(storage, domain());
     BOOST_TEST(dom.name == "construction");
 
     storage = R"(
@@ -146,16 +149,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
 
     // Need to reset iter and end for every new string.
-    iter = storage.begin();
-    end = storage.end();
-
-    client::ast::Problem prob;
-
-    // Parsing Problem:
-    auto const problem_parser =
-        with<error_handler_tag>(ref(error_handler))[problem()];
-
-    r = phrase_parse(iter, end, problem_parser, client::parser::skipper, prob);
-
+    auto prob = parse<client::ast::Problem>(storage, problem());
     BOOST_TEST(prob.name == "adobe");
 }
