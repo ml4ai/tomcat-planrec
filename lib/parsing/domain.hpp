@@ -27,10 +27,15 @@ namespace parser {
     using type_type = rule<class TType, ast::Type>;
     BOOST_SPIRIT_DECLARE(type_type);
 
-    //using domain_type = rule<class TDomain, ast::Domain>;
-    //using problem_type = rule<class TProblem, ast::Problem>;
+    using explicitly_typed_list_type = rule<class TExplicitlyTypedList, ast::ExplicitlyTypedList>;
+    BOOST_SPIRIT_DECLARE(explicitly_typed_list_type);
 
-    //BOOST_SPIRIT_DECLARE(domain_type, problem_type);
+    using implicitly_typed_list_type = rule<class TImplicitlyTypedList, ast::ImplicitlyTypedList>;
+    BOOST_SPIRIT_DECLARE(implicitly_typed_list_type);
+
+    using typed_list_type = rule<class TTypedList, ast::TypedList>;
+    BOOST_SPIRIT_DECLARE(typed_list_type);
+
 
     // tag used to get the position cache from the context
     struct position_cache_tag;
@@ -42,5 +47,6 @@ parser::variable_type variable();
 parser::primitive_type_type primitive_type();
 parser::either_type_type either_type();
 parser::type_type type();
-//parser::domain_type domain();
-//parser::problem_type problem();
+parser::explicitly_typed_list_type explicitly_typed_list();
+parser::implicitly_typed_list_type implicitly_typed_list();
+parser::typed_list_type typed_list();

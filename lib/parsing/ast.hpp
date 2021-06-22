@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_set>
+#include <boost/variant/recursive_variant.hpp>
 
 namespace ast {
     using Name = std::string;
@@ -37,6 +38,20 @@ namespace ast {
     };
 
     using Type = x3::variant<PrimitiveType, EitherType>;
+
+    struct ImplicitlyTypedList {
+        std::vector<std::string> entries;
+    };
+
+    struct ExplicitlyTypedList {
+        std::vector<std::string> entries;
+        Type type;
+    };
+
+    struct TypedList {
+        std::vector<ExplicitlyTypedList> explicitly_typed_lists;
+        boost::optional<ImplicitlyTypedList> implicitly_typed_list;
+    };
 
     // struct Action : x3::position_tagged {
     // Name name;

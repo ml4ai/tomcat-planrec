@@ -13,6 +13,7 @@
 #include "parsing/config.hpp"
 #include "parsing/domain.hpp"
 #include "parsing/error_handler.hpp"
+#include <boost/optional.hpp>
 
 using boost::unit_test::framework::master_test_suite;
 using namespace std;
@@ -93,6 +94,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     using parser::error_handler_tag, parser::error_handler_type;
 
     using boost::spirit::x3::with;
+    using boost::get;
 
     string storage;
 
@@ -112,11 +114,15 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test type parsing
     auto t = parse<ast::Type>("type", type());
-    BOOST_TEST(boost::get<ast::PrimitiveType>(t).name == "type");
+    BOOST_TEST(get<ast::PrimitiveType>(t).name == "type");
 
     t = parse<ast::Type>("(either type0 type1)", type());
-    BOOST_TEST(in(ast::PrimitiveType{"type0"}, boost::get<ast::EitherType>(et).primitive_types));
-    BOOST_TEST(in(ast::PrimitiveType{"type1"}, boost::get<ast::EitherType>(et).primitive_types));
+    BOOST_TEST(in(ast::PrimitiveType{"type0"}, get<ast::EitherType>(et).primitive_types));
+    BOOST_TEST(in(ast::PrimitiveType{"type1"}, get<ast::EitherType>(et).primitive_types));
+
+    auto tl = parse<ast::TypedList>("a b c", typed_list());
+    BOOST_TEST(tl.explicitly_typed_lists.size() == 0);
+    BOOST_TEST((tl.implicitly_typed_list.value().entries[0] == "a"));
 
     storage = R"(
     ; Example domain for testing

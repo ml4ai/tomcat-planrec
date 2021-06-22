@@ -9,7 +9,8 @@
 #include "error_handler.hpp"
 
 namespace parser {
-    using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType, ast::Type;
+    using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
+          ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList, ast::TypedList;
         
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -25,6 +26,9 @@ namespace parser {
     rule<class TPrimitiveType, PrimitiveType> const primitive_type = "primitive_type";
     rule<class TEitherType, EitherType> const either_type = "either_type";
     rule<class TType, Type> const type = "type";
+    rule<class TTypedList, TypedList> const typed_list = "typed_list";
+    rule<class TExplicitlyTypedList, ExplicitlyTypedList> const explicitly_typed_list = "explicitly_typed_list";
+    rule<class TImplicitlyTypedList, ImplicitlyTypedList> const implicitly_typed_list = "implicitly_typed_list";
 
     // Grammar
     auto const constant_def = name;
@@ -32,6 +36,15 @@ namespace parser {
     auto const primitive_type_def = name;
     auto const either_type_def = '(' >> lit("either") >> +primitive_type >> ')';
     auto const type_def = primitive_type | either_type; 
+
+    auto const explicitly_typed_list_def = +name >> '-' >> type;
+    BOOST_SPIRIT_DEFINE(explicitly_typed_list);
+
+    auto const implicitly_typed_list_def = *name;
+    BOOST_SPIRIT_DEFINE(implicitly_typed_list);
+
+    auto const typed_list_def = *explicitly_typed_list >> -implicitly_typed_list;
+    BOOST_SPIRIT_DEFINE(typed_list);
 
     BOOST_SPIRIT_DEFINE(constant, variable, primitive_type, either_type, type);
 
@@ -43,3 +56,4 @@ parser::variable_type variable() { return parser::variable; }
 parser::primitive_type_type primitive_type() { return parser::primitive_type; }
 parser::either_type_type either_type() { return parser::either_type; }
 parser::type_type type() { return parser::type; }
+parser::typed_list_type typed_list() { return parser::typed_list; }
