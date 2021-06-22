@@ -24,6 +24,9 @@ namespace parser {
     using either_type_type = rule<class TEitherType, ast::EitherType>;
     BOOST_SPIRIT_DECLARE(either_type_type);
 
+    using type_type = rule<class TType, ast::Type>;
+    BOOST_SPIRIT_DECLARE(type_type);
+
     //using domain_type = rule<class TDomain, ast::Domain>;
     //using problem_type = rule<class TProblem, ast::Problem>;
 
@@ -38,5 +41,6 @@ parser::constant_type constant();
 parser::variable_type variable();
 parser::primitive_type_type primitive_type();
 parser::either_type_type either_type();
+parser::type_type type();
 //parser::domain_type domain();
 //parser::problem_type problem();

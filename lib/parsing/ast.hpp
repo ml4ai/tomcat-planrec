@@ -36,6 +36,8 @@ namespace ast {
             primitive_types;
     };
 
+    using Type = x3::variant<PrimitiveType, EitherType>;
+
     // struct Action : x3::position_tagged {
     // Name name;
     // std::vector<Variable> parameters;

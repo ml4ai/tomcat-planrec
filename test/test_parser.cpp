@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <boost/variant/get.hpp>
 
 #include "util.h"
 #include "parsing/ast.hpp"
@@ -109,6 +110,13 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(in(ast::PrimitiveType{"type0"}, et.primitive_types));
     BOOST_TEST(in(ast::PrimitiveType{"type1"}, et.primitive_types));
 
+    // Test type parsing
+    auto t = parse<ast::Type>("type", type());
+    BOOST_TEST(boost::get<ast::PrimitiveType>(t).name == "type");
+
+    t = parse<ast::Type>("(either type0 type1)", type());
+    BOOST_TEST(in(ast::PrimitiveType{"type0"}, boost::get<ast::EitherType>(et).primitive_types));
+    BOOST_TEST(in(ast::PrimitiveType{"type1"}, boost::get<ast::EitherType>(et).primitive_types));
 
     storage = R"(
     ; Example domain for testing
