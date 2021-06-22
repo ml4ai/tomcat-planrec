@@ -15,65 +15,64 @@
 using boost::unit_test::framework::master_test_suite;
 using namespace std;
 
-void print(client::ast::Domain dom) {
-    cout << "Name: " << dom.name << endl;
-    cout << "Requirements: " << endl;
-    for (auto x : dom.requirements) {
-        cout << '"' << x << '"' << endl;
-    }
-    cout << endl;
-    cout << "Types: " << endl;
-    for (auto x : dom.types) {
-        cout << "  " << x << endl;
-    }
-    cout << endl;
-    cout << "Actions:" << endl;
-    for (auto x : dom.actions) {
-        cout << x.name << endl;
-        cout << "  parameters: " << endl;
-        for (auto p : x.parameters) {
-            cout << "  " << p << endl;
-        }
-        cout << endl;
-        cout << endl; // Line between each action parsed
-    }
-    cout << endl;
+//void print(ast::Domain dom) {
+    //cout << "Name: " << dom.name << endl;
+    //cout << "Requirements: " << endl;
+    //for (auto x : dom.requirements) {
+        //cout << '"' << x << '"' << endl;
+    //}
+    //cout << endl;
+    //cout << "Types: " << endl;
+    //for (auto x : dom.types) {
+        //cout << "  " << x << endl;
+    //}
+    //cout << endl;
+    //cout << "Actions:" << endl;
+    //for (auto x : dom.actions) {
+        //cout << x.name << endl;
+        //cout << "  parameters: " << endl;
+        //for (auto p : x.parameters) {
+            //cout << "  " << p << endl;
+        //}
+        //cout << endl;
+        //cout << endl; // Line between each action parsed
+    //}
+    //cout << endl;
 
-    cout << "Constants:" << endl;
-    for (auto constant : dom.constants) {
-        cout << "  " << constant << endl;
-        ;
-    }
-    cout << endl;
-    cout << "Predicates:" << endl;
-    for (auto x : dom.predicates) {
-        cout << "  " << x.predicate;
-        for (auto variable : x.variables) {
-            cout << " " << variable;
-        }
-        cout << endl;
-    }
-    cout << endl;
-} // end print()
+    //cout << "Constants:" << endl;
+    //for (auto constant : dom.constants) {
+        //cout << "  " << constant << endl;
+        //;
+    //}
+    //cout << endl;
+    //cout << "Predicates:" << endl;
+    //for (auto x : dom.predicates) {
+        //cout << "  " << x.predicate;
+        //for (auto variable : x.variables) {
+            //cout << " " << variable;
+        //}
+        //cout << endl;
+    //}
+    //cout << endl;
+//} // end print()
 
-void print(client::ast::Problem prob) {
-    cout << "Problem Name: " << prob.name << endl;
-    cout << "Problem Domain: " << prob.probDomain << endl;
-    cout << "Requirements: " << endl;
-    for (auto x : prob.requireDomain) {
-        cout << '"' << x << '"' << endl;
-    }
-    cout << endl;
-    cout << "Objects: " << endl;
-    for (auto x : prob.objects) {
-        cout << "  " << x << endl;
-    }
-    cout << endl;
-} // end print()
+//void print(ast::Problem prob) {
+    //cout << "Problem Name: " << prob.name << endl;
+    //cout << "Problem Domain: " << prob.probDomain << endl;
+    //cout << "Requirements: " << endl;
+    //for (auto x : prob.requireDomain) {
+        //cout << '"' << x << '"' << endl;
+    //}
+    //cout << endl;
+    //cout << "Objects: " << endl;
+    //for (auto x : prob.objects) {
+        //cout << "  " << x << endl;
+    //}
+    //cout << endl;
+//} // end print()
 
-template<class T, class U>
-T parse(std::string storage, U parser) {
-    using client::parser::error_handler_tag, client::parser::error_handler_type;
+template <class T, class U> T parse(std::string storage, U parser) {
+    using parser::error_handler_tag, parser::error_handler_type;
     string::const_iterator iter = storage.begin();
     string::const_iterator end = storage.end();
     error_handler_type error_handler(iter, end, cerr);
@@ -81,21 +80,35 @@ T parse(std::string storage, U parser) {
     auto const error_handling_parser =
         with<error_handler_tag>(ref(error_handler))[parser];
     bool r =
-        phrase_parse(iter, end, error_handling_parser, client::parser::skipper, object);
+        phrase_parse(iter, end, error_handling_parser, parser::skipper, object);
     return object;
-
 }
 
 ////////////////////////////////////////////////////////////////////////////
 //  Main program
 ////////////////////////////////////////////////////////////////////////////
 BOOST_AUTO_TEST_CASE(test_parser) {
-    using client::domain, client::problem;
-    using client::parser::error_handler_tag, client::parser::error_handler_type;
+    using parser::error_handler_tag, parser::error_handler_type;
 
     using boost::spirit::x3::with;
 
     string storage;
+
+    // Test variable parsing
+    auto v = parse<ast::Variable>("?var", variable());
+    BOOST_TEST(v.name == "var");
+
+    // Test primitive type parsing
+    // TODO See whether we need to reintroduce the client namespace
+    auto pt = parse<ast::PrimitiveType>("type", primitive_type());
+    BOOST_TEST(pt.name == "type");
+
+    // Test either type parsing
+    auto et = parse<ast::EitherType>("(either type0 type1)", either_type());
+    BOOST_TEST(et.primitive_types[0].name == "type0");
+    BOOST_TEST(et.primitive_types[1].name == "type1");
+
+
     storage = R"(
     ; Example domain for testing
         (define
@@ -134,8 +147,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         )
     )";
 
-    auto dom = parse<client::ast::Domain>(storage, domain());
-    BOOST_TEST(dom.name == "construction");
+    //auto dom = parse<ast::Domain>(storage, domain());
+    //BOOST_TEST(dom.name == "construction");
 
     storage = R"(
         (define
@@ -149,6 +162,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
 
     // Need to reset iter and end for every new string.
-    auto prob = parse<client::ast::Problem>(storage, problem());
-    BOOST_TEST(prob.name == "adobe");
+    //auto prob = parse<ast::Problem>(storage, problem());
+    //BOOST_TEST(prob.name == "adobe");
 }
