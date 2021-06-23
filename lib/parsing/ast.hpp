@@ -7,6 +7,7 @@
 #include <boost/variant/recursive_variant.hpp>
 #include <iostream>
 #include <string>
+#include <tuple>
 #include <unordered_set>
 
 namespace ast {
@@ -71,19 +72,25 @@ namespace ast {
 
     struct GoalDescription;
 
+    struct ConnectedSentence {
+        //std::string connector;
+        std::vector<x3::forward_ast<GoalDescription>> args;
+    };
 
-    struct GoalDescriptionValue : x3::variant<Nil, AtomicFormula<Term>, x3::forward_ast<GoalDescription>>{
+    struct GoalDescriptionValue
+        : x3::variant<Nil,
+                      AtomicFormula<Term>,
+                      //ConnectedSentence,
+                      x3::forward_ast<GoalDescription>> {
         using base_type::base_type;
         using base_type::operator=;
     };
 
-    struct AndSentence {
-        std::vector<GoalDescription> args;
-    };
 
     struct GoalDescription {
         GoalDescriptionValue value;
     };
+
 
     struct Domain : x3::position_tagged {
         Name name;

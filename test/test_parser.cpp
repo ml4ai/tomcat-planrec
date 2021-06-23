@@ -172,11 +172,17 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                    .name == "site");
 
     // Test parsing of goal descriptions
-    auto gd = parse<ast::GoalDescription>("(predicate name ?variable)", goal_description());
+
+    // Parse nil
+    auto gd = parse<ast::GoalDescription>("()", goal_description());
+    BOOST_TEST(boost::get<ast::Nil>(gd.value) == ast::Nil());
+
+    // Parse atomic formula of terms
+    gd = parse<ast::GoalDescription>("(predicate name ?variable)", goal_description());
     BOOST_TEST(boost::get<ast::AtomicFormula<ast::Term>>(gd.value).predicate.name == "predicate");
 
-    gd = parse<ast::GoalDescription>("()", goal_description());
-    BOOST_TEST(boost::get<ast::Nil>(gd.value) == ast::Nil());
+    //auto as = parse<ast::AndSentence>("(and () (predicate name ?variable))", and_sentence());
+    //BOOST_TEST(boost::get<ast::AtomicFormula<ast::Term>>(gd.children[1]).args.size() == 2);
 
     storage = R"(
         (define

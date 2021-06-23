@@ -99,14 +99,14 @@ namespace parser {
 
     rule<class TGoalDescriptionValue, ast::GoalDescriptionValue> goal_description_value = "goal_description_value";
     rule<class TGoalDescription, ast::GoalDescription> goal_description = "goal_description";
-    rule<class TAndSentence, ast::AndSentence> const and_sentence = "and_sentence";
+    rule<class TConnectedSentence, ast::ConnectedSentence> const connected_sentence = "connected_sentence";
 
-    auto const and_sentence_def = '(' >> lit("and") >> *goal_description >> ')';
+    auto const connected_sentence_def = '(' >> lit("and") >> *goal_description >> ')';
     auto const goal_description_value_def = nil | atomic_formula_terms | goal_description;
-    //auto const goal_description_def = nil | atomic_formula_terms | and_sentence;
+    //auto const goal_description_def = nil | atomic_formula_terms | connected_sentence;
     auto const goal_description_def = goal_description_value;
 
-    BOOST_SPIRIT_DEFINE(and_sentence);
+    BOOST_SPIRIT_DEFINE(connected_sentence);
     BOOST_SPIRIT_DEFINE(goal_description_value);
     BOOST_SPIRIT_DEFINE(goal_description);
 
@@ -174,6 +174,7 @@ parser::atomic_formula_terms_type atomic_formula_terms() {
 }
 
 parser::goal_description_type goal_description() { return parser::goal_description; }
+//parser::connected_sentence_type connected_sentence() { return parser::connected_sentence; }
 parser::requirements_type requirements() { return parser::requirements; }
 parser::domain_type domain() { return parser::domain; }
 parser::problem_type problem() { return parser::problem; }

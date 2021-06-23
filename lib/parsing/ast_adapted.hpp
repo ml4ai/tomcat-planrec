@@ -30,7 +30,7 @@ BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormulaSkeleton, predicate, args)
 BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormula<ast::Term>, predicate, args)
 
 BOOST_FUSION_ADAPT_STRUCT(ast::Nil)
-BOOST_FUSION_ADAPT_STRUCT(ast::AndSentence, args)
+BOOST_FUSION_ADAPT_STRUCT(ast::ConnectedSentence, args)
 BOOST_FUSION_ADAPT_STRUCT(ast::GoalDescription, value)
 
 BOOST_FUSION_ADAPT_STRUCT(ast::Domain, name, requirements, types, constants, predicates)

@@ -101,6 +101,7 @@ parser::atomic_formula_skeleton_type atomic_formula_skeleton();
 parser::atomic_formula_terms_type atomic_formula_terms();
 
 parser::goal_description_type goal_description();
+//parser::and_sentence_type and_sentence();
 parser::requirements_type requirements();
 
 parser::domain_type domain();
