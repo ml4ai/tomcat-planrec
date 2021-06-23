@@ -11,93 +11,19 @@
 #include "parsing/ast_adapted.hpp"
 #include "parsing/config.hpp"
 #include "parsing/domain.hpp"
-#include "parsing/error_handler.hpp"
+#include "parsing/parse.hpp"
 #include "util.h"
 #include <boost/optional.hpp>
 
 using boost::unit_test::framework::master_test_suite;
 using namespace std;
 
-// void print(ast::Domain dom) {
-// cout << "Name: " << dom.name << endl;
-// cout << "Requirements: " << endl;
-// for (auto x : dom.requirements) {
-// cout << '"' << x << '"' << endl;
-//}
-// cout << endl;
-// cout << "Types: " << endl;
-// for (auto x : dom.types) {
-// cout << "  " << x << endl;
-//}
-// cout << endl;
-// cout << "Actions:" << endl;
-// for (auto x : dom.actions) {
-// cout << x.name << endl;
-// cout << "  parameters: " << endl;
-// for (auto p : x.parameters) {
-// cout << "  " << p << endl;
-//}
-// cout << endl;
-// cout << endl; // Line between each action parsed
-//}
-// cout << endl;
-
-// cout << "Constants:" << endl;
-// for (auto constant : dom.constants) {
-// cout << "  " << constant << endl;
-//;
-//}
-// cout << endl;
-// cout << "Predicates:" << endl;
-// for (auto x : dom.predicates) {
-// cout << "  " << x.predicate;
-// for (auto variable : x.variables) {
-// cout << " " << variable;
-//}
-// cout << endl;
-//}
-// cout << endl;
-//} // end print()
-
-// void print(ast::Problem prob) {
-// cout << "Problem Name: " << prob.name << endl;
-// cout << "Problem Domain: " << prob.probDomain << endl;
-// cout << "Requirements: " << endl;
-// for (auto x : prob.requireDomain) {
-// cout << '"' << x << '"' << endl;
-//}
-// cout << endl;
-// cout << "Objects: " << endl;
-// for (auto x : prob.objects) {
-// cout << "  " << x << endl;
-//}
-// cout << endl;
-//} // end print()
-
-template <class T, class U> T parse(std::string storage, U parser) {
-    using parser::error_handler_tag, parser::error_handler_type;
-    string::const_iterator iter = storage.begin();
-    string::const_iterator end = storage.end();
-    error_handler_type error_handler(iter, end, cerr);
-    T object;
-    auto const error_handling_parser =
-        with<error_handler_tag>(ref(error_handler))[parser];
-    bool r =
-        phrase_parse(iter, end, error_handling_parser, parser::skipper, object);
-    if (!(r && iter == end)) {
-        error_handler(iter, "Error!");
-    }
-    return object;
-}
 
 ////////////////////////////////////////////////////////////////////////////
 //  Main program
 ////////////////////////////////////////////////////////////////////////////
 BOOST_AUTO_TEST_CASE(test_parser) {
-    using parser::error_handler_tag, parser::error_handler_type;
-
     using boost::get;
-    using boost::spirit::x3::with;
 
     string storage;
 
@@ -165,7 +91,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(afs.predicate.name == "predicate");
     BOOST_TEST(afs.args.explicitly_typed_lists[0].entries[0].name == "var0");
     BOOST_TEST(afs.args.explicitly_typed_lists[0].entries[1].name == "var1");
-    BOOST_TEST(get<ast::PrimitiveType>(afs.args.explicitly_typed_lists[0].type).name == "type0");
+    BOOST_TEST(
+        get<ast::PrimitiveType>(afs.args.explicitly_typed_lists[0].type).name ==
+        "type0");
     BOOST_TEST(afs.args.implicitly_typed_list.value()[0].name == "var2");
 
     auto reqs = parse<vector<string>>("(:requirements :strips :typing)",
@@ -182,17 +110,17 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 site material - object
                 bricks cables windows - material
             )
-            ;(:constants mainsite - site)
+            (:constants mainsite - site)
 
-            ;(:predicates
-            ;    (walls-built ?s - site)
-            ;    (windows-fitted ?s - site)
-            ;    (foundations-set ?s - site)
-            ;    (cables-installed ?s - site)
-            ;    (site-built ?s - site)
-            ;    (on-site ?m - material ?s - site)
-            ;    (material-used ?m - material)
-            ;)
+            (:predicates
+                (walls-built ?s - site)
+                (windows-fitted ?s - site)
+                (foundations-set ?s - site)
+                (cables-installed ?s - site)
+                (site-built ?s - site)
+                (on-site ?m - material ?s - site)
+                (material-used ?m - material)
+            )
 
             ;(:action BUILD-WALL
             ;    :parameters (?s - site ?b - bricks)
@@ -212,10 +140,26 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
 
     auto dom = parse<ast::Domain>(storage, domain());
+
+    // Test parsing of domain name
     BOOST_TEST(dom.name == "construction");
+
+    // Test requirements
     BOOST_TEST(dom.requirements[0] == "strips");
     BOOST_TEST(dom.requirements[1] == "typing");
-    // TODO add tests for constants and predicates
+
+    // Test constants
+    BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
+               "mainsite");
+    BOOST_TEST(
+        get<ast::PrimitiveType>(dom.constants.explicitly_typed_lists[0].type)
+            .name == "site");
+
+    // Test parsing of predicates
+    BOOST_TEST(dom.predicates.size() == 7);
+    BOOST_TEST(dom.predicates[0].predicate.name == "walls-built");
+
+
 
     storage = R"(
         (define
