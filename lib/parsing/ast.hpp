@@ -86,8 +86,8 @@ namespace ast {
         Name name;
         std::vector<std::string> requirements;
         TypedList<Name> types;
-        // std::vector<Entity> constants;
-        // std::vector<AtomicFormulaSkeleton> predicates;
+        TypedList<Name> constants;
+        std::vector<AtomicFormulaSkeleton> predicates;
         // std::vector<Action> actions;
     };
 

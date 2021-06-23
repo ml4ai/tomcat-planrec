@@ -27,7 +27,8 @@ BOOST_FUSION_ADAPT_STRUCT(ast::TypedList<ast::Variable>,
 
 BOOST_FUSION_ADAPT_STRUCT(ast::Predicate, name)
 BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormulaSkeleton, predicate, args)
-BOOST_FUSION_ADAPT_STRUCT(ast::Domain, name, requirements, types)
+BOOST_FUSION_ADAPT_STRUCT(ast::Domain, name, requirements, types, constants, predicates)
+
 // BOOST_FUSION_ADAPT_STRUCT(ast::Action, name, parameters)
 // BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormula<ast::Variable>, predicate, args)
 // BOOST_FUSION_ADAPT_STRUCT(ast::GoalDescription, entries)

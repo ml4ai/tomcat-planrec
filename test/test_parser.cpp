@@ -215,6 +215,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(dom.name == "construction");
     BOOST_TEST(dom.requirements[0] == "strips");
     BOOST_TEST(dom.requirements[1] == "typing");
+    // TODO add tests for constants and predicates
 
     storage = R"(
         (define

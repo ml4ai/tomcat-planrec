@@ -81,8 +81,17 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(atomic_formula_skeleton);
 
     auto const types_def = '(' >> lit(":types") >> typed_list_names >> ')';
+
+    rule<class TConstants, TypedList<Name>> const constants = "constants";
+    auto const constants_def = '(' >> lit(":constants") >> typed_list_names >> ')';
+    BOOST_SPIRIT_DEFINE(constants);
+
+    rule<class TPredicates, std::vector<ast::AtomicFormulaSkeleton>> const predicates = "predicates";
+    auto const predicates_def = '(' >> lit(":predicates") >> +atomic_formula_skeleton >> ')';
+    BOOST_SPIRIT_DEFINE(predicates);
+
     auto const domain_def = '(' >> lit("define") >> '(' >> lit("domain") >> name
-                            >> ')' >> requirements >> -types >> ')';
+                            >> ')' >> requirements >> -types >> -constants >> -predicates >> ')';
 
     BOOST_SPIRIT_DEFINE(constant,
                         variable,
