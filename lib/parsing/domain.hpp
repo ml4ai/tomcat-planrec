@@ -67,6 +67,9 @@ namespace parser {
     using domain_type = rule<class TDomain, ast::Domain>;
     BOOST_SPIRIT_DECLARE(domain_type);
 
+    using problem_type = rule<class TProblem, ast::Problem>;
+    BOOST_SPIRIT_DECLARE(problem_type);
+
     // tag used to get the position cache from the context
     struct position_cache_tag;
 
@@ -88,5 +91,7 @@ parser::typed_list_variables_type typed_list_variables();
 
 parser::atomic_formula_skeleton_type atomic_formula_skeleton();
 
-parser::domain_type domain();
 parser::requirements_type requirements();
+
+parser::domain_type domain();
+parser::problem_type problem();

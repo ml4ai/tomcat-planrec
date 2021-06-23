@@ -174,6 +174,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
 
     // Need to reset iter and end for every new string.
-    // auto prob = parse<ast::Problem>(storage, problem());
-    // BOOST_TEST(prob.name == "adobe");
+     auto prob = parse<ast::Problem>(storage, problem());
+     BOOST_TEST(prob.name == "adobe");
 }

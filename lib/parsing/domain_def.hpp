@@ -29,7 +29,6 @@ namespace parser {
     rule<class TType, Type> const type = "type";
     rule<class TTypes, TypedList<Name>> const types = "types";
     rule<class Predicate, Name> const predicate = "predicate";
-    rule<class TDomain, ast::Domain> const domain = "domain";
     rule<class TRequirements, std::vector<Name>> const requirements =
         "requirements";
     rule<class TRequirement, std::vector<Name>> const requirement =
@@ -90,8 +89,19 @@ namespace parser {
     auto const predicates_def = '(' >> lit(":predicates") >> +atomic_formula_skeleton >> ')';
     BOOST_SPIRIT_DEFINE(predicates);
 
+    rule<class TDomain, ast::Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '(' >> lit("domain") >> name
                             >> ')' >> requirements >> -types >> -constants >> -predicates >> ')';
+    BOOST_SPIRIT_DEFINE(domain);
+
+    rule<class TObjects, TypedList<Name>> const objects = "objects";
+    auto const objects_def = '(' >> lit(":objects") >> typed_list_names >> ')';
+    BOOST_SPIRIT_DEFINE(objects);
+
+    rule<class TProblem, ast::Problem> const problem = "problem";
+    auto const problem_def = '(' >> lit("define") >> '(' >> lit("problem") >> name >> ')'
+        >> '(' >> lit(":domain") >> name >> ')' >> -requirements >> -objects >> ')';
+    BOOST_SPIRIT_DEFINE(problem);
 
     BOOST_SPIRIT_DEFINE(constant,
                         variable,
@@ -100,7 +110,6 @@ namespace parser {
                         type,
                         types,
                         predicate,
-                        domain,
                         requirement,
                         requirements);
 
@@ -118,5 +127,6 @@ parser::typed_list_variables_type typed_list_variables() {
     return parser::typed_list_variables;
 }
 parser::atomic_formula_skeleton_type atomic_formula_skeleton() { return parser::atomic_formula_skeleton; }
-parser::domain_type domain() { return parser::domain; }
 parser::requirements_type requirements() { return parser::requirements; }
+parser::domain_type domain() { return parser::domain; }
+parser::problem_type problem() { return parser::problem; }
