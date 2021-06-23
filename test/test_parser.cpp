@@ -158,7 +158,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test parsing of predicates
     BOOST_TEST(dom.predicates.size() == 7);
     BOOST_TEST(dom.predicates[0].predicate.name == "walls-built");
-
+    BOOST_TEST(dom.predicates[0].args.explicitly_typed_lists[0].entries[0].name == "s");
+    BOOST_TEST(get<ast::PrimitiveType>(dom.predicates[0].args.explicitly_typed_lists[0].type).name == "site");
 
 
     storage = R"(
