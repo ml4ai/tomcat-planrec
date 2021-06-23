@@ -103,14 +103,12 @@ namespace parser {
 
     auto const connected_sentence_def = '(' >> lit("and") >> *goal_description >> ')';
     auto const goal_description_value_def = nil | atomic_formula_terms | goal_description;
-    //auto const goal_description_def = nil | atomic_formula_terms | connected_sentence;
     auto const goal_description_def = goal_description_value;
 
     BOOST_SPIRIT_DEFINE(connected_sentence);
     BOOST_SPIRIT_DEFINE(goal_description_value);
     BOOST_SPIRIT_DEFINE(goal_description);
 
-    // Goal description
 
     rule<class TTypes, TypedList<Name>> const types = "types";
     auto const types_def = '(' >> lit(":types") >> typed_list_names >> ')';
