@@ -28,13 +28,12 @@ BOOST_FUSION_ADAPT_STRUCT(ast::TypedList<ast::Variable>,
 BOOST_FUSION_ADAPT_STRUCT(ast::Predicate, name)
 BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormulaSkeleton, predicate, args)
 BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormula<ast::Term>, predicate, args)
+
+BOOST_FUSION_ADAPT_STRUCT(ast::Nil)
+BOOST_FUSION_ADAPT_STRUCT(ast::AndSentence, args)
+BOOST_FUSION_ADAPT_STRUCT(ast::GoalDescription, value)
+
 BOOST_FUSION_ADAPT_STRUCT(ast::Domain, name, requirements, types, constants, predicates)
 BOOST_FUSION_ADAPT_STRUCT(ast::Problem, name, domain_name, requirements, objects)
 
 // BOOST_FUSION_ADAPT_STRUCT(ast::Action, name, parameters)
-// BOOST_FUSION_ADAPT_STRUCT(ast::GoalDescription, entries)
-// BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormulaSkeleton, predicate, variables)
-// BOOST_FUSION_ADAPT_STRUCT(
-// ast::Domain, name, requirements, types, constants, predicates, actions)
-// BOOST_FUSION_ADAPT_STRUCT(ast::Problem, name, probDomain, requireDomain,
-// objects)

@@ -90,7 +90,27 @@ namespace parser {
     // Atomic formula of terms
     rule<class TAtomicFormulaTerms, ast::AtomicFormula<ast::Term>> const atomic_formula_terms = "atomic_formula_terms";
     auto const atomic_formula_terms_def = '(' >> predicate >> *term >> ')';
-    BOOST_SPIRIT_DEFINE(atomic_formula_terms)
+    BOOST_SPIRIT_DEFINE(atomic_formula_terms);
+
+    //Nil
+    rule<class TNil, ast::Nil> const nil = "nil";
+    auto const nil_def = '(' >> lit(")");
+    BOOST_SPIRIT_DEFINE(nil);
+
+    //rule<class TGoalDescriptionValue, ast::GoalDescriptionValue> goal_description_value = "goal_description_value";
+    rule<class TGoalDescription, ast::GoalDescription> goal_description = "goal_description";
+
+    //rule<class TAndSentence, ast::AndSentence> const and_sentence = "and_sentence";
+    //auto const and_sentence_def = '(' >> lit("and") >> *goal_description >> ')';
+
+    //auto const goal_description_value_def = nil | atomic_formula_terms;
+    auto const goal_description_def = nil | atomic_formula_terms;
+
+    //BOOST_SPIRIT_DEFINE(and_sentence);
+    //BOOST_SPIRIT_DEFINE(goal_description_value);
+    BOOST_SPIRIT_DEFINE(goal_description);
+
+    // Goal description
 
     rule<class TTypes, TypedList<Name>> const types = "types";
     auto const types_def = '(' >> lit(":types") >> typed_list_names >> ')';
@@ -153,6 +173,7 @@ parser::atomic_formula_terms_type atomic_formula_terms() {
     return parser::atomic_formula_terms;
 }
 
+parser::goal_description_type goal_description() { return parser::goal_description; }
 parser::requirements_type requirements() { return parser::requirements; }
 parser::domain_type domain() { return parser::domain; }
 parser::problem_type problem() { return parser::problem; }

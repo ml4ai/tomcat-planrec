@@ -58,27 +58,28 @@ namespace ast {
         TypedList<Variable> args;
     };
 
-    struct Nil {};
+    struct Nil {
+        bool operator==(const Nil& nil) const;
+    };
 
-    template<class T>
-    struct AtomicFormula {
+    template <class T> struct AtomicFormula {
         Predicate predicate;
         std::vector<T> args;
     };
 
     using Term = x3::variant<Name, Variable>;
 
-    // struct GoalDescription;
+    struct GoalDescription;
 
-    // struct GoalDescriptionValue
-    //: x3::variant<std::string, x3::forward_ast<GoalDescription>> {
-    // using base_type::base_type;
-    // using base_type::operator=;
-    //};
+    struct AndSentence {
+        std::vector<x3::forward_ast<GoalDescription>> args;
+    };
 
-    // struct GoalDescription {
-    // std::vector<GoalDescriptionValue> entries;
-    //};
+    using GoalDescriptionValue = x3::variant<Nil, AtomicFormula<Term>>;
+
+    struct GoalDescription {
+        GoalDescriptionValue value;
+    };
 
     struct Domain : x3::position_tagged {
         Name name;
@@ -91,7 +92,7 @@ namespace ast {
 
     struct Problem : x3::position_tagged {
         Name name;                             // to just get name of problem
-        Name domain_name;                           // for domain association
+        Name domain_name;                      // for domain association
         std::vector<std::string> requirements; // for any problem requirements
         TypedList<Name> objects;
     }; // end problem struct
@@ -100,7 +101,6 @@ namespace ast {
     // Name name;
     // std::vector<Variable> parameters;
     //};
-
 
     // template <class T> struct AtomicFormula {
     // Name predicate;
