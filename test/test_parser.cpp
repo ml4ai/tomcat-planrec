@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                   get<ast::EitherType>(et).primitive_types));
 
     // Test implicitly typed list
-    auto tl = parse<ast::TypedList<ast::Name>>("t0 t1 t2", typed_list_names());
+    auto tl = parse<ast::TypedList<ast::Name>>("t0 t1 t2", typed_list());
     BOOST_TEST(tl.explicitly_typed_lists.size() == 0);
     BOOST_TEST((tl.implicitly_typed_list.value()[0] == "t0"));
     BOOST_TEST((tl.implicitly_typed_list.value()[1] == "t1"));
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 site material - object
                 bricks cables windows - material
             )
-            (:constants mainsite - site)
+            ;(:constants mainsite - site)
 
             ;(:predicates
             ;    (walls-built ?s - site)
@@ -203,28 +203,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     auto dom = parse<ast::Domain>(storage, domain());
     BOOST_TEST(dom.name == "construction");
-
-    BOOST_TEST(dom.requirements[0] == "strips");
-    BOOST_TEST(dom.requirements[1] == "typing");
-
-    BOOST_TEST(dom.types.explicitly_typed_lists.size() == 2);
-
-    BOOST_TEST(dom.types.explicitly_typed_lists[0].entries[0] == "site");
-    BOOST_TEST(dom.types.explicitly_typed_lists[0].entries[1] == "material");
-    BOOST_TEST(get<ast::PrimitiveType>(dom.types.explicitly_typed_lists[0].type)
-                   .name == "object");
-
-    BOOST_TEST(dom.types.explicitly_typed_lists[1].entries[0] == "bricks");
-    BOOST_TEST(dom.types.explicitly_typed_lists[1].entries[1] == "cables");
-    BOOST_TEST(dom.types.explicitly_typed_lists[1].entries[2] == "windows");
-    BOOST_TEST(get<ast::PrimitiveType>(dom.types.explicitly_typed_lists[1].type)
-                   .name == "material");
-
-    BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
-               "mainsite");
-    BOOST_TEST(
-        get<ast::PrimitiveType>(dom.constants.explicitly_typed_lists[0].type)
-            .name == "site");
+    BOOST_TEST(dom.requirements[0] == ":strips");
+    BOOST_TEST(dom.requirements[1] == ":typing");
 
     storage = R"(
         (define
@@ -237,6 +217,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         )
     )";
 
+    // Need to reset iter and end for every new string.
     // auto prob = parse<ast::Problem>(storage, problem());
     // BOOST_TEST(prob.name == "adobe");
 }
