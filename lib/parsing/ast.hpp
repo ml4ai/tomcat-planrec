@@ -71,11 +71,15 @@ namespace ast {
 
     struct GoalDescription;
 
-    struct AndSentence {
-        std::vector<x3::forward_ast<GoalDescription>> args;
+
+    struct GoalDescriptionValue : x3::variant<Nil, AtomicFormula<Term>, x3::forward_ast<GoalDescription>>{
+        using base_type::base_type;
+        using base_type::operator=;
     };
 
-    using GoalDescriptionValue = x3::variant<Nil, AtomicFormula<Term>>;
+    struct AndSentence {
+        std::vector<GoalDescription> args;
+    };
 
     struct GoalDescription {
         GoalDescriptionValue value;

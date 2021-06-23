@@ -97,17 +97,17 @@ namespace parser {
     auto const nil_def = '(' >> lit(")");
     BOOST_SPIRIT_DEFINE(nil);
 
-    //rule<class TGoalDescriptionValue, ast::GoalDescriptionValue> goal_description_value = "goal_description_value";
+    rule<class TGoalDescriptionValue, ast::GoalDescriptionValue> goal_description_value = "goal_description_value";
     rule<class TGoalDescription, ast::GoalDescription> goal_description = "goal_description";
+    rule<class TAndSentence, ast::AndSentence> const and_sentence = "and_sentence";
 
-    //rule<class TAndSentence, ast::AndSentence> const and_sentence = "and_sentence";
-    //auto const and_sentence_def = '(' >> lit("and") >> *goal_description >> ')';
+    auto const and_sentence_def = '(' >> lit("and") >> *goal_description >> ')';
+    auto const goal_description_value_def = nil | atomic_formula_terms | goal_description;
+    //auto const goal_description_def = nil | atomic_formula_terms | and_sentence;
+    auto const goal_description_def = goal_description_value;
 
-    //auto const goal_description_value_def = nil | atomic_formula_terms;
-    auto const goal_description_def = nil | atomic_formula_terms;
-
-    //BOOST_SPIRIT_DEFINE(and_sentence);
-    //BOOST_SPIRIT_DEFINE(goal_description_value);
+    BOOST_SPIRIT_DEFINE(and_sentence);
+    BOOST_SPIRIT_DEFINE(goal_description_value);
     BOOST_SPIRIT_DEFINE(goal_description);
 
     // Goal description

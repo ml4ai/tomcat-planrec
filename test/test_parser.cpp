@@ -19,9 +19,9 @@
 using boost::unit_test::framework::master_test_suite;
 namespace x3 = boost::spirit::x3;
 using namespace std;
+using boost::get;
 
 BOOST_AUTO_TEST_CASE(test_parser) {
-    using boost::get;
 
     string storage;
 
@@ -173,10 +173,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test parsing of goal descriptions
     auto gd = parse<ast::GoalDescription>("(predicate name ?variable)", goal_description());
-    BOOST_TEST(get<ast::AtomicFormula<ast::Term>>(gd.value).predicate.name == "predicate");
+    BOOST_TEST(boost::get<ast::AtomicFormula<ast::Term>>(gd.value).predicate.name == "predicate");
 
     gd = parse<ast::GoalDescription>("()", goal_description());
-    BOOST_TEST(get<ast::Nil>(gd.value) == ast::Nil());
+    BOOST_TEST(boost::get<ast::Nil>(gd.value) == ast::Nil());
 
     storage = R"(
         (define
