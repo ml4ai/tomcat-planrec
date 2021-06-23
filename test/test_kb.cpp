@@ -9,7 +9,7 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     auto v = Variable{"var"};
     auto v2 = Variable{"var"};
     // auto f = Function{"func"};
-    auto p = Predicate{"pred"};
+    auto p = Literal{"pred"};
     auto kb = KnowledgeBase();
     tell(kb, p);
 

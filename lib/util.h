@@ -4,6 +4,8 @@
 #include <vector>
 #include <random>
 #include <iterator>
+#include <variant>
+#include <iostream>
 
 
 // Utility method to see if an element is in an associative container
@@ -38,4 +40,39 @@ Iter select_randomly(Iter start, Iter end) {
     static std::random_device rd;
     static std::mt19937 gen(rd());
     return select_randomly(start, end, gen);
+}
+
+// Helpers for std::visit
+template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+
+// Support for printing variants
+template <typename T, typename... Ts>
+std::ostream& operator<<(std::ostream& os, const std::variant<T, Ts...>& v) {
+    std::visit([&os](auto&& arg) { os << arg; }, v);
+    return os;
+}
+
+// Define support for printing vectors
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
+    os << "( ";
+    for (auto x : v) {
+        os << x << ' ';
+    }
+    os << ')';
+    return os;
+}
+
+// Generic equals function for symbols
+template <class T>
+bool equals(T x, T y) {
+    return x.name == y.name;
+}
+
+// Generic equals function for symbols that are not of the same type
+template <class T, class U>
+bool equals(T x, U y) {
+    return x.name == y.name;
 }
