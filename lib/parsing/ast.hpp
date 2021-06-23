@@ -7,6 +7,7 @@
 #include <boost/variant/recursive_variant.hpp>
 #include <iostream>
 #include <string>
+#include <tuple>
 #include <unordered_set>
 
 namespace ast {
@@ -58,29 +59,38 @@ namespace ast {
         TypedList<Variable> args;
     };
 
-    // struct Action : x3::position_tagged {
-    // Name name;
-    // std::vector<Variable> parameters;
-    //};
+    struct Nil {
+        bool operator==(const Nil& nil) const;
+    };
 
-    // using Term = std::variant<Name, Variable>;
+    template <class T> struct AtomicFormula {
+        Predicate predicate;
+        std::vector<T> args;
+    };
 
-    // template <class T> struct AtomicFormula {
-    // Name predicate;
-    // std::vector<T> args;
-    //};
+    using Term = x3::variant<Name, Variable>;
 
-    // struct GoalDescription;
+    struct GoalDescription;
 
-    // struct GoalDescriptionValue
-    //: x3::variant<std::string, x3::forward_ast<GoalDescription>> {
-    // using base_type::base_type;
-    // using base_type::operator=;
-    //};
+    struct ConnectedSentence {
+        //std::string connector;
+        std::vector<x3::forward_ast<GoalDescription>> args;
+    };
 
-    // struct GoalDescription {
-    // std::vector<GoalDescriptionValue> entries;
-    //};
+    struct GoalDescriptionValue
+        : x3::variant<Nil,
+                      AtomicFormula<Term>,
+                      //ConnectedSentence,
+                      x3::forward_ast<GoalDescription>> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
+
+
+    struct GoalDescription {
+        GoalDescriptionValue value;
+    };
+
 
     struct Domain : x3::position_tagged {
         Name name;
@@ -93,10 +103,20 @@ namespace ast {
 
     struct Problem : x3::position_tagged {
         Name name;                             // to just get name of problem
-        Name domain_name;                           // for domain association
+        Name domain_name;                      // for domain association
         std::vector<std::string> requirements; // for any problem requirements
         TypedList<Name> objects;
     }; // end problem struct
+
+    // struct Action : x3::position_tagged {
+    // Name name;
+    // std::vector<Variable> parameters;
+    //};
+
+    // template <class T> struct AtomicFormula {
+    // Name predicate;
+    // std::vector<T> args;
+    //};
 
     using boost::fusion::operator<<;
 } // namespace ast
