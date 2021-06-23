@@ -27,11 +27,6 @@ namespace parser {
         "primitive_type";
     rule<class TEitherType, EitherType> const either_type = "either_type";
     rule<class TType, Type> const type = "type";
-    rule<class TExplicitlyTypedList, ExplicitlyTypedList<Name>> const
-        explicitly_typed_list = "explicitly_typed_list";
-    rule<class TImplicitlyTypedList, ImplicitlyTypedList<Name>> const
-        implicitly_typed_list = "implicitly_typed_list";
-    rule<class TTypedList, TypedList<Name>> const typed_list = "typed_list";
     rule<class TTypes, TypedList<Name>> const types = "types";
     rule<class Predicate, Name> const predicate = "predicate";
     rule<class TDomain, ast::Domain> const domain = "domain";
@@ -42,21 +37,50 @@ namespace parser {
 
     auto const requirement_def = ':' >> name;
     auto const predicate_def = name;
-    auto const requirements_def = '(' >> lit(":requirements") >> +requirement >> ')';
+    auto const requirements_def = '(' >> lit(":requirements") >> +requirement >>
+                                  ')';
     auto const constant_def = name;
     auto const variable_def = '?' >> name;
     auto const primitive_type_def = name;
     auto const either_type_def = '(' >> lit("either") >> +primitive_type >> ')';
     auto const type_def = primitive_type | either_type;
 
-    auto const explicitly_typed_list_def = +name >> '-' >> type;
+    // Typed list of names
+    rule<class TExplicitlyTypedListNames, ExplicitlyTypedList<Name>> const
+        explicitly_typed_list_names = "explicitly_typed_list_names";
+    rule<class TImplicitlyTypedListNames, ImplicitlyTypedList<Name>> const
+        implicitly_typed_list_names = "implicitly_typed_list_names";
+    rule<class TTypedListNames, TypedList<Name>> const typed_list_names =
+        "typed_list_names";
+    auto const explicitly_typed_list_names_def = +name >> '-' >> type;
+    auto const implicitly_typed_list_names_def = *name;
+    auto const typed_list_names_def =
+        *explicitly_typed_list_names >> -implicitly_typed_list_names;
+    BOOST_SPIRIT_DEFINE(explicitly_typed_list_names,
+                        implicitly_typed_list_names,
+                        typed_list_names);
 
-    auto const implicitly_typed_list_def = *name;
+    // Typed list of variables
+    rule<class TExplicitlyTypedListVariables, ExplicitlyTypedList<Variable>> const
+        explicitly_typed_list_variables = "explicitly_typed_list_variables";
+    rule<class TImplicitlyTypedListVariables, ImplicitlyTypedList<Variable>> const
+        implicitly_typed_list_variables = "implicitly_typed_list_variables";
+    rule<class TTypedListVariables, TypedList<Variable>> const typed_list_variables =
+        "typed_list_variables";
+    auto const explicitly_typed_list_variables_def = +variable >> '-' >> type;
+    auto const implicitly_typed_list_variables_def = *variable;
+    auto const typed_list_variables_def =
+        *explicitly_typed_list_variables >> -implicitly_typed_list_variables;
+    BOOST_SPIRIT_DEFINE(explicitly_typed_list_variables,
+                        implicitly_typed_list_variables,
+                        typed_list_variables);
 
-    auto const typed_list_def =
-        *explicitly_typed_list >> -implicitly_typed_list;
+    // Atomic formula skeleton
+    rule<class TAtomicFormulaSkeleton, ast::AtomicFormulaSkeleton> const atomic_formula_skeleton = "atomic_formula_skeleton";
+    auto const atomic_formula_skeleton_def = '(' >> name >> typed_list_variables >> ')';
+    BOOST_SPIRIT_DEFINE(atomic_formula_skeleton);
 
-    auto const types_def = '(' >> lit(":types") >> typed_list >> ')';
+    auto const types_def = '(' >> lit(":types") >> typed_list_names >> ')';
     auto const domain_def = '(' >> lit("define") >> '(' >> lit("domain") >> name
                             >> ')' >> requirements >> -types >> ')';
 
@@ -67,9 +91,6 @@ namespace parser {
                         type,
                         types,
                         predicate,
-                        explicitly_typed_list,
-                        implicitly_typed_list,
-                        typed_list,
                         domain,
                         requirement,
                         requirements);
@@ -81,6 +102,12 @@ parser::variable_type variable() { return parser::variable; }
 parser::primitive_type_type primitive_type() { return parser::primitive_type; }
 parser::either_type_type either_type() { return parser::either_type; }
 parser::type_type type() { return parser::type; }
-parser::typed_list_type typed_list() { return parser::typed_list; }
+parser::typed_list_names_type typed_list_names() {
+    return parser::typed_list_names;
+}
+parser::typed_list_variables_type typed_list_variables() {
+    return parser::typed_list_variables;
+}
+parser::atomic_formula_skeleton_type atomic_formula_skeleton() { return parser::atomic_formula_skeleton; }
 parser::domain_type domain() { return parser::domain; }
 parser::requirements_type requirements() { return parser::requirements; }

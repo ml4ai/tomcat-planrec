@@ -27,19 +27,42 @@ namespace parser {
     using type_type = rule<class TType, ast::Type>;
     BOOST_SPIRIT_DECLARE(type_type);
 
-    using explicitly_typed_list_type =
-        rule<class TExplicitlyTypedList, ast::ExplicitlyTypedList<ast::Name>>;
-    BOOST_SPIRIT_DECLARE(explicitly_typed_list_type);
+    // Typed list of names
+    using explicitly_typed_list_names_type =
+        rule<class TExplicitlyTypedListNames,
+             ast::ExplicitlyTypedList<ast::Name>>;
+    BOOST_SPIRIT_DECLARE(explicitly_typed_list_names_type);
 
-    using implicitly_typed_list_type =
-        rule<class TImplicitlyTypedList, ast::ImplicitlyTypedList<ast::Name>>;
-    BOOST_SPIRIT_DECLARE(implicitly_typed_list_type);
+    using implicitly_typed_list_names_type =
+        rule<class TImplicitlyTypedListNames,
+             ast::ImplicitlyTypedList<ast::Name>>;
+    BOOST_SPIRIT_DECLARE(implicitly_typed_list_names_type);
 
-    using typed_list_type = rule<class TTypedList, ast::TypedList<ast::Name>>;
-    BOOST_SPIRIT_DECLARE(typed_list_type);
+    using typed_list_names_type =
+        rule<class TTypedListNames, ast::TypedList<ast::Name>>;
+    BOOST_SPIRIT_DECLARE(typed_list_names_type);
 
-    using requirements_type = rule<class TRequirements, std::vector<std::string>>;
+    // Typed list of variables
+    using explicitly_typed_list_variables_type =
+        rule<class TExplicitlyTypedListVariables,
+             ast::ExplicitlyTypedList<ast::Variable>>;
+    BOOST_SPIRIT_DECLARE(explicitly_typed_list_variables_type);
+
+    using implicitly_typed_list_variables_type =
+        rule<class TImplicitlyTypedListVariables,
+             ast::ImplicitlyTypedList<ast::Variable>>;
+    BOOST_SPIRIT_DECLARE(implicitly_typed_list_variables_type);
+
+    using typed_list_variables_type =
+        rule<class TTypedListVariables, ast::TypedList<ast::Variable>>;
+    BOOST_SPIRIT_DECLARE(typed_list_variables_type);
+
+    using requirements_type =
+        rule<class TRequirements, std::vector<std::string>>;
     BOOST_SPIRIT_DECLARE(requirements_type);
+
+    using atomic_formula_skeleton_type = rule<class TAtomicFormulaSkeleton, ast::AtomicFormulaSkeleton>;
+    BOOST_SPIRIT_DECLARE(atomic_formula_skeleton_type);
 
     using domain_type = rule<class TDomain, ast::Domain>;
     BOOST_SPIRIT_DECLARE(domain_type);
@@ -54,8 +77,16 @@ parser::variable_type variable();
 parser::primitive_type_type primitive_type();
 parser::either_type_type either_type();
 parser::type_type type();
-parser::explicitly_typed_list_type explicitly_typed_list();
-parser::implicitly_typed_list_type implicitly_typed_list();
-parser::typed_list_type typed_list();
+
+parser::explicitly_typed_list_names_type explicitly_typed_list_names();
+parser::implicitly_typed_list_names_type implicitly_typed_list_names();
+parser::typed_list_names_type typed_list_names();
+
+parser::explicitly_typed_list_variables_type explicitly_typed_list_variables();
+parser::implicitly_typed_list_variables_type implicitly_typed_list_variables();
+parser::typed_list_variables_type typed_list_variables();
+
+parser::atomic_formula_skeleton_type atomic_formula_skeleton();
+
 parser::domain_type domain();
 parser::requirements_type requirements();

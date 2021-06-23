@@ -125,15 +125,16 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(in(ast::PrimitiveType{"type1"},
                   get<ast::EitherType>(et).primitive_types));
 
-    // Test implicitly typed list
-    auto tl = parse<ast::TypedList<ast::Name>>("t0 t1 t2", typed_list());
+    // Test implicitly typed list of names
+    auto tl = parse<ast::TypedList<ast::Name>>("t0 t1 t2", typed_list_names());
     BOOST_TEST(tl.explicitly_typed_lists.size() == 0);
     BOOST_TEST((tl.implicitly_typed_list.value()[0] == "t0"));
     BOOST_TEST((tl.implicitly_typed_list.value()[1] == "t1"));
     BOOST_TEST((tl.implicitly_typed_list.value()[2] == "t2"));
 
-    // Test explicitly typed list
-    tl = parse<ast::TypedList<ast::Name>>("t0 t1 t2 - type", typed_list());
+    // Test explicitly typed list of variables
+    tl =
+        parse<ast::TypedList<ast::Name>>("t0 t1 t2 - type", typed_list_names());
     BOOST_TEST(tl.explicitly_typed_lists.size() == 1);
     BOOST_TEST(tl.implicitly_typed_list.value().size() == 0);
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[0] == "t0");
@@ -145,7 +146,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test explicitly typed list with either type
     tl = parse<ast::TypedList<ast::Name>>("t0 t1 t2 - (either type0 type1)",
-                                          typed_list());
+                                          typed_list_names());
     BOOST_TEST(tl.explicitly_typed_lists.size() == 1);
     BOOST_TEST(tl.implicitly_typed_list.value().size() == 0);
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[0] == "t0");
@@ -157,6 +158,15 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(in(ast::PrimitiveType{"type1"},
                   get<ast::EitherType>(tl.explicitly_typed_lists[0].type)
                       .primitive_types));
+
+    // Test atomic formula skeleton
+    auto afs = parse<ast::AtomicFormulaSkeleton>(
+        "(predicate ?var0 ?var1 - type0 ?var2)", atomic_formula_skeleton());
+    BOOST_TEST(afs.predicate.name == "predicate");
+    BOOST_TEST(afs.args.explicitly_typed_lists[0].entries[0].name == "var0");
+    BOOST_TEST(afs.args.explicitly_typed_lists[0].entries[1].name == "var1");
+    BOOST_TEST(get<ast::PrimitiveType>(afs.args.explicitly_typed_lists[0].type).name == "type0");
+    BOOST_TEST(afs.args.implicitly_typed_list.value()[0].name == "var2");
 
     auto reqs = parse<vector<string>>("(:requirements :strips :typing)",
                                       requirements());
@@ -203,8 +213,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     auto dom = parse<ast::Domain>(storage, domain());
     BOOST_TEST(dom.name == "construction");
-    BOOST_TEST(dom.requirements[0] == ":strips");
-    BOOST_TEST(dom.requirements[1] == ":typing");
+    BOOST_TEST(dom.requirements[0] == "strips");
+    BOOST_TEST(dom.requirements[1] == "typing");
 
     storage = R"(
         (define
