@@ -58,17 +58,15 @@ namespace ast {
         TypedList<Variable> args;
     };
 
-    // struct Action : x3::position_tagged {
-    // Name name;
-    // std::vector<Variable> parameters;
-    //};
+    struct Nil {};
 
-    // using Term = std::variant<Name, Variable>;
+    template<class T>
+    struct AtomicFormula {
+        Predicate predicate;
+        std::vector<T> args;
+    };
 
-    // template <class T> struct AtomicFormula {
-    // Name predicate;
-    // std::vector<T> args;
-    //};
+    using Term = x3::variant<Name, Variable>;
 
     // struct GoalDescription;
 
@@ -97,6 +95,17 @@ namespace ast {
         std::vector<std::string> requirements; // for any problem requirements
         TypedList<Name> objects;
     }; // end problem struct
+
+    // struct Action : x3::position_tagged {
+    // Name name;
+    // std::vector<Variable> parameters;
+    //};
+
+
+    // template <class T> struct AtomicFormula {
+    // Name predicate;
+    // std::vector<T> args;
+    //};
 
     using boost::fusion::operator<<;
 } // namespace ast

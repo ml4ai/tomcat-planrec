@@ -60,24 +60,24 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test explicitly typed list of variables
     tl =
-        parse<ast::TypedList<ast::Name>>("t0 t1 t2 - type", typed_list_names());
+        parse<ast::TypedList<ast::Name>>("name0 name1 name2 - type", typed_list_names());
     BOOST_TEST(tl.explicitly_typed_lists.size() == 1);
     BOOST_TEST(tl.implicitly_typed_list.value().size() == 0);
-    BOOST_TEST(tl.explicitly_typed_lists[0].entries[0] == "t0");
-    BOOST_TEST(tl.explicitly_typed_lists[0].entries[1] == "t1");
-    BOOST_TEST(tl.explicitly_typed_lists[0].entries[2] == "t2");
+    BOOST_TEST(tl.explicitly_typed_lists[0].entries[0] == "name0");
+    BOOST_TEST(tl.explicitly_typed_lists[0].entries[1] == "name1");
+    BOOST_TEST(tl.explicitly_typed_lists[0].entries[2] == "name2");
     BOOST_TEST(
         get<ast::PrimitiveType>(tl.explicitly_typed_lists[0].type).name ==
         "type");
 
     // Test explicitly typed list with either type
-    tl = parse<ast::TypedList<ast::Name>>("t0 t1 t2 - (either type0 type1)",
+    tl = parse<ast::TypedList<ast::Name>>("name0 name1 name2 - (either type0 type1)",
                                           typed_list_names());
     BOOST_TEST(tl.explicitly_typed_lists.size() == 1);
     BOOST_TEST(tl.implicitly_typed_list.value().size() == 0);
-    BOOST_TEST(tl.explicitly_typed_lists[0].entries[0] == "t0");
-    BOOST_TEST(tl.explicitly_typed_lists[0].entries[1] == "t1");
-    BOOST_TEST(tl.explicitly_typed_lists[0].entries[2] == "t2");
+    BOOST_TEST(tl.explicitly_typed_lists[0].entries[0] == "name0");
+    BOOST_TEST(tl.explicitly_typed_lists[0].entries[1] == "name1");
+    BOOST_TEST(tl.explicitly_typed_lists[0].entries[2] == "name2");
     BOOST_TEST(in(ast::PrimitiveType{"type0"},
                   get<ast::EitherType>(tl.explicitly_typed_lists[0].type)
                       .primitive_types));
@@ -96,10 +96,17 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         "type0");
     BOOST_TEST(afs.args.implicitly_typed_list.value()[0].name == "var2");
 
+    // Test requirements
     auto reqs = parse<vector<string>>("(:requirements :strips :typing)",
                                       requirements());
     BOOST_TEST(reqs[0] == "strips");
     BOOST_TEST(reqs[1] == "typing");
+
+    // Test parsing atomic formula of terms
+    auto aft = parse<ast::AtomicFormula<ast::Term>>("(predicate name ?variable)", atomic_formula_terms());
+    BOOST_TEST(aft.predicate.name == "predicate");
+    BOOST_TEST(get<ast::Name>(aft.args[0]) == "name");
+    BOOST_TEST(get<ast::Variable>(aft.args[1]).name == "variable");
 
     storage = R"(
     ; Example domain for testing
