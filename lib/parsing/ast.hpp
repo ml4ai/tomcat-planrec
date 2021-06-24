@@ -3,8 +3,8 @@
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
-#include <boost/spirit/home/x3/support/ast/variant.hpp>
-#include <boost/variant/recursive_variant.hpp>
+//#include <boost/spirit/home/x3/support/ast/variant.hpp>
+#include <boost/variant/recursive_wrapper.hpp>
 #include <iostream>
 #include <string>
 #include <tuple>
@@ -36,7 +36,7 @@ namespace ast {
         std::unordered_set<PrimitiveType, PrimitiveType::hash> primitive_types;
     };
 
-    using Type = x3::variant<PrimitiveType, EitherType>;
+    using Type = boost::variant<PrimitiveType, EitherType>;
 
     template <class T> using ImplicitlyTypedList = std::vector<T>;
 
@@ -56,7 +56,7 @@ namespace ast {
 
     struct AtomicFormulaSkeleton : x3::position_tagged {
         Predicate predicate;
-        TypedList<Variable> args;
+        TypedList<Variable> variables;
     };
 
     struct Nil {
@@ -68,29 +68,39 @@ namespace ast {
         std::vector<T> args;
     };
 
-    using Term = x3::variant<Name, Variable>;
+    using Term = boost::variant<Constant, Variable>;
 
-    struct GoalDescription;
+    // Forward declare classes in order to work with Boost's recursive_wrapper
+    struct AndSentence;
+    struct OrSentence;
+    struct NotSentence;
+    struct ImplySentence;
 
-    struct ConnectedSentence {
-        //std::string connector;
-        std::vector<x3::forward_ast<GoalDescription>> args;
+    using Sentence = boost::variant<Nil,
+                                    AtomicFormula<Term>,
+                                    boost::recursive_wrapper<AndSentence>,
+                                    boost::recursive_wrapper<OrSentence>,
+                                    boost::recursive_wrapper<NotSentence>,
+                                    boost::recursive_wrapper<ImplySentence>>;
+
+    // TODO add quantified sentences
+
+    struct AndSentence {
+        std::vector<Sentence> sentences;
     };
 
-    struct GoalDescriptionValue
-        : x3::variant<Nil,
-                      AtomicFormula<Term>,
-                      //ConnectedSentence,
-                      x3::forward_ast<GoalDescription>> {
-        using base_type::base_type;
-        using base_type::operator=;
+    struct OrSentence {
+        std::vector<Sentence> sentences;
     };
 
-
-    struct GoalDescription {
-        GoalDescriptionValue value;
+    struct NotSentence {
+        Sentence sentence;
     };
 
+    struct ImplySentence {
+        Sentence sentence1;
+        Sentence sentence2;
+    };
 
     struct Domain : x3::position_tagged {
         Name name;
@@ -111,11 +121,6 @@ namespace ast {
     // struct Action : x3::position_tagged {
     // Name name;
     // std::vector<Variable> parameters;
-    //};
-
-    // template <class T> struct AtomicFormula {
-    // Name predicate;
-    // std::vector<T> args;
     //};
 
     using boost::fusion::operator<<;

@@ -84,31 +84,45 @@ namespace parser {
 
     // Term
     rule<class Term, ast::Term> const term = "term";
-    auto const term_def = name | variable;
+    auto const term_def = constant | variable;
     BOOST_SPIRIT_DEFINE(term);
 
     // Atomic formula of terms
-    rule<class TAtomicFormulaTerms, ast::AtomicFormula<ast::Term>> const atomic_formula_terms = "atomic_formula_terms";
+    rule<class TAtomicFormulaTerms, ast::AtomicFormula<ast::Term>> const
+        atomic_formula_terms = "atomic_formula_terms";
     auto const atomic_formula_terms_def = '(' >> predicate >> *term >> ')';
     BOOST_SPIRIT_DEFINE(atomic_formula_terms);
 
-    //Nil
+    // Nil
     rule<class TNil, ast::Nil> const nil = "nil";
     auto const nil_def = '(' >> lit(")");
     BOOST_SPIRIT_DEFINE(nil);
 
-    rule<class TGoalDescriptionValue, ast::GoalDescriptionValue> goal_description_value = "goal_description_value";
-    rule<class TGoalDescription, ast::GoalDescription> goal_description = "goal_description";
-    rule<class TConnectedSentence, ast::ConnectedSentence> const connected_sentence = "connected_sentence";
+    rule<class TSentence, ast::Sentence> sentence = "sentence";
 
-    auto const connected_sentence_def = '(' >> lit("and") >> *goal_description >> ')';
-    auto const goal_description_value_def = nil | atomic_formula_terms | goal_description;
-    auto const goal_description_def = goal_description_value;
+    rule<class TAndSentence, ast::AndSentence> const and_sentence =
+        "and_sentence";
+    auto const and_sentence_def = '(' >> lit("and") >> *sentence >> ')';
+    BOOST_SPIRIT_DEFINE(and_sentence);
 
-    BOOST_SPIRIT_DEFINE(connected_sentence);
-    BOOST_SPIRIT_DEFINE(goal_description_value);
-    BOOST_SPIRIT_DEFINE(goal_description);
+    rule<class TOrSentence, ast::OrSentence> const or_sentence = "or_sentence";
+    auto const or_sentence_def = '(' >> lit("or") >> *sentence >> ')';
+    BOOST_SPIRIT_DEFINE(or_sentence);
 
+    rule<class TNotSentence, ast::NotSentence> const not_sentence =
+        "not_sentence";
+    auto const not_sentence_def = '(' >> lit("not") >> sentence >> ')';
+    BOOST_SPIRIT_DEFINE(not_sentence);
+
+    rule<class TImplySentence, ast::ImplySentence> const imply_sentence =
+        "imply_sentence";
+    auto const imply_sentence_def = '(' >> lit("imply") >> sentence >> sentence
+                                    >> ')';
+    BOOST_SPIRIT_DEFINE(imply_sentence);
+
+    auto const sentence_def = nil | atomic_formula_terms | and_sentence |
+                              or_sentence | not_sentence | imply_sentence;
+    BOOST_SPIRIT_DEFINE(sentence);
 
     rule<class TTypes, TypedList<Name>> const types = "types";
     auto const types_def = '(' >> lit(":types") >> typed_list_names >> ')';
@@ -158,6 +172,7 @@ parser::variable_type variable() { return parser::variable; }
 parser::primitive_type_type primitive_type() { return parser::primitive_type; }
 parser::either_type_type either_type() { return parser::either_type; }
 parser::type_type type() { return parser::type; }
+
 parser::typed_list_names_type typed_list_names() {
     return parser::typed_list_names;
 }
@@ -171,8 +186,7 @@ parser::atomic_formula_terms_type atomic_formula_terms() {
     return parser::atomic_formula_terms;
 }
 
-parser::goal_description_type goal_description() { return parser::goal_description; }
-//parser::connected_sentence_type connected_sentence() { return parser::connected_sentence; }
+parser::sentence_type sentence() { return parser::sentence; }
 parser::requirements_type requirements() { return parser::requirements; }
 parser::domain_type domain() { return parser::domain; }
 parser::problem_type problem() { return parser::problem; }

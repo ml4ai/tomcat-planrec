@@ -69,8 +69,8 @@ namespace parser {
         rule<class TAtomicFormulaTerms, ast::AtomicFormula<ast::Term>>;
     BOOST_SPIRIT_DECLARE(atomic_formula_terms_type);
 
-    using goal_description_type = rule<class TGoalDescription, ast::GoalDescription>;
-    BOOST_SPIRIT_DECLARE(goal_description_type);
+    using sentence_type = rule<class TSentence, ast::Sentence>;
+    BOOST_SPIRIT_DECLARE(sentence_type);
 
     using domain_type = rule<class TDomain, ast::Domain>;
     BOOST_SPIRIT_DECLARE(domain_type);
@@ -100,8 +100,8 @@ parser::typed_list_variables_type typed_list_variables();
 parser::atomic_formula_skeleton_type atomic_formula_skeleton();
 parser::atomic_formula_terms_type atomic_formula_terms();
 
-parser::goal_description_type goal_description();
-//parser::and_sentence_type and_sentence();
+parser::sentence_type sentence();
+//parser::connected_sentence_type connected_sentence();
 parser::requirements_type requirements();
 
 parser::domain_type domain();
