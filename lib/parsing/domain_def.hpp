@@ -172,7 +172,7 @@ parser::atomic_formula_terms_type atomic_formula_terms() {
 }
 
 parser::goal_description_type goal_description() { return parser::goal_description; }
-//parser::connected_sentence_type connected_sentence() { return parser::connected_sentence; }
+parser::connected_sentence_type connected_sentence() { return parser::connected_sentence; }
 parser::requirements_type requirements() { return parser::requirements; }
 parser::domain_type domain() { return parser::domain; }
 parser::problem_type problem() { return parser::problem; }

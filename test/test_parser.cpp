@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     gd = parse<ast::GoalDescription>("(predicate name ?variable)", goal_description());
     BOOST_TEST(boost::get<ast::AtomicFormula<ast::Term>>(gd.value).predicate.name == "predicate");
 
-    //auto as = parse<ast::AndSentence>("(and () (predicate name ?variable))", and_sentence());
+    auto as = parse<ast::GoalDescription>("(and () (predicate name ?variable))", goal_description());
     //BOOST_TEST(boost::get<ast::AtomicFormula<ast::Term>>(gd.children[1]).args.size() == 2);
 
     storage = R"(

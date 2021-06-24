@@ -71,16 +71,13 @@ namespace ast {
     using Term = x3::variant<Name, Variable>;
 
     struct GoalDescription;
+    struct ConnectedSentence;
 
-    struct ConnectedSentence {
-        //std::string connector;
-        std::vector<x3::forward_ast<GoalDescription>> args;
-    };
 
     struct GoalDescriptionValue
         : x3::variant<Nil,
                       AtomicFormula<Term>,
-                      //ConnectedSentence,
+                      x3::forward_ast<ConnectedSentence>,
                       x3::forward_ast<GoalDescription>> {
         using base_type::base_type;
         using base_type::operator=;
@@ -91,6 +88,10 @@ namespace ast {
         GoalDescriptionValue value;
     };
 
+    struct ConnectedSentence {
+        //std::string connector;
+        std::vector<GoalDescriptionValue> args;
+    };
 
     struct Domain : x3::position_tagged {
         Name name;
