@@ -17,7 +17,7 @@ namespace parser {
 
     BOOST_SPIRIT_INSTANTIATE(atomic_formula_terms_type, iterator_type, context_type);
     BOOST_SPIRIT_INSTANTIATE(goal_description_type, iterator_type, context_type);
-    BOOST_SPIRIT_INSTANTIATE(connected_sentence_type, iterator_type, context_type);
+    //BOOST_SPIRIT_INSTANTIATE(connected_sentence_type, iterator_type, context_type);
 
     BOOST_SPIRIT_INSTANTIATE(domain_type, iterator_type, context_type);
     BOOST_SPIRIT_INSTANTIATE(problem_type, iterator_type, context_type);

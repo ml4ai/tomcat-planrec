@@ -3,8 +3,8 @@
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
-#include <boost/spirit/home/x3/support/ast/variant.hpp>
-#include <boost/variant/recursive_variant.hpp>
+//#include <boost/spirit/home/x3/support/ast/variant.hpp>
+#include <boost/variant/recursive_wrapper.hpp>
 #include <iostream>
 #include <string>
 #include <tuple>
@@ -36,7 +36,11 @@ namespace ast {
         std::unordered_set<PrimitiveType, PrimitiveType::hash> primitive_types;
     };
 
-    using Type = x3::variant<PrimitiveType, EitherType>;
+    using Type = boost::variant<PrimitiveType, EitherType>;
+    //struct Type : x3::variant<PrimitiveType, EitherType> {
+        //using base_type::base_type;
+        //using base_type::operator=;
+    //};
 
     template <class T> using ImplicitlyTypedList = std::vector<T>;
 
@@ -68,29 +72,29 @@ namespace ast {
         std::vector<T> args;
     };
 
-    using Term = x3::variant<Name, Variable>;
+    using Term = boost::variant<Name, Variable>;
 
-    struct GoalDescription;
     struct ConnectedSentence;
 
+    //using GoalDescription = std::string;
+    typedef boost::variant<
+            Nil
+          , AtomicFormula<Term>
+          , boost::recursive_wrapper<ConnectedSentence>
+    > GoalDescription;
+    //struct GoalDescription
+        //: x3::variant<
+          //Nil,
+          //AtomicFormula<Term>,
+          //x3::forward_ast<ConnectedSentence>
+                      //> {
+        //using base_type::base_type;
+        //using base_type::operator=;
+    //};
 
-    struct GoalDescriptionValue
-        : x3::variant<Nil,
-                      AtomicFormula<Term>,
-                      x3::forward_ast<ConnectedSentence>,
-                      x3::forward_ast<GoalDescription>> {
-        using base_type::base_type;
-        using base_type::operator=;
-    };
-
-
-    struct GoalDescription {
-        GoalDescriptionValue value;
-    };
 
     struct ConnectedSentence {
-        //std::string connector;
-        std::vector<GoalDescriptionValue> args;
+        std::vector<GoalDescription> args;
     };
 
     struct Domain : x3::position_tagged {
