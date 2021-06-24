@@ -178,10 +178,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(boost::get<ast::Nil>(gd.value) == ast::Nil());
 
     // Parse atomic formula of terms
-    gd = parse<ast::GoalDescription>("(predicate name ?variable)", goal_description());
-    BOOST_TEST(boost::get<ast::AtomicFormula<ast::Term>>(gd.value).predicate.name == "predicate");
+    auto gd2 = parse<ast::GoalDescription>("(predicate name ?variable)", goal_description());
+    BOOST_TEST(boost::get<ast::AtomicFormula<ast::Term>>(gd2.value).predicate.name == "predicate");
 
-    auto as = parse<ast::GoalDescription>("(and () (predicate name ?variable))", goal_description());
+    //auto as = parse<ast::GoalDescription>("(and () (predicate name ?variable))", goal_description());
     //BOOST_TEST(boost::get<ast::AtomicFormula<ast::Term>>(gd.children[1]).args.size() == 2);
 
     storage = R"(
