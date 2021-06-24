@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test type parsing
     auto t = parse<ast::Type>("type", type());
     BOOST_TEST(boost::get<ast::PrimitiveType>(t).name == "type");
-    //BOOST_TEST(boost::get<ast::PrimitiveType>(t).name == "type");
+    // BOOST_TEST(boost::get<ast::PrimitiveType>(t).name == "type");
 
     t = parse<ast::Type>("(either type0 type1)", type());
     BOOST_TEST(in(ast::PrimitiveType{"type0"},
@@ -64,9 +64,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[0] == "name0");
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[1] == "name1");
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[2] == "name2");
-    BOOST_TEST(
-        boost::get<ast::PrimitiveType>(tl.explicitly_typed_lists[0].type).name ==
-        "type");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(tl.explicitly_typed_lists[0].type)
+                   .name == "type");
 
     // Test explicitly typed list with either type
     tl = parse<ast::TypedList<ast::Name>>(
@@ -87,12 +86,14 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto afs = parse<ast::AtomicFormulaSkeleton>(
         "(predicate ?var0 ?var1 - type0 ?var2)", atomic_formula_skeleton());
     BOOST_TEST(afs.predicate.name == "predicate");
-    BOOST_TEST(afs.args.explicitly_typed_lists[0].entries[0].name == "var0");
-    BOOST_TEST(afs.args.explicitly_typed_lists[0].entries[1].name == "var1");
-    BOOST_TEST(
-        boost::get<ast::PrimitiveType>(afs.args.explicitly_typed_lists[0].type).name ==
-        "type0");
-    BOOST_TEST(afs.args.implicitly_typed_list.value()[0].name == "var2");
+    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[0].name ==
+               "var0");
+    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[1].name ==
+               "var1");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(
+                   afs.variables.explicitly_typed_lists[0].type)
+                   .name == "type0");
+    BOOST_TEST(afs.variables.implicitly_typed_list.value()[0].name == "var2");
 
     // Test requirements
     auto reqs = parse<vector<string>>("(:requirements :strips :typing)",
@@ -104,7 +105,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto aft = parse<ast::AtomicFormula<ast::Term>>(
         "(predicate name ?variable)", atomic_formula_terms());
     BOOST_TEST(aft.predicate.name == "predicate");
-    BOOST_TEST(boost::get<ast::Name>(aft.args[0]) == "name");
+    BOOST_TEST(boost::get<ast::Constant>(aft.args[0]).name == "name");
     BOOST_TEST(boost::get<ast::Variable>(aft.args[1]).name == "variable");
 
     storage = R"(
@@ -157,39 +158,47 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test constants
     BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
                "mainsite");
-    BOOST_TEST(
-        boost::get<ast::PrimitiveType>(dom.constants.explicitly_typed_lists[0].type)
-            .name == "site");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(
+                   dom.constants.explicitly_typed_lists[0].type)
+                   .name == "site");
 
     // Test parsing of predicates
     BOOST_TEST(dom.predicates.size() == 7);
     BOOST_TEST(dom.predicates[0].predicate.name == "walls-built");
     BOOST_TEST(
-        dom.predicates[0].args.explicitly_typed_lists[0].entries[0].name ==
+        dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name ==
         "s");
     BOOST_TEST(boost::get<ast::PrimitiveType>(
-                   dom.predicates[0].args.explicitly_typed_lists[0].type)
+                   dom.predicates[0].variables.explicitly_typed_lists[0].type)
                    .name == "site");
 
     // Test parsing of goal descriptions
 
     // Parse nil
-    auto gd = parse<ast::GoalDescription>("()", goal_description());
+    auto gd = parse<ast::Sentence>("()", sentence());
     BOOST_TEST(boost::get<ast::Nil>(gd) == ast::Nil());
 
     // Parse atomic formula of terms
-    auto gd2 = parse<ast::GoalDescription>("(predicate name ?variable)", goal_description());
-    BOOST_TEST(boost::get<ast::AtomicFormula<ast::Term>>(gd2).predicate.name == "predicate");
+    auto gd2 = parse<ast::Sentence>("(predicate name ?variable)", sentence());
+    auto atomic_formula_1 = boost::get<ast::AtomicFormula<ast::Term>>(gd2);
+    BOOST_TEST(atomic_formula_1.predicate.name == "predicate");
+    auto constant_1 = boost::get<ast::Constant>(atomic_formula_1.args[0]);
+    BOOST_TEST(constant_1.name == "name");
 
-    auto as = parse<ast::GoalDescription>("(and () (predicate name ?variable))", goal_description());
-    auto cs = boost::get<ast::ConnectedSentence>(as);
-    BOOST_TEST(cs.args.size() == 2);
-    BOOST_TEST(boost::get<ast::Nil>(cs.args[0]) == ast::Nil());
-    auto af = boost::get<ast::AtomicFormula<ast::Term>>(cs.args[1]);
+    // Test and sentence parsing
+    auto s =
+        parse<ast::Sentence>("(and () (predicate name ?variable))", sentence());
+    auto as = boost::get<ast::AndSentence>(s);
+    BOOST_TEST(as.sentences.size() == 2);
+    BOOST_TEST(boost::get<ast::Nil>(as.sentences[0]) == ast::Nil());
+
+    auto af = boost::get<ast::AtomicFormula<ast::Term>>(as.sentences[1]);
     BOOST_TEST(af.predicate.name == "predicate");
     BOOST_TEST(af.args.size() == 2);
-    BOOST_TEST(boost::get<string>(af.args[0]) == "name");
+    BOOST_TEST(boost::get<ast::Constant>(af.args[0]).name == "name");
     BOOST_TEST(boost::get<ast::Variable>(af.args[1]).name == "variable");
+
+    // TODO add tests for parsing or, not, imply and other complex sentences.
 
     storage = R"(
         (define

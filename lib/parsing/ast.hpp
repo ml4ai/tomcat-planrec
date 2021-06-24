@@ -37,10 +37,6 @@ namespace ast {
     };
 
     using Type = boost::variant<PrimitiveType, EitherType>;
-    //struct Type : x3::variant<PrimitiveType, EitherType> {
-        //using base_type::base_type;
-        //using base_type::operator=;
-    //};
 
     template <class T> using ImplicitlyTypedList = std::vector<T>;
 
@@ -60,7 +56,7 @@ namespace ast {
 
     struct AtomicFormulaSkeleton : x3::position_tagged {
         Predicate predicate;
-        TypedList<Variable> args;
+        TypedList<Variable> variables;
     };
 
     struct Nil {
@@ -72,29 +68,38 @@ namespace ast {
         std::vector<T> args;
     };
 
-    using Term = boost::variant<Name, Variable>;
+    using Term = boost::variant<Constant, Variable>;
 
-    struct ConnectedSentence;
+    // Forward declare classes in order to work with Boost's recursive_wrapper
+    struct AndSentence;
+    struct OrSentence;
+    struct NotSentence;
+    struct ImplySentence;
 
-    //using GoalDescription = std::string;
-    typedef boost::variant<
-            Nil
-          , AtomicFormula<Term>
-          , boost::recursive_wrapper<ConnectedSentence>
-    > GoalDescription;
-    //struct GoalDescription
-        //: x3::variant<
-          //Nil,
-          //AtomicFormula<Term>,
-          //x3::forward_ast<ConnectedSentence>
-                      //> {
-        //using base_type::base_type;
-        //using base_type::operator=;
-    //};
+    using Sentence = boost::variant<Nil,
+                                    AtomicFormula<Term>,
+                                    boost::recursive_wrapper<AndSentence>,
+                                    boost::recursive_wrapper<OrSentence>,
+                                    boost::recursive_wrapper<NotSentence>,
+                                    boost::recursive_wrapper<ImplySentence>>;
 
+    // TODO add quantified sentences
 
-    struct ConnectedSentence {
-        std::vector<GoalDescription> args;
+    struct AndSentence {
+        std::vector<Sentence> sentences;
+    };
+
+    struct OrSentence {
+        std::vector<Sentence> sentences;
+    };
+
+    struct NotSentence {
+        Sentence sentence;
+    };
+
+    struct ImplySentence {
+        Sentence sentence1;
+        Sentence sentence2;
     };
 
     struct Domain : x3::position_tagged {
@@ -116,11 +121,6 @@ namespace ast {
     // struct Action : x3::position_tagged {
     // Name name;
     // std::vector<Variable> parameters;
-    //};
-
-    // template <class T> struct AtomicFormula {
-    // Name predicate;
-    // std::vector<T> args;
     //};
 
     using boost::fusion::operator<<;
