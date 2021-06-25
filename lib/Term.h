@@ -1,10 +1,10 @@
 #pragma once
 
-#include <variant>
 #include "Constant.h"
 #include "Variable.h"
+#include <boost/variant/recursive_wrapper.hpp>
 
-// Forward declare Function
 struct Function;
 
-using Term = std::variant<Constant, Variable, Function>;
+using Term =
+    boost::variant<Constant, Variable, boost::recursive_wrapper<Function>>;

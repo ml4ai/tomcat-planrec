@@ -3,24 +3,24 @@
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
-//#include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/variant/recursive_wrapper.hpp>
 #include <iostream>
 #include <string>
 #include <tuple>
 #include <unordered_set>
+#include "../Variable.h"
+#include "../Constant.h"
+#include "../Term.h"
+#include "../Function.h"
 
 namespace ast {
     using Name = std::string;
     namespace x3 = boost::spirit::x3;
 
-    struct Constant {
-        Name name;
-    };
-
-    struct Variable : x3::position_tagged {
-        Name name;
-    };
+    // Import some classes that are more generally useful
+    using Variable = Variable;
+    using Constant = Constant;
+    using Term = Term;
 
     struct PrimitiveType {
         Name name;
@@ -68,7 +68,6 @@ namespace ast {
         std::vector<T> args;
     };
 
-    using Term = boost::variant<Constant, Variable>;
 
     // Forward declare classes in order to work with Boost's recursive_wrapper
     struct AndSentence;

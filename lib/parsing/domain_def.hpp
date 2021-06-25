@@ -83,7 +83,7 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(atomic_formula_skeleton);
 
     // Term
-    rule<class Term, ast::Term> const term = "term";
+    rule<class TTerm, ast::Term> const term = "term";
     auto const term_def = constant | variable;
     BOOST_SPIRIT_DEFINE(term);
 
