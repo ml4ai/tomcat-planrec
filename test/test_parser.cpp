@@ -208,6 +208,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:objects
                 factory house - site
                 adobe - material)
+      ;      (:init adf)
+       ;     (:goal asdfa)
         )
     )";
 
@@ -218,7 +220,30 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(prob.name == "adobe");
     BOOST_TEST(prob.domain_name == "construction");
 
-   // Test requirements
+    // Test requirements
     BOOST_TEST(prob.requirements[0] == "strips");
     BOOST_TEST(prob.requirements[1] == "typing");
+
+    // Test objects
+    BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 2);
+    
+    BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
+    BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type).name == "site");
+    
+    BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type).name == "material");
+
+/* print
+    cout << prob.objects.explicitly_typed_lists.size() << endl;
+    cout << prob.objects.explicitly_typed_lists[0].entries[0] << endl;
+    cout << prob.objects.explicitly_typed_lists[0].entries[1] << endl;
+    cout << boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type).name << endl;
+    cout << prob.objects.explicitly_typed_lists[1].entries[0] << endl;
+    cout << boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type).name << endl;
+    //BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
+    //BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type).name == "material");
+
+*/
+
 }
