@@ -200,6 +200,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // TODO add tests for parsing or, not, imply and other complex sentences.
 
+    // TODO Salena: 3rd object, rock, is implicit. 
     storage = R"(
         (define
             (problem adobe)
@@ -207,10 +208,14 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:requirements :strips :typing)
             (:objects
                 factory house - site
-                adobe - material)
-      ;      (:init adf)
-       ;     (:goal asdfa)
-        )
+                adobe - material
+                rock) 
+;           (:init
+;               (on-site adobe factory)
+;               )   
+;           (:goal
+;               (on-site adobe house)      
+                )
     )";
 
     // Need to reset iter and end for every new string.
@@ -234,16 +239,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
     BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type).name == "material");
 
-/* print
-    cout << prob.objects.explicitly_typed_lists.size() << endl;
-    cout << prob.objects.explicitly_typed_lists[0].entries[0] << endl;
-    cout << prob.objects.explicitly_typed_lists[0].entries[1] << endl;
-    cout << boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type).name << endl;
-    cout << prob.objects.explicitly_typed_lists[1].entries[0] << endl;
-    cout << boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type).name << endl;
-    //BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
-    //BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type).name == "material");
+    BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] == "rock");//default type = object
 
-*/
+// print verification. Delete this as I work through it:
+
+    // THis is for the last object if iplicitly typed:
+    cout << prob.objects.implicitly_typed_list.value()[0] << endl;
 
 }
