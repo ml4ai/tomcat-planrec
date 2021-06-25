@@ -66,6 +66,12 @@ namespace ast {
         std::vector<T> args;
     };
 
+    template<class T>
+    struct Literal {
+        AtomicFormula<T> atomic_formula;
+        bool is_negative = false;
+    };
+
 
     // Forward declare classes in order to work with Boost's recursive_wrapper
     struct AndSentence;
@@ -75,6 +81,7 @@ namespace ast {
 
     using Sentence = boost::variant<Nil,
                                     AtomicFormula<Term>,
+                                    Literal<Term>,
                                     boost::recursive_wrapper<AndSentence>,
                                     boost::recursive_wrapper<OrSentence>,
                                     boost::recursive_wrapper<NotSentence>,
@@ -99,11 +106,6 @@ namespace ast {
         Sentence sentence2;
     };
 
-    template<class T>
-    struct Literal {
-        AtomicFormula<T> atomic_formula;
-        bool is_negative = false;
-    };
 
     struct Domain : x3::position_tagged {
         Name name;
