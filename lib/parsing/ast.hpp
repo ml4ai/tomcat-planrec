@@ -68,17 +68,18 @@ namespace ast {
     struct OrSentence;
     struct NotSentence;
     struct ImplySentence;
-    struct QuantifiedSentence;
+    struct ExistsSentence;
+    struct ForallSentence;
 
-    using Sentence =
-        boost::variant<Nil,
-                       AtomicFormula<Term>,
-                       Literal<Term>,
-                       boost::recursive_wrapper<AndSentence>,
-                       boost::recursive_wrapper<OrSentence>,
-                       boost::recursive_wrapper<NotSentence>,
-                       boost::recursive_wrapper<ImplySentence>
-                           boost::recursive_wrapper<QuantifiedSentence>>;
+    using Sentence = boost::variant<Nil,
+                                    AtomicFormula<Term>,
+                                    Literal<Term>,
+                                    boost::recursive_wrapper<AndSentence>,
+                                    boost::recursive_wrapper<OrSentence>,
+                                    boost::recursive_wrapper<NotSentence>,
+                                    boost::recursive_wrapper<ImplySentence>,
+                                    boost::recursive_wrapper<ExistsSentence>,
+                                    boost::recursive_wrapper<ForallSentence>>;
 
     // TODO add quantified sentences
 
@@ -99,9 +100,13 @@ namespace ast {
         Sentence sentence2;
     };
 
-    struct QuantifiedSentence {
-        std::string quantifier;
-        TypedList<Variable> variables;
+    struct ExistsSentence {
+        std::vector<TypedList<Variable>> variables;
+        Sentence sentence;
+    };
+
+    struct ForallSentence {
+        std::vector<TypedList<Variable>> variables;
         Sentence sentence;
     };
 

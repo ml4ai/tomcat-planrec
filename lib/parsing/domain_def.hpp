@@ -72,15 +72,18 @@ namespace parser {
     rule<class TExplicitlyTypedListVariables,
          ExplicitlyTypedList<Variable>> const explicitly_typed_list_variables =
         "explicitly_typed_list_variables";
+    auto const explicitly_typed_list_variables_def = +variable >> '-' >> type;
+
     rule<class TImplicitlyTypedListVariables,
          ImplicitlyTypedList<Variable>> const implicitly_typed_list_variables =
         "implicitly_typed_list_variables";
+    auto const implicitly_typed_list_variables_def = *variable;
+
     rule<class TTypedListVariables, TypedList<Variable>> const
         typed_list_variables = "typed_list_variables";
-    auto const explicitly_typed_list_variables_def = +variable >> '-' >> type;
-    auto const implicitly_typed_list_variables_def = *variable;
     auto const typed_list_variables_def =
         *explicitly_typed_list_variables >> -implicitly_typed_list_variables;
+
     BOOST_SPIRIT_DEFINE(explicitly_typed_list_variables,
                         implicitly_typed_list_variables,
                         typed_list_variables);
@@ -142,6 +145,20 @@ namespace parser {
     auto const imply_sentence_def = '(' >> lit("imply") >> sentence >> sentence
                                     >> ')';
     BOOST_SPIRIT_DEFINE(imply_sentence);
+
+    rule<class TExistsSentence, ast::ExistsSentence> const exists_sentence =
+        "exists_sentence";
+    auto const exists_sentence_def = '(' >> lit("exists") >> '(' >>
+                                     *typed_list_variables >> ')' >> sentence >>
+                                     ')';
+    BOOST_SPIRIT_DEFINE(exists_sentence);
+
+    rule<class TForallSentence, ast::ForallSentence> const forall_sentence =
+        "forall_sentence";
+    auto const forall_sentence_def = '(' >> lit("forall") >> '(' >>
+                                     *typed_list_variables >> ')' >> sentence >>
+                                     ')';
+    BOOST_SPIRIT_DEFINE(forall_sentence);
 
     auto const sentence_def = nil | atomic_formula_terms | literal_terms |
                               and_sentence | or_sentence | not_sentence |
