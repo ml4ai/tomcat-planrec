@@ -8,8 +8,6 @@
 
 BOOST_FUSION_ADAPT_STRUCT(ast::Constant, name)
 BOOST_FUSION_ADAPT_STRUCT(ast::Variable, name)
-BOOST_FUSION_ADAPT_STRUCT(ast::PrimitiveType, name)
-BOOST_FUSION_ADAPT_STRUCT(ast::EitherType, primitive_types)
 
 // Typed list of names
 BOOST_FUSION_ADAPT_STRUCT(ast::ExplicitlyTypedList<ast::Name>, entries, type)

@@ -24,19 +24,9 @@ namespace ast {
     using fol::Term;
     using fol::Predicate;
 
-    struct PrimitiveType {
-        Name name;
-        bool operator==(const PrimitiveType& primitive_type) const;
-        struct hash {
-            std::size_t operator()(PrimitiveType const& type) const noexcept {
-                return std::hash<std::string>{}(type.name);
-            }
-        };
-    };
+    using PrimitiveType = std::string;
 
-    struct EitherType {
-        std::unordered_set<PrimitiveType, PrimitiveType::hash> primitive_types;
-    };
+    using EitherType = std::unordered_set<PrimitiveType>;
 
     using Type = boost::variant<PrimitiveType, EitherType>;
 

@@ -33,20 +33,20 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test primitive type parsing
     // TODO See whether we need to reintroduce the client namespace
     auto pt = parse<PrimitiveType>("type", primitive_type());
-    BOOST_TEST(pt.name == "type");
+    BOOST_TEST(pt == "type");
 
     // Test either type parsing
     auto et = parse<EitherType>("(either type0 type1)", either_type());
-    BOOST_TEST(in(PrimitiveType{"type0"}, et.primitive_types));
-    BOOST_TEST(in(PrimitiveType{"type1"}, et.primitive_types));
+    BOOST_TEST(in(PrimitiveType{"type0"}, et));
+    BOOST_TEST(in(PrimitiveType{"type1"}, et));
 
     // Test type parsing
     auto t = parse<Type>("type", type());
-    BOOST_TEST(get<PrimitiveType>(t).name == "type");
+    BOOST_TEST(get<PrimitiveType>(t) == "type");
 
     t = parse<Type>("(either type0 type1)", type());
-    BOOST_TEST(in(PrimitiveType{"type0"}, get<EitherType>(et).primitive_types));
-    BOOST_TEST(in(PrimitiveType{"type1"}, get<EitherType>(et).primitive_types));
+    BOOST_TEST(in("type0", get<EitherType>(et)));
+    BOOST_TEST(in("type1", get<EitherType>(et)));
 
     // Test implicitly typed list of names
     auto tl = parse<TypedList<Name>>("t0 t1 t2", typed_list_names());
@@ -62,8 +62,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[0] == "name0");
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[1] == "name1");
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[2] == "name2");
-    BOOST_TEST(get<PrimitiveType>(tl.explicitly_typed_lists[0].type).name ==
-               "type");
+    BOOST_TEST(get<PrimitiveType>(tl.explicitly_typed_lists[0].type) == "type");
 
     // Test explicitly typed list with either type
     tl = parse<TypedList<Name>>("name0 name1 name2 - (either type0 type1)",
@@ -75,22 +74,19 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[2] == "name2");
     BOOST_TEST(
         in(PrimitiveType{"type0"},
-           get<EitherType>(tl.explicitly_typed_lists[0].type).primitive_types));
+           get<EitherType>(tl.explicitly_typed_lists[0].type)));
     BOOST_TEST(
         in(PrimitiveType{"type1"},
-           get<EitherType>(tl.explicitly_typed_lists[0].type).primitive_types));
+           get<EitherType>(tl.explicitly_typed_lists[0].type)));
 
     // Test atomic formula skeleton
     auto afs = parse<AtomicFormulaSkeleton>(
         "(predicate ?var0 ?var1 - type0 ?var2)", atomic_formula_skeleton());
     BOOST_TEST(afs.predicate.name == "predicate");
-    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[0].name ==
-               "var0");
-    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[1].name ==
-               "var1");
-    BOOST_TEST(
-        get<PrimitiveType>(afs.variables.explicitly_typed_lists[0].type).name ==
-        "type0");
+    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[0].name == "var0");
+    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[1].name == "var1");
+    BOOST_TEST(get<PrimitiveType>(
+                   afs.variables.explicitly_typed_lists[0].type) == "type0");
     BOOST_TEST(afs.variables.implicitly_typed_list.value()[0].name == "var2");
 
     // Test requirements
@@ -156,9 +152,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test constants
     BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
                "mainsite");
-    BOOST_TEST(
-        get<PrimitiveType>(dom.constants.explicitly_typed_lists[0].type).name ==
-        "site");
+    BOOST_TEST(get<PrimitiveType>(
+                   dom.constants.explicitly_typed_lists[0].type) == "site");
 
     // Test parsing of predicates
     BOOST_TEST(dom.predicates.size() == 7);
@@ -166,9 +161,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(
         dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name ==
         "s");
-    BOOST_TEST(get<PrimitiveType>(
-                   dom.predicates[0].variables.explicitly_typed_lists[0].type)
-                   .name == "site");
+    BOOST_TEST(
+        get<PrimitiveType>(
+            dom.predicates[0].variables.explicitly_typed_lists[0].type) ==
+        "site");
 
     // Test parsing of goal descriptions
 
