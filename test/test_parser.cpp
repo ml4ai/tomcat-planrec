@@ -72,19 +72,19 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[0] == "name0");
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[1] == "name1");
     BOOST_TEST(tl.explicitly_typed_lists[0].entries[2] == "name2");
-    BOOST_TEST(
-        in(PrimitiveType{"type0"},
-           get<EitherType>(tl.explicitly_typed_lists[0].type)));
-    BOOST_TEST(
-        in(PrimitiveType{"type1"},
-           get<EitherType>(tl.explicitly_typed_lists[0].type)));
+    BOOST_TEST(in(PrimitiveType{"type0"},
+                  get<EitherType>(tl.explicitly_typed_lists[0].type)));
+    BOOST_TEST(in(PrimitiveType{"type1"},
+                  get<EitherType>(tl.explicitly_typed_lists[0].type)));
 
     // Test atomic formula skeleton
     auto afs = parse<AtomicFormulaSkeleton>(
         "(predicate ?var0 ?var1 - type0 ?var2)", atomic_formula_skeleton());
     BOOST_TEST(afs.predicate.name == "predicate");
-    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[0].name == "var0");
-    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[1].name == "var1");
+    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[0].name ==
+               "var0");
+    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[1].name ==
+               "var1");
     BOOST_TEST(get<PrimitiveType>(
                    afs.variables.explicitly_typed_lists[0].type) == "type0");
     BOOST_TEST(afs.variables.implicitly_typed_list.value()[0].name == "var2");
@@ -182,11 +182,14 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test parsing literals of terms
     auto positive_literal_of_terms =
         parse<Literal<Term>>("(predicate constant ?variable)", literal_terms());
-    BOOST_TEST(positive_literal_of_terms.is_negative == false);
+    BOOST_TEST(
+        get<AtomicFormula<Term>>(positive_literal_of_terms).predicate.name ==
+        "predicate");
 
     auto negative_literal_of_terms = parse<Literal<Term>>(
         "(not (predicate constant ?variable))", literal_terms());
-    BOOST_TEST(negative_literal_of_terms.is_negative == true);
+    BOOST_TEST(get<NegativeLiteral<Term>>(negative_literal_of_terms)
+                   .atomic_formula.predicate.name == "predicate");
 
     // Test and sentence parsing
     auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());

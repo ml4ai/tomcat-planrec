@@ -21,39 +21,49 @@ namespace parser {
         lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
 
     // Rules
-    rule<class TConstant, Constant> const constant = "constant";
-    rule<class TVariable, Variable> const variable = "variable";
-    rule<class TPrimitiveType, PrimitiveType> const primitive_type =
-        "primitive_type";
-    rule<class TEitherType, EitherType> const either_type = "either_type";
-    rule<class TType, Type> const type = "type";
-    rule<class TPredicate, Name> const predicate = "predicate";
-    rule<class TRequirements, std::vector<Name>> const requirements =
-        "requirements";
+
     rule<class TRequirement, std::vector<Name>> const requirement =
         "requirement";
-
     auto const requirement_def = ':' >> name;
+
+    rule<class TPredicate, Name> const predicate = "predicate";
     auto const predicate_def = name;
+
+    rule<class TRequirements, std::vector<Name>> const requirements =
+        "requirements";
     auto const requirements_def = '(' >> lit(":requirements") >> +requirement >>
                                   ')';
+
+    rule<class TConstant, Constant> const constant = "constant";
     auto const constant_def = name;
+
+    rule<class TVariable, Variable> const variable = "variable";
     auto const variable_def = '?' >> name;
+
+    rule<class TPrimitiveType, PrimitiveType> const primitive_type =
+        "primitive_type";
     auto const primitive_type_def = name;
+
+    rule<class TEitherType, EitherType> const either_type = "either_type";
     auto const either_type_def = '(' >> lit("either") >> +primitive_type >> ')';
+
+    rule<class TType, Type> const type = "type";
     auto const type_def = primitive_type | either_type;
 
     // Typed list of names
     rule<class TExplicitlyTypedListNames, ExplicitlyTypedList<Name>> const
         explicitly_typed_list_names = "explicitly_typed_list_names";
+    auto const explicitly_typed_list_names_def = +name >> '-' >> type;
+
     rule<class TImplicitlyTypedListNames, ImplicitlyTypedList<Name>> const
         implicitly_typed_list_names = "implicitly_typed_list_names";
+    auto const implicitly_typed_list_names_def = *name;
+
     rule<class TTypedListNames, TypedList<Name>> const typed_list_names =
         "typed_list_names";
-    auto const explicitly_typed_list_names_def = +name >> '-' >> type;
-    auto const implicitly_typed_list_names_def = *name;
     auto const typed_list_names_def =
         *explicitly_typed_list_names >> -implicitly_typed_list_names;
+
     BOOST_SPIRIT_DEFINE(explicitly_typed_list_names,
                         implicitly_typed_list_names,
                         typed_list_names);
@@ -94,14 +104,16 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(atomic_formula_terms);
 
     // Literals of terms
+    rule<class TNegativeLiteralTerms, ast::NegativeLiteral<ast::Term>> const
+        negative_literal_terms = "negative_literal_terms";
+    auto const negative_literal_terms_def =
+        ('(' >> lit("not") >> atomic_formula_terms >> ')');
+    BOOST_SPIRIT_DEFINE(negative_literal_terms);
+
     rule<class TLiteralTerms, ast::Literal<ast::Term>> const literal_terms =
         "literal_terms";
-    auto parse_negative_literal = [](auto& ctx) {
-        _val(ctx).is_negative = true;
-    };
     auto const literal_terms_def =
-        atomic_formula_terms | ('(' >> lit("not") >> atomic_formula_terms >>
-                                ')')[parse_negative_literal];
+        atomic_formula_terms | negative_literal_terms;
     BOOST_SPIRIT_DEFINE(literal_terms);
 
     // Nil
@@ -131,8 +143,9 @@ namespace parser {
                                     >> ')';
     BOOST_SPIRIT_DEFINE(imply_sentence);
 
-    auto const sentence_def = nil | atomic_formula_terms | literal_terms | and_sentence |
-                              or_sentence | not_sentence | imply_sentence;
+    auto const sentence_def = nil | atomic_formula_terms | literal_terms |
+                              and_sentence | or_sentence | not_sentence |
+                              imply_sentence;
     BOOST_SPIRIT_DEFINE(sentence);
 
     rule<class TTypes, TypedList<Name>> const types = "types";

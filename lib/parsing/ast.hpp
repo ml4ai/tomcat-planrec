@@ -1,5 +1,10 @@
 #pragma once
 
+#include "../fol/Constant.h"
+#include "../fol/Function.h"
+#include "../fol/Predicate.h"
+#include "../fol/Term.h"
+#include "../fol/Variable.h"
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
@@ -8,21 +13,16 @@
 #include <string>
 #include <tuple>
 #include <unordered_set>
-#include "../fol/Variable.h"
-#include "../fol/Constant.h"
-#include "../fol/Predicate.h"
-#include "../fol/Term.h"
-#include "../fol/Function.h"
 
 namespace ast {
     using Name = std::string;
     namespace x3 = boost::spirit::x3;
 
     // Import some classes that are more generally useful
-    using fol::Variable;
     using fol::Constant;
-    using fol::Term;
     using fol::Predicate;
+    using fol::Term;
+    using fol::Variable;
 
     using PrimitiveType = std::string;
 
@@ -56,26 +56,29 @@ namespace ast {
         std::vector<T> args;
     };
 
-    template<class T>
-    struct Literal {
+    template <class T> struct NegativeLiteral {
         AtomicFormula<T> atomic_formula;
-        bool is_negative = false;
     };
 
+    template <class T>
+    using Literal = boost::variant<AtomicFormula<T>, NegativeLiteral<T>>;
 
     // Forward declare classes in order to work with Boost's recursive_wrapper
     struct AndSentence;
     struct OrSentence;
     struct NotSentence;
     struct ImplySentence;
+    struct QuantifiedSentence;
 
-    using Sentence = boost::variant<Nil,
-                                    AtomicFormula<Term>,
-                                    Literal<Term>,
-                                    boost::recursive_wrapper<AndSentence>,
-                                    boost::recursive_wrapper<OrSentence>,
-                                    boost::recursive_wrapper<NotSentence>,
-                                    boost::recursive_wrapper<ImplySentence>>;
+    using Sentence =
+        boost::variant<Nil,
+                       AtomicFormula<Term>,
+                       Literal<Term>,
+                       boost::recursive_wrapper<AndSentence>,
+                       boost::recursive_wrapper<OrSentence>,
+                       boost::recursive_wrapper<NotSentence>,
+                       boost::recursive_wrapper<ImplySentence>
+                           boost::recursive_wrapper<QuantifiedSentence>>;
 
     // TODO add quantified sentences
 
@@ -96,6 +99,11 @@ namespace ast {
         Sentence sentence2;
     };
 
+    struct QuantifiedSentence {
+        std::string quantifier;
+        TypedList<Variable> variables;
+        Sentence sentence;
+    };
 
     struct Domain : x3::position_tagged {
         Name name;
