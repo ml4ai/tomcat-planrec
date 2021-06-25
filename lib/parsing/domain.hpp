@@ -66,7 +66,7 @@ namespace parser {
     BOOST_SPIRIT_DECLARE(atomic_formula_skeleton_type);
 
     using atomic_formula_terms_type =
-        rule<class TAtomicFormulaTerms, ast::AtomicFormula>;
+        rule<class TAtomicFormulaTerms, ast::AtomicFormula<ast::Term>>;
     BOOST_SPIRIT_DECLARE(atomic_formula_terms_type);
 
     using sentence_type = rule<class TSentence, ast::Sentence>;

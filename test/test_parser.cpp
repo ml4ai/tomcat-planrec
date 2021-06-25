@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(reqs[1] == "typing");
 
     // Test parsing atomic formula of terms
-    auto aft = parse<ast::AtomicFormula>(
+    auto aft = parse<ast::AtomicFormula<ast::Term>>(
         "(predicate name ?variable)", atomic_formula_terms());
     BOOST_TEST(aft.predicate.name == "predicate");
     BOOST_TEST(boost::get<ast::Constant>(aft.args[0]).name == "name");
@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Parse atomic formula of terms
     auto gd2 = parse<ast::Sentence>("(predicate name ?variable)", sentence());
-    auto atomic_formula_1 = boost::get<ast::AtomicFormula>(gd2);
+    auto atomic_formula_1 = boost::get<ast::AtomicFormula<ast::Term>>(gd2);
     BOOST_TEST(atomic_formula_1.predicate.name == "predicate");
     auto constant_1 = boost::get<ast::Constant>(atomic_formula_1.args[0]);
     BOOST_TEST(constant_1.name == "name");
@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(as.sentences.size() == 2);
     BOOST_TEST(boost::get<ast::Nil>(as.sentences[0]) == ast::Nil());
 
-    auto af = boost::get<ast::AtomicFormula>(as.sentences[1]);
+    auto af = boost::get<ast::AtomicFormula<ast::Term>>(as.sentences[1]);
     BOOST_TEST(af.predicate.name == "predicate");
     BOOST_TEST(af.args.size() == 2);
     BOOST_TEST(boost::get<ast::Constant>(af.args[0]).name == "name");
