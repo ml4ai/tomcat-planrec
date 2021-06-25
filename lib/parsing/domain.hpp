@@ -61,8 +61,16 @@ namespace parser {
         rule<class TRequirements, std::vector<std::string>>;
     BOOST_SPIRIT_DECLARE(requirements_type);
 
-    using atomic_formula_skeleton_type = rule<class TAtomicFormulaSkeleton, ast::AtomicFormulaSkeleton>;
+    using atomic_formula_skeleton_type =
+        rule<class TAtomicFormulaSkeleton, ast::AtomicFormulaSkeleton>;
     BOOST_SPIRIT_DECLARE(atomic_formula_skeleton_type);
+
+    using atomic_formula_terms_type =
+        rule<class TAtomicFormulaTerms, ast::AtomicFormula<ast::Term>>;
+    BOOST_SPIRIT_DECLARE(atomic_formula_terms_type);
+
+    using sentence_type = rule<class TSentence, ast::Sentence>;
+    BOOST_SPIRIT_DECLARE(sentence_type);
 
     using domain_type = rule<class TDomain, ast::Domain>;
     BOOST_SPIRIT_DECLARE(domain_type);
@@ -90,7 +98,10 @@ parser::implicitly_typed_list_variables_type implicitly_typed_list_variables();
 parser::typed_list_variables_type typed_list_variables();
 
 parser::atomic_formula_skeleton_type atomic_formula_skeleton();
+parser::atomic_formula_terms_type atomic_formula_terms();
 
+parser::sentence_type sentence();
+//parser::connected_sentence_type connected_sentence();
 parser::requirements_type requirements();
 
 parser::domain_type domain();

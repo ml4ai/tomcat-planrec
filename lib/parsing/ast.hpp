@@ -3,10 +3,11 @@
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
-#include <boost/spirit/home/x3/support/ast/variant.hpp>
-#include <boost/variant/recursive_variant.hpp>
+//#include <boost/spirit/home/x3/support/ast/variant.hpp>
+#include <boost/variant/recursive_wrapper.hpp>
 #include <iostream>
 #include <string>
+#include <tuple>
 #include <unordered_set>
 
 namespace ast {
@@ -35,7 +36,7 @@ namespace ast {
         std::unordered_set<PrimitiveType, PrimitiveType::hash> primitive_types;
     };
 
-    using Type = x3::variant<PrimitiveType, EitherType>;
+    using Type = boost::variant<PrimitiveType, EitherType>;
 
     template <class T> using ImplicitlyTypedList = std::vector<T>;
 
@@ -55,32 +56,51 @@ namespace ast {
 
     struct AtomicFormulaSkeleton : x3::position_tagged {
         Predicate predicate;
-        TypedList<Variable> args;
+        TypedList<Variable> variables;
     };
 
-    // struct Action : x3::position_tagged {
-    // Name name;
-    // std::vector<Variable> parameters;
-    //};
+    struct Nil {
+        bool operator==(const Nil& nil) const;
+    };
 
-    // using Term = std::variant<Name, Variable>;
+    template <class T> struct AtomicFormula {
+        Predicate predicate;
+        std::vector<T> args;
+    };
 
-    // template <class T> struct AtomicFormula {
-    // Name predicate;
-    // std::vector<T> args;
-    //};
+    using Term = boost::variant<Constant, Variable>;
 
-    // struct GoalDescription;
+    // Forward declare classes in order to work with Boost's recursive_wrapper
+    struct AndSentence;
+    struct OrSentence;
+    struct NotSentence;
+    struct ImplySentence;
 
-    // struct GoalDescriptionValue
-    //: x3::variant<std::string, x3::forward_ast<GoalDescription>> {
-    // using base_type::base_type;
-    // using base_type::operator=;
-    //};
+    using Sentence = boost::variant<Nil,
+                                    AtomicFormula<Term>,
+                                    boost::recursive_wrapper<AndSentence>,
+                                    boost::recursive_wrapper<OrSentence>,
+                                    boost::recursive_wrapper<NotSentence>,
+                                    boost::recursive_wrapper<ImplySentence>>;
 
-    // struct GoalDescription {
-    // std::vector<GoalDescriptionValue> entries;
-    //};
+    // TODO add quantified sentences
+
+    struct AndSentence {
+        std::vector<Sentence> sentences;
+    };
+
+    struct OrSentence {
+        std::vector<Sentence> sentences;
+    };
+
+    struct NotSentence {
+        Sentence sentence;
+    };
+
+    struct ImplySentence {
+        Sentence sentence1;
+        Sentence sentence2;
+    };
 
     struct Domain : x3::position_tagged {
         Name name;
@@ -93,10 +113,15 @@ namespace ast {
 
     struct Problem : x3::position_tagged {
         Name name;                             // to just get name of problem
-        Name domain_name;                           // for domain association
+        Name domain_name;                      // for domain association
         std::vector<std::string> requirements; // for any problem requirements
         TypedList<Name> objects;
     }; // end problem struct
+
+    // struct Action : x3::position_tagged {
+    // Name name;
+    // std::vector<Variable> parameters;
+    //};
 
     using boost::fusion::operator<<;
 } // namespace ast
