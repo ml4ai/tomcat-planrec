@@ -88,7 +88,7 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(term);
 
     // Atomic formula of terms
-    rule<class TAtomicFormulaTerms, ast::AtomicFormula<ast::Term>> const
+    rule<class TAtomicFormulaTerms, ast::AtomicFormula> const
         atomic_formula_terms = "atomic_formula_terms";
     auto const atomic_formula_terms_def = '(' >> predicate >> *term >> ')';
     BOOST_SPIRIT_DEFINE(atomic_formula_terms);

@@ -13,6 +13,7 @@
 #include "../Predicate.h"
 #include "../Term.h"
 #include "../Function.h"
+#include "../AtomicFormula.h"
 
 namespace ast {
     using Name = std::string;
@@ -23,6 +24,7 @@ namespace ast {
     using Constant = Constant;
     using Term = Term;
     using Predicate = Predicate;
+    using AtomicFormula = AtomicFormula;
 
     struct PrimitiveType {
         Name name;
@@ -61,10 +63,6 @@ namespace ast {
         bool operator==(const Nil& nil) const;
     };
 
-    template <class T> struct AtomicFormula {
-        Predicate predicate;
-        std::vector<T> args;
-    };
 
 
     // Forward declare classes in order to work with Boost's recursive_wrapper
@@ -74,7 +72,7 @@ namespace ast {
     struct ImplySentence;
 
     using Sentence = boost::variant<Nil,
-                                    AtomicFormula<Term>,
+                                    AtomicFormula,
                                     boost::recursive_wrapper<AndSentence>,
                                     boost::recursive_wrapper<OrSentence>,
                                     boost::recursive_wrapper<NotSentence>,
