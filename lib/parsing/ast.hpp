@@ -8,21 +8,21 @@
 #include <string>
 #include <tuple>
 #include <unordered_set>
-#include "../Variable.h"
-#include "../Constant.h"
-#include "../Predicate.h"
-#include "../Term.h"
-#include "../Function.h"
+#include "../fol/Variable.h"
+#include "../fol/Constant.h"
+#include "../fol/Predicate.h"
+#include "../fol/Term.h"
+#include "../fol/Function.h"
 
 namespace ast {
     using Name = std::string;
     namespace x3 = boost::spirit::x3;
 
     // Import some classes that are more generally useful
-    using Variable = Variable;
-    using Constant = Constant;
-    using Term = Term;
-    using Predicate = Predicate;
+    using fol::Variable;
+    using fol::Constant;
+    using fol::Term;
+    using fol::Predicate;
 
     struct PrimitiveType {
         Name name;

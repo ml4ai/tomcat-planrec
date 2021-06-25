@@ -2,7 +2,9 @@
 
 #include "Term.h"
 
-struct Function {
-    std::string name;
-    std::vector<Term> args = {};
-};
+namespace fol {
+    struct Function {
+        std::string name;
+        std::vector<Term> args = {};
+    };
+} // namespace fol

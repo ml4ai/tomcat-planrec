@@ -2,4 +2,6 @@
 
 #include "Symbol.h"
 
-struct Variable : Symbol {};
+namespace fol {
+    struct Variable : Symbol {};
+}

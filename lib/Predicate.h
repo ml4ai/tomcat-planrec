@@ -2,4 +2,6 @@
 
 #include "Symbol.h"
 
-struct Predicate : Symbol {};
+namespace fol {
+    struct Predicate : Symbol {};
+} // namespace fol
