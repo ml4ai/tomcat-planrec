@@ -93,6 +93,17 @@ namespace parser {
     auto const atomic_formula_terms_def = '(' >> predicate >> *term >> ')';
     BOOST_SPIRIT_DEFINE(atomic_formula_terms);
 
+    // Literals of terms
+    rule<class TLiteralTerms, ast::Literal<ast::Term>> const literal_terms =
+        "literal_terms";
+    auto parse_negative_literal = [](auto& ctx) {
+        _val(ctx).is_negative = true;
+    };
+    auto const literal_terms_def =
+        atomic_formula_terms | ('(' >> lit("not") >> atomic_formula_terms >>
+                                ')')[parse_negative_literal];
+    BOOST_SPIRIT_DEFINE(literal_terms);
+
     // Nil
     rule<class TNil, ast::Nil> const nil = "nil";
     auto const nil_def = '(' >> lit(")");
@@ -185,6 +196,7 @@ parser::atomic_formula_skeleton_type atomic_formula_skeleton() {
 parser::atomic_formula_terms_type atomic_formula_terms() {
     return parser::atomic_formula_terms;
 }
+parser::literal_terms_type literal_terms() { return parser::literal_terms; }
 
 parser::sentence_type sentence() { return parser::sentence; }
 parser::requirements_type requirements() { return parser::requirements; }

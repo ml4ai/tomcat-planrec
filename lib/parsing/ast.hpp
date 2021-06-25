@@ -99,6 +99,12 @@ namespace ast {
         Sentence sentence2;
     };
 
+    template<class T>
+    struct Literal {
+        AtomicFormula<T> atomic_formula;
+        bool is_negative = false;
+    };
+
     struct Domain : x3::position_tagged {
         Name name;
         std::vector<std::string> requirements;
