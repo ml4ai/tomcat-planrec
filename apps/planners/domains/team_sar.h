@@ -2,6 +2,7 @@
 #include <math.h>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <algorithm>
 
 using json = nlohmann::ordered_json;
 
@@ -80,48 +81,51 @@ sample_loc(std::vector<std::string> region,
 template <class State> std::optional<State> search(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
-  if (state.loc[agent] == area && state.time[agent] <= 890) {
+  auto start = args["start"];
+  auto duration = args["duration"];
+  int end = start + duration;
+  if (state.agent_loc[agent] == area && state.time[agent] <= 890) {
+    
+    state.write_time[agent] = end;
+    state.write_times_searched[agent] = end;
+
+    state.read_role[agent] = std::max(state.read_role[agent],end);
+    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
+    state.read_time[agent] = std::max(state.read_time[agent],end);
+    state.read_c_triage_total = std::max(state.read_c_triage_total,end);
+
     if (state.c_triage_total != state.c_max) {
+      state.read_c_vic_loc[area] = std::max(state.read_c_vic_loc[area],end);
       for (auto c : state.c_vic_loc[area]) {
+        state.read_c_seen[agent] = std::max(state.read_c_seen[agent],end);
+        state.read_v_obs[c] = std::max(state.read_v_obs[c],end);
         if (!in(c,state.c_seen[agent]) && !state.v_obs[c]) {
           state.c_seen[agent].push_back(c);
-          if (state.role[agent] == "searcher") {
-            state.time[agent] = state.time[agent] + 5;
-          }
-          else {
-            if (state.role[agent] == "engineer") {
-              state.time[agent] = state.time[agent] + 15;
-            }
-            else {
-              state.time[agent] = state.time[agent] + 10;
-            }
-          }
+          state.time[agent] = end;
 
           state.times_searched[agent]++;
 
+          state.write_c_seen[agent] = end;
           return state;
         }
       }
     }
 
+
+    state.read_r_triage_total = std::max(state.read_r_triage_total,end);
     if (state.r_triage_total != state.r_max) { 
+      state.read_r_vic_loc[area] = std::max(state.read_r_vic_loc[area],end);
       for (auto r : state.r_vic_loc[area]) {
+        state.read_r_seen[agent] = std::max(state.read_r_seen[agent],end);
+        state.read_v_obs[r] = std::max(state.read_v_obs[r],end);
         if (!in(r,state.r_seen[agent]) && !state.v_obs[r]) {
           state.r_seen[agent].push_back(r);
+          state.write_r_seen[agent] = end;
+          break;
         }
       }
     }
-    if (state.role[agent] == "searcher") {
-      state.time[agent] = state.time[agent] + 5;
-    }
-    else {
-      if (state.role[agent] == "engineer") {
-        state.time[agent] = state.time[agent] + 15;
-      }
-      else {
-        state.time[agent] = state.time[agent] + 10;
-      }
-    }
+    state.time[agent] = end;
 
     state.times_searched[agent]++;
 
@@ -139,19 +143,37 @@ template <class State> double search(State pre_state, State post_state, Args arg
 template <class State> std::optional<State> triageReg(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
-  if (state.role[agent] == "medic" && state.loc[agent] == area && 
+  auto start = args["start"];
+  auto duration = args["duration"];
+  int end = start + duration;
+  if (state.role[agent] == "medic" && state.agent_loc[agent] == area && 
       !state.r_seen[agent].empty() && state.time[agent] <= 893) {
-    
+
+    state.read_role[agent] = std::max(state.read_role[agent],end);
+    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
+    state.read_r_seen[agent] = std::max(state.read_r_seen[agent],end);
+    state.read_time[agent] = std::max(state.read_time[agent],end);
+
     for (auto r : state.r_seen[agent]) {
+      state.read_p_obs[r] = std::max(state.read_p_obs[r],end);
       if (!state.p_obs[r]) {
+        state.write_r_vic_loc[area] = end;
+        state.write_r_seen[agent] = end;
+        state.write_r_triage_total = end;
+        state.write_time[agent] = end;
+
+        state.read_r_vic_loc[area] = std::max(state.read_r_vic_loc[area],end);
+        state.read_r_triage_total = std::max(state.read_r_triage_total,end)
+
         std::erase(state.r_vic_loc[area], r);
-        state.r_seen[agent].pop_back();
+        std::erase(state.r_seen[agent],r);
+        state.r_triage_total = state.r_triage_total + 1; 
+        state.time[agent] = end;
+        return state;
     }
 
-    state.r_triage_total = state.r_triage_total + 1; 
-    state.time[agent] = state.time[agent] + 7;
 
-    return state;
+    return std::nullopt;
   }
   else {
     return std::nullopt;
@@ -165,39 +187,55 @@ template <class State> double triageReg(State pre_state,State post_state, Args a
 template <class State> std::optional<State> wakeCrit(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
+  auto start = args["start"];
+  auto duration = args["duration"];
+  int end = start + duration;
 
   int a_count = 0;
   bool have_medic = false;
   int help_count = 0;
   for (auto a : state.agents) {
-    if (state.loc[a] == area) {
+    state.read_agent_loc[a] = std::max(state.read_agent_loc[a],end);
+    if (state.agent_loc[a] == area) {
       a_count++;
+      state.read_role[a] = std::max(state.read_role[a],end); 
       if (state.role[a] == "medic") {
         have_medic = true;
       }
-      
-      if (state.help_wake[agent]) {
+      state.read_help_wake[a] = std::max(state.read_help_wake[a],end);
+      if (state.help_wake[a]) {
         help_count++;
       }
     }
   }
 
-  if (state.loc[agent] == area && !state.c_seen[agent].empty() && 
+  if (state.agent_loc[agent] == area && !state.c_seen[agent].empty() && 
       a_count >= 3 && have_medic && state.time[agent] <= 885) {
+    
+    state.read_c_seen[agent] = std::max(state.read_c_seen[agent],end);
+    state.read_time[agent] = std::max(state.read_time[agent],end);
+
+    state.write_time[agent] = end;
+
     if (state.role[agent] != "medic") {
+      state.write_help_wake[agent] = end;
       state.help_wake[agent] = true;
-      state.time[agent] = state.time[agent] + 7;
+      state.time[agent] = end;;
       return state;
     }
 
     if (help_count >= 2) {
       for (auto a : state.agents) {
-        state.help_wake[agent] = false;
+        state.write_help_wake[a] = end;
+        state.help_wake[a] = false;
       } 
       for (auto c : state.c_seen[agent]) {
+        state.read_p_obs[c] = std::max(state.read_p_obs[c],end);
         if (!state.p_obs[c]) {
+          state.read_c_awake[c] = std::max(state.read_c_awake[c],end);
+          state.write_c_awake[c] = end;
           state.c_awake[c] = true;
-          state.time[agent] = state.time[agent] + 7;
+          state.time[agent] = end;
           return state;
         }
       }
@@ -212,7 +250,7 @@ template <class State> std::optional<State> wakeCrit(State state, Args args) {
 template <class State> std::optional<State> triageCrit(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
-  if (state.role[agent] == "medic" && state.loc[agent] == area && 
+  if (state.role[agent] == "medic" && state.agent_loc[agent] == area && 
       !state.c_seen[agent].empty() && state.time[agent] <= 892) {
     state.y_seen[agent] = state.y_seen[agent] - 1;
     state.y_vic[area] = state.y_vic[area] - 1;
@@ -1320,45 +1358,77 @@ template <class State> pTasks leave_mid_YF(State state, Args args) {
 class SARState {
   public:
     std::vector<std::string> agents;
+
+    std::unordered_map<std::string, std::string> role;
+    std::unordered_map<std::string, int> read_role;
+    std::unordered_map<std::string, int> write_role;
+
     std::unordered_map<std::string, std::string> agent_loc;
+    std::unordered_map<std::string, int> read_agent_loc;
+    std::unordered_map<std::string, int> write_agent_loc;
+
     std::unordered_map<std::string, std::vector<std::string>> c_vic_loc;
+    std::unordered_map<std::string, int> read_c_vic_loc;
+    std::unordered_map<std::string, int> write_c_vic_loc;
+
     std::unordered_map<std::string, std::vector<std::string>> r_vic_loc;
+    std::unordered_map<std::string, int> read_r_vic_loc;
+    std::unordered_map<std::string, int> write_r_vic_loc;
+
     std::unordered_map<std::string, bool> v_obs;
+    std::unordered_map<std::string, int> read_v_obs;
+    std::unordered_map<std::string, int> write_v_obs;
+
     std::unordered_map<std::string, bool> p_obs;
+    std::unordered_map<std::string, int> read_p_obs;
+    std::unordered_map<std::string, int> write_p_obs;
+
     std::unordered_map<std::string, bool> c_awake;
+    std::unordered_map<std::string, int> read_c_awake;
+    std::unordered_map<std::string, int> write_c_awake;
+
     std::unordered_map<std::string, std::unordered_map<std::string,int>> blockage;
+    std::unordered_map<std::string, std::unordered_map<std::string,int>> read_blockage;
+    std::unordered_map<std::string, std::unordered_map<std::string,int>> write_blockage;
+
     std::unordered_map<std::string, bool> help_wake;
+    std::unordered_map<std::string, int> read_help_wake;
+    std::unordered_map<std::string, int> write_help_wake;
+
     int c_triage_total;
+    int read_c_triage_total;
+    int write_c_triage_total;
+
     int r_triage_total;
+    int read_r_triage_total;
+    int write_r_triage_total;
+
     int c_max;
     int r_max;
+
     std::unordered_map<std::string, std::vector<std::string>> c_seen;
+    std::unordered_map<std::string, int> read_c_seen;
+    std::unordered_map<std::string, int> write_c_seen;
+
     std::unordered_map<std::string, std::vector<std::string>> r_seen;
-    std::vector<std::string> left_region;
-    std::vector<std::string> right_region;
-    std::vector<std::string> mid_region;
-    bool left_explored;
-    bool right_explored;
-    bool mid_explored;
+    std::unordered_map<std::string, int> read_r_seen;
+    std::unordered_map<std::string, int> write_r_seen;
+
     std::unordered_map<std::string, int> time;
+    std::unordered_map<std::string, int> read_time;
+    std::unordered_map<std::string, int> write_time;
+
     std::unordered_map<std::string, int> times_searched;
-    std::unordered_map<std::string, std::vector<std::string>> loc_tracker;
+    std::unordered_map<std::string, int> read_times_searched;
+    std::unordered_map<std::string, int> write_times_searched;
+
     std::unordered_map<std::string, std::unordered_map<std::string, int>> visited; 
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> read_visited;
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> write_visited;
     
     // Not part of the state representation!
+    std::unordered_map<std::string, std::vector<std::string>> loc_tracker;
     int seed = 100;
-
-    void set_max_vic() {
-      g_max = 0;
-      for (auto i = g_vic.begin(); i != g_vic.end(); ++i) {
-        g_max += i->second;
-      }
-
-      y_max = 0;
-      for (auto i = y_vic.begin(); i != y_vic.end(); ++i) {
-        y_max += i->second;
-      }
-    }
 
     json to_json() {
       return json{{"loc", this->loc},
