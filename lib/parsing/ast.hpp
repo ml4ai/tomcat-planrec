@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include "../Variable.h"
 #include "../Constant.h"
+#include "../Predicate.h"
 #include "../Term.h"
 #include "../Function.h"
 
@@ -21,6 +22,7 @@ namespace ast {
     using Variable = Variable;
     using Constant = Constant;
     using Term = Term;
+    using Predicate = Predicate;
 
     struct PrimitiveType {
         Name name;
@@ -48,10 +50,6 @@ namespace ast {
     template <class T> struct TypedList {
         std::vector<ExplicitlyTypedList<T>> explicitly_typed_lists;
         boost::optional<ImplicitlyTypedList<T>> implicitly_typed_list;
-    };
-
-    struct Predicate {
-        Name name;
     };
 
     struct AtomicFormulaSkeleton : x3::position_tagged {

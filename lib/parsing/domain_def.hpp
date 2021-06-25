@@ -27,7 +27,7 @@ namespace parser {
         "primitive_type";
     rule<class TEitherType, EitherType> const either_type = "either_type";
     rule<class TType, Type> const type = "type";
-    rule<class Predicate, Name> const predicate = "predicate";
+    rule<class TPredicate, Name> const predicate = "predicate";
     rule<class TRequirements, std::vector<Name>> const requirements =
         "requirements";
     rule<class TRequirement, std::vector<Name>> const requirement =
