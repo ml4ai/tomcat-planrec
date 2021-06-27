@@ -238,16 +238,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
-    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type).name == "site");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type) == "site");
     
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
-    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type).name == "material");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type) == "material");
 
     BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] == "rock");//default type = object
-
-// print verification. Delete this as I work through it:
-
-    // THis is for the last object if iplicitly typed:
-    cout << prob.objects.implicitly_typed_list.value()[0] << endl;
 
 }
