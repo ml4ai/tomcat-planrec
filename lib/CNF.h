@@ -1,8 +1,3 @@
-package aima.core.logic.fol.kb.data;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 #include "../Clause.h"
 #include <string>
 #include <vector>

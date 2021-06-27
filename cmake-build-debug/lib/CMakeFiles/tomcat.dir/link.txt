@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libtomcat.a CMakeFiles/tomcat.dir/parsing/domain.cpp.o CMakeFiles/tomcat.dir/parsing/ast.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libtomcat.a

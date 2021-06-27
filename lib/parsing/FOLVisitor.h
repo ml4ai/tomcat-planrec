@@ -1,12 +1,3 @@
-//
-// Created by Liang Zhang on 6/26/21.
-//
-
-#ifndef PROJECTNAME_FOLVISITOR_H
-#define PROJECTNAME_FOLVISITOR_H
-
-#endif // PROJECTNAME_FOLVISITOR_H
-
 #include "ast.hpp"
 #include "../TermEquality.h"
 #include "../ConnectedSentence.h"
