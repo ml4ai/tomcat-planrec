@@ -205,6 +205,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // TODO add tests for parsing or, not, imply and other complex sentences.
 
+    // TODO Salena: 3rd object, rock, is implicit. 
     storage = R"(
         (define
             (problem adobe)
@@ -212,11 +213,36 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:requirements :strips :typing)
             (:objects
                 factory house - site
-                adobe - material)
-        )
+                adobe - material
+                rock) ;testing implicitly-typed
+;           (:init
+;               (on-site adobe factory)
+;               )   
+;           (:goal
+;               (on-site adobe house)      
+                )
     )";
 
-    // Need to reset iter and end for every new string.
+
     auto prob = parse<Problem>(storage, problem());
+
     BOOST_TEST(prob.name == "adobe");
+    BOOST_TEST(prob.domain_name == "construction");
+
+    // Test requirements
+    BOOST_TEST(prob.requirements[0] == "strips");
+    BOOST_TEST(prob.requirements[1] == "typing");
+
+    // Test objects
+    BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 2);
+    
+    BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
+    BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type) == "site");
+    
+    BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type) == "material");
+
+    BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] == "rock");//default type = object
+
 }
