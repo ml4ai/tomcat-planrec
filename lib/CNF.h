@@ -1,6 +1,7 @@
-#include "../Clause.h"
+//#include "../Clause.h"
 #include <string>
 #include <vector>
+#include "Sentence.h"
 
 /**
  * Conjunctive Normal Form (CNF) : a conjunction of clauses, where each clause
