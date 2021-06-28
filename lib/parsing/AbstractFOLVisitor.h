@@ -1,6 +1,12 @@
 #include "FOLVisitor.h"
 #include "../Variable.h"
 #include "../QuantifiedSentence.h"
+#include "Predicate.h"
+#include "Constant.h"
+#include "../Function.h"
+#include "../TermEquality.h"
+#include "../NotSentence.h"
+#include "../ConnectedSentence.h"
 #include <vector>
 
 class AbstractFOLVisitor: FOLVisitor{
@@ -32,25 +38,25 @@ class AbstractFOLVisitor: FOLVisitor{
 		vector<Term> terms = predicate.getTerms();
 		vector<Term> newTerms;
 		for (int i = 0; i < terms.size(); i++) {
-			Term t = terms.get(i);
+			Term t = terms[i];
 			Term subsTerm = (Term) t.accept(this, arg);
-			newTerms.add(subsTerm);
+			newTerms.push_back(subsTerm);
 		}
 		return new Predicate(predicate.getPredicateName(), newTerms);
 
 	}
 
-	public auto visitTermEquality(TermEquality equality, auto arg) {
+         auto visitTermEquality(TermEquality equality, auto arg) {
 		Term newTerm1 = (Term) equality.getTerm1().accept(this, arg);
 		Term newTerm2 = (Term) equality.getTerm2().accept(this, arg);
 		return new TermEquality(newTerm1, newTerm2);
 	}
 
-	public auto visitConstant(Constant constant, auto arg) {
+	 auto visitConstant(Constant constant, auto arg) {
 		return constant;
 	}
 
-	public auto visitFunction(Function function, auto arg) {
+	 auto visitFunction(Function function, auto arg) {
 		vector<Term> terms = function.getTerms();
 		vector<Term> newTerms = new Arrayvector<Term>();
 		for (int i = 0; i < terms.size(); i++) {
@@ -61,12 +67,12 @@ class AbstractFOLVisitor: FOLVisitor{
 		return new Function(function.getFunctionName(), newTerms);
 	}
 
-	public auto visitNotSentence(NotSentence sentence, auto arg) {
+	 auto visitNotSentence(NotSentence sentence, auto arg) {
 		return new NotSentence((Sentence) sentence.getNegated().accept(this,
 				arg));
 	}
 
-	public auto visitConnectedSentence(ConnectedSentence sentence, auto arg) {
+	 auto visitConnectedSentence(ConnectedSentence sentence, auto arg) {
 		Sentence substFirst = (Sentence) sentence.getFirst().accept(this, arg);
 		Sentence substSecond = (Sentence) sentence.getSecond()
 				.accept(this, arg);
