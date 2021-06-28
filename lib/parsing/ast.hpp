@@ -1,9 +1,13 @@
 #pragma once
 
+#include "../fol/Constant.h"
+#include "../fol/Function.h"
+#include "../fol/Predicate.h"
+#include "../fol/Term.h"
+#include "../fol/Variable.h"
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
-//#include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/variant/recursive_wrapper.hpp>
 #include <iostream>
 #include <string>
@@ -14,27 +18,15 @@ namespace ast {
     using Name = std::string;
     namespace x3 = boost::spirit::x3;
 
-    struct Constant {
-        Name name;
-    };
+    // Import some classes that are more generally useful
+    using fol::Constant;
+    using fol::Predicate;
+    using fol::Term;
+    using fol::Variable;
 
-    struct Variable : x3::position_tagged {
-        Name name;
-    };
+    using PrimitiveType = std::string;
 
-    struct PrimitiveType {
-        Name name;
-        bool operator==(const PrimitiveType& primitive_type) const;
-        struct hash {
-            std::size_t operator()(PrimitiveType const& type) const noexcept {
-                return std::hash<std::string>{}(type.name);
-            }
-        };
-    };
-
-    struct EitherType {
-        std::unordered_set<PrimitiveType, PrimitiveType::hash> primitive_types;
-    };
+    using EitherType = std::unordered_set<PrimitiveType>;
 
     using Type = boost::variant<PrimitiveType, EitherType>;
 
@@ -48,10 +40,6 @@ namespace ast {
     template <class T> struct TypedList {
         std::vector<ExplicitlyTypedList<T>> explicitly_typed_lists;
         boost::optional<ImplicitlyTypedList<T>> implicitly_typed_list;
-    };
-
-    struct Predicate {
-        Name name;
     };
 
     struct AtomicFormulaSkeleton : x3::position_tagged {
@@ -68,20 +56,30 @@ namespace ast {
         std::vector<T> args;
     };
 
-    using Term = boost::variant<Constant, Variable>;
+    template <class T> struct NegativeLiteral {
+        AtomicFormula<T> atomic_formula;
+    };
+
+    template <class T>
+    using Literal = boost::variant<AtomicFormula<T>, NegativeLiteral<T>>;
 
     // Forward declare classes in order to work with Boost's recursive_wrapper
     struct AndSentence;
     struct OrSentence;
     struct NotSentence;
     struct ImplySentence;
+    struct ExistsSentence;
+    struct ForallSentence;
 
     using Sentence = boost::variant<Nil,
                                     AtomicFormula<Term>,
+                                    Literal<Term>,
                                     boost::recursive_wrapper<AndSentence>,
                                     boost::recursive_wrapper<OrSentence>,
                                     boost::recursive_wrapper<NotSentence>,
-                                    boost::recursive_wrapper<ImplySentence>>;
+                                    boost::recursive_wrapper<ImplySentence>,
+                                    boost::recursive_wrapper<ExistsSentence>,
+                                    boost::recursive_wrapper<ForallSentence>>;
 
     // TODO add quantified sentences
 
@@ -100,6 +98,16 @@ namespace ast {
     struct ImplySentence {
         Sentence sentence1;
         Sentence sentence2;
+    };
+
+    struct ExistsSentence {
+        std::vector<TypedList<Variable>> variables;
+        Sentence sentence;
+    };
+
+    struct ForallSentence {
+        std::vector<TypedList<Variable>> variables;
+        Sentence sentence;
     };
 
     struct Domain : x3::position_tagged {
