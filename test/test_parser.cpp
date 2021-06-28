@@ -204,6 +204,36 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Variable>(af.args[1]).name == "variable");
 
     // TODO add tests for parsing or, not, imply and other complex sentences.
+    auto s2 = parse<Sentence>("(or () (predicate name ?variable))", sentence());
+    auto os = get<OrSentence>(s2);
+    BOOST_TEST(os.sentences.size() == 2);
+    BOOST_TEST(get<Nil>(os.sentences[0]) == Nil());
+
+    auto af2 = get<AtomicFormula<Term>>(os.sentences[1]);
+    BOOST_TEST(af2.predicate.name == "predicate");
+    BOOST_TEST(af2.args.size() == 2);
+    BOOST_TEST(get<Constant>(af2.args[0]).name == "name");
+    BOOST_TEST(get<Variable>(af2.args[1]).name == "variable");
+
+    auto s3 = parse<Sentence>("(imply () (predicate name ?variable))", sentence());
+    auto is = get<ImplySentence>(s3);
+    BOOST_TEST(get<Nil>(is.sentence1) == Nil());
+
+    auto af3 = get<AtomicFormula<Term>>(is.sentence2);
+    BOOST_TEST(af3.predicate.name == "predicate");
+    BOOST_TEST(af3.args.size() == 2);
+    BOOST_TEST(get<Constant>(af3.args[0]).name == "name");
+    BOOST_TEST(get<Variable>(af3.args[1]).name == "variable");
+
+    auto s4 = parse<Sentence>("(not (predicate name ?variable))", sentence());
+    auto ns = get<NotSentence>(s4);
+
+    auto af4 = get<AtomicFormula<Term>>(ns.sentence);
+    BOOST_TEST(af4.predicate.name == "predicate");
+    BOOST_TEST(af4.args.size() == 2);
+    BOOST_TEST(get<Constant>(af4.args[0]).name == "name");
+    BOOST_TEST(get<Variable>(af4.args[1]).name == "variable");
+
 
     // TODO Salena: 3rd object, rock, is implicit. 
     storage = R"(
