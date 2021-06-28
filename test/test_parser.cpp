@@ -215,9 +215,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 factory house - site
                 adobe - material
                 rock) ;testing implicitly-typed
-;           (:init
-;               (on-site adobe factory)
-;               )   
+           (:init
+               (on-site adobe factory)
+               )   
 ;           (:goal
 ;               (on-site adobe house)      
                 )
@@ -239,10 +239,20 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
     BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type) == "site");
-    
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
     BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type) == "material");
-
     BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] == "rock");//default type = object
+
+
+    // Test initial state
+    BOOST_TEST(boost::get<AtomicFormula<Term>>(prob.init).predicate.name == "on-site");
+    cout << boost::get<AtomicFormula<Term>>(prob.init).predicate.name << endl;
+//    cout << boost::get<Constant>(prob.init.args[0]).name << endl; 
+//    cout << boost::get<Variable>(af.args[1]).name == "variable");
+//    cout <<prob.init.literal_terms[0].entries[1] << endl;
+
+
+
+
 
 }

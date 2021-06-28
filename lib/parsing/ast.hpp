@@ -124,6 +124,7 @@ namespace ast {
         Name domain_name;                      // for domain association
         std::vector<std::string> requirements; // for any problem requirements
         TypedList<Name> objects;
+        Literal<Term> init;
     }; // end problem struct
 
     // struct Action : x3::position_tagged {

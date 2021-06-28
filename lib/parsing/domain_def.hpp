@@ -11,7 +11,7 @@
 namespace parser {
     using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
         ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList,
-        ast::TypedList, ast::Name;
+        ast::TypedList, ast::Name, ast::Term, ast::Literal;
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -180,6 +180,7 @@ namespace parser {
                                 +atomic_formula_skeleton >> ')';
     BOOST_SPIRIT_DEFINE(predicates);
 
+
     rule<class TDomain, ast::Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '(' >> lit("domain") >> name
                             >> ')' >> requirements >> -types >> -constants >>
@@ -190,11 +191,19 @@ namespace parser {
     auto const objects_def = '(' >> lit(":objects") >> typed_list_names >> ')';
     BOOST_SPIRIT_DEFINE(objects);
 
+    rule<class TInit, Literal<Term>> const init = "init";
+    auto const init_def = '(' >> lit(":init") >> literal_terms >> ')';
+    BOOST_SPIRIT_DEFINE(init);
+
     rule<class TProblem, ast::Problem> const problem = "problem";
-    auto const problem_def = '(' >> lit("define") >> '(' >>
-                             lit("problem") >> name >> ')' >> '(' >>
-                             lit(":domain") >> name >> ')' >> -requirements >>
-                             -objects >> ')';
+    auto const problem_def = '(' 
+                          >> lit("define") 
+                          >> '(' >> lit("problem") >> name >> ')' 
+                          >> '(' >> lit(":domain") >> name >> ')' 
+                          >> -requirements 
+                          >> -objects 
+                          >> -init
+                          >> ')';
     BOOST_SPIRIT_DEFINE(problem);
 
     BOOST_SPIRIT_DEFINE(constant,
