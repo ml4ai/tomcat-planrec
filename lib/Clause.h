@@ -4,6 +4,10 @@
 
 #include "Literal.h"
 
-struct Clause {
+//struct Clause {
+//    std::vector<Literal> literals;
+//};
+
+class Clause{
     std::vector<Literal> literals;
 };
