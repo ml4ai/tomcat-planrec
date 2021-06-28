@@ -1,11 +1,13 @@
 #include "Sentence.h"
 #include <vector>
+#include <string>
 #include "parsing/FOLVisitor.h"
 
 class NotSentence: Sentence{
   private:
     Sentence negated;
     vector<Sentence> args;
+    string stringRep = "";
 
   public:
     NotSentence(Sentence negated) {

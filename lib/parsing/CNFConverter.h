@@ -1,4 +1,7 @@
-#include "../CNF.h"
+// #include "CNF.h"
+// #include "../Sentence.h"
+#include <vector>
+// #include "Sentence.h"
 #include "../Sentence.h"
 #include "FOLParser.h"
 #include "SubstVisitor.h"
@@ -11,6 +14,8 @@
 #include "../ConnectedSentence.h"
 #include "../Connectors.h"
 #include "../QuantifiedSentence.h"
+#include "CNF.h"
+
 
 class ImplicationsOut : FOLVisitor {
   public:

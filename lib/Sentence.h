@@ -10,4 +10,4 @@
 
 class Sentence: FOLNode{
     Sentence copy();
-}
+};

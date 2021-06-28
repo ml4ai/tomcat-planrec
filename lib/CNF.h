@@ -19,7 +19,7 @@ class CNF {
         for (auto iter = conjunctionOfClauses.begin();
              iter != conjunctionOfClauses.end();
              ++iter) {
-            this->conjunctionOfClauses.push_back(iter);
+            this->conjunctionOfClauses.push_back(*iter);
         }
     }
 
@@ -27,7 +27,7 @@ class CNF {
     int getNumberOfClauses() { return this->conjunctionOfClauses.size(); }
 
   public:
-    std::vector()<Clause> getConjunctionOfClauses() {
+    std::vector<Clause> getConjunctionOfClauses() {
         return this->conjunctionOfClauses;
     }
 

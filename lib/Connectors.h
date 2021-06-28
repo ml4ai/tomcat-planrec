@@ -2,7 +2,7 @@
 
 class Connectors {
   public:
-    const static string AND = "AND";
+    const static std::string AND = "AND";
 
     const static string OR = "OR";
 

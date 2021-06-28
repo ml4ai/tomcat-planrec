@@ -1,19 +1,24 @@
-//
-// Created by Liang Zhang on 6/26/21.
-//
-
-#ifndef PROJECTNAME_TERMEQUALITY_H
-#define PROJECTNAME_TERMEQUALITY_H
-
-#endif // PROJECTNAME_TERMEQUALITY_H
 #include "AtomicSentence.h"
 #include "Term.h"
-#include <vector>
 #include <string>
+#include <vector>
 
-class TermEquality: AtomicSentence {
+class TermEquality : AtomicSentence {
+  private:
     Term term1, term2;
-    vector<Term> terms;
-    string stringRep = NULL;
-    int hashCode = 0;
+    std::vector<Term> terms;
+    string stringRep = "";
+
+  public:
+    static string getEqualitySynbol() { return "="; }
+    TermEquality(Term term1, Term term2) {
+        this->term1 = term1;
+        this->term2 = term2;
+        this->terms.push_back(term1);
+        this->terms.push_back(term2);
+    }
+
+    Term getTerm1() { return this->term1; }
+
+    Term getTerm2() { return this->term2; }
 };
