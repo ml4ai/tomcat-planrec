@@ -181,9 +181,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test parsing literals of terms
     auto positive_literal_of_terms =
         parse<Literal<Term>>("(predicate constant ?variable)", literal_terms());
-    BOOST_TEST(
-        get<AtomicFormula<Term>>(positive_literal_of_terms).predicate ==
-        "predicate");
+    BOOST_TEST(get<AtomicFormula<Term>>(positive_literal_of_terms).predicate ==
+               "predicate");
 
     auto negative_literal_of_terms = parse<Literal<Term>>(
         "(not (predicate constant ?variable))", literal_terms());
@@ -205,8 +204,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // TODO add tests for parsing or, not, imply and other complex sentences.
 
     // TODO Salena: 3rd object, rock, is implicit.
-            // Think about function that takes typed lists and returns sets of
-            // explicit and implicit.
+    // Think about function that takes typed lists and returns sets of
+    // explicit and implicit.
 
     storage = R"(
         (define
@@ -225,7 +224,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 )
     )";
 
-
     auto prob = parse<Problem>(storage, problem());
 
     BOOST_TEST(prob.name == "adobe");
@@ -240,19 +238,20 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
-    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type) == "site");
+    BOOST_TEST(get<ast::PrimitiveType>(
+                   prob.objects.explicitly_typed_lists[0].type) == "site");
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
-    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type) == "material");
-    BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] == "rock");//default type = object
-
+    BOOST_TEST(get<ast::PrimitiveType>(
+                   prob.objects.explicitly_typed_lists[1].type) == "material");
+    BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] ==
+               "rock"); // default type = object
 
     // Test initial state
-    BOOST_TEST(boost::get<AtomicFormula<Term>>(prob.init).predicate == "on-site");
-    BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[0]).name == "adobe");
-    BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[1]).name == "factory");
-
-
-
-
-
+    BOOST_TEST(get<AtomicFormula<Term>>(prob.init).predicate == "on-site");
+    BOOST_TEST(
+        get<Constant>(get<AtomicFormula<Term>>(prob.init).args[0]).name ==
+        "adobe");
+    BOOST_TEST(
+        get<Constant>(get<AtomicFormula<Term>>(prob.init).args[1]).name ==
+        "factory");
 }
