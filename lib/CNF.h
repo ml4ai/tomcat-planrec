@@ -10,12 +10,7 @@ namespace ast {
         std::vector<Clause> clauses = {};
         Sentence operator()(Nil s) const { return s; }
         Sentence operator()(AtomicFormula<Term> s) const { return s; }
-        Sentence operator()(Literal<Term> s) const {
-            Clause clause;
-            clause.literals.push_back(s);
-            this->clauses.push_back(clause);
-            return s;
-        }
+        Sentence operator()(Literal<Term> s) const { return s; }
         Sentence operator()(AndSentence s) const { return s; }
         Sentence operator()(OrSentence s) const {
             // auto
