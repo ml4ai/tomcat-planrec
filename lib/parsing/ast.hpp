@@ -125,7 +125,6 @@ namespace ast {
         std::vector<std::string> requirements;
         TypedList<Name> objects;
         Literal<Term> init;
-        Sentence goal;
     }; // end problem struct
 
     // struct Action : x3::position_tagged {

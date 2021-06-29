@@ -200,10 +200,6 @@ namespace parser {
     auto const init_def = '(' >> lit(":init") >> literal_terms >> ')';
     BOOST_SPIRIT_DEFINE(init);
 
-/*    rule<class TGoal, Sentence<?????>> const goal = "goal";
-    auto const goal_def = '(' >> lit(":goal") >> ?????? >> ')';
-    BOOST_SPIRIT_DEFINE(goal);
-*/
     rule<class TProblem, ast::Problem> const problem = "problem";
     auto const problem_def = '(' 
                           >> lit("define") 
@@ -212,7 +208,6 @@ namespace parser {
                           >> -requirements 
                           >> -objects 
                           >> -init
-//                          >> -goal
                           >> ')';
     BOOST_SPIRIT_DEFINE(problem);
 
