@@ -4,7 +4,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/range/iterator_range.hpp>
 #include "Node.h"
-#include "util.h"
+#include "../util.h"
 
 //adjacency_list<OutEdgeList, VertexList, Directed,
 //                VertexProperties, EdgeProperties,

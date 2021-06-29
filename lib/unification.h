@@ -1,21 +1,21 @@
 #pragma once
 
-#include "Constant.h"
-#include "Variable.h"
+#include "fol/Constant.h"
+#include "fol/Variable.h"
 #include "util.h"
 #include <iostream>
 #include <optional>
 #include <unordered_map>
 #include <variant>
 
-using Substitution = std::unordered_map<std::string, Constant>;
+using Substitution = std::unordered_map<std::string, fol::Constant>;
 
 // Forward declaration
 template <class T>
-Substitution unify_var(Variable& var, T x, Substitution& theta);
+Substitution unify_var(fol::Variable& var, T x, Substitution& theta);
 
 template <class T>
-auto unify(Variable& x, T& y, std::optional<Substitution>& theta) {
+auto unify(fol::Variable& x, T& y, std::optional<Substitution>& theta) {
     return theta ? unify_var(x, y, theta) : std::nullopt;
 }
 
@@ -29,13 +29,13 @@ template <class T> auto unify(T& x, T& y) {
     return unify(x, y, subst);
 }
 
-auto unify(Constant& x, Constant& y, std::optional<Substitution>& theta) {
+auto unify(fol::Constant& x, fol::Constant& y, std::optional<Substitution>& theta) {
     return theta ? theta : std::nullopt;
 }
 
 template <class T>
 std::optional<Substitution>
-unify_var(Variable& var, T x, std::optional<Substitution>& theta) {
+unify_var(fol::Variable& var, T x, std::optional<Substitution>& theta) {
     if (in(var.name, theta.value())) {
         auto val = theta.value()[var.name];
         return unify(val, x, theta);
