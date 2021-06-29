@@ -11,5 +11,5 @@ using namespace std;
 
 BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto s = parse<ast::Sentence>("(and (a) (or b c))", sentence());
-    auto clauses = boost::apply_visitor(ast::DistributeOrOverAnd(), s);
+    to_CNF(s);
 }

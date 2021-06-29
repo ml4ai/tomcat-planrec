@@ -6,6 +6,9 @@
 
 namespace ast {
     class DistributeOrOverAnd : public boost::static_visitor<ast::Sentence> {
+      private:
+        std::vector<Clause> clauses = {};
+
       public:
         Nil operator()(Nil s) const { return s; }
         AtomicFormula<Term> operator()(AtomicFormula<Term> s) const {
@@ -19,4 +22,8 @@ namespace ast {
         ExistsSentence operator()(ExistsSentence s) const { return s; }
         ForallSentence operator()(ForallSentence s) const { return s; }
     };
+
+    void to_CNF(Sentence s) {
+        auto return_val = boost::apply_visitor(DistributeOrOverAnd(), s);
+    }
 } // namespace ast
