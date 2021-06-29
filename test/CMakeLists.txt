@@ -18,6 +18,7 @@ target_include_directories(test_unification PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # Test cnf_conversion
 add_executable(test_cnf_conversion test_cnf_conversion.cpp)
+target_link_libraries(test_cnf_conversion tomcat)
 target_include_directories(test_cnf_conversion PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # test DFS planner 
