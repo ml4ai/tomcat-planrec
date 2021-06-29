@@ -11,7 +11,7 @@
 namespace parser {
     using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
         ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList,
-        ast::TypedList, ast::Name, ast::Term, ast::Literal;
+        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence;
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -119,51 +119,85 @@ namespace parser {
         atomic_formula_terms | negative_literal_terms;
     BOOST_SPIRIT_DEFINE(literal_terms);
 
+
+
+
+
+/****** Sentence Section *****/
     // Nil
     rule<class TNil, ast::Nil> const nil = "nil";
     auto const nil_def = '(' >> lit(")");
     BOOST_SPIRIT_DEFINE(nil);
 
+
     rule<class TSentence, ast::Sentence> sentence = "sentence";
+
 
     rule<class TAndSentence, ast::AndSentence> const and_sentence =
         "and_sentence";
-    auto const and_sentence_def = '(' >> lit("and") >> *sentence >> ')';
+    auto const and_sentence_def = '(' 
+                               >> lit("and") 
+                               >> *sentence 
+                               >> ')';
     BOOST_SPIRIT_DEFINE(and_sentence);
 
+
     rule<class TOrSentence, ast::OrSentence> const or_sentence = "or_sentence";
-    auto const or_sentence_def = '(' >> lit("or") >> *sentence >> ')';
+    auto const or_sentence_def = '(' 
+                               >> lit("or") 
+                               >> *sentence 
+                               >> ')';
     BOOST_SPIRIT_DEFINE(or_sentence);
+
 
     rule<class TNotSentence, ast::NotSentence> const not_sentence =
         "not_sentence";
-    auto const not_sentence_def = '(' >> lit("not") >> sentence >> ')';
+    auto const not_sentence_def = '(' 
+                               >> lit("not") 
+                               >> sentence 
+                               >> ')';
     BOOST_SPIRIT_DEFINE(not_sentence);
+
 
     rule<class TImplySentence, ast::ImplySentence> const imply_sentence =
         "imply_sentence";
-    auto const imply_sentence_def = '(' >> lit("imply") >> sentence >> sentence
-                                    >> ')';
+    auto const imply_sentence_def = '(' 
+                                >> lit("imply") 
+                                >> sentence 
+                                >> sentence
+                                >> ')';
     BOOST_SPIRIT_DEFINE(imply_sentence);
+
 
     rule<class TExistsSentence, ast::ExistsSentence> const exists_sentence =
         "exists_sentence";
-    auto const exists_sentence_def = '(' >> lit("exists") >> '(' >>
-                                     *typed_list_variables >> ')' >> sentence >>
-                                     ')';
+    auto const exists_sentence_def = '(' 
+                                >> lit("exists") 
+                                >> '(' 
+                                >> *typed_list_variables 
+                                >> ')' 
+                                >> sentence 
+                                >> ')';
     BOOST_SPIRIT_DEFINE(exists_sentence);
+
 
     rule<class TForallSentence, ast::ForallSentence> const forall_sentence =
         "forall_sentence";
-    auto const forall_sentence_def = '(' >> lit("forall") >> '(' >>
-                                     *typed_list_variables >> ')' >> sentence >>
-                                     ')';
+    auto const forall_sentence_def = '(' 
+                                >> lit("forall") 
+                                >> '(' 
+                                >> *typed_list_variables 
+                                >> ')' 
+                                >> sentence 
+                                >> ')';
     BOOST_SPIRIT_DEFINE(forall_sentence);
 
     auto const sentence_def = nil | atomic_formula_terms | literal_terms |
                               and_sentence | or_sentence | not_sentence |
                               imply_sentence;
     BOOST_SPIRIT_DEFINE(sentence);
+
+/****** End Sentence Section *****/
 
 
     rule<class TTypes, TypedList<Name>> const types = "types";
@@ -200,6 +234,10 @@ namespace parser {
     auto const init_def = '(' >> lit(":init") >> literal_terms >> ')';
     BOOST_SPIRIT_DEFINE(init);
 
+    rule<class TGoal, Sentence> const goal = "goal";
+    auto const goal_def = '(' >> lit(":goal") >> sentence >> ')';
+    BOOST_SPIRIT_DEFINE(goal);
+
     rule<class TProblem, ast::Problem> const problem = "problem";
     auto const problem_def = '(' 
                           >> lit("define") 
@@ -208,6 +246,7 @@ namespace parser {
                           >> -requirements 
                           >> -objects 
                           >> -init
+                          >> -goal
                           >> ')';
     BOOST_SPIRIT_DEFINE(problem);
 

@@ -245,14 +245,12 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type) == "material");
     BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] == "rock");//default type = object
 
-
     // Test initial state
     BOOST_TEST(boost::get<AtomicFormula<Term>>(prob.init).predicate.name == "on-site");
     BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[0]).name == "adobe"); 
     BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[1]).name == "factory");
 
-
-
-
+    // Test problem goal
+    
 
 }
