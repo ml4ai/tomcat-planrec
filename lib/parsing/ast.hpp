@@ -120,11 +120,12 @@ namespace ast {
     };
 
     struct Problem : x3::position_tagged {
-        Name name;                             // to just get name of problem
-        Name domain_name;                      // for domain association
-        std::vector<std::string> requirements; // for any problem requirements
+        Name name;                             
+        Name domain_name;                     
+        std::vector<std::string> requirements;
         TypedList<Name> objects;
         Literal<Term> init;
+        Sentence goal;
     }; // end problem struct
 
     // struct Action : x3::position_tagged {

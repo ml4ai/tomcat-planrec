@@ -206,6 +206,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // TODO add tests for parsing or, not, imply and other complex sentences.
 
     // TODO Salena: 3rd object, rock, is implicit. 
+            // Think about function that takes typed lists and returns sets of
+            // explicit and implicit.
+
     storage = R"(
         (define
             (problem adobe)
@@ -246,10 +249,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test initial state
     BOOST_TEST(boost::get<AtomicFormula<Term>>(prob.init).predicate.name == "on-site");
-    cout << boost::get<AtomicFormula<Term>>(prob.init).predicate.name << endl;
-//    cout << boost::get<Constant>(prob.init.args[0]).name << endl; 
-//    cout << boost::get<Variable>(af.args[1]).name == "variable");
-//    cout <<prob.init.literal_terms[0].entries[1] << endl;
+    BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[0]).name); 
+    BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[1]).name);
 
 
 
