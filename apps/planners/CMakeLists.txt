@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.19)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(Boost COMPONENTS graph REQUIRED)
-find_package(nlohmann_json 3.9.1 REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # Simple travel example, translated from PyHOP
 add_executable(simple_travel_planner simple_travel_planner.cpp)
