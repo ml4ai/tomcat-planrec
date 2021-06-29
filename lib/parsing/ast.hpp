@@ -72,7 +72,6 @@ namespace ast {
     struct ForallSentence;
 
     using Sentence = boost::variant<Nil,
-                                    AtomicFormula<Term>,
                                     Literal<Term>,
                                     boost::recursive_wrapper<AndSentence>,
                                     boost::recursive_wrapper<OrSentence>,
@@ -120,8 +119,8 @@ namespace ast {
     };
 
     struct Problem : x3::position_tagged {
-        Name name;                             
-        Name domain_name;                     
+        Name name;
+        Name domain_name;
         std::vector<std::string> requirements;
         TypedList<Name> objects;
         Literal<Term> init;

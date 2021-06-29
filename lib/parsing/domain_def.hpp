@@ -160,7 +160,7 @@ namespace parser {
                                      ')';
     BOOST_SPIRIT_DEFINE(forall_sentence);
 
-    auto const sentence_def = nil | atomic_formula_terms | literal_terms |
+    auto const sentence_def = nil | literal_terms |
                               and_sentence | or_sentence | not_sentence |
                               imply_sentence;
     BOOST_SPIRIT_DEFINE(sentence);
