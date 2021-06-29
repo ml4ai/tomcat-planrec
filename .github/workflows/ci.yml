@@ -21,8 +21,4 @@ jobs:
     - name: Continuous Integration
       run: |
         sudo apt-get install libboost-all-dev nlohmann-json3-dev libgraphviz-dev
-        mkdir build
-        cd build
-        cmake ..
-        make -j
-        make -j test
+        mkdir build && cd build && cmake .. && make -j && make -j test
