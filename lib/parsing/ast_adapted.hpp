@@ -23,7 +23,6 @@ BOOST_FUSION_ADAPT_STRUCT(ast::TypedList<ast::Variable>,
                           explicitly_typed_lists,
                           implicitly_typed_list)
 
-BOOST_FUSION_ADAPT_STRUCT(ast::Predicate, name)
 BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormulaSkeleton, predicate, variables)
 BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormula<ast::Term>, predicate, args)
 BOOST_FUSION_ADAPT_STRUCT(ast::NegativeLiteral<ast::Term>, atomic_formula)

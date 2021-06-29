@@ -183,12 +183,12 @@ namespace parser {
 
 
     rule<class TDomain, ast::Domain> const domain = "domain";
-    auto const domain_def = '(' >> lit("define") >> '(' 
-                         >> lit("domain") 
-                         >> name >> ')' 
-                         >> requirements 
-                         >> -types 
-                         >> -constants 
+    auto const domain_def = '(' >> lit("define") >> '('
+                         >> lit("domain")
+                         >> name >> ')'
+                         >> requirements
+                         >> -types
+                         >> -constants
                          >> -predicates >> ')';
     BOOST_SPIRIT_DEFINE(domain);
 
@@ -201,12 +201,12 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(init);
 
     rule<class TProblem, ast::Problem> const problem = "problem";
-    auto const problem_def = '(' 
-                          >> lit("define") 
-                          >> '(' >> lit("problem") >> name >> ')' 
-                          >> '(' >> lit(":domain") >> name >> ')' 
-                          >> -requirements 
-                          >> -objects 
+    auto const problem_def = '('
+                          >> lit("define")
+                          >> '(' >> lit("problem") >> name >> ')'
+                          >> '(' >> lit(":domain") >> name >> ')'
+                          >> -requirements
+                          >> -objects
                           >> -init
                           >> ')';
     BOOST_SPIRIT_DEFINE(problem);
