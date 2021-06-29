@@ -5,25 +5,40 @@
 #include "parsing/ast.hpp"
 
 namespace ast {
-    class DistributeOrOverAnd : public boost::static_visitor<ast::Sentence> {
+    class DistributeOrOverAnd
+        : public boost::static_visitor<std::vector<Clause>> {
       private:
         std::vector<Clause> clauses = {};
 
       public:
-        Nil operator()(Nil s) const { return s; }
-        AtomicFormula<Term> operator()(AtomicFormula<Term> s) const {
-            return s;
+        std::vector<Clause> operator()(Nil s) const { return this->clauses; }
+        std::vector<Clause> operator()(AtomicFormula<Term> s) const {
+            return this->clauses;
         }
-        Literal<Term> operator()(Literal<Term> s) const { return s; }
-        AndSentence operator()(AndSentence s) const { return s; }
-        OrSentence operator()(OrSentence s) const { return s; }
-        NotSentence operator()(NotSentence s) const { return s; }
-        ImplySentence operator()(ImplySentence s) const { return s; }
-        ExistsSentence operator()(ExistsSentence s) const { return s; }
-        ForallSentence operator()(ForallSentence s) const { return s; }
+        std::vector<Clause> operator()(Literal<Term> s) const {
+            return this->clauses;
+        }
+        std::vector<Clause> operator()(AndSentence s) const {
+            return this->clauses;
+        }
+        std::vector<Clause> operator()(OrSentence s) const {
+            return this->clauses;
+        }
+        std::vector<Clause> operator()(NotSentence s) const {
+            return this->clauses;
+        }
+        std::vector<Clause> operator()(ImplySentence s) const {
+            return this->clauses;
+        }
+        std::vector<Clause> operator()(ExistsSentence s) const {
+            return this->clauses;
+        }
+        std::vector<Clause> operator()(ForallSentence s) const {
+            return this->clauses;
+        }
     };
 
-    void to_CNF(Sentence s) {
-        auto return_val = boost::apply_visitor(DistributeOrOverAnd(), s);
+    std::vector<Clause> to_CNF(Sentence s) {
+        return boost::apply_visitor(DistributeOrOverAnd(), s);
     }
 } // namespace ast
