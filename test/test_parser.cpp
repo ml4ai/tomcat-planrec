@@ -225,11 +225,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(af3.args[0]).name == "name");
     BOOST_TEST(get<Variable>(af3.args[1]).name == "variable");
 
-    //    auto negative_literal_of_terms = parse<Literal<Term>>(
-    //        "(not (predicate constant ?variable))", literal_terms());
-    //    BOOST_TEST(get<NegativeLiteral<Term>>(negative_literal_of_terms)
-    //                   .atomic_formula.predicate.name == "predicate");
-
     auto s4 = parse<Literal<Term>>("(not (predicate constant ?variable))",
                                    literal_terms());
 
