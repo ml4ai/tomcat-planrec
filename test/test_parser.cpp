@@ -9,7 +9,6 @@
 
 #include "parsing/ast.hpp"
 #include "parsing/ast_adapted.hpp"
-#include "parsing/config.hpp"
 #include "parsing/domain.hpp"
 #include "parsing/parse.hpp"
 #include "util.h"

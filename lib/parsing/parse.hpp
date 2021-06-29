@@ -2,6 +2,7 @@
 
 #include <string>
 #include <iostream>
+#include "config.hpp"
 #include "error_handler.hpp"
 
 template <class T, class U> T parse(std::string storage, U parser) {

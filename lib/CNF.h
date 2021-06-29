@@ -1,48 +1,30 @@
-//#include "../Clause.h"
-#include <string>
-#include <vector>
-#include "Sentence.h"
+#pragma once
 
-/**
- * Conjunctive Normal Form (CNF) : a conjunction of clauses, where each clause
- * is a disjunction of literals.
- *
- * @author Ciaran O'Reilly
- *
- */
-class CNF {
+#include "Clause.h"
+#include "boost/variant.hpp"
+#include "parsing/ast.hpp"
 
-  private:
-    std::vector<Clause> conjunctionOfClauses;
+namespace ast {
+    struct DistributeOrOverAnd : public boost::static_visitor<Sentence> {
 
-  public:
-    CNF(std::vector<Clause> conjunctionOfClauses) {
-        for (auto iter = conjunctionOfClauses.begin();
-             iter != conjunctionOfClauses.end();
-             ++iter) {
-            this->conjunctionOfClauses.push_back(*iter);
+        std::vector<Clause> clauses = {};
+        Sentence operator()(Nil s) const { return s; }
+        Sentence operator()(AtomicFormula<Term> s) const { return s; }
+        Sentence operator()(Literal<Term> s) const { return s; }
+        Sentence operator()(AndSentence s) const { return s; }
+        Sentence operator()(OrSentence s) const {
+            // auto
+            return s;
         }
+        Sentence operator()(NotSentence s) const { return s; }
+        Sentence operator()(ImplySentence s) const { return s; }
+        Sentence operator()(ExistsSentence s) const { return s; }
+        Sentence operator()(ForallSentence s) const { return s; }
+    };
+
+    std::vector<Clause> to_CNF(Sentence s) {
+        auto visitor = DistributeOrOverAnd();
+        boost::apply_visitor(visitor, s);
+        return visitor.clauses;
     }
-
-  public:
-    int getNumberOfClauses() { return this->conjunctionOfClauses.size(); }
-
-  public:
-    std::vector<Clause> getConjunctionOfClauses() {
-        return this->conjunctionOfClauses;
-    }
-
-//  public:
-//    //    std::to_string();
-//    string to_string() {
-//        std::string s = "";
-//        for (int i = 0; i < this->conjunctionOfClauses.size(); i++) {
-//            if (i > 0) {
-//                s.append(",")
-//            }
-//            sb.append(this->conjunctionOfClauses[i].toString());
-//        }
-//
-//        return sb;
-//    }
-};
+} // namespace ast
