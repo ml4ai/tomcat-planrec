@@ -10,12 +10,6 @@
 #include <variant>
 #include <vector>
 
-//#include <boost/variant/recursive_variant.hpp>
-// using boost::recursive_variant_, boost::make_recursive_variant;
-// using Atom = std::variant<Constant, Variable, Predicate>;
-// using Expr = make_recursive_variant<Atom,
-// std::vector<recursive_variant_>>::type;
-
 struct KnowledgeBase {
     std::vector<Clause> clauses;
 };

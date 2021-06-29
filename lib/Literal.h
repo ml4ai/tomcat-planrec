@@ -1,10 +1,10 @@
 #pragma once
 
 #include <string>
-#include "Function.h"
+#include "fol/Function.h"
 
 struct Literal {
     std::string predicate;
-    std::vector<Term> args = {};
+    std::vector<ast::Term> args = {};
     bool is_negated = false;
 };
