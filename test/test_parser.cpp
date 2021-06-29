@@ -36,8 +36,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test either type parsing
     auto et = parse<EitherType>("(either type0 type1)", either_type());
-    BOOST_TEST(in(PrimitiveType{"type0"}, et));
-    BOOST_TEST(in(PrimitiveType{"type1"}, et));
+    BOOST_TEST(in("type0", et));
+    BOOST_TEST(in("type1", et));
 
     // Test type parsing
     auto t = parse<Type>("type", type());
