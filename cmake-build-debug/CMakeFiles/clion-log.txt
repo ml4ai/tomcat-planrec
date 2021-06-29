@@ -1,8 +1,0 @@
-/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /Users/liangzhang/CLionProjects/tomcat-planrec
--- Found Boost: /usr/local/lib/cmake/Boost-1.76.0/BoostConfig.cmake (found version "1.76.0") found components: graph 
--- Found nlohmann_json: /opt/local/lib/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found suitable version "3.9.1", minimum required is "3.9.1") 
--- Found Boost: /usr/local/lib/cmake/Boost-1.76.0/BoostConfig.cmake (found version "1.76.0")  
--- Found nlohmann_json: /opt/local/lib/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version "3.9.1") 
--- Configuring done
--- Generating done
--- Build files have been written to: /Users/liangzhang/CLionProjects/tomcat-planrec/cmake-build-debug

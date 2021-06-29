@@ -132,3 +132,5 @@ dmypy.json
 
 #Vim swap files
 *.swp
+cmake-build-debug 
+.vscode

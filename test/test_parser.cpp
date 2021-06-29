@@ -215,7 +215,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(af2.args[0]).name == "name");
     BOOST_TEST(get<Variable>(af2.args[1]).name == "variable");
 
-    auto s3 = parse<Sentence>("(imply () (predicate name ?variable))", sentence());
+    auto s3 =
+        parse<Sentence>("(imply () (predicate name ?variable))", sentence());
     auto is = get<ImplySentence>(s3);
     BOOST_TEST(get<Nil>(is.sentence1) == Nil());
 
@@ -225,17 +226,21 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(af3.args[0]).name == "name");
     BOOST_TEST(get<Variable>(af3.args[1]).name == "variable");
 
-    auto s4 = parse<Sentence>("(not (predicate name ?variable))", sentence());
-    auto ns = get<NotSentence>(s4);
+    //    auto negative_literal_of_terms = parse<Literal<Term>>(
+    //        "(not (predicate constant ?variable))", literal_terms());
+    //    BOOST_TEST(get<NegativeLiteral<Term>>(negative_literal_of_terms)
+    //                   .atomic_formula.predicate.name == "predicate");
 
-    auto af4 = get<AtomicFormula<Term>>(ns.sentence);
+    auto s4 = parse<Literal<Term>>("(not (predicate constant ?variable))",
+                                   literal_terms());
+
+    auto af4 = get<NegativeLiteral<Term>>(s4).atomic_formula;
     BOOST_TEST(af4.predicate.name == "predicate");
     BOOST_TEST(af4.args.size() == 2);
-    BOOST_TEST(get<Constant>(af4.args[0]).name == "name");
+    BOOST_TEST(get<Constant>(af4.args[0]).name == "constant");
     BOOST_TEST(get<Variable>(af4.args[1]).name == "variable");
 
-
-    // TODO Salena: 3rd object, rock, is implicit. 
+    // TODO Salena: 3rd object, rock, is implicit.
     storage = R"(
         (define
             (problem adobe)
@@ -253,7 +258,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 )
     )";
 
-
     auto prob = parse<Problem>(storage, problem());
 
     BOOST_TEST(prob.name == "adobe");
@@ -265,14 +269,16 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test objects
     BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 2);
-    
+
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
-    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type) == "site");
-    
+    BOOST_TEST(boost::get<ast::PrimitiveType>(
+                   prob.objects.explicitly_typed_lists[0].type) == "site");
+
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
-    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type) == "material");
+    BOOST_TEST(boost::get<ast::PrimitiveType>(
+                   prob.objects.explicitly_typed_lists[1].type) == "material");
 
-    BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] == "rock");//default type = object
-
+    BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] ==
+               "rock"); // default type = object
 }
