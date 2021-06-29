@@ -4,6 +4,7 @@
 #include <iostream>
 
 struct Symbol {
+    public:
     std::string name;
     std::string str() const { return this->name; }
 

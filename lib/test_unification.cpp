@@ -16,15 +16,29 @@ using namespace std;
 
 BOOST_AUTO_TEST_CASE(test_unification) {
 
+    /* --------- List of Test cases for unification -----------
+    Variables: v1, v2
+    Constants: C2, C3
+    Predicates: T(), F1(), E1() 
+
+    1. T(v1) and T(C2)
+    2. T(v1, C3) and T(C2, C3)
+    3. T(v1, v2) and T(C2, C3)
+    4. T(C2, C3) and T(v1, C3)
+    5. T(F1(v1)) and T(F1(C2))
+    6. T(v1) and T(F1(C2)) -------> Here is a reason to make the sub_list a string -> term mapping since the arguements are lost here.
+    7. T(E1(F1(v1)), C3) and T(E1(F1(C2)), v2)
+    */
+
     // BOOST_TEST(true);
     // setup some definitions
+    Literal L1, L2;
+    Term T1, T2, T3, T4, T5, T6, T7, T8;
+    Constant C1, C2, C3;
+    Variable v1, v2;
+    Function F1, F2, F3, F4;
     sub_list test;
     sub_list answer;
-    Literal L1, L2, L3, L4;
-    Term T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12;
-    Constant C1, C2, C3, C4, C5, C6;
-    Variable v1, v2, v3, v4, v5, v6;
-    Function F1, F2, F3, F4;
 
     // sample predicates for testing unification
 
@@ -40,10 +54,10 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     L2.predicate = "T";
     L2.args.push_back(T2);
     // correct answer declaration, v1->C2
-    answer["v1"] = "C2";
+    answer["v1"] = C2;
     // run test for single argument constant unification
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(test["v1"], answer["v1"]);
+    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
 
     // lets now up the number of arguments, first an extra constant that is already unified
     C3.name = "C3";
@@ -54,7 +68,7 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     test.clear();
     // test unification of T(v1, C3) and T(C2, C3), v1->C2
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(test["v1"], answer["v1"]);
+    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
 
     // lets now setup for a 2 variable substition 
     v2.name = "v2";
@@ -63,15 +77,26 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     L1.args.push_back(T1);
     L1.args.push_back(T4);
     test.clear();
-    answer["v2"] = "C3";
+    answer["v2"] = C3;
     // testing unifictation of T(v1, v2) and T(C2, C3)
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(test["v1"], answer["v1"]);
-    BOOST_CHECK_EQUAL(test["v2"], answer["v2"]);
+    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
+    BOOST_CHECK_EQUAL(get<Constant>(test["v2"]).name, get<Constant>(answer["v2"]).name);
 
-    // Next let's test if there is a variable in both literals if the substitution works 
+    // Next let's test if there is a variable in the other literals if the substitution works 
 
-    // example
+    L1.args.clear();
+    L1.args.push_back(T2);
+    L1.args.push_back(T3);
+    L2.args.clear();
+    L2.args.push_back(T1);
+    L2.args.push_back(T3);
+    test.clear();
+
+    // testing unificatin of T(C2, C3) and T(v1, C3)
+    test = unification(L1, L2, test);
+    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
+
 
     // Next let's test a function for nested predicates in the literal 
     F1.name = "F1";
@@ -89,6 +114,48 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     test.clear();
     // test of T(F1(v1)) and T(F1(C2)) , so v1->C2
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(test["v1"], answer["v1"]);
+    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
+
+    // add a test case where the variable is equal to a predicate
+    L1.args.clear();
+    L1.args.push_back(T1);
+    test.clear();
+    answer.clear();
+    answer["v1"] = F1;
+
+    // test of T(v1) and T(F1(C2)), so v1->F1(C2)
+    test = unification(L1, L2, test);
+    BOOST_CHECK_EQUAL(get<Function>(test["v1"]).name, get<Function>(answer["v1"]).name);
+
+    // last test is a 2 predcicate deep literal with multiple arguments and multiple variables
+
+    F3.name = "E1";
+    F3.args.push_back(T5);
+    T7 = F3;
+    F4.name = "E1";
+    F4.args.push_back(T6);
+    T8 = F4;
+    // should have a form like this: T( E1(F1(v1)), C3) and T( E1(F1(C2)), v2), this should give v1->C2 and v2->C3 (no need to change answer again)
+    // fails the test if the nested predicate is first, implies bug in recursion. 
+    L1.args.clear();
+    L1.args.push_back(T7);
+    L1.args.push_back(T3);
+    L2.args.clear();
+    L2.args.push_back(T8);
+    L2.args.push_back(T4);
+    test.clear();
+    answer.clear();
+    answer["v2"] = C3;
+    answer["v1"] = C2;
+
+    // running the test
+    test = unification(L1, L2, test);
+    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
+    BOOST_CHECK_EQUAL(get<Constant>(test["v2"]).name, get<Constant>(answer["v2"]).name);    
+
+
+    // To Do:
+    // perhaps add failed cases to check return when failed unification????
+    // setup the cmake stuff
 
 }

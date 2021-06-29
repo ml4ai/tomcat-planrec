@@ -23,14 +23,14 @@
 using namespace std;
 
 // setting up unordered_map for our substitution list
-typedef unordered_map<string, string> sub_list_type;
+typedef unordered_map<string, Term> sub_list_type;
 using sub_list = sub_list_type;
 
 // now for the substition formula for replacing the variable in an atom/predicate
 void substitute(Literal &x, Literal &y, sub_list &z, int ix) {
     if (boost::apply_visitor(type_visitor(), (y.args).at(ix)) == "Variable") {
         // write the substitution to z
-        z[get<Variable>((x.args).at(ix)).name] = get<Variable>((y.args).at(ix)).name;
+        z[get<Variable>((x.args).at(ix)).name] = get<Variable>((y.args).at(ix));
         // insert the new subbed element and then erase the old one
         (x.args).insert(x.args.begin() + ix, get<Variable>((y.args).at(ix)));
         ix++;
@@ -38,7 +38,7 @@ void substitute(Literal &x, Literal &y, sub_list &z, int ix) {
     }
     else if (boost::apply_visitor(type_visitor(), (y.args).at(ix)) == "Constant") {
         // write substitution to z
-        z[get<Variable>((x.args).at(ix)).name] = get<Constant>((y.args).at(ix)).name;
+        z[get<Variable>((x.args).at(ix)).name] = get<Constant>((y.args).at(ix));
         // insert substitution and then erase the old entry
         (x.args).insert(x.args.begin() + ix, get<Constant>((y.args).at(ix)));
         ix++;
@@ -46,7 +46,7 @@ void substitute(Literal &x, Literal &y, sub_list &z, int ix) {
     }
     else if (boost::apply_visitor(type_visitor(), (y.args).at(ix)) == "Predicate") {
         // write substitution to z
-        z[get<Variable>((x.args).at(ix)).name] = get<Function>((y.args).at(ix)).name;
+        z[get<Variable>((x.args).at(ix)).name] = get<Function>((y.args).at(ix));
         // insert substitution and then erase the old entry
         (x.args).insert(x.args.begin() + ix, get<Function>((y.args).at(ix)));
         ix++;
@@ -67,7 +67,7 @@ sub_list unification(Literal x, Literal y, sub_list z) {
         return z;
     }
     for(int ix=0; ix < (x.args).size(); ix++) {
-    // if variable is explicit in x expression
+        // if variable is explicit in x expression
         if (boost::apply_visitor(type_visitor(), x.args.at(ix)) == "Variable") {
             // substitute x for y
             substitute(x, y, z, ix);
@@ -90,7 +90,19 @@ sub_list unification(Literal x, Literal y, sub_list z) {
             x1.args = get<Function>((x.args).at(ix)).args;
             y1.predicate = get<Function>((y.args).at(ix)).name;
             y1.args = get<Function>((y.args).at(ix)).args;
-            return unification(x1, y1, z);
+            
+            // the unification function doesnt do the replacements outside the scope of the function, perhaps I remove this argument since its already
+            // unified so it doesn't impact the checker? 
+            sub_list z1;
+            z1 = unification(x1, y1, z1);
+            // merge z1 and z
+            z.insert(z1.begin(), z1.end());
+
+            // remove the argument
+            x.args.erase(x.args.begin() + ix);
+            y.args.erase(y.args.begin() + ix);
+
+            return unification(x, y, z);
             }
     }
     
