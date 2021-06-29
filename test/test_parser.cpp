@@ -205,6 +205,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // TODO add tests for parsing or, not, imply and other complex sentences.
 
     // TODO Salena: 3rd object, rock, is implicit. 
+            // Think about function that takes typed lists and returns sets of
+            // explicit and implicit.
+
     storage = R"(
         (define
             (problem adobe)
@@ -214,9 +217,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 factory house - site
                 adobe - material
                 rock) ;testing implicitly-typed
-;           (:init
-;               (on-site adobe factory)
-;               )   
+           (:init
+               (on-site adobe factory)
+               )   
 ;           (:goal
 ;               (on-site adobe house)      
                 )
@@ -238,10 +241,18 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
     BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type) == "site");
-    
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
     BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type) == "material");
-
     BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] == "rock");//default type = object
+
+
+    // Test initial state
+    BOOST_TEST(boost::get<AtomicFormula<Term>>(prob.init).predicate.name == "on-site");
+    BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[0]).name == "adobe"); 
+    BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[1]).name == "factory");
+
+
+
+
 
 }
