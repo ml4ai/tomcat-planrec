@@ -217,10 +217,12 @@ BOOST_AUTO_TEST_CASE(test_parser) {
            (:init
                (on-site adobe factory)
                )   
-;           (:goal                
+;AndSentences
+;          (:goal                
 ;               (and (off-site adobe1 factory1)
 ;                    (on-site adobe2 house2)      
 ;               ))
+;OrSentences
            (:goal                
                (or (off-site adobe3 factory3)  
                    (on-site adobe4 house4)
