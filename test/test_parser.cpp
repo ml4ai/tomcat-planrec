@@ -217,16 +217,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
            (:init
                (on-site adobe factory)
                )   
-;AndSentences
-;          (:goal                
-;               (and (off-site adobe1 factory1)
-;                    (on-site adobe2 house2)      
-;               ))
-;OrSentences
-           (:goal                
-               (or (off-site adobe3 factory3)  
-                   (on-site adobe4 house4)
-                ))
+          (:goal                
+               (and (off-site adobe1 factory1)
+                    (on-site adobe2 house2)      
+               ))
         );end define
     )";
 
@@ -264,10 +258,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         "factory");
 
     // Test problem goal
-    // To Test Different Types of Goals: Uncomment the problem goal for parser.
-    //
     // Testing AndSentences
-/*    auto goal_as = get<AndSentence>(prob.goal); // we know this is an AndSentence
+    auto goal_as = get<AndSentence>(prob.goal); // we know this is an AndSentence
     BOOST_TEST(goal_as.sentences.size() == 2);  // containing two terms
     auto goal_af = get<Literal<Term>>(goal_as.sentences[0]);//first predicate
     auto goal_af2 = get<Literal<Term>>(goal_as.sentences[1]);//second predicate
@@ -277,8 +269,30 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[1]).name == "factory1");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[0]).name == "adobe2");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[1]).name == "house2");
-*/
+
     // Testing OrSentences
+    storage = R"(
+        (define
+            (problem adobe)
+            (:domain construction)
+            (:requirements :strips :typing)
+            (:objects
+                factory house - site
+                adobe - material
+                rock) ;testing implicitly-typed
+           (:init
+               (on-site adobe factory)
+               )   
+           (:goal                
+               (or (off-site adobe3 factory3)  
+                   (on-site adobe4 house4)
+                ))
+        );end define
+    )";
+
+    // Testing OrSentences
+    prob = parse<Problem>(storage, problem());
+
     auto goal_os = get<OrSentence>(prob.goal); // we know this is an OrSentence
     BOOST_TEST(goal_os.sentences.size() == 2);  // containing two terms
     auto goal_of = get<Literal<Term>>(goal_os.sentences[0]);//first predicate
