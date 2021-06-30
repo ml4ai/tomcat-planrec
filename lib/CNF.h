@@ -9,7 +9,6 @@ namespace ast {
 
         std::vector<Clause> clauses = {};
         Sentence operator()(Nil s) const { return s; }
-        Sentence operator()(AtomicFormula<Term> s) const { return s; }
         Sentence operator()(Literal<Term> s) const { return s; }
         Sentence operator()(AndSentence s) const { return s; }
         Sentence operator()(OrSentence s) const {
