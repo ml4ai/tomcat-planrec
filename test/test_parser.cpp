@@ -304,15 +304,4 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[0]).name == "adobe4");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[1]).name == "house4");
 
-/*
-    //BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
-    auto af = get<Literal<Term>>(as.sentences[1]);
-    BOOST_TEST(af.predicate == "predicate");
-    BOOST_TEST(af.args.size() == 2);
-    BOOST_TEST(get<Constant>(af.args[0]).name == "name");
-    BOOST_TEST(get<Variable>(af.args[1]).name == "variable");
-
-*/
-
-
 }
