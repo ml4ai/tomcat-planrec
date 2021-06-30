@@ -2,7 +2,7 @@
 #include <nlohmann/json.hpp>
 #include "Tree.h"
 #include "Node.h"
-#include "util.h"
+#include "../util.h"
 #include <iomanip>
 #include <iostream>
 #include <fstream>
