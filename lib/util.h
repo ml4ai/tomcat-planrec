@@ -55,6 +55,7 @@ int sample_method(std::vector<int> mds, std::vector<double> wts) {
   std::discrete_distribution<int> dist (wts.begin(),wts.end());
   int s = dist(gen);
   return mds[s];
+}
 
 // Helpers for std::visit
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
