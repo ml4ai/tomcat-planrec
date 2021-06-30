@@ -173,21 +173,20 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Parse atomic formula of terms
     auto gd2 = parse<Sentence>("(predicate name ?variable)", sentence());
-    auto atomic_formula_1 = get<AtomicFormula<Term>>(get<Literal<Term>>(gd2));
-    BOOST_TEST(atomic_formula_1.predicate == "predicate");
-    auto constant_1 = get<Constant>(atomic_formula_1.args[0]);
+    auto lit1 = get<Literal<Term>>(gd2);
+    BOOST_TEST(lit1.predicate == "predicate")
+    auto constant_1 = get<Constant>(lit1.args[0]);
     BOOST_TEST(constant_1.name == "name");
 
     // Test parsing literals of terms
     auto positive_literal_of_terms =
         parse<Literal<Term>>("(predicate constant ?variable)", literal_terms());
-    BOOST_TEST(get<AtomicFormula<Term>>(positive_literal_of_terms).predicate ==
+    BOOST_TEST(positive_literal_of_terms.predicate ==
                "predicate");
 
     auto negative_literal_of_terms = parse<Literal<Term>>(
         "(not (predicate constant ?variable))", literal_terms());
-    BOOST_TEST(get<NegativeLiteral<Term>>(negative_literal_of_terms)
-                   .atomic_formula.predicate == "predicate");
+    BOOST_TEST(negative_literal_of_terms.predicate == "predicate");
 
     // Test and sentence parsing
     auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
@@ -195,7 +194,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(as.sentences.size() == 2);
     BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
 
-    auto af = get<AtomicFormula<Term>>(get<Literal<Term>>(as.sentences[1]));
+    auto af = get<Literal<Term>>(as.sentences[1]);
     BOOST_TEST(af.predicate == "predicate");
     BOOST_TEST(af.args.size() == 2);
     BOOST_TEST(get<Constant>(af.args[0]).name == "name");
@@ -247,11 +246,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                "rock"); // default type = object
 
     // Test initial state
-    BOOST_TEST(get<AtomicFormula<Term>>(prob.init).predicate == "on-site");
+    BOOST_TEST(get<Literal<Term>>(prob.init).predicate == "on-site");
     BOOST_TEST(
-        get<Constant>(get<AtomicFormula<Term>>(prob.init).args[0]).name ==
+        get<Constant>(get<Literal<Term>>(prob.init).args[0]).name ==
         "adobe");
     BOOST_TEST(
-        get<Constant>(get<AtomicFormula<Term>>(prob.init).args[1]).name ==
+        get<Constant>(get<Literal<Term>>(prob.init).args[1]).name ==
         "factory");
 }

@@ -107,16 +107,21 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(atomic_formula_terms);
 
     // Literals of terms
-    rule<class TNegativeLiteralTerms, ast::NegativeLiteral<ast::Term>> const
-        negative_literal_terms = "negative_literal_terms";
-    auto const negative_literal_terms_def =
-        ('(' >> lit("not") >> atomic_formula_terms >> ')');
-    BOOST_SPIRIT_DEFINE(negative_literal_terms);
+    auto parse_negative_literal = [](auto& ctx) {
+         _val(ctx).predicate = _attr(ctx).predicate;
+         _val(ctx).args = _attr(ctx).args;
+         _val(ctx).is_negative = true;
+    };
+    auto parse_positive_literal = [](auto& ctx) {
+         _val(ctx).predicate = _attr(ctx).predicate;
+         _val(ctx).args = _attr(ctx).args;
+         _val(ctx).is_negative = false;
+    };
 
     rule<class TLiteralTerms, ast::Literal<ast::Term>> const literal_terms =
         "literal_terms";
     auto const literal_terms_def =
-        atomic_formula_terms | negative_literal_terms;
+        atomic_formula_terms[parse_positive_literal] | ('(' >> lit("not") >> atomic_formula_terms >> ')')[parse_negative_literal];
     BOOST_SPIRIT_DEFINE(literal_terms);
 
     // Nil

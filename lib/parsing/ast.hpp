@@ -60,8 +60,13 @@ namespace ast {
         AtomicFormula<T> atomic_formula;
     };
 
+
     template <class T>
-    using Literal = boost::variant<AtomicFormula<T>, NegativeLiteral<T>>;
+    struct Literal {
+        Predicate predicate
+        std::vector<T> args;
+        bool is_negative=false;
+    };
 
     // Forward declare classes in order to work with Boost's recursive_wrapper
     struct AndSentence;
@@ -79,8 +84,6 @@ namespace ast {
                                     boost::recursive_wrapper<ImplySentence>,
                                     boost::recursive_wrapper<ExistsSentence>,
                                     boost::recursive_wrapper<ForallSentence>>;
-
-    // TODO add quantified sentences
 
     struct AndSentence {
         std::vector<Sentence> sentences;
