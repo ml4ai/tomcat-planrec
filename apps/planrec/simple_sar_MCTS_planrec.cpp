@@ -1,9 +1,11 @@
-#include "domains/simple_sar.h"
+#include <nlohmann/json.hpp>
+#include "../planners/domains/simple_sar.h"
 #include <math.h>
 #include <stdlib.h>
 #include "plan_trace.h"
+#include <istream>
+#include "planrec.h"
 #include "plangrapher.h"
-#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
@@ -17,12 +19,13 @@ int main(int argc, char* argv[]) {
     else {
       N = 30;
     }
-    double e;
+    
+    int s;
     if (argc > 2) {
-       e = strtod(argv[2],nullptr);
+      s = strtol(argv[2],nullptr,0);
     }
     else {
-      e = 0.4; 
+      s = 5;
     }
 
     auto state1 = SARState();
@@ -91,24 +94,47 @@ int main(int argc, char* argv[]) {
     state1.right_explored = false;
     state1.mid_explored = false;
 
-    state1.times_searched = 0;
-
     state1.set_max_vic();
-
-    state1.loc_tracker["left"] = {};
-    state1.loc_tracker["right"] = {};
-    state1.loc_tracker["mid"] = {};
 
     auto domain = SARDomain();
 
     auto selector = SARSelector();
-
     Tasks tasks = {
-        {Task("sweep_left_YF", Args({{"agent", "me"}}))}};
-    auto pt = cpphopMCTS(state1, tasks, domain, selector,N,e);
+        {Task("SAR", Args({{"agent", "me"}}))}};
 
-    json j = generate_plan_trace_tree(pt.first,pt.second,true,"simple_sar_trace_tree.json");
-    generate_graph_from_json(j, "simple_sar_tree_graph.png");
-    generate_plan_trace(pt.first,pt.second,true,"simple_sar_trace.json");
+    std::ifstream i("simple_sar_trace.json");
+    json j;
+    i >> j;
+
+    json trace;
+    for (json::iterator it = j.begin(); it != j.begin()+s; ++it) {
+      trace.push_back(*it);
+    }
+
+    state1.loc_tracker = get_loc_seq(trace,
+                                    state1.left_region,
+                                    state1.right_region,
+                                    state1.mid_region);
+    json g;
+    g = seek_planrecMCTS(trace,
+                     state1,
+                     tasks,
+                     domain,
+                     selector,
+                     N,
+                     0.4,
+                     2021,
+                     true,
+                     "simple_sar_pred_exp.json");
+
+    generate_graph_from_json(g, "simple_sar_pred_exp_graph.png");
+
+    std::ifstream k("simple_sar_trace_tree.json");
+    json t;
+    k >> t;
+
+    json t_trim;
+    t_trim = trim_actions(t, s, true, "simple_sar_true_exp.json");
+    generate_graph_from_json(t_trim,"simple_sar_true_exp_graph.png");
     return EXIT_SUCCESS;
 }

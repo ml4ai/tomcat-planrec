@@ -7,12 +7,14 @@
 #include <stdlib.h>
 #include <nlohmann/json.hpp>
 #include "plan_trace.h"
+#include "plangrapher.h"
 
 using json = nlohmann::json;
 
 BOOST_AUTO_TEST_CASE(test_MCTS_planner) {
-  auto state1 = SARState();
+    auto state1 = SARState();
     state1.loc["me"] = "entrance";
+    state1.visited["me"]["entrance"] = 1;
     std::string area1 = "R1";
     std::string area2 = "R2";
     std::string area3 = "R3";
@@ -72,23 +74,30 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planner) {
     state1.y_total = 0;
     state1.g_total = 0;
     state1.time = 0;
+    state1.left_explored = false;
+    state1.right_explored = false;
+    state1.mid_explored = false;
+
+    state1.times_searched = 0;
 
     state1.set_max_vic();
+
+    state1.loc_tracker["left"] = {};
+    state1.loc_tracker["right"] = {};
+    state1.loc_tracker["mid"] = {};
 
     auto domain = SARDomain();
 
     auto selector = SARSelector();
-    selector.mean = 0;
-    selector.sims = 0;
 
     Tasks tasks = {
-        {Task("SAR", Args({{"agent", "me"}}))}};
-    auto pt = cpphopMCTS(state1, tasks, domain, selector,sqrt(2),10);
+        {Task("sweep_left_YF", Args({{"agent", "me"}}))}};
+    auto pt = cpphopMCTS(state1, tasks, domain, selector,2,0.4);
     json j = generate_plan_trace_tree(pt.first,pt.second);
     json g = generate_plan_trace(pt.first,pt.second);
 
-    BOOST_TEST(j["task"] == "(SAR,me,)");
+    BOOST_TEST(j["task"] == "(sweep_left_YF,me,)");
     BOOST_TEST(j["children"].size() > 0);
-    BOOST_TEST(g[g.size() - 2]["task"] == "(exit,)");
+    BOOST_TEST(g[g.size() - 2]["task"] == "(!exit,)");
     BOOST_TEST(g.size() > 0);
 }

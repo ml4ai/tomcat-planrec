@@ -1,9 +1,13 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include <iostream>
 #include <map>
 #include "cpphop.h"
+#include <math.h>
 #include "typedefs.h"
+
+using json = nlohmann::json;
 
 template <class State,class Selector>
 class Node {
@@ -11,8 +15,10 @@ class Node {
     State state;
     Tasks tasks;
     int depth;
-    bTasks plan;
+    pTasks plan;
+    json plan_trace;
     Selector selector;
+    double likelihood;
 
     //See Tree.hpp note for why these are needed
     int pred = -1;

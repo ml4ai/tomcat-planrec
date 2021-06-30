@@ -25,7 +25,7 @@ std::string task2string(Task task) {
   return stask;
 }
 
-void print(bTasks btasks) { print(btasks.second); }
+void print(pTasks ptasks) { print(ptasks.second); }
 
 void print(Plans plans) {
     std::cout << "Plans Found:" << std::endl;
