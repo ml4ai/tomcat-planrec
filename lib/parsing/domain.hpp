@@ -82,6 +82,9 @@ namespace parser {
     using problem_type = rule<class TProblem, ast::Problem>;
     BOOST_SPIRIT_DECLARE(problem_type);
 
+    using action_type = rule<class TAction, ast::Action>;
+    BOOST_SPIRIT_DECLARE(action_type);
+
     // tag used to get the position cache from the context
     struct position_cache_tag;
 
@@ -110,3 +113,4 @@ parser::requirements_type requirements();
 
 parser::domain_type domain();
 parser::problem_type problem();
+parser::action_type action();

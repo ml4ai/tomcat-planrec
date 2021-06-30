@@ -5,6 +5,7 @@
 #include "../fol/Predicate.h"
 #include "../fol/Term.h"
 #include "../fol/Variable.h"
+#include "../fol/Literal.h"
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
@@ -23,6 +24,7 @@ namespace ast {
     using fol::Predicate;
     using fol::Term;
     using fol::Variable;
+    using fol::Literal;
 
     using PrimitiveType = std::string;
 
@@ -56,13 +58,6 @@ namespace ast {
         std::vector<T> args;
     };
 
-    template <class T> struct NegativeLiteral {
-        AtomicFormula<T> atomic_formula;
-    };
-
-    template <class T>
-    using Literal = boost::variant<AtomicFormula<T>, NegativeLiteral<T>>;
-
     // Forward declare classes in order to work with Boost's recursive_wrapper
     struct AndSentence;
     struct OrSentence;
@@ -72,7 +67,6 @@ namespace ast {
     struct ForallSentence;
 
     using Sentence = boost::variant<Nil,
-                                    AtomicFormula<Term>,
                                     Literal<Term>,
                                     boost::recursive_wrapper<AndSentence>,
                                     boost::recursive_wrapper<OrSentence>,
@@ -80,8 +74,6 @@ namespace ast {
                                     boost::recursive_wrapper<ImplySentence>,
                                     boost::recursive_wrapper<ExistsSentence>,
                                     boost::recursive_wrapper<ForallSentence>>;
-
-    // TODO add quantified sentences
 
     struct AndSentence {
         std::vector<Sentence> sentences;
@@ -120,18 +112,19 @@ namespace ast {
     };
 
     struct Problem : x3::position_tagged {
-        Name name;                             
-        Name domain_name;                     
+        Name name;
+        Name domain_name;
         std::vector<std::string> requirements;
         TypedList<Name> objects;
         Literal<Term> init;
         Sentence goal;
-    }; // end problem struct
+    }; 
 
-    // struct Action : x3::position_tagged {
-    // Name name;
-    // std::vector<Variable> parameters;
-    //};
+     struct Action : x3::position_tagged {
+     Name name;
+     std::vector<TypedList<Variable>> parameters;
+     std::vector<AtomicFormulaSkeleton> precondition;
+    };
 
     using boost::fusion::operator<<;
 } // namespace ast
