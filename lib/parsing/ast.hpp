@@ -5,6 +5,7 @@
 #include "../fol/Predicate.h"
 #include "../fol/Term.h"
 #include "../fol/Variable.h"
+#include "../fol/Literal.h"
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
@@ -23,6 +24,7 @@ namespace ast {
     using fol::Predicate;
     using fol::Term;
     using fol::Variable;
+    using fol::Literal;
 
     using PrimitiveType = std::string;
 
@@ -54,18 +56,6 @@ namespace ast {
     template <class T> struct AtomicFormula {
         Predicate predicate;
         std::vector<T> args;
-    };
-
-    template <class T> struct NegativeLiteral {
-        AtomicFormula<T> atomic_formula;
-    };
-
-
-    template <class T>
-    struct Literal {
-        Predicate predicate;
-        std::vector<T> args;
-        bool is_negative=false;
     };
 
     // Forward declare classes in order to work with Boost's recursive_wrapper
