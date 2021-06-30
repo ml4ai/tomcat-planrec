@@ -2,8 +2,6 @@
 #include <math.h>
 #include <nlohmann/json.hpp>
 
-using json = nlohmann::ordered_json;
-
 
 // operators
 template <class State> std::optional<State> search(State state, Args args) {
