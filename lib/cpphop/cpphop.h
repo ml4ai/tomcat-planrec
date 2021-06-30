@@ -14,8 +14,6 @@
 #include "printing.h"
 #include <nlohmann/json.hpp>
 
-using json = nlohmann::ordered_json;
-
 template <class State, class Domain>
 bTasks seek_plan(State state,
                  std::vector<Task> tasks,

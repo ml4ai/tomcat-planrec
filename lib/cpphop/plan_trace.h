@@ -7,8 +7,6 @@
 #include <iostream>
 #include <fstream>
 
-using json = nlohmann::ordered_json;
-
 struct json_node {
   json node;
   int id;
