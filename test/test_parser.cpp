@@ -220,8 +220,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
            (:init
                (on-site adobe factory)
                )   
-;           (:goal
-;               (on-site adobe house)      
+           (:goal
+;               (and (off-site adobe factory)
+                    (on-site adobe house)      
                 )
     )";
 
@@ -251,6 +252,34 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[1]).name == "factory");
 
     // Test problem goal
-    
 
+   auto agoal = boost::get<AtomicFormula<Term>>(prob.goal).predicate.name;// This works for predicate!
+   cout << agoal << endl;//works
+   cout << boost::get<Constant>(get<AtomicFormula<Term>>(prob.goal).args[0]).name << endl;
+   cout << boost::get<Constant>(get<AtomicFormula<Term>>(prob.goal).args[1]).name << endl;
+
+//   auto bgoal = boost::get<AndSentence>(prob.goal);//builds and configures, but fails ctest
+
+
+   /*
+        //
+        //
+        //
+        //
+        //
+    //[arse NIL
+    auto gd = parse<Sentence>("()", sentence());
+    BOOST_TEST(get<Nil>(gd) == Nil());
+    
+   // Parse atomic formula of terms
+    auto agoal= get<AtomicFormula<Term>>(prob.goal).predicate.name;
+    auto aadobe= get<Constant>(atomic_formula_1.args[0]);
+
+    // Test and sentence parsing
+    auto aagoal = get<AndSentence>(prob.goal);
+    BOOST_TEST(aagoal.sentences.size() == 2);
+    BOOST_TEST(get<Nil>(aagoal.sentences[0]) == Nil());
+
+
+*/
 }
