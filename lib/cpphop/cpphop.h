@@ -1,5 +1,9 @@
 #pragma once
 
+#include "../util.h"
+#include "Node.h"
+#include "Tree.h"
+#include "printing.h"
 #include <any>
 #include <iostream>
 #include <optional>
@@ -8,13 +12,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "Node.h"
-#include "Tree.h"
-#include "../util.h"
-#include "printing.h"
-#include <nlohmann/json.hpp>
-
-using json = nlohmann::ordered_json;
 
 template <class State, class Domain>
 bTasks seek_plan(State state,
@@ -305,7 +302,8 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
                                     int seed) {
     if (t[v].tasks.size() == 0) {
         t[boost::graph_bundle].plans.push_back(t[v].plan);
-        std::cout << "Plan found at depth " << t[v].depth << " and score of " << t[v].selector.rewardFunc(t[v].state) << std::endl;
+        std::cout << "Plan found at depth " << t[v].depth << " and score of "
+                  << t[v].selector.rewardFunc(t[v].state) << std::endl;
         std::cout << std::endl;
         std::cout << "Final State:" << std::endl;
         std::cout << t[v].state.to_json() << std::endl;
@@ -357,13 +355,13 @@ Tree<State, Selector> seek_planMCTS(Tree<State, Selector> t,
 }
 
 template <class State, class Domain, class Selector>
-std::pair<Tree<State,Selector>,int> cpphopMCTS(State state,
-                  Tasks tasks,
-                  Domain domain,
-                  Selector selector,
-                  double c,
-                  int r,
-                  int seed = 2021) {
+std::pair<Tree<State, Selector>, int> cpphopMCTS(State state,
+                                                 Tasks tasks,
+                                                 Domain domain,
+                                                 Selector selector,
+                                                 double c,
+                                                 int r,
+                                                 int seed = 2021) {
     Tree<State, Selector> t;
     Node<State, Selector> root;
     root.state = state;
@@ -379,5 +377,5 @@ std::pair<Tree<State,Selector>,int> cpphopMCTS(State state,
     t = seek_planMCTS(t, v, domain, selector, c, r, seed);
     std::cout << "Plan:" << std::endl;
     print(t[boost::graph_bundle].plans.back());
-    return std::make_pair(t,v);
+    return std::make_pair(t, v);
 }
