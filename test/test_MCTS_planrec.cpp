@@ -11,7 +11,7 @@
 #include "plangrapher.h"
 #include "planrec.h"
 
-using json = nlohmann::ordered_json;
+using json = nlohmann::json;
 
 BOOST_AUTO_TEST_CASE(test_MCTS_planrec) {
     auto state1 = SARState();

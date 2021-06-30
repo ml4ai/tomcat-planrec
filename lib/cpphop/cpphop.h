@@ -1,5 +1,9 @@
 #pragma once
 
+#include "../util.h"
+#include "Node.h"
+#include "Tree.h"
+#include "printing.h"
 #include <any>
 #include <iostream>
 #include <optional>
@@ -8,14 +12,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "Node.h"
-#include "Tree.h"
-#include "../util.h"
-#include "printing.h"
-#include <nlohmann/json.hpp>
-#include <math.h>
-
-using json = nlohmann::ordered_json;
 
 template <class State, class Domain>
 pTasks seek_plan(State state,

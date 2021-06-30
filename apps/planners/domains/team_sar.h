@@ -4,8 +4,6 @@
 #include <string>
 #include <algorithm>
 
-using json = nlohmann::ordered_json;
-
 // aux functions
 std::string 
 sample_loc(std::vector<std::string> region,
@@ -27,7 +25,7 @@ sample_loc(std::vector<std::string> region,
 }
 
 std::unordered_map<std::string,std::vector<std::string>>
-get_loc_seq(json j,
+get_loc_seq(nlohmann::json j,
             std::vector<std::string> left_r,
             std::vector<std::string> right_r,
             std::vector<std::string> mid_r) {
@@ -1664,8 +1662,8 @@ class SARState {
     std::unordered_map<std::string, std::vector<std::string>> loc_tracker;
     int seed = 100;
 
-    json to_json() {
-      return json{{"loc", this->loc},
+    nlohmann::json to_json() {
+      return nlohmann::json{{"loc", this->loc},
                {"y_vic",this->y_vic},
                {"g_vic",this->g_vic},
                {"y_total",this->y_total},

@@ -3,7 +3,7 @@
 #include <graphviz/gvc.h>
 #include <string>
 
-using json = nlohmann::ordered_json;
+using json = nlohmann::json;
 
 void set_property(Agnode_t *node,
                   std::string property_name,

@@ -16,7 +16,7 @@
 #include <random>
 #include <cfloat>
 
-using json = nlohmann::ordered_json;
+using json = nlohmann::json;
 
 template <class State, class Selector>
 int

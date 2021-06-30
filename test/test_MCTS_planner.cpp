@@ -9,7 +9,7 @@
 #include "plan_trace.h"
 #include "plangrapher.h"
 
-using json = nlohmann::ordered_json;
+using json = nlohmann::json;
 
 BOOST_AUTO_TEST_CASE(test_MCTS_planner) {
     auto state1 = SARState();

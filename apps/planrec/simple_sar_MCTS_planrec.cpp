@@ -7,7 +7,7 @@
 #include "planrec.h"
 #include "plangrapher.h"
 
-using json = nlohmann::ordered_json;
+using json = nlohmann::json;
 
 using namespace std;
 

@@ -7,7 +7,7 @@
 #include <math.h>
 #include "typedefs.h"
 
-using json = nlohmann::ordered_json;
+using json = nlohmann::json;
 
 template <class State,class Selector>
 class Node {
