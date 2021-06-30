@@ -121,9 +121,8 @@ namespace ast {
     }; 
 
      struct Action : x3::position_tagged {
-     Name name;
-     std::vector<TypedList<Variable>> parameters;
-     std::vector<AtomicFormulaSkeleton> precondition;
+        Name name;
+        //std::vector<TypedList<Variable>> parameters;
     };
 
     using boost::fusion::operator<<;

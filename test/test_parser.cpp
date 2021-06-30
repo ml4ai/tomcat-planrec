@@ -124,7 +124,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
             ;(:action BUILD-WALL
             ;    :parameters (?s - site ?b - bricks)
-            ;    ;:precondition (()
             ;    ;:precondition (and
             ;        ;(on-site ?b ?s)
             ;        ;(foundations-set ?s)
@@ -134,9 +133,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             ;    ;:effect (and
             ;        ;(walls-built ?s)
             ;        ;(material-used ?b)
-               ;)
-            ;)
-        )
+                 ;)
+            ; ); end action 
+        ); end define
     )";
 
     auto dom = parse<Domain>(storage, domain());
@@ -219,8 +218,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                (on-site adobe factory)
                )   
            (:goal
-               (and (off-site adobe factory)
-                    (on-site adobe house)      
+               (and (off-site adobe1 factory)
+                    (on-site adobe2 house)      
                ))
 ;           (:goal
 ;               (on-site adobe house)
@@ -262,9 +261,32 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         "factory");
 
     // Test problem goal
-
-   auto agoal = get<AndSentence>(prob.goal);
-   cout << boost::get<Constant>(get<Literal<Term>>(agoal.sentences[0]).args[0]).name << endl;
-   cout << boost::get<Constant>(get<Literal<Term>>(agoal.sentences[1]).args[1]).name << endl;
+   //works: auto agoal = get<AndSentence>(prob.goal);
+   //works: cout << boost::get<Constant>(get<Literal<Term>>(agoal.sentences[0]).args[0]).name << endl;
+   //works: cout << boost::get<Constant>(get<Literal<Term>>(agoal.sentences[1]).args[1]).name << endl;
 //   cout << boost::get<Constant>(get<AndSentence>(prob.goal).args[1]).name << endl;
+
+    // Test and sentence parsing
+
+    auto goal_as = get<AndSentence>(prob.goal); // we know this is an AndSentence
+    BOOST_TEST(goal_as.sentences.size() == 2);  // of two terms
+    //BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
+    auto goal_af = get<Literal<Term>>(goal_as.sentences[0]);//first predicate
+    auto goal_af2 = get<Literal<Term>>(goal_as.sentences[1]);//second predicate
+    BOOST_TEST(goal_af.predicate == "off-site");
+    BOOST_TEST(goal_af2.predicate == "on-site");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[0]).name == "adobe1");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[1]).name == "factory");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[0]).name == "adobe2");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[1]).name == "house");
+/*
+    auto af = get<Literal<Term>>(as.sentences[1]);
+    BOOST_TEST(af.predicate == "predicate");
+    BOOST_TEST(af.args.size() == 2);
+    BOOST_TEST(get<Constant>(af.args[0]).name == "name");
+    BOOST_TEST(get<Variable>(af.args[1]).name == "variable");
+
+*/
+
+
 }

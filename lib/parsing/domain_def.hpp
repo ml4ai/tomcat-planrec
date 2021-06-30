@@ -255,11 +255,11 @@ namespace parser {
                         >> ')';
     BOOST_SPIRIT_DEFINE(parameters);
     
-    rule<class TAction, ast::Action> const action = "action";
+    rule<class TAction, Action> const action = "action";
     auto const action_def = '('
                          >> lit(":action")
                          >> name
-                         >> parameters_def
+                        // >> parameters_def
                          >> ')';
     BOOST_SPIRIT_DEFINE(action);
 
@@ -301,3 +301,4 @@ parser::sentence_type sentence() { return parser::sentence; }
 parser::requirements_type requirements() { return parser::requirements; }
 parser::domain_type domain() { return parser::domain; }
 parser::problem_type problem() { return parser::problem; }
+parser::action_type action() { return parser::action; }
