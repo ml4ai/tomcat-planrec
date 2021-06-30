@@ -154,14 +154,14 @@ namespace parser {
     rule<class TExistsSentence, ast::ExistsSentence> const exists_sentence =
         "exists_sentence";
     auto const exists_sentence_def = '(' >> lit("exists") >> '(' >>
-                                     *typed_list_variables >> ')' >> sentence >>
+                                     typed_list_variables >> ')' >> sentence >>
                                      ')';
     BOOST_SPIRIT_DEFINE(exists_sentence);
 
     rule<class TForallSentence, ast::ForallSentence> const forall_sentence =
         "forall_sentence";
     auto const forall_sentence_def = '(' >> lit("forall") >> '(' >>
-                                     *typed_list_variables >> ')' >> sentence >>
+                                     typed_list_variables >> ')' >> sentence >>
                                      ')';
     BOOST_SPIRIT_DEFINE(forall_sentence);
 

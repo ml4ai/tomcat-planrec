@@ -93,12 +93,12 @@ namespace ast {
     };
 
     struct ExistsSentence {
-        std::vector<TypedList<Variable>> variables;
+        TypedList<Variable> variables;
         Sentence sentence;
     };
 
     struct ForallSentence {
-        std::vector<TypedList<Variable>> variables;
+        TypedList<Variable> variables;
         Sentence sentence;
     };
 
