@@ -117,12 +117,13 @@ namespace ast {
         std::vector<std::string> requirements;
         TypedList<Name> objects;
         Literal<Term> init;
-    }; // end problem struct
+        Sentence goal;
+    }; 
 
-    // struct Action : x3::position_tagged {
-    // Name name;
-    // std::vector<Variable> parameters;
-    //};
+     struct Action : x3::position_tagged {
+        Name name;
+        //std::vector<TypedList<Variable>> parameters;
+    };
 
     using boost::fusion::operator<<;
 } // namespace ast

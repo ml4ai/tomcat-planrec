@@ -35,4 +35,6 @@ BOOST_FUSION_ADAPT_STRUCT(ast::ExistsSentence, variables, sentence)
 BOOST_FUSION_ADAPT_STRUCT(ast::ForallSentence, variables, sentence)
 
 BOOST_FUSION_ADAPT_STRUCT(ast::Domain, name, requirements, types, constants, predicates)
-BOOST_FUSION_ADAPT_STRUCT(ast::Problem, name, domain_name, requirements, objects, init)
+BOOST_FUSION_ADAPT_STRUCT(ast::Problem, name, domain_name, requirements, objects, init, goal)
+
+BOOST_FUSION_ADAPT_STRUCT(ast::Action, name)

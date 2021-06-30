@@ -124,7 +124,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
             ;(:action BUILD-WALL
             ;    :parameters (?s - site ?b - bricks)
-            ;    ;:precondition (()
             ;    ;:precondition (and
             ;        ;(on-site ?b ?s)
             ;        ;(foundations-set ?s)
@@ -134,9 +133,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             ;    ;:effect (and
             ;        ;(walls-built ?s)
             ;        ;(material-used ?b)
-               ;)
-            ;)
-        )
+                 ;)
+            ; ); end action 
+        ); end define
     )";
 
     auto dom = parse<Domain>(storage, domain());
@@ -217,10 +216,12 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 rock) ;testing implicitly-typed
            (:init
                (on-site adobe factory)
-               )
-;           (:goal
-;               (on-site adobe house)
-                )
+               )   
+          (:goal                
+               (and (off-site adobe1 factory1)
+                    (on-site adobe2 house2)      
+               ))
+        );end define
     )";
 
     auto prob = parse<Problem>(storage, problem());
@@ -240,6 +241,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[0].type) == "site");
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
+
+
     BOOST_TEST(get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[1].type) == "material");
     BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] ==
@@ -253,4 +256,52 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(
         get<Constant>(get<Literal<Term>>(prob.init).args[1]).name ==
         "factory");
+
+    // Test problem goal
+    // Testing AndSentences
+    auto goal_as = get<AndSentence>(prob.goal); // we know this is an AndSentence
+    BOOST_TEST(goal_as.sentences.size() == 2);  // containing two terms
+    auto goal_af = get<Literal<Term>>(goal_as.sentences[0]);//first predicate
+    auto goal_af2 = get<Literal<Term>>(goal_as.sentences[1]);//second predicate
+    BOOST_TEST(goal_af.predicate == "off-site");
+    BOOST_TEST(goal_af2.predicate == "on-site");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[0]).name == "adobe1");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[1]).name == "factory1");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[0]).name == "adobe2");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[1]).name == "house2");
+
+    // Testing OrSentences
+    storage = R"(
+        (define
+            (problem adobe)
+            (:domain construction)
+            (:requirements :strips :typing)
+            (:objects
+                factory house - site
+                adobe - material
+                rock) ;testing implicitly-typed
+           (:init
+               (on-site adobe factory)
+               )   
+           (:goal                
+               (or (off-site adobe3 factory3)  
+                   (on-site adobe4 house4)
+                ))
+        );end define
+    )";
+
+    // Testing OrSentences
+    prob = parse<Problem>(storage, problem());
+
+    auto goal_os = get<OrSentence>(prob.goal); // we know this is an OrSentence
+    BOOST_TEST(goal_os.sentences.size() == 2);  // containing two terms
+    auto goal_of = get<Literal<Term>>(goal_os.sentences[0]);//first predicate
+    auto goal_of2 = get<Literal<Term>>(goal_os.sentences[1]);//second predicate
+    BOOST_TEST(goal_of.predicate == "off-site");
+    BOOST_TEST(goal_of2.predicate == "on-site");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[0]).args[0]).name == "adobe3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[0]).args[1]).name == "factory3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[0]).name == "adobe4");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[1]).name == "house4");
+
 }
