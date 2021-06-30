@@ -174,7 +174,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Parse atomic formula of terms
     auto gd2 = parse<Sentence>("(predicate name ?variable)", sentence());
     auto lit1 = get<Literal<Term>>(gd2);
-    BOOST_TEST(lit1.predicate == "predicate")
+    BOOST_TEST(lit1.predicate == "predicate");
     auto constant_1 = get<Constant>(lit1.args[0]);
     BOOST_TEST(constant_1.name == "name");
 

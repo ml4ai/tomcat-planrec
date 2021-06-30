@@ -63,7 +63,7 @@ namespace ast {
 
     template <class T>
     struct Literal {
-        Predicate predicate
+        Predicate predicate;
         std::vector<T> args;
         bool is_negative=false;
     };
