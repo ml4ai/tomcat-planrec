@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[1].name ==
                "var1");
     BOOST_TEST(get<PrimitiveType>(
-        afs.variables.explicitly_typed_lists[0].type) == "type0");
+                   afs.variables.explicitly_typed_lists[0].type) == "type0");
     BOOST_TEST(afs.variables.implicitly_typed_list.value()[0].name == "var2");
 
     // Test requirements
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
                "mainsite");
     BOOST_TEST(get<PrimitiveType>(
-        dom.constants.explicitly_typed_lists[0].type) == "site");
+                   dom.constants.explicitly_typed_lists[0].type) == "site");
 
     // Test parsing of predicates
     BOOST_TEST(dom.predicates.size() == 7);
@@ -181,8 +181,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test parsing literals of terms
     auto positive_literal_of_terms =
         parse<Literal<Term>>("(predicate constant ?variable)", literal_terms());
-    BOOST_TEST(positive_literal_of_terms.predicate ==
-               "predicate");
+    BOOST_TEST(positive_literal_of_terms.predicate == "predicate");
 
     auto negative_literal_of_terms = parse<Literal<Term>>(
         "(not (predicate constant ?variable))", literal_terms());
@@ -223,8 +222,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(af3.args[0]).name == "name");
     BOOST_TEST(get<Variable>(af3.args[1]).name == "variable");
 
-    auto s4 = parse<Sentence>("(not (predicate constant ?variable))",
-                                   sentence());
+    auto s4 =
+        parse<Sentence>("(not (predicate constant ?variable))", sentence());
 
     auto af4 = get<Literal<Term>>(s4);
     BOOST_TEST(af4.predicate == "predicate");
@@ -232,18 +231,40 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(af4.args[0]).name == "constant");
     BOOST_TEST(get<Variable>(af4.args[1]).name == "variable");
 
-    auto s5 =
-        parse<Sentence>("(forall (?variable) (predicate name ?variable))", sentence());
+    auto s5 = parse<Sentence>("(forall (?variable) (predicate name ?variable))",
+                              sentence());
     auto fs = get<ForallSentence>(s5);
-//    BOOST_TEST(fs.variables  "?variable");
-//
-//    auto af5 = get<Literal<Term>>(fs.sentence2);
-//    BOOST_TEST(af3.predicate == "predicate");
-//    BOOST_TEST(af3.args.size() == 2);
-//    BOOST_TEST(get<Constant>(af3.args[0]).name == "name");
-//    BOOST_TEST(get<Variable>(af3.args[1]).name == "variable");
+    BOOST_TEST(fs.variables.implicitly_typed_list.value()[0].name ==
+               "variable");
 
+    auto af5 = get<Literal<Term>>(fs.sentence);
+    BOOST_TEST(af5.predicate == "predicate");
+    BOOST_TEST(af5.args.size() == 2);
+    BOOST_TEST(get<Constant>(af5.args[0]).name == "name");
+    BOOST_TEST(get<Variable>(af5.args[1]).name == "variable");
 
+    auto s6 = parse<Sentence>("(exists (?variable) (predicate name ?variable))",
+                              sentence());
+    auto es = get<ExistsSentence>(s6);
+    BOOST_TEST(es.variables.implicitly_typed_list.value()[0].name ==
+               "variable");
+
+    auto af6 = get<Literal<Term>>(es.sentence);
+    BOOST_TEST(af6.predicate == "predicate");
+    BOOST_TEST(af6.args.size() == 2);
+    BOOST_TEST(get<Constant>(af6.args[0]).name == "name");
+    BOOST_TEST(get<Variable>(af6.args[1]).name == "variable");
+
+    auto s7 =
+        parse<Sentence>("(imply (forall (?x) (forall (?y) (imply (Animal ?y) (Loves ?x ?y)))) (exists (?y) (Loves ?y ?x)))",
+                        sentence());
+    auto cs = get<ImplySentence>(s7);
+    auto fs1 = get<ForallSentence>(cs.sentence1);
+    BOOST_TEST(fs1.variables.implicitly_typed_list.value()[0].name ==
+               "x");
+    auto fs2 = get<ExistsSentence>(cs.sentence2);
+    BOOST_TEST(fs2.variables.implicitly_typed_list.value()[0].name ==
+               "y");
 
     // TODO Salena: 3rd object, rock, is implicit.
     // Think about function that takes typed lists and returns sets of
@@ -281,19 +302,17 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
     BOOST_TEST(get<ast::PrimitiveType>(
-        prob.objects.explicitly_typed_lists[0].type) == "site");
+                   prob.objects.explicitly_typed_lists[0].type) == "site");
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
     BOOST_TEST(get<ast::PrimitiveType>(
-        prob.objects.explicitly_typed_lists[1].type) == "material");
+                   prob.objects.explicitly_typed_lists[1].type) == "material");
     BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] ==
                "rock"); // default type = object
 
     // Test initial state
     BOOST_TEST(get<Literal<Term>>(prob.init).predicate == "on-site");
-    BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(prob.init).args[0]).name ==
-        "adobe");
-    BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(prob.init).args[1]).name ==
-        "factory");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(prob.init).args[0]).name ==
+               "adobe");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(prob.init).args[1]).name ==
+               "factory");
 }
