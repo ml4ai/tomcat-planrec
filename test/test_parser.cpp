@@ -36,8 +36,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test either type parsing
     auto et = parse<EitherType>("(either type0 type1)", either_type());
-    BOOST_TEST(in(PrimitiveType{"type0"}, et));
-    BOOST_TEST(in(PrimitiveType{"type1"}, et));
+    BOOST_TEST(in("type0", et));
+    BOOST_TEST(in("type1", et));
 
     // Test type parsing
     auto t = parse<Type>("type", type());
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test atomic formula skeleton
     auto afs = parse<AtomicFormulaSkeleton>(
         "(predicate ?var0 ?var1 - type0 ?var2)", atomic_formula_skeleton());
-    BOOST_TEST(afs.predicate.name == "predicate");
+    BOOST_TEST(afs.predicate == "predicate");
     BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[0].name ==
                "var0");
     BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[1].name ==
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test parsing atomic formula of terms
     auto aft = parse<AtomicFormula<Term>>("(predicate name ?variable)",
                                           atomic_formula_terms());
-    BOOST_TEST(aft.predicate.name == "predicate");
+    BOOST_TEST(aft.predicate == "predicate");
     BOOST_TEST(get<Constant>(aft.args[0]).name == "name");
     BOOST_TEST(get<Variable>(aft.args[1]).name == "variable");
 
@@ -156,7 +156,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test parsing of predicates
     BOOST_TEST(dom.predicates.size() == 7);
-    BOOST_TEST(dom.predicates[0].predicate.name == "walls-built");
+    BOOST_TEST(dom.predicates[0].predicate == "walls-built");
     BOOST_TEST(
         dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name ==
         "s");
@@ -173,22 +173,20 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Parse atomic formula of terms
     auto gd2 = parse<Sentence>("(predicate name ?variable)", sentence());
-    auto atomic_formula_1 = get<AtomicFormula<Term>>(gd2);
-    BOOST_TEST(atomic_formula_1.predicate.name == "predicate");
-    auto constant_1 = get<Constant>(atomic_formula_1.args[0]);
+    auto lit1 = get<Literal<Term>>(gd2);
+    BOOST_TEST(lit1.predicate == "predicate");
+    auto constant_1 = get<Constant>(lit1.args[0]);
     BOOST_TEST(constant_1.name == "name");
 
     // Test parsing literals of terms
     auto positive_literal_of_terms =
         parse<Literal<Term>>("(predicate constant ?variable)", literal_terms());
-    BOOST_TEST(
-        get<AtomicFormula<Term>>(positive_literal_of_terms).predicate.name ==
-        "predicate");
+    BOOST_TEST(positive_literal_of_terms.predicate ==
+               "predicate");
 
     auto negative_literal_of_terms = parse<Literal<Term>>(
         "(not (predicate constant ?variable))", literal_terms());
-    BOOST_TEST(get<NegativeLiteral<Term>>(negative_literal_of_terms)
-                   .atomic_formula.predicate.name == "predicate");
+    BOOST_TEST(negative_literal_of_terms.predicate == "predicate");
 
     // Test and sentence parsing
     auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
@@ -196,17 +194,17 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(as.sentences.size() == 2);
     BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
 
-    auto af = get<AtomicFormula<Term>>(as.sentences[1]);
-    BOOST_TEST(af.predicate.name == "predicate");
+    auto af = get<Literal<Term>>(as.sentences[1]);
+    BOOST_TEST(af.predicate == "predicate");
     BOOST_TEST(af.args.size() == 2);
     BOOST_TEST(get<Constant>(af.args[0]).name == "name");
     BOOST_TEST(get<Variable>(af.args[1]).name == "variable");
 
     // TODO add tests for parsing or, not, imply and other complex sentences.
 
-    // TODO Salena: 3rd object, rock, is implicit. 
-            // Think about function that takes typed lists and returns sets of
-            // explicit and implicit.
+    // TODO Salena: 3rd object, rock, is implicit.
+    // Think about function that takes typed lists and returns sets of
+    // explicit and implicit.
 
     storage = R"(
         (define
@@ -219,12 +217,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 rock) ;testing implicitly-typed
            (:init
                (on-site adobe factory)
-               )   
+               )
 ;           (:goal
-;               (on-site adobe house)      
+;               (on-site adobe house)
                 )
     )";
-
 
     auto prob = parse<Problem>(storage, problem());
 
@@ -237,22 +234,23 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test objects
     BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 2);
-    
+
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
-    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[0].type) == "site");
+    BOOST_TEST(get<ast::PrimitiveType>(
+                   prob.objects.explicitly_typed_lists[0].type) == "site");
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
-    BOOST_TEST(boost::get<ast::PrimitiveType>(prob.objects.explicitly_typed_lists[1].type) == "material");
-    BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] == "rock");//default type = object
-
+    BOOST_TEST(get<ast::PrimitiveType>(
+                   prob.objects.explicitly_typed_lists[1].type) == "material");
+    BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] ==
+               "rock"); // default type = object
 
     // Test initial state
-    BOOST_TEST(boost::get<AtomicFormula<Term>>(prob.init).predicate.name == "on-site");
-    BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[0]).name == "adobe"); 
-    BOOST_TEST(boost::get<Constant>(get<AtomicFormula<Term>>(prob.init).args[1]).name == "factory");
-
-
-
-
-
+    BOOST_TEST(get<Literal<Term>>(prob.init).predicate == "on-site");
+    BOOST_TEST(
+        get<Constant>(get<Literal<Term>>(prob.init).args[0]).name ==
+        "adobe");
+    BOOST_TEST(
+        get<Constant>(get<Literal<Term>>(prob.init).args[1]).name ==
+        "factory");
 }

@@ -107,16 +107,21 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(atomic_formula_terms);
 
     // Literals of terms
-    rule<class TNegativeLiteralTerms, ast::NegativeLiteral<ast::Term>> const
-        negative_literal_terms = "negative_literal_terms";
-    auto const negative_literal_terms_def =
-        ('(' >> lit("not") >> atomic_formula_terms >> ')');
-    BOOST_SPIRIT_DEFINE(negative_literal_terms);
+    auto parse_negative_literal = [](auto& ctx) {
+         _val(ctx).predicate = _attr(ctx).predicate;
+         _val(ctx).args = _attr(ctx).args;
+         _val(ctx).is_negative = true;
+    };
+    auto parse_positive_literal = [](auto& ctx) {
+         _val(ctx).predicate = _attr(ctx).predicate;
+         _val(ctx).args = _attr(ctx).args;
+         _val(ctx).is_negative = false;
+    };
 
     rule<class TLiteralTerms, ast::Literal<ast::Term>> const literal_terms =
         "literal_terms";
     auto const literal_terms_def =
-        atomic_formula_terms | negative_literal_terms;
+        atomic_formula_terms[parse_positive_literal] | ('(' >> lit("not") >> atomic_formula_terms >> ')')[parse_negative_literal];
     BOOST_SPIRIT_DEFINE(literal_terms);
 
     // Nil
@@ -160,7 +165,7 @@ namespace parser {
                                      ')';
     BOOST_SPIRIT_DEFINE(forall_sentence);
 
-    auto const sentence_def = nil | atomic_formula_terms | literal_terms |
+    auto const sentence_def = nil | literal_terms |
                               and_sentence | or_sentence | not_sentence |
                               imply_sentence;
     BOOST_SPIRIT_DEFINE(sentence);
@@ -183,12 +188,12 @@ namespace parser {
 
 
     rule<class TDomain, ast::Domain> const domain = "domain";
-    auto const domain_def = '(' >> lit("define") >> '(' 
-                         >> lit("domain") 
-                         >> name >> ')' 
-                         >> requirements 
-                         >> -types 
-                         >> -constants 
+    auto const domain_def = '(' >> lit("define") >> '('
+                         >> lit("domain")
+                         >> name >> ')'
+                         >> requirements
+                         >> -types
+                         >> -constants
                          >> -predicates >> ')';
     BOOST_SPIRIT_DEFINE(domain);
 
@@ -201,12 +206,12 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(init);
 
     rule<class TProblem, ast::Problem> const problem = "problem";
-    auto const problem_def = '(' 
-                          >> lit("define") 
-                          >> '(' >> lit("problem") >> name >> ')' 
-                          >> '(' >> lit(":domain") >> name >> ')' 
-                          >> -requirements 
-                          >> -objects 
+    auto const problem_def = '('
+                          >> lit("define")
+                          >> '(' >> lit("problem") >> name >> ')'
+                          >> '(' >> lit(":domain") >> name >> ')'
+                          >> -requirements
+                          >> -objects
                           >> -init
                           >> ')';
     BOOST_SPIRIT_DEFINE(problem);
