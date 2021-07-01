@@ -325,15 +325,22 @@ BOOST_AUTO_TEST_CASE(test_parser) {
  * due to lack of get function for this type.
  * I've also been careful to use sentence, not sentences
  *
+ * will not pass parser test as NotSentence
+ *
+ * I even tried to redefine NotSentence in ast...
+ *
+ * passes everything when defined similar to negative_literal_of_terms
  */
 
-    auto goal_ns = get<Literal<Term>>(prob.goal); 
+    //auto goal_nf = get<NotSentence>(prob.goal); // will not work
+    //auto goal_ns = get<Literal<Term>>(goal_nf.sentence); //will not work
+
+    auto goal_ns = get<Literal<Term>>(prob.goal);
     BOOST_TEST(goal_ns.predicate == "on-site");
     BOOST_TEST(goal_ns.args.size() == 2);
     BOOST_TEST(get<Constant>(goal_ns.args[0]).name == "adobe3");
     BOOST_TEST(get<Constant>(goal_ns.args[1]).name == "factory3");
 
-    //auto goal_not = get<NotSentence>(prob.goal);
     /* Salena's notes to come back to:
      *
      * NotSentence in ast is defined as Sentence sentence;
