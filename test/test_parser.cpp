@@ -305,18 +305,35 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         (define
             (problem adobe)
             (:domain construction)
+            (:requirements :strips :typing)
+            (:objects
+                factory house - site
+                adobe - material
+                rock) ;testing implicitly-typed
+           (:init
+               (on-site adobe factory)
+               )   
             (:goal                
                 (not (on-site adobe3 factory3))
             )
         );end define
     )";
 
-    prob = parse<Problem>(storage, problem());
 
-    auto goal_ns = get<NotSentence>(prob.goal); 
-    auto goal_nf = get<Literal<Term>>(goal_ns.sentence); 
-    BOOST_TEST(goal_nf.predicate == "on-site");
-    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_ns.sentence).args[0]).name == "adobe3");
+    prob = parse<Problem>(storage, problem());
+/* negative literal will not parse as a NotSentence
+ * due to lack of get function for this type.
+ * I've also been careful to use sentence, not sentences
+ *
+ */
+
+    auto goal_ns = get<Literal<Term>>(prob.goal); 
+    BOOST_TEST(goal_ns.predicate == "on-site");
+    BOOST_TEST(goal_ns.args.size() == 2);
+    BOOST_TEST(get<Constant>(goal_ns.args[0]).name == "adobe3");
+    BOOST_TEST(get<Constant>(goal_ns.args[1]).name == "factory3");
+
+    //auto goal_not = get<NotSentence>(prob.goal);
     /* Salena's notes to come back to:
      *
      * NotSentence in ast is defined as Sentence sentence;
