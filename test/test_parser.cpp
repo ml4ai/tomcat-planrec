@@ -350,14 +350,39 @@ BOOST_AUTO_TEST_CASE(test_parser) {
      *     * get not defined when I use exact defs above ^, otherwise:
      *     builds/configures okay
      *     Error in parsing but does not state nature of error
-
-    NOTES FOR ME TO THINK ABOUT: DELETE BEFORE PR!!!! 
-    *
-    *  auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
-    auto as = get<AndSentence>(s);
-    BOOST_TEST(as.sentences.size() == 2);
-    BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
 */
+
+
+
+
+
+    // Testing Imply Sentences
+    storage = R"( 
+        (define
+            (problem adobe)
+            (:domain construction)
+            (:goal                
+                (imply (on-site adobe3 factory3)
+                       (off-site adobe3 house))
+            )
+        );end define
+    )";
+
+    prob = parse<Problem>(storage, problem());
+
+    auto sen = get<ImplySentence>(prob.goal); 
+    auto senf = get<Literal<Term>>(sen.sentence1);
+    auto senf2 = get<Literal<Term>>(sen.sentence2);
+    BOOST_TEST(senf.predicate == "on-site");
+    BOOST_TEST(senf2.predicate == "off-site");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(sen.sentence1).args[0]).name == "adobe3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(sen.sentence1).args[1]).name == "factory3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(sen.sentence2).args[0]).name == "adobe3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(sen.sentence2).args[1]).name == "house");
+
+
+
+
 
 
 // Keep this following bracket!
