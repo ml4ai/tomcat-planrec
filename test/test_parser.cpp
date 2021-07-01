@@ -270,19 +270,14 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[0]).name == "adobe2");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[1]).name == "house2");
 
-    // Testing OrSentences
+
+    // Testing Sentences of various FOL. Storage is redined to only include
+    // required components (problem, domain) and the goal, which demonstrates
+    // the FOL variation.
     storage = R"(
         (define
             (problem adobe)
             (:domain construction)
-            (:requirements :strips :typing)
-            (:objects
-                factory house - site
-                adobe - material
-                rock) ;testing implicitly-typed
-           (:init
-               (on-site adobe factory)
-               )   
            (:goal                
                (or (off-site adobe3 factory3)  
                    (on-site adobe4 house4)
@@ -304,4 +299,42 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[0]).name == "adobe4");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[1]).name == "house4");
 
+
+    // Testing NotSentences
+    storage = R"(
+        (define
+            (problem adobe)
+            (:domain construction)
+            (:goal                
+                (not (on-site adobe3 factory3))
+            )
+        );end define
+    )";
+
+    prob = parse<Problem>(storage, problem());
+
+    auto goal_ns = get<NotSentence>(prob.goal); 
+    auto goal_nf = get<Literal<Term>>(goal_ns.sentence); 
+    BOOST_TEST(goal_nf.predicate == "on-site");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_ns.sentence).args[0]).name == "adobe3");
+    /* Salena's notes to come back to:
+     *
+     * NotSentence in ast is defined as Sentence sentence;
+     * Defined in ebnf as (not <GD>)
+     * Defined in domain_def as sentence   (and not sentences or *sentence)
+     * Problem I'm having:
+     *     * get not defined when I use exact defs above ^, otherwise:
+     *     builds/configures okay
+     *     Error in parsing but does not state nature of error
+
+    NOTES FOR ME TO THINK ABOUT: DELETE BEFORE PR!!!! 
+    *
+    *  auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
+    auto as = get<AndSentence>(s);
+    BOOST_TEST(as.sentences.size() == 2);
+    BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
+*/
+
+
+// Keep this following bracket!
 }
