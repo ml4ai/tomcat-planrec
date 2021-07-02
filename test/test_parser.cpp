@@ -76,6 +76,13 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(in(PrimitiveType{"type1"},
                   get<EitherType>(tl.explicitly_typed_lists[0].type)));
 
+    // Test explicitly typed list of variables
+    auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[1].name == "var1");
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
+    BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) == "type");
+
     // Test atomic formula skeleton
     auto afs = parse<AtomicFormulaSkeleton>(
         "(predicate ?var0 ?var1 - type0 ?var2)", atomic_formula_skeleton());
@@ -356,7 +363,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
 
 
-    // Testing Imply Sentences
+    // Testing Imply Sentence
     storage = R"( 
         (define
             (problem adobe)
@@ -370,20 +377,53 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     prob = parse<Problem>(storage, problem());
 
-    auto sen = get<ImplySentence>(prob.goal); 
-    auto senf = get<Literal<Term>>(sen.sentence1);
-    auto senf2 = get<Literal<Term>>(sen.sentence2);
-    BOOST_TEST(senf.predicate == "on-site");
-    BOOST_TEST(senf2.predicate == "off-site");
-    BOOST_TEST(get<Constant>(get<Literal<Term>>(sen.sentence1).args[0]).name == "adobe3");
-    BOOST_TEST(get<Constant>(get<Literal<Term>>(sen.sentence1).args[1]).name == "factory3");
-    BOOST_TEST(get<Constant>(get<Literal<Term>>(sen.sentence2).args[0]).name == "adobe3");
-    BOOST_TEST(get<Constant>(get<Literal<Term>>(sen.sentence2).args[1]).name == "house");
+    auto imply_s= get<ImplySentence>(prob.goal); 
+    auto imply_f = get<Literal<Term>>(imply_s.sentence1);
+    auto imply_f2 = get<Literal<Term>>(imply_s.sentence2);
+    BOOST_TEST(imply_f.predicate == "on-site");
+    BOOST_TEST(imply_f2.predicate == "off-site");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence1).args[0]).name == "adobe3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence1).args[1]).name == "factory3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[0]).name == "adobe3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[1]).name == "house");
 
 
+    // Testing ExistsSentence
+    storage = R"( 
+        (define
+            (problem adobe)
+            (:domain construction)
+            (:goal                
+                (exists (on-site ?material factory3)
+                       (off-site adobe3 house))
+            )
+        );end define
+    )";
+
+    prob = parse<Problem>(storage, problem());
+
+    auto ex_s= get<ExistsSentence>(prob.goal); 
+    /* Builds without error but does not parse correctly yet:
+     *
+    auto ex_f = get<TypedList<Variable>>(ex_s.variables);
+    auto ex_f2 = get<Literal<Term>>(ex_s.sentence);
+    BOOST_TEST(ex_f.predicate == "on-site");
+    BOOST_TEST(ex_f2.predicate == "off-site");
+    BOOST_TEST(ex_f.explicitly_typed_lists[0].entries[0].name == "material");
+    *
+    */
 
 
+/* For reference:
+    // Test explicitly typed list of variables
+    auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[1].name == "var1");
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
+    BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) == "type");
 
+
+*/
 
 // Keep this following bracket!
 }
