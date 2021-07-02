@@ -21,9 +21,8 @@ namespace ast {
         Sentence operator()(ForallSentence s) const { return s; }
     };
 
-    std::vector<Clause> to_CNF(Sentence s) {
+    Sentence to_CNF(Sentence s) {
         auto visitor = DistributeOrOverAnd();
-        boost::apply_visitor(visitor, s);
-        return visitor.clauses;
+        return boost::apply_visitor(visitor, s);
     }
 } // namespace ast

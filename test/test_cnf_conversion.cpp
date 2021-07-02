@@ -13,7 +13,7 @@ using boost::get;
 BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto s1 = parse<ast::Sentence>("(predicate c1 c2)", sentence());
     auto s = parse<ast::Sentence>("(or (a) (and b c))", sentence());
-    // Should produce clauses: (a ∨ b), (a ∨ c)
+    // Should produce (a ∨ b) ∧ (a ∨ c)
     auto clauses = to_CNF(s);
 
     // THIS TEST FAILS, FIXME

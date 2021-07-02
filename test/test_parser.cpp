@@ -189,7 +189,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test and sentence parsing
     auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
-    auto as = get<AndSentence>(s);
+    auto as = get<ConnectedSentence>(s);
+    BOOST_TEST(as.connector == "and");
     BOOST_TEST(as.sentences.size() == 2);
     BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
 
@@ -258,8 +259,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         "factory");
 
     // Test problem goal
-    // Testing AndSentences
-    auto goal_as = get<AndSentence>(prob.goal); // we know this is an AndSentence
+    // Testing ConnectedSentences
+    auto goal_as = get<ConnectedSentence>(prob.goal); // we know this is an ConnectedSentence
     BOOST_TEST(goal_as.sentences.size() == 2);  // containing two terms
     auto goal_af = get<Literal<Term>>(goal_as.sentences[0]);//first predicate
     auto goal_af2 = get<Literal<Term>>(goal_as.sentences[1]);//second predicate
@@ -270,7 +271,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[0]).name == "adobe2");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[1]).name == "house2");
 
-    // Testing OrSentences
+    // Testing ConnectedSentences
     storage = R"(
         (define
             (problem adobe)
@@ -293,7 +294,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Testing OrSentences
     prob = parse<Problem>(storage, problem());
 
-    auto goal_os = get<OrSentence>(prob.goal); // we know this is an OrSentence
+    auto goal_os = get<ConnectedSentence>(prob.goal); // we know this is an ConnectedSentence
+    BOOST_TEST(goal_os.connector=="or");  // Test connector
     BOOST_TEST(goal_os.sentences.size() == 2);  // containing two terms
     auto goal_of = get<Literal<Term>>(goal_os.sentences[0]);//first predicate
     auto goal_of2 = get<Literal<Term>>(goal_os.sentences[1]);//second predicate
