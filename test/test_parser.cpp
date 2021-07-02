@@ -394,8 +394,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (problem adobe)
             (:domain construction)
             (:goal                
-                (exists (on-site ?material factory3)
-                       (off-site adobe3 house))
+                (exists (on-site ?var1 ?var2 - material)
+                       (off-site var1 house))
             )
         );end define
     )";
@@ -403,15 +403,12 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     prob = parse<Problem>(storage, problem());
 
     auto ex_s= get<ExistsSentence>(prob.goal); 
-    /* Builds without error but does not parse correctly yet:
-     *
     auto ex_f = get<TypedList<Variable>>(ex_s.variables);
     auto ex_f2 = get<Literal<Term>>(ex_s.sentence);
     BOOST_TEST(ex_f.predicate == "on-site");
     BOOST_TEST(ex_f2.predicate == "off-site");
-    BOOST_TEST(ex_f.explicitly_typed_lists[0].entries[0].name == "material");
-    *
-    */
+    BOOST_TEST(ex_f.explicitly_typed_lists[0].entries[0].name == "var1");
+    
 
 
 /* For reference:
