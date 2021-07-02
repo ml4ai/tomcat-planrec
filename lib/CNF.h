@@ -10,11 +10,7 @@ namespace ast {
         std::vector<Clause> clauses = {};
         Sentence operator()(Nil s) const { return s; }
         Sentence operator()(Literal<Term> s) const { return s; }
-        Sentence operator()(AndSentence s) const { return s; }
-        Sentence operator()(OrSentence s) const {
-            // auto
-            return s;
-        }
+        Sentence operator()(ConnectedSentence s) const { return s; }
         Sentence operator()(NotSentence s) const { return s; }
         Sentence operator()(ImplySentence s) const { return s; }
         Sentence operator()(ExistsSentence s) const { return s; }
