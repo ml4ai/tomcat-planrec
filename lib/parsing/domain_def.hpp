@@ -216,7 +216,6 @@ namespace parser {
 
 /***** Start ***** ***** ***** end current stuff ***** ***** ***** *****/
     struct TAction;
-    rule<class TAction, Action> const action = "action";
 
     rule<class TParameters, TypedList<Name>> const parameters = "parameters";
     auto const parameters_def = lit(":parameters")
@@ -225,19 +224,20 @@ namespace parser {
                                >> ')';
     BOOST_SPIRIT_DEFINE(parameters);
 
-    rule<class TPrecondition, std::vector<ast::AtomicFormulaSkeletion>> const precondition = "precondition";
+    rule<class TPrecondition, std::vector<ast::AtomicFormulaSkeleton>> const precondition = "precondition";
     auto const precondition_def = lit(":precondition")
                                >> '('
                                >> *atomic_formula_skeleton
                                >> ')';
+    BOOST_SPIRIT_DEFINE(precondition);
 
-    rule<class TAction, Action> const action = "action";
+    rule<class TAction, ast::Action> const action = "action";
     auto const action_def = '('
-                            >> lit(":action") >> name 
+                            >> lit(":action")
+                            >> name
                             >> parameters_def
                             >> precondition_def
                             >> ')';
-
     BOOST_SPIRIT_DEFINE(action);
 
 /***** ***** ***** ***** end current stuff ***** ***** ***** *****/

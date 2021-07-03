@@ -114,7 +114,7 @@ namespace ast {
         TypedList<Name> types;
         TypedList<Name> constants;
         std::vector<AtomicFormulaSkeleton> predicates;
-        // std::vector<Action> actions;
+        std::vector<Action> action;
     };
 
     struct Problem : x3::position_tagged {
