@@ -369,44 +369,25 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
     
 /********** Salena's work ***/
-//    This does not parse correctly, though it builds without error:
-    auto exist_s = parse<Sentence>("(exists (?var1 ?var2) (pred1 ar1 ar2))",
+//    This does not parse correctly
+//prob = parse<Problem>(storage, problem());
+  
+    auto exist_s = parse<Sentence>("(exists (?var1 ?var2 - type1) (pred1 ?ar1 ?ar2))",
         sentence());
     auto exist_f = get<ExistsSentence>(exist_s);
+//    auto exist_v = get<TypedList<Variable>>(exist_f.variables);
+//    BOOST_TEST(exist_v.explicitly_typed_lists[0].entries[0].name == "var1");
     auto exist_l = get<Literal<Term>>(exist_f.sentence);
     BOOST_TEST(exist_l.predicate == "pred1");
+    BOOST_TEST(get<Variable>(exist_l.args[0]).name == "ar1");
 
-    // from my test and it works
-    auto salena = parse<TypedList<Variable>>("?var1 ?var2 - types", typed_list_variables());
-    BOOST_TEST(salena.explicitly_typed_lists[0].entries[0].name == "var1");
-
-
-/****** Liang's work: error states there is no implicity... in this function..
-  *
-  * auto s6 = parse<Sentence>("(exists (?variable) (predicate name ?variable))",
-                              sentence());
-    
-    auto es = get<ExistsSentence>(s6);
-    BOOST_TEST(es.variables.implicitly_typed_list.value()[0].name ==
-               "variable");
-
-    auto af6 = get<Literal<Term>>(es.sentence);
-    BOOST_TEST(af6.predicate == "predicate");
-    BOOST_TEST(af6.args.size() == 2);
-    BOOST_TEST(get<Constant>(af6.args[0]).name == "name");
-    BOOST_TEST(get<Variable>(af6.args[1]).name == "variable");
-    *
-*********/
-
-
-  
-/**** Salena's test for Typed List Variables that does work and passes:
-    auto salena  = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
-    BOOST_TEST(salena.explicitly_typed_lists[0].entries[0].name == "var0");
-    BOOST_TEST(salena.explicitly_typed_lists[0].entries[1].name == "var1");
-    BOOST_TEST(salena.explicitly_typed_lists[0].entries[2].name == "var2");
-    BOOST_TEST(get<PrimitiveType>(salena.explicitly_typed_lists[0].type) == "type");
-*******/
-
-
-}
+    //forall universal quantifier
+    auto f_s = parse<Sentence>("(forall (?var1 ?var2 - type2) (pred2 ?ar1 ?ar2))",
+        sentence());
+    auto f_f = get<ForallSentence>(f_s);
+//    auto f_v = get<TypedList<Variable>>(f_f.variables);
+//    BOOST_TEST(f_v.explicitly_typed_lists[0].entries[0].name == "var1");
+    auto f_l = get<Literal<Term>>(f_f.sentence);
+    BOOST_TEST(f_l.predicate == "pred2");
+    BOOST_TEST(get<Variable>(f_l.args[0]).name == "ar1");
+    }

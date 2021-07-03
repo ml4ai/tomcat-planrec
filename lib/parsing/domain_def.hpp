@@ -193,7 +193,7 @@ namespace parser {
 
     auto const sentence_def = nil | literal_terms |
                               and_sentence | or_sentence | not_sentence |
-                              imply_sentence;
+                              imply_sentence | exists_sentence;
     BOOST_SPIRIT_DEFINE(sentence);
 
 
