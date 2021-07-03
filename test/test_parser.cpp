@@ -393,38 +393,18 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (problem adobe)
             (:domain construction)
             (:goal                
-                (exists (?brick - material))
+                (exists (?var1) 
+                (on-site name ?brick))
             )
         );end define
     )";
 
     prob = parse<Problem>(storage, problem());
 
-    //idea 1: does static assert problem
-      auto ex_s= get<ExistsSentence>(prob.goal); 
-      BOOST_TEST(get<Variable>(ex_s.sentence).name == "brick");
-    //idea 2: get does not work with typed list variables here, though it does
-    //in my toy test below (and above).
-      auto ex_f = get<TypedList<Variable>>(ex_s.sentence);
-      BOOST_TEST(ex_f.explicitly_typed_lists[0].entries[0].name == "brick");
+    auto ex_s= get<ExistsSentence>(prob.goal); 
+    auto ex_f = get<Literal<Term>>(ex_s.sentence);
 
-
-/* For reference:
-    // Test explicitly typed list of variables
-    auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[1].name == "var1");
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
-    BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) == "type");
-
-
-
-    BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
-
-    BOOST_TEST(get<ast::PrimitiveType>(
-                   prob.objects.explicitly_typed_lists[1].type) == "material");
-
-*/
-
-// Keep this following bracket!
+    BOOST_TEST(ex_f.predicate == "on-site");
+    BOOST_TEST(get<Variable>(ex_f.args[1]).name == "brick");
+      
 }
