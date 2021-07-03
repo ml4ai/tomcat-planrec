@@ -325,42 +325,13 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         );end define
     )";
 
-
     prob = parse<Problem>(storage, problem());
-/* negative literal will not parse as a NotSentence
- * due to lack of get function for this type.
- * I've also been careful to use sentence, not sentences
- *
- * will not pass parser test as NotSentence
- *
- * I even tried to redefine NotSentence in ast...
- *
- * passes everything when defined similar to negative_literal_of_terms
- */
-
-    //auto goal_nf = get<NotSentence>(prob.goal); // will not work
-    //auto goal_ns = get<Literal<Term>>(goal_nf.sentence); //will not work
 
     auto goal_ns = get<Literal<Term>>(prob.goal);
     BOOST_TEST(goal_ns.predicate == "on-site");
     BOOST_TEST(goal_ns.args.size() == 2);
     BOOST_TEST(get<Constant>(goal_ns.args[0]).name == "adobe3");
     BOOST_TEST(get<Constant>(goal_ns.args[1]).name == "factory3");
-
-    /* Salena's notes to come back to:
-     *
-     * NotSentence in ast is defined as Sentence sentence;
-     * Defined in ebnf as (not <GD>)
-     * Defined in domain_def as sentence   (and not sentences or *sentence)
-     * Problem I'm having:
-     *     * get not defined when I use exact defs above ^, otherwise:
-     *     builds/configures okay
-     *     Error in parsing but does not state nature of error
-*/
-
-
-
-
 
     // Testing Imply Sentence
     storage = R"( 
@@ -375,7 +346,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
 
     prob = parse<Problem>(storage, problem());
-
     auto imply_s= get<ImplySentence>(prob.goal); 
     auto imply_f = get<Literal<Term>>(imply_s.sentence1);
     auto imply_f2 = get<Literal<Term>>(imply_s.sentence2);
@@ -386,25 +356,57 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[0]).name == "adobe3");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[1]).name == "house");
 
-
     // Testing ExistsSentence
     storage = R"( 
         (define
             (problem adobe)
             (:domain construction)
             (:goal                
-                (exists (?var1) 
-                (on-site name ?brick))
-            )
+                (exists (?var1 ?var2 - types)
+                        (pred1 ?var1 ?var2))
+            );end goal
         );end define
     )";
+    
+/********** Salena's work ***/
+//    This does not parse correctly, though it builds without error:
+    auto exist_s = parse<Sentence>("(exists (?var1 ?var2) (pred1 ar1 ar2))",
+        sentence());
+    auto exist_f = get<ExistsSentence>(exist_s);
+    auto exist_l = get<Literal<Term>>(exist_f.sentence);
+    BOOST_TEST(exist_l.predicate == "pred1");
 
-    prob = parse<Problem>(storage, problem());
+    // from my test and it works
+    auto salena = parse<TypedList<Variable>>("?var1 ?var2 - types", typed_list_variables());
+    BOOST_TEST(salena.explicitly_typed_lists[0].entries[0].name == "var1");
 
-    auto ex_s= get<ExistsSentence>(prob.goal); 
-    auto ex_f = get<Literal<Term>>(ex_s.sentence);
 
-    BOOST_TEST(ex_f.predicate == "on-site");
-    BOOST_TEST(get<Variable>(ex_f.args[1]).name == "brick");
-      
+/****** Liang's work: error states there is no implicity... in this function..
+  *
+  * auto s6 = parse<Sentence>("(exists (?variable) (predicate name ?variable))",
+                              sentence());
+    
+    auto es = get<ExistsSentence>(s6);
+    BOOST_TEST(es.variables.implicitly_typed_list.value()[0].name ==
+               "variable");
+
+    auto af6 = get<Literal<Term>>(es.sentence);
+    BOOST_TEST(af6.predicate == "predicate");
+    BOOST_TEST(af6.args.size() == 2);
+    BOOST_TEST(get<Constant>(af6.args[0]).name == "name");
+    BOOST_TEST(get<Variable>(af6.args[1]).name == "variable");
+    *
+*********/
+
+
+  
+/**** Salena's test for Typed List Variables that does work and passes:
+    auto salena  = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
+    BOOST_TEST(salena.explicitly_typed_lists[0].entries[0].name == "var0");
+    BOOST_TEST(salena.explicitly_typed_lists[0].entries[1].name == "var1");
+    BOOST_TEST(salena.explicitly_typed_lists[0].entries[2].name == "var2");
+    BOOST_TEST(get<PrimitiveType>(salena.explicitly_typed_lists[0].type) == "type");
+*******/
+
+
 }
