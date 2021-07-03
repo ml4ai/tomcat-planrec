@@ -102,6 +102,12 @@ namespace ast {
         Sentence sentence;
     };
 
+    struct Action : x3::position_tagged {
+        Name name;
+        std::vector<Variable> parameters;
+        std::vector<AtomicFormulaSkeleton> precondition;
+    }; 
+
     struct Domain : x3::position_tagged {
         Name name;
         std::vector<std::string> requirements;
@@ -118,11 +124,6 @@ namespace ast {
         TypedList<Name> objects;
         Literal<Term> init;
         Sentence goal;
-    }; 
-
-     struct Action : x3::position_tagged {
-        Name name;
-        //std::vector<TypedList<Variable>> parameters;
     };
 
     using boost::fusion::operator<<;

@@ -390,4 +390,18 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto f_l = get<Literal<Term>>(f_f.sentence);
     BOOST_TEST(f_l.predicate == "pred2");
     BOOST_TEST(get<Variable>(f_l.args[0]).name == "ar1");
-    }
+
+
+/***** Copy of Test explicitly typed list of variables for reference:
+     *
+     * This parses correctly as a single test, but not when incorporated into
+     * the testing of the problem:
+     *
+    auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[1].name == "var1");
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
+    BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) == "type");
+*****/
+
+}

@@ -213,6 +213,40 @@ namespace parser {
                                 +atomic_formula_skeleton >> ')';
     BOOST_SPIRIT_DEFINE(predicates);
 
+
+/***** Start ***** ***** ***** end current stuff ***** ***** ***** *****/
+    struct TAction;
+    rule<class TAction, Action> const action = "action";
+
+    rule<class TParameters, TypedList<Name>> const parameters = "parameters";
+    auto const parameters_def = lit(":parameters")
+                               >> '('
+                               >> typed_list_variables
+                               >> ')';
+    BOOST_SPIRIT_DEFINE(parameters);
+
+    rule<class TPrecondition, std::vector<ast::AtomicFormulaSkeletion>> const precondition = "precondition";
+    auto const precondition_def = lit(":precondition")
+                               >> '('
+                               >> *atomic_formula_skeleton
+                               >> ')';
+
+    rule<class TAction, Action> const action = "action";
+    auto const action_def = '('
+                            >> lit(":action") >> name 
+                            >> parameters_def
+                            >> precondition_def
+                            >> ')';
+
+    BOOST_SPIRIT_DEFINE(action);
+
+/***** ***** ***** ***** end current stuff ***** ***** ***** *****/
+
+
+
+
+
+
     rule<class TDomain, ast::Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '('
                          >> lit("domain")
@@ -246,24 +280,6 @@ namespace parser {
                           >> -goal
                           >> ')';
     BOOST_SPIRIT_DEFINE(problem);
-
-/***** ***** ***** ***** BEGIN: current stuff ***** ***** ***** *****/
-    rule<class TParameters, TypedList<Name>> const parameters = "parameters";
-    auto const parameters_def = lit(":parameters")
-                        >> '('
-                        >> typed_list_variables
-                        >> ')';
-    BOOST_SPIRIT_DEFINE(parameters);
-    
-    rule<class TAction, Action> const action = "action";
-    auto const action_def = '('
-                         >> lit(":action")
-                         >> name
-                        // >> parameters_def
-                         >> ')';
-    BOOST_SPIRIT_DEFINE(action);
-
-/***** ***** ***** ***** end current stuff ***** ***** ***** *****/
 
 
     BOOST_SPIRIT_DEFINE(constant,
