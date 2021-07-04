@@ -32,8 +32,8 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
 
 //    auto s1 = parse<ast::Sentence>("(predicate c1 c2)", sentence());
     auto s2 = parse<Sentence>("(or (a) (and (b) (c)))", sentence());
-    // Should produce clauses: (a ∨ b), (a ∨ c)
 
+    // Should produce (a ∨ b) ∧ (a ∨ c)
     auto clauses = to_CNF(s2);
     cout << endl;
 

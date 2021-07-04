@@ -25,6 +25,5 @@ jobs:
         mkdir build
         cd build
         cmake .. 
-        # In the future, enable the other tests as well
-        make -j test_parser
-        ./test/test_parser
+        make -j
+        make test

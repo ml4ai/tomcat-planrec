@@ -59,8 +59,7 @@ namespace ast {
     };
 
     // Forward declare classes in order to work with Boost's recursive_wrapper
-    struct AndSentence;
-    struct OrSentence;
+    struct ConnectedSentence;
     struct NotSentence;
     struct ImplySentence;
     struct ExistsSentence;
@@ -68,18 +67,14 @@ namespace ast {
 
     using Sentence = boost::variant<Nil,
                                     Literal<Term>,
-                                    boost::recursive_wrapper<AndSentence>,
-                                    boost::recursive_wrapper<OrSentence>,
+                                    boost::recursive_wrapper<ConnectedSentence>,
                                     boost::recursive_wrapper<NotSentence>,
                                     boost::recursive_wrapper<ImplySentence>,
                                     boost::recursive_wrapper<ExistsSentence>,
                                     boost::recursive_wrapper<ForallSentence>>;
 
-    struct AndSentence {
-        std::vector<Sentence> sentences;
-    };
-
-    struct OrSentence {
+    struct ConnectedSentence {
+        std::string connector;
         std::vector<Sentence> sentences;
     };
 
@@ -117,12 +112,13 @@ namespace ast {
         std::vector<std::string> requirements;
         TypedList<Name> objects;
         Literal<Term> init;
-    }; // end problem struct
+        Sentence goal;
+    }; 
 
-    // struct Action : x3::position_tagged {
-    // Name name;
-    // std::vector<Variable> parameters;
-    //};
+     struct Action : x3::position_tagged {
+        Name name;
+        //std::vector<TypedList<Variable>> parameters;
+    };
 
     using boost::fusion::operator<<;
 } // namespace ast

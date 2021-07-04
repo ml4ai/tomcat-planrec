@@ -21,4 +21,5 @@ namespace parser {
 
     BOOST_SPIRIT_INSTANTIATE(domain_type, iterator_type, context_type);
     BOOST_SPIRIT_INSTANTIATE(problem_type, iterator_type, context_type);
+    BOOST_SPIRIT_INSTANTIATE(action_type, iterator_type, context_type);
 } // namespace parser

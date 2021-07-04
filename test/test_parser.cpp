@@ -124,7 +124,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
             ;(:action BUILD-WALL
             ;    :parameters (?s - site ?b - bricks)
-            ;    ;:precondition (()
             ;    ;:precondition (and
             ;        ;(on-site ?b ?s)
             ;        ;(foundations-set ?s)
@@ -134,9 +133,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             ;    ;:effect (and
             ;        ;(walls-built ?s)
             ;        ;(material-used ?b)
-               ;)
-            ;)
-        )
+                 ;)
+            ; ); end action
+        ); end define
     )";
 
     auto dom = parse<Domain>(storage, domain());
@@ -189,7 +188,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test and sentence parsing
     auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
-    auto as = get<AndSentence>(s);
+    auto as = get<ConnectedSentence>(s);
+    BOOST_TEST(as.connector == "and");
     BOOST_TEST(as.sentences.size() == 2);
     BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
 
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // TODO add tests for parsing or, not, imply and other complex sentences.
     auto s2 = parse<Sentence>("(or () (predicate name ?variable))", sentence());
-    auto os = get<OrSentence>(s2);
+    auto os = get<ConnectedSentence>(s2);
     BOOST_TEST(os.sentences.size() == 2);
     BOOST_TEST(get<Nil>(os.sentences[0]) == Nil());
 
@@ -282,9 +282,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
            (:init
                (on-site adobe factory)
                )
-;           (:goal
-;               (on-site adobe house)
-                )
+          (:goal
+               (and (off-site adobe1 factory1)
+                    (on-site adobe2 house2)
+               ))
+        );end define
     )";
 
     auto prob = parse<Problem>(storage, problem());
@@ -304,6 +306,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[0].type) == "site");
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
+
+
     BOOST_TEST(get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[1].type) == "material");
     BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] ==
@@ -311,8 +315,58 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test initial state
     BOOST_TEST(get<Literal<Term>>(prob.init).predicate == "on-site");
-    BOOST_TEST(get<Constant>(get<Literal<Term>>(prob.init).args[0]).name ==
-               "adobe");
-    BOOST_TEST(get<Constant>(get<Literal<Term>>(prob.init).args[1]).name ==
-               "factory");
+    BOOST_TEST(
+        get<Constant>(get<Literal<Term>>(prob.init).args[0]).name ==
+        "adobe");
+    BOOST_TEST(
+        get<Constant>(get<Literal<Term>>(prob.init).args[1]).name ==
+        "factory");
+
+    // Test problem goal
+    // Testing ConnectedSentences
+    auto goal_as = get<ConnectedSentence>(prob.goal); // we know this is an ConnectedSentence
+    BOOST_TEST(goal_as.sentences.size() == 2);  // containing two terms
+    auto goal_af = get<Literal<Term>>(goal_as.sentences[0]);//first predicate
+    auto goal_af2 = get<Literal<Term>>(goal_as.sentences[1]);//second predicate
+    BOOST_TEST(goal_af.predicate == "off-site");
+    BOOST_TEST(goal_af2.predicate == "on-site");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[0]).name == "adobe1");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[1]).name == "factory1");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[0]).name == "adobe2");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[1]).name == "house2");
+
+    // Testing ConnectedSentences
+    storage = R"(
+        (define
+            (problem adobe)
+            (:domain construction)
+            (:requirements :strips :typing)
+            (:objects
+                factory house - site
+                adobe - material
+                rock) ;testing implicitly-typed
+           (:init
+               (on-site adobe factory)
+               )
+           (:goal
+               (or (off-site adobe3 factory3)
+                   (on-site adobe4 house4)
+                ))
+        );end define
+    )";
+
+    // Testing ConnectedSentences
+    prob = parse<Problem>(storage, problem());
+
+    auto goal_os = get<ConnectedSentence>(prob.goal); // we know this is an ConnectedSentence
+    BOOST_TEST(goal_os.connector=="or");  // Test connector
+    BOOST_TEST(goal_os.sentences.size() == 2);  // containing two terms
+    auto goal_of = get<Literal<Term>>(goal_os.sentences[0]);//first predicate
+    auto goal_of2 = get<Literal<Term>>(goal_os.sentences[1]);//second predicate
+    BOOST_TEST(goal_of.predicate == "off-site");
+    BOOST_TEST(goal_of2.predicate == "on-site");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[0]).args[0]).name == "adobe3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[0]).args[1]).name == "factory3");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[0]).name == "adobe4");
+    BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[1]).name == "house4");
 }

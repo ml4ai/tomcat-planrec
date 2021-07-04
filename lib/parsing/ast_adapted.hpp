@@ -27,12 +27,13 @@ BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormulaSkeleton, predicate, variables)
 BOOST_FUSION_ADAPT_STRUCT(ast::AtomicFormula<ast::Term>, predicate, args)
 
 BOOST_FUSION_ADAPT_STRUCT(ast::Nil)
-BOOST_FUSION_ADAPT_STRUCT(ast::AndSentence, sentences)
-BOOST_FUSION_ADAPT_STRUCT(ast::OrSentence, sentences)
+BOOST_FUSION_ADAPT_STRUCT(ast::ConnectedSentence, connector, sentences)
 BOOST_FUSION_ADAPT_STRUCT(ast::NotSentence, sentence)
 BOOST_FUSION_ADAPT_STRUCT(ast::ImplySentence, sentence1, sentence2)
 BOOST_FUSION_ADAPT_STRUCT(ast::ExistsSentence, variables, sentence)
 BOOST_FUSION_ADAPT_STRUCT(ast::ForallSentence, variables, sentence)
 
 BOOST_FUSION_ADAPT_STRUCT(ast::Domain, name, requirements, types, constants, predicates)
-BOOST_FUSION_ADAPT_STRUCT(ast::Problem, name, domain_name, requirements, objects, init)
+BOOST_FUSION_ADAPT_STRUCT(ast::Problem, name, domain_name, requirements, objects, init, goal)
+
+BOOST_FUSION_ADAPT_STRUCT(ast::Action, name)
