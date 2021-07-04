@@ -15,7 +15,7 @@ namespace parser {
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
-        x3::eol, x3::rule;
+        x3::eol, x3::rule, x3::symbols;
 
     auto const name =
         lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
@@ -132,37 +132,42 @@ namespace parser {
     rule<class TSentence, ast::Sentence> sentence = "sentence";
 
 
-    rule<class TAndSentence, ast::AndSentence> const and_sentence =
-                                  "and_sentence";
-    auto const and_sentence_def = '(' 
-                               >> lit("and") 
-                               >> *sentence 
-                               >> ')';
-    BOOST_SPIRIT_DEFINE(and_sentence);
+    struct connector_ : x3::symbols<std::string>
+    {
+        connector_()
+        {
+            add
+                ("and"    , "and")
+                ("or"    , "or")
+            ;
+        }
+
+    } connector;
 
 
-    rule<class TOrSentence, ast::OrSentence> const or_sentence = "or_sentence";
-    auto const or_sentence_def = '(' 
-                               >> lit("or") 
-                               >> *sentence 
+    rule<class TConnectedSentence, ast::ConnectedSentence> const connected_sentence =
+                                  "connected_sentence";
+    auto const connected_sentence_def = '('
+                               >> connector
+                               >> *sentence
                                >> ')';
-    BOOST_SPIRIT_DEFINE(or_sentence);
+    BOOST_SPIRIT_DEFINE(connected_sentence);
 
 
     rule<class TNotSentence, ast::NotSentence> const not_sentence =
                                   "not_sentence";
-    auto const not_sentence_def = '(' 
-                               >> lit("not") 
-                               >> sentence 
+    auto const not_sentence_def = '('
+                               >> lit("not")
+                               >> sentence
                                >> ')';
     BOOST_SPIRIT_DEFINE(not_sentence);
 
 
     rule<class TImplySentence, ast::ImplySentence> const imply_sentence =
                                    "imply_sentence";
-    auto const imply_sentence_def = '(' 
-                                >> lit("imply") 
-                                >> sentence 
+    auto const imply_sentence_def = '('
+                                >> lit("imply")
+                                >> sentence
                                 >> sentence
                                 >> ')';
     BOOST_SPIRIT_DEFINE(imply_sentence);
@@ -170,30 +175,30 @@ namespace parser {
 
     rule<class TExistsSentence, ast::ExistsSentence> const exists_sentence =
                                    "exists_sentence";
-    auto const exists_sentence_def = '(' 
-                                >> lit("exists") 
-                                >> '(' 
-                                >> *typed_list_variables 
-                                >> ')' 
-                                >> sentence 
+    auto const exists_sentence_def = '('
+                                >> lit("exists")
+                                >> '('
+                                >> *typed_list_variables
+                                >> ')'
+                                >> sentence
                                 >> ')';
     BOOST_SPIRIT_DEFINE(exists_sentence);
 
 
     rule<class TForallSentence, ast::ForallSentence> const forall_sentence =
                                    "forall_sentence";
-    auto const forall_sentence_def = '(' 
-                                >> lit("forall") 
-                                >> '(' 
-                                >> *typed_list_variables 
-                                >> ')' 
-                                >> sentence 
+    auto const forall_sentence_def = '('
+                                >> lit("forall")
+                                >> '('
+                                >> *typed_list_variables
+                                >> ')'
+                                >> sentence
                                 >> ')';
     BOOST_SPIRIT_DEFINE(forall_sentence);
 
     auto const sentence_def = nil | literal_terms |
-                              and_sentence | or_sentence | not_sentence |
-                              imply_sentence | exists_sentence;
+                              connected_sentence | not_sentence |
+                              imply_sentence | exists_sentence | forall_sentence;
     BOOST_SPIRIT_DEFINE(sentence);
 
 
@@ -217,26 +222,23 @@ namespace parser {
 /***** Start ***** ***** ***** end current stuff ***** ***** ***** *****/
     struct TAction;
 
-    rule<class TParameters, TypedList<Name>> const parameters = "parameters";
+    rule<class TParameters, TypedList<Variable>> const parameters = "parameters";
     auto const parameters_def = lit(":parameters")
                                >> '('
                                >> typed_list_variables
                                >> ')';
     BOOST_SPIRIT_DEFINE(parameters);
 
-    rule<class TPrecondition, std::vector<ast::AtomicFormulaSkeleton>> const precondition = "precondition";
-    auto const precondition_def = lit(":precondition")
-                               >> '('
-                               >> *atomic_formula_skeleton
-                               >> ')';
+    rule<class TPrecondition, ast::Sentence> const precondition = "precondition";
+    auto const precondition_def = '(' >> lit(":precondition") >> sentence >> ')';
     BOOST_SPIRIT_DEFINE(precondition);
 
     rule<class TAction, ast::Action> const action = "action";
     auto const action_def = '('
                             >> lit(":action")
                             >> name
-                            >> parameters_def
-                            >> precondition_def
+                            >> parameters
+                            >> precondition
                             >> ')';
     BOOST_SPIRIT_DEFINE(action);
 
@@ -276,8 +278,8 @@ namespace parser {
                           >> '(' >> lit(":domain") >> name >> ')'
                           >> -requirements
                           >> -objects
-                          >> -init
-                          >> -goal
+                          >> init
+                          >> goal
                           >> ')';
     BOOST_SPIRIT_DEFINE(problem);
 

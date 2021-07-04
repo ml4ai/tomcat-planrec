@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             ;        ;(walls-built ?s)
             ;        ;(material-used ?b)
                  ;)
-            ; ); end action 
+            ; ); end action
         ); end define
     )";
 
@@ -196,7 +196,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test and sentence parsing
     auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
-    auto as = get<AndSentence>(s);
+    auto as = get<ConnectedSentence>(s);
+    BOOST_TEST(as.connector == "and");
     BOOST_TEST(as.sentences.size() == 2);
     BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
 
@@ -223,10 +224,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 rock) ;testing implicitly-typed
            (:init
                (on-site adobe factory)
-               )   
-          (:goal                
+               )
+          (:goal
                (and (off-site adobe1 factory1)
-                    (on-site adobe2 house2)      
+                    (on-site adobe2 house2)
                ))
         );end define
     )";
@@ -264,8 +265,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         "factory");
 
     // Test problem goal
-    // Testing AndSentences
-    auto goal_as = get<AndSentence>(prob.goal); // we know this is an AndSentence
+    // Testing ConnectedSentences
+    auto goal_as = get<ConnectedSentence>(prob.goal); // we know this is an ConnectedSentence
     BOOST_TEST(goal_as.sentences.size() == 2);  // containing two terms
     auto goal_af = get<Literal<Term>>(goal_as.sentences[0]);//first predicate
     auto goal_af2 = get<Literal<Term>>(goal_as.sentences[1]);//second predicate
@@ -276,25 +277,27 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[0]).name == "adobe2");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[1]).name == "house2");
 
-
-    // Testing Sentences of various FOL. Storage is redined to only include
+    // Testing Problems with goal definitions corresponding to FOL Sentences of
+    // different kinds. The 'storage' variable is redefined to only include
     // required components (problem, domain) and the goal, which demonstrates
     // the FOL variation.
     storage = R"(
         (define
             (problem adobe)
             (:domain construction)
-           (:goal                
-               (or (off-site adobe3 factory3)  
-                   (on-site adobe4 house4)
-                ))
+           (:init
+               (on-site adobe factory))
+            (:goal
+               (or (off-site adobe3 factory3)
+                   (on-site adobe4 house4)))
         );end define
     )";
 
-    // Testing OrSentences
     prob = parse<Problem>(storage, problem());
 
-    auto goal_os = get<OrSentence>(prob.goal); // we know this is an OrSentence
+    // Testing ConnectedSentences
+    auto goal_os = get<ConnectedSentence>(prob.goal); // we know this is an ConnectedSentence
+    BOOST_TEST(goal_os.connector=="or");  // Test connector
     BOOST_TEST(goal_os.sentences.size() == 2);  // containing two terms
     auto goal_of = get<Literal<Term>>(goal_os.sentences[0]);//first predicate
     auto goal_of2 = get<Literal<Term>>(goal_os.sentences[1]);//second predicate
@@ -316,12 +319,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 factory house - site
                 adobe - material
                 rock) ;testing implicitly-typed
-           (:init
-               (on-site adobe factory)
-               )   
-            (:goal                
-                (not (on-site adobe3 factory3))
-            )
+            (:init
+               (on-site adobe factory))
+            (:goal
+                (not (on-site adobe3 factory3)))
         );end define
     )";
 
@@ -334,11 +335,13 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(goal_ns.args[1]).name == "factory3");
 
     // Testing Imply Sentence
-    storage = R"( 
+    storage = R"(
         (define
             (problem adobe)
             (:domain construction)
-            (:goal                
+            (:init
+               (on-site adobe factory))
+            (:goal
                 (imply (on-site adobe3 factory3)
                        (off-site adobe3 house))
             )
@@ -346,7 +349,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
 
     prob = parse<Problem>(storage, problem());
-    auto imply_s= get<ImplySentence>(prob.goal); 
+    auto imply_s= get<ImplySentence>(prob.goal);
     auto imply_f = get<Literal<Term>>(imply_s.sentence1);
     auto imply_f2 = get<Literal<Term>>(imply_s.sentence2);
     BOOST_TEST(imply_f.predicate == "on-site");
@@ -357,39 +360,39 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[1]).name == "house");
 
     // Testing ExistsSentence
-    storage = R"( 
-        (define
-            (problem adobe)
-            (:domain construction)
-            (:goal                
-                (exists (?var1 ?var2 - types)
-                        (pred1 ?var1 ?var2))
-            );end goal
-        );end define
-    )";
-    
+    //storage = R"(
+        //(define
+            //(problem adobe)
+            //(:domain construction)
+            //(:goal
+                //(exists (?var1 ?var2 - types)
+                        //(pred1 ?var1 ?var2))
+            //);end goal
+        //);end define
+    //)";
+
 /********** Salena's work ***/
 //    This does not parse correctly
 //prob = parse<Problem>(storage, problem());
-  
-    auto exist_s = parse<Sentence>("(exists (?var1 ?var2 - type1) (pred1 ?ar1 ?ar2))",
-        sentence());
-    auto exist_f = get<ExistsSentence>(exist_s);
+
+    //auto exist_s = parse<Sentence>("(exists (?var1 ?var2 - type1) (pred1 ?ar1 ?ar2))",
+        //sentence());
+    //auto exist_f = get<ExistsSentence>(exist_s);
 //    auto exist_v = get<TypedList<Variable>>(exist_f.variables);
 //    BOOST_TEST(exist_v.explicitly_typed_lists[0].entries[0].name == "var1");
-    auto exist_l = get<Literal<Term>>(exist_f.sentence);
-    BOOST_TEST(exist_l.predicate == "pred1");
-    BOOST_TEST(get<Variable>(exist_l.args[0]).name == "ar1");
+    //auto exist_l = get<Literal<Term>>(exist_f.sentence);
+    //BOOST_TEST(exist_l.predicate == "pred1");
+    //BOOST_TEST(get<Variable>(exist_l.args[0]).name == "ar1");
 
     //forall universal quantifier
-    auto f_s = parse<Sentence>("(forall (?var1 ?var2 - type2) (pred2 ?ar1 ?ar2))",
-        sentence());
-    auto f_f = get<ForallSentence>(f_s);
+    //auto f_s = parse<Sentence>("(forall (?var1 ?var2 - type2) (pred2 ?ar1 ?ar2))",
+        //sentence());
+    //auto f_f = get<ForallSentence>(f_s);
 //    auto f_v = get<TypedList<Variable>>(f_f.variables);
 //    BOOST_TEST(f_v.explicitly_typed_lists[0].entries[0].name == "var1");
-    auto f_l = get<Literal<Term>>(f_f.sentence);
-    BOOST_TEST(f_l.predicate == "pred2");
-    BOOST_TEST(get<Variable>(f_l.args[0]).name == "ar1");
+    //auto f_l = get<Literal<Term>>(f_f.sentence);
+    //BOOST_TEST(f_l.predicate == "pred2");
+    //BOOST_TEST(get<Variable>(f_l.args[0]).name == "ar1");
 
 
 /***** Copy of Test explicitly typed list of variables for reference:
@@ -403,5 +406,4 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
     BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) == "type");
 *****/
-
 }
