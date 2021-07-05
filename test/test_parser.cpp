@@ -129,7 +129,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 (material-used ?m - material)
             )
 
-            ;(:action BUILD-WALL
+            (:action build
+            )
             ;    :parameters (?s - site ?b - bricks)
             ;    ;:precondition (and
             ;        ;(on-site ?b ?s)
@@ -145,7 +146,67 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         ); end define
     )";
 
+/******************** new part **********/
+    /*****************************************/
     auto dom = parse<Domain>(storage, domain());
+    auto act = parse<Action>(storage, action());//builds 
+    auto feed = get<Name>(act.name);
+    cout << "Action name is: " << feed << endl;//builds but fails test
+    BOOST_TEST(act.name == "build");
+
+    /*
+     *
+    *****************************************
+    *****************************************
+    *****************************************
+    *****************************************
+    *****************************************
+    *****************************************
+    *****************************************
+    auto dom = parse<Domain>(storage, domain());
+    auto act = parse<Action>(storage, action());//builds 
+    auto feed = get<Name>(act.name);
+    cout << "Action name is: " << feed << endl;//builds but fails test
+    BOOST_TEST(act.name == "build");// states that build != build
+        // and is still reading entire domain definition
+
+    *****************************************
+    auto feed = get<Name>(act.name);
+    cout << "Action name is: " << act.name << endl;//builds but fails test
+    BOOST_TEST(act.name == "build");
+
+    *****************************************
+    auto dom = parse<Domain>(storage, domain());
+    auto act = get<Action>(dom.action);//no member named get in Action
+
+    *****************************************
+    auto dom = parse<Domain>(storage, domain());
+    auto act = parse<Action>(dom.action, action());//no parse()
+
+    *****************************************
+    auto dom = parse<Domain>(storage, domain());
+    auto act = get<Action>(dom, action());// 1 extra arg
+
+     **************************** 
+    auto dom = parse<Domain>(storage, domain());
+    auto act = parse<Action>(dom, action());// No function parse()
+
+    ******************* start  part **********
+    auto dom = parse<Domain>(storage, domain());
+    auto act = parse<Action>(storage, action());//builds 
+    //BOOST_TEST(act.name == "build"); //fails test
+    cout << "Action name is: " << act.name << endl;//builds but fails test
+******************** end part **********/
+
+
+
+
+
+
+
+
+
+
 
     // Test parsing of domain name
     BOOST_TEST(dom.name == "construction");
