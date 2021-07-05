@@ -149,9 +149,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 /******************** new part **********/
     /*****************************************/
     auto dom = parse<Domain>(storage, domain());
-    auto act = parse<Action>(storage, action());//builds 
-    auto feed = get<Name>(act.name);
-    cout << "Action name is: " << feed << endl;//builds but fails test
+    auto act = get<Action>(dom.action).name;//
+
     BOOST_TEST(act.name == "build");
 
     /*
@@ -161,7 +160,13 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     *****************************************
     *****************************************
     *****************************************
+    auto dom = parse<Domain>(storage, domain());
+    auto act = get<Name>(get<Action>(dom.action));//no member get
+
     *****************************************
+    auto dom = parse<Domain>(storage, domain());
+    auto act = get<Action>(dom.action).name;//no member get
+
     *****************************************
     auto dom = parse<Domain>(storage, domain());
     auto act = parse<Action>(storage, action());//builds 
@@ -208,6 +213,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
 
 
+    //auto dom = parse<Domain>(storage, domain());
     // Test parsing of domain name
     BOOST_TEST(dom.name == "construction");
 

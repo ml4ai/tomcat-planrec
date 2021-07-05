@@ -237,8 +237,8 @@ namespace parser {
     auto const action_def = '('
                             >> lit(":action")
                             >> name
-                            >> parameters
-                            >> precondition
+                            >> -parameters //optional for now
+                            >> -precondition
                             >> ')';
     BOOST_SPIRIT_DEFINE(action);
 
@@ -256,7 +256,10 @@ namespace parser {
                          >> requirements
                          >> -types
                          >> -constants
-                         >> -predicates >> ')';
+                         >> -predicates 
+                         // 3 errors when this is included using -+*or alone
+                         // >> -action
+                         >> ')';
     BOOST_SPIRIT_DEFINE(domain);
 
     rule<class TObjects, TypedList<Name>> const objects = "objects";
