@@ -266,10 +266,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test problem goal
     // Testing ConnectedSentences
-    auto goal_as = get<ConnectedSentence>(prob.goal); // we know this is an ConnectedSentence
-    BOOST_TEST(goal_as.sentences.size() == 2);  // containing two terms
-    auto goal_af = get<Literal<Term>>(goal_as.sentences[0]);//first predicate
-    auto goal_af2 = get<Literal<Term>>(goal_as.sentences[1]);//second predicate
+    auto goal_as = get<ConnectedSentence>(prob.goal); // We know this is a ConnectedSentence
+    BOOST_TEST(goal_as.sentences.size() == 2);  // that containing two terms
+    auto goal_af = get<Literal<Term>>(goal_as.sentences[0]);// first predicate
+    auto goal_af2 = get<Literal<Term>>(goal_as.sentences[1]);// second predicate
     BOOST_TEST(goal_af.predicate == "off-site");
     BOOST_TEST(goal_af2.predicate == "on-site");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[0]).name == "adobe1");
@@ -285,6 +285,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         (define
             (problem adobe)
             (:domain construction)
+            (:objects
+                factory house - site
+                adobe - material
+                rock) ;testing implicitly-typed
            (:init
                (on-site adobe factory))
             (:goal
@@ -359,107 +363,68 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[0]).name == "adobe3");
     BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[1]).name == "house");
 
-    // Testing ExistsSentence
+
+    // Testing ExistsSentence --and-- AndSentence (ConnectedSentence)
     storage = R"(
         (define
             (problem adobe)
             (:domain construction)
+            (:objects
+                factory house - site
+                adobe - material
+                rock) ;testing implicitly-typed
+            (:init
+               (on-site adobe factory))
             (:goal
-                (exists (?var1 ?var2 - types)   ; for ex type lists
- ;               (exists (?var1)                ; for im type list
-                        (pred1 ?var1 ?var2))
+                (exists (?var1) 
+                        (and (pred1 ar1 ?var2)
+                             (pred1 ar2 ?var3)))
             );end goal
         );end define
     )";
 
-/********** Salena's work ***
-TO DO:
- 1. Simplify these tests by combining and making tests more complex
- 2. Finish up the actions
- 3. Verify the flow chart with Liang and Justin.
-*/
 
-
-
-    //
-    //
-//-- This builds without error but does not parse correctly:
     prob = parse<Problem>(storage, problem());
     auto ef = get<ExistsSentence>(prob.goal);
 
-//-- This is for direct parsing, but it makes no difference:
-//   auto ep = parse<Sentence>("(exists (?var1 ?var2 - type1) (pred1 ?ar1 ?ar2))",
-//      sentence());
-//    auto ef = get<ExistsSentence>(ep);
+    BOOST_TEST(ef.variables.implicitly_typed_list.value()[0].name == "var1");
+
+    auto connected = get<ConnectedSentence>(ef.sentence);//trial
+
+    auto es1 = get<Literal<Term>>(connected.sentences[0]);
+    auto es2 = get<Literal<Term>>(connected.sentences[1]);
+    BOOST_TEST(es1.predicate == "pred1"); 
+    BOOST_TEST(get<Constant>(es1.args[0]).name == "ar1");
+    BOOST_TEST(get<Variable>(es2.args[1]).name == "var3");
 
 
-//
-//.. this does not work:
-//  auto el = get<Literal<Term>>(ef.variables);
-//        states no get function for variables
-//        states no member named ex or im typed list for ExistsSentence
-//
-//-- this does not work:
-//    BOOST_TEST(ef.variables.implicitly_typed_list[0].value()[0].name == "var1");
-    // and neither does this:
-//    BOOST_TEST(ef.variables.implicitly_typed_list[0].value()[0].name == "var1");
-//               both state that these members do not exist in TypedList.
-//
-//
-//-- this does not work:
-//    auto el = get<AtomicFormulaSkeleton>(ef.variables.explicitly_typed_lists[0].entries[0].name);
-//        states no member named ex or im typed list for ExistsSentence
-//
-//
-//  -- this doesn't work:
-//  auto el = get<Literal<Term>>(ef.sentence[0]); 
-//        since there is no iterator for sentence! fo course, but i tried
-//        anyway
-//
-//-- This compiles without error:       
-    //auto es = get<Literal<Term>>(ef.sentence);
-//-- but then it times out when I do this:
-    //BOOST_TEST(ef.predicate == "pred1"); 
-    
+    // Testing ForallSentence --and-- NotSentence
+    storage = R"(
+        (define
+            (problem adobe)
+            (:domain construction)
+            (:objects
+                factory house - site
+                adobe - material
+                rock) ;testing implicitly-typed
+            (:init
+               (on-site adobe factory))
+            (:goal
+                (forall (?var1) 
+                        (not (pred1 ar1 ?var2)))
+            );end goal
+        );end define
+    )";
 
 
+    prob = parse<Problem>(storage, problem());
+    auto fef = get<ForallSentence>(prob.goal);
 
-
-
-
-
-// Trials and errors that I tried and gave up on:
-    //auto exist_l = get<Literal<Term>>(exist_f.sentence);
-    //BOOST_TEST(exist_l.predicate == "pred1");
-    //BOOST_TEST(get<Variable>(exist_l.args[0]).name == "ar1");
-
-    //forall universal quantifier
-    //auto f_s = parse<Sentence>("(forall (?var1 ?var2 - type2) (pred2 ?ar1 ?ar2))",
-        //sentence());
-    //auto f_f = get<ForallSentence>(f_s);
-//    auto f_v = get<TypedList<Variable>>(f_f.variables);
-//    BOOST_TEST(f_v.explicitly_typed_lists[0].entries[0].name == "var1");
-    //auto f_l = get<Literal<Term>>(f_f.sentence);
-    //BOOST_TEST(f_l.predicate == "pred2");
-    //BOOST_TEST(get<Variable>(f_l.args[0]).name == "ar1");
-
-
-/***** Copy of Test explicitly typed list of variables for reference:
-     *
-     * This parses correctly as a single test, but not when incorporated into
-     * the testing of the problem:
-     *
-    auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[1].name == "var1");
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
-    BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) == "type");
-*****/
-
-
-
-
-
+    BOOST_TEST(fef.variables.implicitly_typed_list.value()[0].name == "var1");
+    auto fes = get<Literal<Term>>(fef.sentence);
+    BOOST_TEST(fes.predicate == "pred1"); 
+    BOOST_TEST(get<Constant>(fes.args[0]).name == "ar1");
+    BOOST_TEST(get<Variable>(fes.args[1]).name == "var2");
 
 
 }

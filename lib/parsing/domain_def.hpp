@@ -178,7 +178,7 @@ namespace parser {
     auto const exists_sentence_def = '('
                                 >> lit("exists")
                                 >> '('
-                                >> *typed_list_variables
+                                >> typed_list_variables
                                 >> ')'
                                 >> sentence
                                 >> ')';
@@ -190,7 +190,7 @@ namespace parser {
     auto const forall_sentence_def = '('
                                 >> lit("forall")
                                 >> '('
-                                >> *typed_list_variables
+                                >> typed_list_variables
                                 >> ')'
                                 >> sentence
                                 >> ')';
