@@ -360,26 +360,75 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[1]).name == "house");
 
     // Testing ExistsSentence
-    //storage = R"(
-        //(define
-            //(problem adobe)
-            //(:domain construction)
-            //(:goal
-                //(exists (?var1 ?var2 - types)
-                        //(pred1 ?var1 ?var2))
-            //);end goal
-        //);end define
-    //)";
+    storage = R"(
+        (define
+            (problem adobe)
+            (:domain construction)
+            (:goal
+                (exists (?var1 ?var2 - types)   ; for ex type lists
+ ;               (exists (?var1)                ; for im type list
+                        (pred1 ?var1 ?var2))
+            );end goal
+        );end define
+    )";
 
-/********** Salena's work ***/
-//    This does not parse correctly
-//prob = parse<Problem>(storage, problem());
+/********** Salena's work ***
+TO DO:
+ 1. Simplify these tests by combining and making tests more complex
+ 2. Finish up the actions
+ 3. Verify the flow chart with Liang and Justin.
+*/
 
-    //auto exist_s = parse<Sentence>("(exists (?var1 ?var2 - type1) (pred1 ?ar1 ?ar2))",
-        //sentence());
-    //auto exist_f = get<ExistsSentence>(exist_s);
-//    auto exist_v = get<TypedList<Variable>>(exist_f.variables);
-//    BOOST_TEST(exist_v.explicitly_typed_lists[0].entries[0].name == "var1");
+
+
+    //
+    //
+//-- This builds without error but does not parse correctly:
+    prob = parse<Problem>(storage, problem());
+    auto ef = get<ExistsSentence>(prob.goal);
+
+//-- This is for direct parsing, but it makes no difference:
+//   auto ep = parse<Sentence>("(exists (?var1 ?var2 - type1) (pred1 ?ar1 ?ar2))",
+//      sentence());
+//    auto ef = get<ExistsSentence>(ep);
+
+
+//
+//.. this does not work:
+//  auto el = get<Literal<Term>>(ef.variables);
+//        states no get function for variables
+//        states no member named ex or im typed list for ExistsSentence
+//
+//-- this does not work:
+//    BOOST_TEST(ef.variables.implicitly_typed_list[0].value()[0].name == "var1");
+    // and neither does this:
+//    BOOST_TEST(ef.variables.implicitly_typed_list[0].value()[0].name == "var1");
+//               both state that these members do not exist in TypedList.
+//
+//
+//-- this does not work:
+//    auto el = get<AtomicFormulaSkeleton>(ef.variables.explicitly_typed_lists[0].entries[0].name);
+//        states no member named ex or im typed list for ExistsSentence
+//
+//
+//  -- this doesn't work:
+//  auto el = get<Literal<Term>>(ef.sentence[0]); 
+//        since there is no iterator for sentence! fo course, but i tried
+//        anyway
+//
+//-- This compiles without error:       
+    //auto es = get<Literal<Term>>(ef.sentence);
+//-- but then it times out when I do this:
+    //BOOST_TEST(ef.predicate == "pred1"); 
+    
+
+
+
+
+
+
+
+// Trials and errors that I tried and gave up on:
     //auto exist_l = get<Literal<Term>>(exist_f.sentence);
     //BOOST_TEST(exist_l.predicate == "pred1");
     //BOOST_TEST(get<Variable>(exist_l.args[0]).name == "ar1");
@@ -406,4 +455,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
     BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) == "type");
 *****/
+
+
+
+
+
+
+
 }
