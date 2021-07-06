@@ -1,8 +1,6 @@
 // This is the unification c++ algorithm
 
-// add in the new data structs for the algorithm
-
-// should make a cmake file for this
+// add in the new data structs for the algorithm, the literal changed and the location of some of the structs is different
 
 #include <iostream>
 #include <vector>
@@ -12,22 +10,24 @@
 #include <variant>
 #include <unordered_map>
 #include "boost/variant.hpp"
-#include "Symbol.h" // base object
-#include "Variable.h" // variable inherited from symbol
-#include "Constant.h" // constant inherited from symbol
-#include "Term.h" // vector of variables, constants, functions
-#include "Function.h" // predicate, args are terms
-#include "Literal.h" // negatable predicate
+#include "fol/Symbol.h" // base object
+#include "fol/Variable.h" // variable inherited from symbol
+#include "fol/Constant.h" // constant inherited from symbol
+#include "fol/Term.h" // vector of variables, constants, functions
+#include "fol/Function.h" // used as predicate, args are terms
+#include "fol/Literal.h" // negatable predicate
+#include "fol/Predicate.h" //predicate class, used as "label" of literal
 #include "Visitor.h" // for type checking
 
 using namespace std;
+using namespace fol;
 
 // setting up unordered_map for our substitution list
 typedef unordered_map<string, Term> sub_list_type;
 using sub_list = sub_list_type;
 
 // now for the substition formula for replacing the variable in an atom/predicate
-void substitute(Literal &x, Literal &y, sub_list &z, int ix) {
+void substitute(Literal<Term> &x, Literal<Term> &y, sub_list &z, int ix) {
     if (boost::apply_visitor(type_visitor(), (y.args).at(ix)) == "Variable") {
         // write the substitution to z
         z[get<Variable>((x.args).at(ix)).name] = get<Variable>((y.args).at(ix));
@@ -55,7 +55,7 @@ void substitute(Literal &x, Literal &y, sub_list &z, int ix) {
 }
 
 // now we apply the unification algorithm on the predicate pairs
-sub_list unification(Literal x, Literal y, sub_list z) {
+sub_list unification(Literal<Term> x, Literal<Term> y, sub_list z) {
         
     // make sure number of arguments of each expression are the same
     if ((x.args).size() != (y.args).size()) {
@@ -84,11 +84,13 @@ sub_list unification(Literal x, Literal y, sub_list z) {
             // if the arguments are predicates we run them through the unification algorithm again
             // here we now have to construct a Literal data type from the function data type argument of a previous literal to then pass back into the 
             // unification algoirthm 
-            Literal x1;
-            Literal y1;
-            x1.predicate = get<Function>((x.args).at(ix)).name;
+            Literal<Term> x1;
+            Literal<Term> y1;
+            Predicate p1 = get<Function>((x.args).at(ix)).name;
+            Predicate q1 = get<Function>((y.args).at(ix)).name;
+            x1.predicate = p1;
             x1.args = get<Function>((x.args).at(ix)).args;
-            y1.predicate = get<Function>((y.args).at(ix)).name;
+            y1.predicate = q1;
             y1.args = get<Function>((y.args).at(ix)).args;
             
             // the unification function doesnt do the replacements outside the scope of the function, perhaps I remove this argument since its already

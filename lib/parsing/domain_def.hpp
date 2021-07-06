@@ -8,165 +8,297 @@
 #include "domain.hpp"
 #include "error_handler.hpp"
 
-namespace client {
-    ///////////////////////////////////////////////////////////////////////////////
-    //  Our domain parser definition
-    ///////////////////////////////////////////////////////////////////////////////
-    namespace parser {
-        using ast::Entity, ast::Variable, ast::Action, ast::Domain,
-            ast::AtomicFormulaSkeleton, ast::Term, ast::AtomicFormula;
-        using boost::fusion::at_c;
-        using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
-            x3::eol, x3::rule;
+namespace parser {
+    using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
+        ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList,
+        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, ast::Action;
 
-        auto const name =
-            lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
-        auto const requirement = ':' >> name;
-        auto const variable = '?' >> name;
+    using boost::fusion::at_c;
+    using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
+        x3::eol, x3::rule;
 
-        // Rule IDs
-        struct Entities;
-        struct Variables;
-        struct TAction;
-        struct TDomain;
+    auto const name =
+        lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
 
-        // Rules
-        rule<class TAtomicFormulaSkeleton, AtomicFormulaSkeleton> const
-            atomic_formula_skeleton = "atomic_formula_skeleton";
-        rule<class TAction, Action> const action = "action";
-        rule<class TDomain, Domain> const domain = "domain";
+    // Rules
 
-        // Grammar
-        auto const primitive_type = name;
+    rule<class TRequirement, std::vector<Name>> const requirement =
+        "requirement";
+    auto const requirement_def = ':' >> name;
 
-        // TODO We do not handle 'either' types
-        // auto const type = primitive_type | '(' >> lit("either") >>
-        // +primitive_type >> ')';
+    rule<class TPredicate, Name> const predicate = "predicate";
+    auto const predicate_def = name;
 
-        auto const type = primitive_type;
+    rule<class TRequirements, std::vector<Name>> const requirements =
+        "requirements";
+    auto const requirements_def = '(' >> lit(":requirements") >> +requirement >>
+                                  ')';
 
-        template <class T>
-        auto add_implicitly_typed_entity =
-            [](auto& ctx) { _val(ctx).push_back(T(_attr(ctx))); };
+    rule<class TConstant, Constant> const constant = "constant";
+    auto const constant_def = name;
 
-        template <class T>
-        auto add_explicitly_typed_entities = [](auto& ctx) {
-            auto dq = _attr(ctx);
-            std::vector<std::string> names = at_c<0>(dq);
-            std::string type = at_c<1>(dq);
+    rule<class TVariable, Variable> const variable = "variable";
+    auto const variable_def = '?' >> name;
 
-            for (std::string& name : names) {
-                T entity = T(name, type);
-                _val(ctx).push_back(entity);
-            }
-        };
+    rule<class TPrimitiveType, PrimitiveType> const primitive_type =
+        "primitive_type";
+    auto const primitive_type_def = name;
 
-        template <class U, class T> auto typed_list_parser(T parser) {
-            auto const implicitly_typed_list =
-                *parser[add_implicitly_typed_entity<U>];
-            auto const explicitly_typed_list =
-                (+parser >> '-' >> name)[add_explicitly_typed_entities<U>];
-            auto const typed_list_def =
-                *explicitly_typed_list >> -implicitly_typed_list;
-            return typed_list_def;
-        }
+    rule<class TEitherType, EitherType> const either_type = "either_type";
+    auto const either_type_def = '(' >> lit("either") >> +primitive_type >> ')';
 
-        auto const predicate = name;
-        auto const term = name | variable;
+    rule<class TType, Type> const type = "type";
+    auto const type_def = primitive_type | either_type;
 
-        template <class RuleID, class U, class Parser>
-        auto typed_list_rule(Parser parser) {
-            return rule<RuleID, std::vector<U>>{"typed_list"} =
-                       typed_list_parser<U>(parser);
-        }
+    // Typed list of names
+    rule<class TExplicitlyTypedListNames, ExplicitlyTypedList<Name>> const
+        explicitly_typed_list_names = "explicitly_typed_list_names";
+    auto const explicitly_typed_list_names_def = +name >> '-' >> type;
 
-        auto const typed_list_names =
-            typed_list_rule<class Entities, Entity>(name);
-        auto const typed_list_variables =
-            typed_list_rule<class Variables, Variable>(variable);
+    rule<class TImplicitlyTypedListNames, ImplicitlyTypedList<Name>> const
+        implicitly_typed_list_names = "implicitly_typed_list_names";
+    auto const implicitly_typed_list_names_def = *name;
 
-        auto const parameters_def =
-            lit(":parameters") >> '(' >> typed_list_variables >> ')';
+    rule<class TTypedListNames, TypedList<Name>> const typed_list_names =
+        "typed_list_names";
+    auto const typed_list_names_def =
+        *explicitly_typed_list_names >> -implicitly_typed_list_names;
 
-        auto const action_symbol = name;
+    BOOST_SPIRIT_DEFINE(explicitly_typed_list_names,
+                        implicitly_typed_list_names,
+                        typed_list_names);
 
-        template <class U, class T> auto atomic_formula_parser(T parser) {
-            auto const atomic_formula_def = predicate >> *parser;
-            return atomic_formula_def;
-        }
+    // Typed list of variables
+    rule<class TExplicitlyTypedListVariables,
+         ExplicitlyTypedList<Variable>> const explicitly_typed_list_variables =
+        "explicitly_typed_list_variables";
+    auto const explicitly_typed_list_variables_def = +variable >> '-' >> type;
 
-        template <class RuleID, class U, class Parser>
-        auto atomic_formula_rule(Parser parser) {
-            return rule<RuleID, AtomicFormula<U>>{"atomic_formula"} =
-                       atomic_formula_parser<U>(parser);
-        }
+    rule<class TImplicitlyTypedListVariables,
+         ImplicitlyTypedList<Variable>> const implicitly_typed_list_variables =
+        "implicitly_typed_list_variables";
+    auto const implicitly_typed_list_variables_def = *variable;
 
-        auto const atomic_formula_term =
-            atomic_formula_rule<class TAtomicFormula, Term>(term);
+    rule<class TTypedListVariables, TypedList<Variable>> const
+        typed_list_variables = "typed_list_variables";
+    auto const typed_list_variables_def =
+        *explicitly_typed_list_variables >> -implicitly_typed_list_variables;
 
-        // TODO extend definitions of effect and GD
-        auto const nil = ('(' >> lit(")"));
-        auto const effect = nil;
-        auto const goal_description = nil;
+    BOOST_SPIRIT_DEFINE(explicitly_typed_list_variables,
+                        implicitly_typed_list_variables,
+                        typed_list_variables);
 
-        auto const action_def_body = -(lit(":precondition") >>
-                                       goal_description) >>
-                                     -(lit(":effect") >> effect);
+    // Atomic formula skeleton
+    rule<class TAtomicFormulaSkeleton, ast::AtomicFormulaSkeleton> const
+        atomic_formula_skeleton = "atomic_formula_skeleton";
+    auto const atomic_formula_skeleton_def =
+        '(' >> name >> typed_list_variables >> ')';
+    BOOST_SPIRIT_DEFINE(atomic_formula_skeleton);
 
-        // Actions
-        auto const action_def = '(' >> lit(":action") >> action_symbol
-                                >> parameters_def
-                                //>> action_def_body
+    // Term
+    rule<class TTerm, ast::Term> const term = "term";
+    auto const term_def = constant | variable;
+    BOOST_SPIRIT_DEFINE(term);
+
+    // Atomic formula of terms
+    rule<class TAtomicFormulaTerms, ast::AtomicFormula<ast::Term>> const
+        atomic_formula_terms = "atomic_formula_terms";
+    auto const atomic_formula_terms_def = '(' >> predicate >> *term >> ')';
+    BOOST_SPIRIT_DEFINE(atomic_formula_terms);
+
+    // Literals of terms
+    auto parse_negative_literal = [](auto& ctx) {
+         _val(ctx).predicate = _attr(ctx).predicate;
+         _val(ctx).args = _attr(ctx).args;
+         _val(ctx).is_negative = true;
+    };
+    auto parse_positive_literal = [](auto& ctx) {
+         _val(ctx).predicate = _attr(ctx).predicate;
+         _val(ctx).args = _attr(ctx).args;
+         _val(ctx).is_negative = false;
+    };
+
+    rule<class TLiteralTerms, ast::Literal<ast::Term>> const literal_terms =
+                                 "literal_terms";
+    auto const literal_terms_def =
+        atomic_formula_terms[parse_positive_literal] | ('(' >> lit("not") >> atomic_formula_terms >> ')')[parse_negative_literal];
+    BOOST_SPIRIT_DEFINE(literal_terms);
+
+    // Nil
+    rule<class TNil, ast::Nil> const nil = "nil";
+    auto const nil_def = '(' >> lit(")");
+    BOOST_SPIRIT_DEFINE(nil);
+
+    rule<class TSentence, ast::Sentence> sentence = "sentence";
+
+
+    rule<class TAndSentence, ast::AndSentence> const and_sentence =
+                                  "and_sentence";
+    auto const and_sentence_def = '(' 
+                               >> lit("and") 
+                               >> *sentence 
+                               >> ')';
+    BOOST_SPIRIT_DEFINE(and_sentence);
+
+
+    rule<class TOrSentence, ast::OrSentence> const or_sentence = "or_sentence";
+    auto const or_sentence_def = '(' 
+                               >> lit("or") 
+                               >> *sentence 
+                               >> ')';
+    BOOST_SPIRIT_DEFINE(or_sentence);
+
+
+    rule<class TNotSentence, ast::NotSentence> const not_sentence =
+                                  "not_sentence";
+    auto const not_sentence_def = '(' 
+                               >> lit("not") 
+                               >> sentence 
+                               >> ')';
+    BOOST_SPIRIT_DEFINE(not_sentence);
+
+
+    rule<class TImplySentence, ast::ImplySentence> const imply_sentence =
+                                   "imply_sentence";
+    auto const imply_sentence_def = '(' 
+                                >> lit("imply") 
+                                >> sentence 
+                                >> sentence
                                 >> ')';
+    BOOST_SPIRIT_DEFINE(imply_sentence);
 
-        // TODO Predicates
-        auto const structure_def = action_def;
-        auto const atomic_formula_skeleton_def =
-            '(' >> predicate >> typed_list_variables >> ')';
-        auto const predicates_def = '(' >> lit(":predicates") >>
-                                    +atomic_formula_skeleton >> ')';
 
-        auto const constants_def = '(' >> lit(":constants") >> typed_list_names
-                                   >> ')';
-        auto const types_def = '(' >> lit(":types") >> typed_list_names >> ')';
-        auto const require_def = '(' >> lit(":requirements") >> +requirement >>
-                                 ')';
+    rule<class TExistsSentence, ast::ExistsSentence> const exists_sentence =
+                                   "exists_sentence";
+    auto const exists_sentence_def = '(' 
+                                >> lit("exists") 
+                                >> '(' 
+                                >> *typed_list_variables 
+                                >> ')' 
+                                >> sentence 
+                                >> ')';
+    BOOST_SPIRIT_DEFINE(exists_sentence);
 
-        auto const domain_def = '(' >> lit("define") >> '(' >>
-                                lit("domain") >> name >> ')' >> -require_def >>
-                                -types_def >> -constants_def >> -predicates_def
-                                >> *structure_def >> ')';
 
-        BOOST_SPIRIT_DEFINE(atomic_formula_skeleton, action, domain);
+    rule<class TForallSentence, ast::ForallSentence> const forall_sentence =
+                                   "forall_sentence";
+    auto const forall_sentence_def = '(' 
+                                >> lit("forall") 
+                                >> '(' 
+                                >> *typed_list_variables 
+                                >> ')' 
+                                >> sentence 
+                                >> ')';
+    BOOST_SPIRIT_DEFINE(forall_sentence);
 
-        // Annotation and error handling
-        struct Entities : x3::annotate_on_success, error_handler_base {};
-        struct Variables : x3::annotate_on_success, error_handler_base {};
-        struct TAction : x3::annotate_on_success, error_handler_base {};
-        struct TDomain : x3::annotate_on_success, error_handler_base {};
+    auto const sentence_def = nil | literal_terms |
+                              and_sentence | or_sentence | not_sentence |
+                              imply_sentence;
+    BOOST_SPIRIT_DEFINE(sentence);
 
-        using ast::Problem;
-        struct TProblem;
 
-        rule<class TProblem, Problem> const problem = "problem";
-        auto const probDomain_def = '(' >> lit(":domain") >> name >> ')';
-        auto const requireDomain_def = '(' >> lit(":requirements") >>
-                                       +requirement >> ')';
-        auto const objects_def = '(' >> lit(":objects") >> typed_list_names >>
-                                 ')';
+    // Typed Lists
+    rule<class TTypes, TypedList<Name>> const types = "types";
+    auto const types_def = '(' >> lit(":types") >> typed_list_names >> ')';
+    BOOST_SPIRIT_DEFINE(types);
 
-        auto const problem_def = '(' >> lit("define") >> '(' >>
-                                 lit("problem") >> name >> ')' >> probDomain_def
-                                 >> -requireDomain_def >> -objects_def >> ')';
+    rule<class TConstants, TypedList<Name>> const constants = "constants";
+    auto const constants_def = '(' >> lit(":constants") >> typed_list_names >>
+                               ')';
+    BOOST_SPIRIT_DEFINE(constants);
 
-        BOOST_SPIRIT_DEFINE(problem);
+    rule<class TPredicates, std::vector<ast::AtomicFormulaSkeleton>> const
+        predicates = "predicates";
+    auto const predicates_def = '(' >> lit(":predicates") >>
+                                +atomic_formula_skeleton >> ')';
+    BOOST_SPIRIT_DEFINE(predicates);
 
-        struct TProblem : x3::annotate_on_success, error_handler_base {};
+    rule<class TDomain, ast::Domain> const domain = "domain";
+    auto const domain_def = '(' >> lit("define") >> '('
+                         >> lit("domain")
+                         >> name >> ')'
+                         >> requirements
+                         >> -types
+                         >> -constants
+                         >> -predicates >> ')';
+    BOOST_SPIRIT_DEFINE(domain);
 
-    } // namespace parser
+    rule<class TObjects, TypedList<Name>> const objects = "objects";
+    auto const objects_def = '(' >> lit(":objects") >> typed_list_names >> ')';
+    BOOST_SPIRIT_DEFINE(objects);
 
-    parser::domain_type domain() { return parser::domain; }
+    rule<class TInit, Literal<Term>> const init = "init";
+    auto const init_def = '(' >> lit(":init") >> literal_terms >> ')';
+    BOOST_SPIRIT_DEFINE(init);
 
-    parser::problem_type problem() { return parser::problem; }
+    rule<class TGoal, Sentence> const goal = "goal";
+    auto const goal_def = '(' >> lit(":goal") >> sentence >> ')';
+    BOOST_SPIRIT_DEFINE(goal);
 
-} // namespace client
+    rule<class TProblem, ast::Problem> const problem = "problem";
+    auto const problem_def = '('
+                          >> lit("define")
+                          >> '(' >> lit("problem") >> name >> ')'
+                          >> '(' >> lit(":domain") >> name >> ')'
+                          >> -requirements
+                          >> -objects
+                          >> -init
+                          >> -goal
+                          >> ')';
+    BOOST_SPIRIT_DEFINE(problem);
+
+/***** ***** ***** ***** BEGIN: current stuff ***** ***** ***** *****/
+    rule<class TParameters, TypedList<Name>> const parameters = "parameters";
+    auto const parameters_def = lit(":parameters")
+                        >> '('
+                        >> typed_list_variables
+                        >> ')';
+    BOOST_SPIRIT_DEFINE(parameters);
+    
+    rule<class TAction, Action> const action = "action";
+    auto const action_def = '('
+                         >> lit(":action")
+                         >> name
+                        // >> parameters_def
+                         >> ')';
+    BOOST_SPIRIT_DEFINE(action);
+
+/***** ***** ***** ***** end current stuff ***** ***** ***** *****/
+
+
+    BOOST_SPIRIT_DEFINE(constant,
+                        variable,
+                        primitive_type,
+                        either_type,
+                        type,
+                        predicate,
+                        requirement,
+                        requirements);
+
+} // namespace parser
+
+parser::constant_type constant() { return parser::constant; }
+parser::variable_type variable() { return parser::variable; }
+parser::primitive_type_type primitive_type() { return parser::primitive_type; }
+parser::either_type_type either_type() { return parser::either_type; }
+parser::type_type type() { return parser::type; }
+
+parser::typed_list_names_type typed_list_names() {
+    return parser::typed_list_names;
+}
+parser::typed_list_variables_type typed_list_variables() {
+    return parser::typed_list_variables;
+}
+parser::atomic_formula_skeleton_type atomic_formula_skeleton() {
+    return parser::atomic_formula_skeleton;
+}
+parser::atomic_formula_terms_type atomic_formula_terms() {
+    return parser::atomic_formula_terms;
+}
+parser::literal_terms_type literal_terms() { return parser::literal_terms; }
+
+parser::sentence_type sentence() { return parser::sentence; }
+parser::requirements_type requirements() { return parser::requirements; }
+parser::domain_type domain() { return parser::domain; }
+parser::problem_type problem() { return parser::problem; }
+parser::action_type action() { return parser::action; }

@@ -1,0 +1,29 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ 'master' ]
+
+jobs:
+  ci:
+    runs-on: ${{ matrix.os }}
+    if: github.repository == 'ml4ai/tomcat-planrec'
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Continuous Integration
+      run: |
+        sudo apt-get install libboost-all-dev nlohmann-json3-dev libgraphviz-dev
+        mkdir build
+        cd build
+        cmake .. 
+        make -j
+        make test

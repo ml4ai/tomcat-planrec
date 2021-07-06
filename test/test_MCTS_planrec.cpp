@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE TestMCTSPlanner
+#define BOOST_TEST_MODULE TestMCTSPlanrec
 
 #include <boost/test/included/unit_test.hpp>
 
@@ -6,12 +6,14 @@
 #include <math.h>
 #include <stdlib.h>
 #include <nlohmann/json.hpp>
+#include <istream>
 #include "plan_trace.h"
 #include "plangrapher.h"
+#include "planrec.h"
 
 using json = nlohmann::json;
 
-BOOST_AUTO_TEST_CASE(test_MCTS_planner) {
+BOOST_AUTO_TEST_CASE(test_MCTS_planrec) {
     auto state1 = SARState();
     state1.loc["me"] = "entrance";
     state1.visited["me"]["entrance"] = 1;
@@ -78,26 +80,44 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planner) {
     state1.right_explored = false;
     state1.mid_explored = false;
 
-    state1.times_searched = 0;
-
     state1.set_max_vic();
-
-    state1.loc_tracker["left"] = {};
-    state1.loc_tracker["right"] = {};
-    state1.loc_tracker["mid"] = {};
 
     auto domain = SARDomain();
 
     auto selector = SARSelector();
-
     Tasks tasks = {
-        {Task("sweep_left_YF", Args({{"agent", "me"}}))}};
-    auto pt = cpphopMCTS(state1, tasks, domain, selector,2,0.4);
-    json j = generate_plan_trace_tree(pt.first,pt.second);
-    json g = generate_plan_trace(pt.first,pt.second);
+        {Task("SAR", Args({{"agent", "me"}}))}};
 
-    BOOST_TEST(j["task"] == "(sweep_left_YF,me,)");
-    BOOST_TEST(j["children"].size() > 0);
-    BOOST_TEST(g[g.size() - 2]["task"] == "(!exit,)");
-    BOOST_TEST(g.size() > 0);
+    std::ifstream i("../../test/test_simple_sar_trace.json");
+    json j;
+    i >> j;
+
+    json trace;
+    for (json::iterator it = j.begin(); it != j.begin()+3; ++it) {
+      trace.push_back(*it);
+    }
+
+    state1.loc_tracker = get_loc_seq(trace,
+                                    state1.left_region,
+                                    state1.right_region,
+                                    state1.mid_region);
+    json g;
+    g = seek_planrecMCTS(trace,
+                     state1,
+                     tasks,
+                     domain,
+                     selector,
+                     90,
+                     0.4,
+                     2021);
+    BOOST_TEST(true);
+    // BOOST_TEST(g["task"] == "(SAR,me,)");
+    // BOOST_TEST(g["children"].size() == 1);
+    // BOOST_TEST(g["children"][0]["children"].size() == 1);
+    // BOOST_TEST(g["children"][0]["children"][0]["children"].size() == 1);
+    // BOOST_TEST(g["children"][0]["children"][0]["children"][0]["children"].size() == 3);
+    // BOOST_TEST(g["children"][0]["children"][0]["children"][0]["children"][0]["task"] == trace[0]["task"]);
+    // BOOST_TEST(g["children"][0]["children"][0]["children"][0]["children"][1]["task"] == trace[1]["task"]);
+    // BOOST_TEST(g["children"][0]["children"][0]["children"][0]["children"][2]["task"] == trace[2]["task"]);
+
 }

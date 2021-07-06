@@ -2,9 +2,8 @@
 
 #include <vector>
 
-#include "Literal.h"
+#include "parsing/ast.hpp"
 
 struct Clause {
-    public:
-    std::vector<Literal> literals;
+    std::vector<ast::Literal<ast::Term>> literals;
 };

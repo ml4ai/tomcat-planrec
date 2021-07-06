@@ -1,17 +1,33 @@
-#define BOOST_TEST_MODULE TestMCTSPlanner
-
-#include <boost/test/included/unit_test.hpp>
-
-#include "../apps/planners/domains/simple_sar.h"
+#include <nlohmann/json.hpp>
+#include "../planners/domains/simple_sar.h"
 #include <math.h>
 #include <stdlib.h>
-#include <nlohmann/json.hpp>
 #include "plan_trace.h"
+#include <istream>
+#include "planrec.h"
 #include "plangrapher.h"
 
 using json = nlohmann::json;
 
-BOOST_AUTO_TEST_CASE(test_MCTS_planner) {
+using namespace std;
+
+int main(int argc, char* argv[]) {
+    int N;
+    if (argc > 1) {
+      N = strtol(argv[1], nullptr, 0);
+    }
+    else {
+      N = 30;
+    }
+    
+    int s;
+    if (argc > 2) {
+      s = strtol(argv[2],nullptr,0);
+    }
+    else {
+      s = 5;
+    }
+
     auto state1 = SARState();
     state1.loc["me"] = "entrance";
     state1.visited["me"]["entrance"] = 1;
@@ -78,26 +94,47 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planner) {
     state1.right_explored = false;
     state1.mid_explored = false;
 
-    state1.times_searched = 0;
-
     state1.set_max_vic();
-
-    state1.loc_tracker["left"] = {};
-    state1.loc_tracker["right"] = {};
-    state1.loc_tracker["mid"] = {};
 
     auto domain = SARDomain();
 
     auto selector = SARSelector();
-
     Tasks tasks = {
-        {Task("sweep_left_YF", Args({{"agent", "me"}}))}};
-    auto pt = cpphopMCTS(state1, tasks, domain, selector,2,0.4);
-    json j = generate_plan_trace_tree(pt.first,pt.second);
-    json g = generate_plan_trace(pt.first,pt.second);
+        {Task("SAR", Args({{"agent", "me"}}))}};
 
-    BOOST_TEST(j["task"] == "(sweep_left_YF,me,)");
-    BOOST_TEST(j["children"].size() > 0);
-    BOOST_TEST(g[g.size() - 2]["task"] == "(!exit,)");
-    BOOST_TEST(g.size() > 0);
+    std::ifstream i("simple_sar_trace.json");
+    json j;
+    i >> j;
+
+    json trace;
+    for (json::iterator it = j.begin(); it != j.begin()+s; ++it) {
+      trace.push_back(*it);
+    }
+
+    state1.loc_tracker = get_loc_seq(trace,
+                                    state1.left_region,
+                                    state1.right_region,
+                                    state1.mid_region);
+    json g;
+    g = seek_planrecMCTS(trace,
+                     state1,
+                     tasks,
+                     domain,
+                     selector,
+                     N,
+                     0.4,
+                     2021,
+                     true,
+                     "simple_sar_pred_exp.json");
+
+    generate_graph_from_json(g, "simple_sar_pred_exp_graph.png");
+
+    std::ifstream k("simple_sar_trace_tree.json");
+    json t;
+    k >> t;
+
+    json t_trim;
+    t_trim = trim_actions(t, s, true, "simple_sar_true_exp.json");
+    generate_graph_from_json(t_trim,"simple_sar_true_exp_graph.png");
+    return EXIT_SUCCESS;
 }

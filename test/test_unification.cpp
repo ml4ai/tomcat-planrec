@@ -4,15 +4,29 @@
 #include <vector>
 #include "unification.h"
 #include <iostream>
-#include "Variable.h"
-#include "Constant.h"
-#include "Literal.h"
-#include "Term.h"
-#include "Function.h"
+#include "fol/Variable.h"
+#include "fol/Constant.h"
+#include "fol/Literal.h"
+#include "fol/Term.h"
+#include "fol/Function.h"
 #include "Visitor.h"
 #include "boost/variant.hpp"
 
+#include "parsing/ast.hpp"
+#include "parsing/ast_adapted.hpp"
+#include "parsing/domain.hpp"
+#include "parsing/parse.hpp"
+#include "util.h"
+#include <boost/optional.hpp>
+#include <boost/spirit/home/x3/support/ast/variant.hpp>
+
+using boost::unit_test::framework::master_test_suite;
+namespace x3 = boost::spirit::x3;
+
+// using namespace parser;
 using namespace std;
+using namespace fol;
+using namespace ast;
 
 BOOST_AUTO_TEST_CASE(test_unification) {
 
@@ -32,11 +46,12 @@ BOOST_AUTO_TEST_CASE(test_unification) {
 
     // BOOST_TEST(true);
     // setup some definitions
-    Literal L1, L2;
+    Literal<Term> L1, L2, Parsed_L;
     Term T1, T2, T3, T4, T5, T6, T7, T8;
     Constant C1, C2, C3;
     Variable v1, v2;
     Function F1, F2, F3, F4;
+    Predicate P1, P2;
     sub_list test;
     sub_list answer;
 
@@ -46,12 +61,14 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     // first literal declaration, T(v1)
     v1.name = "v1";
     T1 = v1;
-    L1.predicate = "T";
+    P1 = "P1";
+    L1.predicate = P1;
     L1.args.push_back(T1);
     // second literal declaration, T(C2)
     C2.name = "C2";
     T2 = C2;
-    L2.predicate = "T";
+    P2 = "P2";
+    L2.predicate = P2;
     L2.args.push_back(T2);
     // correct answer declaration, v1->C2
     answer["v1"] = C2;
@@ -154,8 +171,13 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     BOOST_CHECK_EQUAL(get<Constant>(test["v2"]).name, get<Constant>(answer["v2"]).name);    
 
 
+    // now to run some tests using the PDDl parser
+    auto Test_Parsed_L =
+        parse<Literal<Term>>("(predicate constant ?variable)", parser::literal_terms_type());
+    BOOST_CHECK_EQUAL(Test_Parsed_L.predicate,
+               "predicate");
+
     // To Do:
     // perhaps add failed cases to check return when failed unification????
-    // setup the cmake stuff
 
 }

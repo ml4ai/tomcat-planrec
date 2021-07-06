@@ -1,21 +1,18 @@
 #pragma once
 
-#include <string>
+#include "Predicate.h"
 #include <vector>
-#include "Function.h"
-#include "Constant.h"
-#include "Variable.h"
-#include "Visitor.h"
-#include "boost/variant.hpp"
+#include "../Visitor.h"
 
-struct Literal {
-    public:
-    std::string predicate;
-    std::vector<Term> args;
-    bool is_negated = false;
+namespace fol {
+    template <class T>
+    struct Literal {
+        Predicate predicate;
+        std::vector<T> args;
+        bool is_negative=false;
 
-    // operator for comparing Literals
-    friend bool operator==(const Literal &lhs, const Literal &rhs) {
+        // operator for comparing Literals, in the context of unification
+    friend bool operator==(const Literal<T> &lhs, const Literal<T> &rhs) {
                 bool eq=true;
                 for(int i=0; i < lhs.args.size(); i++) {
                     if (boost::apply_visitor(type_visitor(), (lhs.args).at(i)) == "Variable" || boost::apply_visitor(type_visitor(), (rhs.args).at(i)) == "Variable" ) {
@@ -48,4 +45,5 @@ struct Literal {
                 }
                 return eq; // add condition where each element are equal
             }
-};
+    };
+}

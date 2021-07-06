@@ -1,79 +1,129 @@
 #pragma once
 
+#include "../fol/Constant.h"
+#include "../fol/Function.h"
+#include "../fol/Predicate.h"
+#include "../fol/Term.h"
+#include "../fol/Variable.h"
+#include "../fol/Literal.h"
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
-#include <boost/spirit/home/x3/support/ast/variant.hpp>
+#include <boost/variant/recursive_wrapper.hpp>
 #include <iostream>
 #include <string>
+#include <tuple>
+#include <unordered_set>
 
-namespace client {
-    namespace ast {
-        using Name = std::string;
-        namespace x3 = boost::spirit::x3;
+namespace ast {
+    using Name = std::string;
+    namespace x3 = boost::spirit::x3;
 
-        struct Entity {
-            Name name;
-            Name type;
-            Entity(const std::string name, const std::string type = "object")
-                : name(name), type(type){};
-        };
+    // Import some classes that are more generally useful
+    using fol::Constant;
+    using fol::Predicate;
+    using fol::Term;
+    using fol::Variable;
+    using fol::Literal;
 
-        struct Variable : Entity, x3::position_tagged {
-            // Inherit all constructors of the Entity class
-            using Entity::Entity;
-        };
+    using PrimitiveType = std::string;
 
-        struct Action : x3::position_tagged {
-            Name name;
-            std::vector<Variable> parameters;
-        };
+    using EitherType = std::unordered_set<PrimitiveType>;
 
+    using Type = boost::variant<PrimitiveType, EitherType>;
 
-        using Term = std::variant<Name, Variable>;
+    template <class T> using ImplicitlyTypedList = std::vector<T>;
 
-        template<class T>
-        struct AtomicFormula {
-            Name predicate;
-            std::vector<T> args;
-        };
+    template <class T> struct ExplicitlyTypedList {
+        std::vector<T> entries;
+        Type type;
+    };
 
-        struct GoalDescription;
+    template <class T> struct TypedList {
+        std::vector<ExplicitlyTypedList<T>> explicitly_typed_lists;
+        boost::optional<ImplicitlyTypedList<T>> implicitly_typed_list;
+    };
 
-        struct GoalDescriptionValue : x3::variant<
-            std::string,
-            x3::forward_ast<GoalDescription>
-        >
-        {
-            using base_type::base_type;
-            using base_type::operator=;
-        };
+    struct AtomicFormulaSkeleton : x3::position_tagged {
+        Predicate predicate;
+        TypedList<Variable> variables;
+    };
 
-        struct GoalDescription {
-            std::vector<GoalDescriptionValue> entries;
-        };
+    struct Nil {
+        bool operator==(const Nil& nil) const;
+    };
 
-        struct AtomicFormulaSkeleton : x3::position_tagged {
-            Name predicate;
-            std::vector<Variable> variables;
-        };
+    template <class T> struct AtomicFormula {
+        Predicate predicate;
+        std::vector<T> args;
+    };
 
-        struct Domain : x3::position_tagged {
-            Name name;
-            std::vector<std::string> requirements;
-            std::vector<Entity> types;
-            std::vector<Entity> constants;
-            std::vector<AtomicFormulaSkeleton> predicates;
-            std::vector<Action> actions;
-        };
+    // Forward declare classes in order to work with Boost's recursive_wrapper
+    struct AndSentence;
+    struct OrSentence;
+    struct NotSentence;
+    struct ImplySentence;
+    struct ExistsSentence;
+    struct ForallSentence;
 
-       struct Problem : x3::position_tagged {
-            Name name;// to just get name of problem
-            Name probDomain;// for domain association
-            std::vector<std::string> requireDomain;//for any problem requirements
-            std::vector<Entity> objects;
-        };//end problem struct
+    using Sentence = boost::variant<Nil,
+                                    Literal<Term>,
+                                    boost::recursive_wrapper<AndSentence>,
+                                    boost::recursive_wrapper<OrSentence>,
+                                    boost::recursive_wrapper<NotSentence>,
+                                    boost::recursive_wrapper<ImplySentence>,
+                                    boost::recursive_wrapper<ExistsSentence>,
+                                    boost::recursive_wrapper<ForallSentence>>;
 
-        using boost::fusion::operator<<;
-    } // namespace ast
-} // namespace client
+    struct AndSentence {
+        std::vector<Sentence> sentences;
+    };
+
+    struct OrSentence {
+        std::vector<Sentence> sentences;
+    };
+
+    struct NotSentence {
+        Sentence sentence;
+    };
+
+    struct ImplySentence {
+        Sentence sentence1;
+        Sentence sentence2;
+    };
+
+    struct ExistsSentence {
+        std::vector<TypedList<Variable>> variables;
+        Sentence sentence;
+    };
+
+    struct ForallSentence {
+        std::vector<TypedList<Variable>> variables;
+        Sentence sentence;
+    };
+
+    struct Domain : x3::position_tagged {
+        Name name;
+        std::vector<std::string> requirements;
+        TypedList<Name> types;
+        TypedList<Name> constants;
+        std::vector<AtomicFormulaSkeleton> predicates;
+        // std::vector<Action> actions;
+    };
+
+    struct Problem : x3::position_tagged {
+        Name name;
+        Name domain_name;
+        std::vector<std::string> requirements;
+        TypedList<Name> objects;
+        Literal<Term> init;
+        Sentence goal;
+    }; 
+
+     struct Action : x3::position_tagged {
+        Name name;
+        //std::vector<TypedList<Variable>> parameters;
+    };
+
+    using boost::fusion::operator<<;
+} // namespace ast

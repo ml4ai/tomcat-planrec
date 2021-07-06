@@ -2,7 +2,8 @@
 
 #include "Symbol.h"
 
-struct Variable : Symbol {
+namespace fol {
+    struct Variable : Symbol {
         friend bool operator==(const Variable &lhs, const Variable &rhs) {
                 bool eq=false;
                 if (lhs.name == rhs.name) {
@@ -10,4 +11,5 @@ struct Variable : Symbol {
                 }
                 return eq; // add condition where each element are equal
             }
-};
+    };
+}
