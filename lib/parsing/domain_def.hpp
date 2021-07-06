@@ -15,7 +15,7 @@ namespace parser {
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
-        x3::eol, x3::rule;
+        x3::eol, x3::rule, x3::symbols;
 
     auto const name =
         lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
@@ -132,21 +132,26 @@ namespace parser {
     rule<class TSentence, ast::Sentence> sentence = "sentence";
 
 
-    rule<class TAndSentence, ast::AndSentence> const and_sentence =
-                                  "and_sentence";
-    auto const and_sentence_def = '(' 
-                               >> lit("and") 
-                               >> *sentence 
-                               >> ')';
-    BOOST_SPIRIT_DEFINE(and_sentence);
+    struct connector_ : x3::symbols<std::string>
+    {
+        connector_()
+        {
+            add
+                ("and"    , "and")
+                ("or"    , "or")
+            ;
+        }
+
+    } connector;
 
 
-    rule<class TOrSentence, ast::OrSentence> const or_sentence = "or_sentence";
-    auto const or_sentence_def = '(' 
-                               >> lit("or") 
+    rule<class TConnectedSentence, ast::ConnectedSentence> const connected_sentence =
+                                  "connected_sentence";
+    auto const connected_sentence_def = '(' 
+                               >> connector
                                >> *sentence 
                                >> ')';
-    BOOST_SPIRIT_DEFINE(or_sentence);
+    BOOST_SPIRIT_DEFINE(connected_sentence);
 
 
     rule<class TNotSentence, ast::NotSentence> const not_sentence =
@@ -192,8 +197,8 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(forall_sentence);
 
     auto const sentence_def = nil | literal_terms |
-                              and_sentence | or_sentence | not_sentence |
-                              imply_sentence;
+                              connected_sentence | not_sentence |
+                              imply_sentence | exists_sentence | forall_sentence;
     BOOST_SPIRIT_DEFINE(sentence);
 
 
