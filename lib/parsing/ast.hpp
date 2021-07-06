@@ -101,6 +101,7 @@ namespace ast {
         Name name;
         TypedList<Variable> parameters;
         Sentence precondition;
+
     };
 
     struct Domain : x3::position_tagged {
@@ -109,7 +110,7 @@ namespace ast {
         TypedList<Name> types;
         TypedList<Name> constants;
         std::vector<AtomicFormulaSkeleton> predicates;
-        std::vector<Action> action;
+        std::vector<Action> actions;
     };
 
     struct Problem : x3::position_tagged {

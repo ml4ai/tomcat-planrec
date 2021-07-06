@@ -30,7 +30,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(v.name == "var");
 
     // Test primitive type parsing
-    // TODO See whether we need to reintroduce the client namespace
+// TODO See whether we need to reintroduce the client namespace
+// Ask Adarsh what we had gained from deleting it first
     auto pt = parse<PrimitiveType>("type", primitive_type());
     BOOST_TEST(pt == "type");
 
@@ -128,10 +129,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 (on-site ?m - material ?s - site)
                 (material-used ?m - material)
             )
-
-            (:action build
+            (:action BUY-ADOBE
+                :parameters(?house - site ?adobe - material)
             )
-            ;    :parameters (?s - site ?b - bricks)
+            (:action BUILD-WALL
+                :parameters (?s - site ?b - bricks)
             ;    ;:precondition (and
             ;        ;(on-site ?b ?s)
             ;        ;(foundations-set ?s)
@@ -142,84 +144,37 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             ;        ;(walls-built ?s)
             ;        ;(material-used ?b)
                  ;)
-            ; ); end action
+            ); end action
         ); end define
     )";
 
 /******************** new part **********/
-    /**** CURRENTLY BUILDS AND PASSES TEST, BUT IT SHOULD
-     * BE FAILING THE TEST. 
-     * FALSE POSITIVE.
-     * *************************************/
 
     auto dom = parse<Domain>(storage, domain());
-    auto act = parse<Action>(storage, action());//builds 
-    auto actname = get<Name>(act.name);
-    cout <<"Name is:     " << actname << endl;
-    //BOOST_TEST(actname == "build");
-    // Above boost test fails, rightfully so 
-    //
-    //
-    //
-    //
-    /*
-     *
-    *****************************************
-    *****************************************
-    *****************************************
-    *****************************************
-    *****************************************
-    auto dom = parse<Domain>(storage, domain());
-    auto act = get<Name>(get<Action>(dom.action));//no member get
+    auto actname1 = dom.actions[0].name; 
+    BOOST_TEST(actname1 == "BUY-ADOBE");
+    auto actname2 = dom.actions[1].name; 
+    BOOST_TEST(actname2 == "BUILD-WALL");
 
-    *****************************************
-    auto dom = parse<Domain>(storage, domain());
-    auto act = get<Action>(dom.action).name;//no member get
-
-    *****************************************
-    auto dom = parse<Domain>(storage, domain());
-    auto act = parse<Action>(storage, action());//builds 
-    auto feed = get<Name>(act.name);
-    cout << "Action name is: " << feed << endl;//builds but fails test
-    BOOST_TEST(act.name == "build");// states that build != build
-        // and is still reading entire domain definition
-
-    *****************************************
-    auto feed = get<Name>(act.name);
-    cout << "Action name is: " << act.name << endl;//builds but fails test
-    BOOST_TEST(act.name == "build");
-
-    *****************************************
-    auto dom = parse<Domain>(storage, domain());
-    auto act = get<Action>(dom.action);//no member named get in Action
-
-    *****************************************
-    auto dom = parse<Domain>(storage, domain());
-    auto act = parse<Action>(dom.action, action());//no parse()
-
-    *****************************************
-    auto dom = parse<Domain>(storage, domain());
-    auto act = get<Action>(dom, action());// 1 extra arg
-
-     **************************** 
-    auto dom = parse<Domain>(storage, domain());
-    auto act = parse<Action>(dom, action());// No function parse()
-
-    ******************* start  part **********
-    auto dom = parse<Domain>(storage, domain());
-    auto act = parse<Action>(storage, action());//builds 
-    //BOOST_TEST(act.name == "build"); //fails test
-    cout << "Action name is: " << act.name << endl;//builds but fails test
-******************** end part **********/
+    auto actpara1 = dom.actions[0].parameters;
+    auto actpara2 = dom.actions[1].parameters;
+    BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "house"); 
+/*
+    auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[1].name == "var1");
+    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
+    BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) == "type");
+*/
+    //auto fes = get<Literal<Term>>(fef.sentence);
+    //BOOST_TEST(fes.predicate == "pred1"); 
+    //BOOST_TEST(get<Constant>(fes.args[0]).name == "ar1");
+    //BOOST_TEST(get<Variable>(fes.args[1]).name == "var2");
 
 
 
 
-
-
-
-
-
+/* //TODO delete this line after action testing
 
 
     //auto dom = parse<Domain>(storage, domain());
@@ -283,9 +238,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(af.args[0]).name == "name");
     BOOST_TEST(get<Variable>(af.args[1]).name == "variable");
 
-    // TODO add tests for parsing or, not, imply and other complex sentences.
-
-    // TODO Salena: 3rd object, rock, is implicit.
+// TODO Salena: 3rd object, rock, is implicit.
     // Think about function that takes typed lists and returns sets of
     // explicit and implicit.
 
@@ -502,5 +455,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(fes.args[0]).name == "ar1");
     BOOST_TEST(get<Variable>(fes.args[1]).name == "var2");
 
+
+*/ //TODO delete after doing action testing
 
 }

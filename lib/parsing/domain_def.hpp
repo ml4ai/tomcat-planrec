@@ -237,17 +237,11 @@ namespace parser {
     auto const action_def = '('
                             >> lit(":action")
                             >> name
-                            >> -parameters //optional for now
+                            >> parameters 
                             >> -precondition
                             >> ')';
     BOOST_SPIRIT_DEFINE(action);
-
-/***** ***** ***** ***** end current stuff ***** ***** ***** *****/
-
-
-
-
-
+    
 
     rule<class TDomain, ast::Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '('
@@ -257,8 +251,7 @@ namespace parser {
                          >> -types
                          >> -constants
                          >> -predicates 
-                         // 3 errors when this is included using -+*or alone
-                         // >> -action
+                         >> *action
                          >> ')';
     BOOST_SPIRIT_DEFINE(domain);
 
