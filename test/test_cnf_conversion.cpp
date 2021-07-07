@@ -72,9 +72,25 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto c10 = get<Literal<Term>>(c7.sentences[1]);
     BOOST_TEST(c10.predicate == "e");
 
+    // (or (a) (and (b) (c))) => (and (or (a) (b)) (or (a) (c)))
+    auto d1 = parse<Sentence>("(or (a) (and (b) (c)))", sentence());
+    auto d2 = boost::apply_visitor(DistributeOrOverAnd(), d1);
+    auto d3 = get<ConnectedSentence>(d2);
+    auto d4 = get<ConnectedSentence>(d3.sentences[0]);
+    auto d5 = get<Literal<Term>>(d4.sentences[0]);
+    BOOST_TEST(d5.predicate == "a");
+    auto d6 = get<Literal<Term>>(d4.sentences[1]);
+    BOOST_TEST(d6.predicate == "b");
 
-
-
+    // (or (and (a) (b)) (c)) => (and (or (a) (c)) (or (b) (c)))
+    auto e1 = parse<Sentence>("(or (and (a) (b)) (c))", sentence());
+    auto e2 = boost::apply_visitor(DistributeOrOverAnd(), e1);
+    auto e3 = get<ConnectedSentence>(e2);
+    auto e4 = get<ConnectedSentence>(e3.sentences[0]);
+    auto e5 = get<Literal<Term>>(e4.sentences[0]);
+    BOOST_TEST(e5.predicate == "a");
+    auto e6 = get<Literal<Term>>(e4.sentences[1]);
+    BOOST_TEST(e6.predicate == "c");
 
     //  test imply
 //    auto s1 =
