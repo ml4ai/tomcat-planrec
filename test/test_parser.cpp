@@ -130,9 +130,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 (material-used ?m - material)
             )
             (:action BUY-ADOBE
-                :parameters (?adobe - material 
-                             ?house ?factory - site)
-            ;    :precondition (on-site ?adobe ?factory)
+                :parameters (?adobe - material
+                            ?house ?factory - site)
+                :precondition 
+                    (on-site ?adobe ?factory)
             ); end action
            ;     :effect (and (on-site ?adobe ?house)
            ;                  (not (on-site ?adobe ?factory))
@@ -141,6 +142,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:action BUILD-WALL
                 :parameters (?bricks ?wood - material 
                              ?factory - site)
+           ;     :precondition ()
             ;    :precondition (and
             ;        ;(on-site ?b ?s)
             ;        ;(foundations-set ?s)
@@ -181,11 +183,13 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(actpara2.explicitly_typed_lists[1].entries[0].name == "factory"); 
 
     // Test Parsing Action Precondition
-    //auto actprec1 = get<Literal<Term>>(dom.actions[0].precondition);
-    //BOOST_TEST(actprec1.predicate == "on-site");
-    //BOOST_TEST(get<Variable>(actprec1.args[0]).name == "adobe");
-    //BOOST_TEST(get<Variable>(actprec1.args[1]).name == "factory");
-
+    // Test parsing atomic formula of terms
+    //auto actPrec1 = dom.actions[0].precondition;
+    //auto aft = parse<AtomicFormula<Term>>("(predicate name ?variable)",
+      //                                    atomic_formula_terms());
+    //BOOST_TEST(aft.predicate == "predicate");
+    //BOOST_TEST(get<Constant>(aft.args[0]).name == "name");
+    //BOOST_TEST(get<Variable>(aft.args[1]).name == "variable");
 
 
 
