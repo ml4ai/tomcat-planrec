@@ -92,6 +92,27 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto e6 = get<Literal<Term>>(e4.sentences[1]);
     BOOST_TEST(e6.predicate == "c");
 
+    // (imply (a) (b)) => (or not (a) (b))
+    auto f1 = parse<Sentence>("(imply (a) (b))", sentence());
+    auto f2 = boost::apply_visitor(ImplicationsOut(), f1);
+    auto f3 = get<ConnectedSentence>(f2);
+    auto f4 = get<NotSentence>(f3.sentences[0]);
+    auto f5 = get<Literal<Term>>(f4.sentence);
+    BOOST_TEST(f5.predicate == "a");
+    auto f6 = get<Literal<Term>>(f3.sentences[1]);
+    BOOST_TEST(f6.predicate == "b");
+
+    //  (forall (?y) (imply (A ?y) (L ?x ?y))) => (forall (?y) or not (A ?y) (L ?x ?y))
+    auto g1 = parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y))))", sentence());
+    auto g2 = boost::apply_visitor(ImplicationsOut(), g1);
+    auto g3 = get<ForallSentence>(g2);
+    auto g4 = get<ConnectedSentence>(g3.sentence);
+    auto g5 = get<NotSentence>(g4.sentences[0]);
+    auto g6 = get<Literal<Term>>(g5.sentence);
+    BOOST_TEST(g6.predicate == "A");
+    auto g7 = get<Literal<Term>>(g4.sentences[1]);
+    BOOST_TEST(g7.predicate == "L");
+
     //  test imply
 //    auto s1 =
 //        parse<Sentence>("(imply (Animal ?y) (Loves ?x ?y))", sentence());

@@ -8,6 +8,7 @@
 
 using boost::get;
 using namespace std;
+#include <map>
 
 namespace ast {
     struct GetSentenceType : public boost::static_visitor<std::string> {
@@ -56,6 +57,52 @@ namespace ast {
         Sentence operator()(ForallSentence s) const { return s; }
     };
 
+    struct ImplicationsOut : public boost::static_visitor<Sentence> {
+        std::vector<Clause> clauses = {};
+        Sentence operator()(Nil s) const { return s; }
+        Sentence operator()(Literal<Term> s) const { return s; }
+        Sentence operator()(ConnectedSentence s) const {
+            auto s1 = boost::apply_visitor(ImplicationsOut(),
+                                           (Sentence)s.sentences[0]);
+            auto s2 = boost::apply_visitor(ImplicationsOut(),
+                                           (Sentence)s.sentences[1]);
+            ConnectedSentence rs;
+            rs.connector = s.connector;
+            rs.sentences.push_back(s1);
+            rs.sentences.push_back(s2);
+            return rs;
+        }
+        Sentence operator()(NotSentence s) const { return s; }
+        Sentence operator()(ImplySentence s) const {
+            auto s1 =
+                boost::apply_visitor(ImplicationsOut(), (Sentence)s.sentence1);
+            auto s2 =
+                boost::apply_visitor(ImplicationsOut(), (Sentence)s.sentence2);
+
+            ConnectedSentence rs;
+            rs.connector = "or";
+            NotSentence rs1;
+            rs1.sentence = s1;
+            rs.sentences.push_back(rs1);
+            rs.sentences.push_back(s2);
+            return rs;
+        }
+        Sentence operator()(ExistsSentence s) const {
+            ExistsSentence rs;
+            rs.variables = s.variables;
+            rs.sentence =
+                boost::apply_visitor(ImplicationsOut(), (Sentence)s.sentence);
+            return rs;
+        }
+        Sentence operator()(ForallSentence s) const {
+            ForallSentence rs;
+            rs.variables = s.variables;
+            rs.sentence =
+                boost::apply_visitor(ImplicationsOut(), (Sentence)s.sentence);
+            return rs;
+        }
+    };
+
     struct DistributeOrOverAnd : public boost::static_visitor<Sentence> {
         std::vector<Clause> clauses = {};
         Sentence operator()(Nil s) const { return s; }
@@ -68,9 +115,9 @@ namespace ast {
 
             if (s.connector == "or" and
                 boost::apply_visitor(GetSentenceType(), s2) ==
-                "ConnectedSentence") {
+                    "ConnectedSentence") {
                 auto s2_ = get<ConnectedSentence>(s2);
-                if(s2_.connector == "and"){
+                if (s2_.connector == "and") {
                     auto s2_1 = s2_.sentences[0];
                     auto s2_2 = s2_.sentences[1];
                     ConnectedSentence rs1;
@@ -83,8 +130,10 @@ namespace ast {
                     rs2.sentences.push_back(s2_2);
                     ConnectedSentence rs;
                     rs.connector = "and";
-                    rs.sentences.push_back(boost::apply_visitor(DistributeOrOverAnd(), (Sentence)rs1));
-                    rs.sentences.push_back(boost::apply_visitor(DistributeOrOverAnd(), (Sentence)rs2));
+                    rs.sentences.push_back(boost::apply_visitor(
+                        DistributeOrOverAnd(), (Sentence)rs1));
+                    rs.sentences.push_back(boost::apply_visitor(
+                        DistributeOrOverAnd(), (Sentence)rs2));
                     return rs;
                 }
             }
@@ -93,7 +142,7 @@ namespace ast {
                 boost::apply_visitor(GetSentenceType(), s1) ==
                     "ConnectedSentence") {
                 auto s1_ = get<ConnectedSentence>(s1);
-                if(s1_.connector == "and"){
+                if (s1_.connector == "and") {
                     auto s1_1 = s1_.sentences[0];
                     auto s1_2 = s1_.sentences[1];
                     ConnectedSentence rs1;
@@ -106,8 +155,10 @@ namespace ast {
                     rs2.sentences.push_back(s2);
                     ConnectedSentence rs;
                     rs.connector = "and";
-                    rs.sentences.push_back(boost::apply_visitor(DistributeOrOverAnd(), (Sentence)rs1));
-                    rs.sentences.push_back(boost::apply_visitor(DistributeOrOverAnd(), (Sentence)rs2));
+                    rs.sentences.push_back(boost::apply_visitor(
+                        DistributeOrOverAnd(), (Sentence)rs1));
+                    rs.sentences.push_back(boost::apply_visitor(
+                        DistributeOrOverAnd(), (Sentence)rs2));
                     return rs;
                 }
             }
