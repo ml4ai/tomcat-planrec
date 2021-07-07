@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 :parameters (?adobe - material 
                              ?house ?factory - site)
             ;    :precondition (on-site ?adobe ?factory)
-            )
+            ); end action
            ;     :effect (and (on-site ?adobe ?house)
            ;                  (not (on-site ?adobe ?factory))
            ;             )
@@ -183,18 +183,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test Parsing Action Precondition
     //auto actprec1 = get<Literal<Term>>(dom.actions[0].precondition);
     //BOOST_TEST(actprec1.predicate == "on-site");
-
-/*
-    auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[1].name == "var1");
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
-    BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) == "type");
-*/
-    //auto fes = get<Literal<Term>>(fef.sentence);
-    //BOOST_TEST(fes.predicate == "pred1"); 
-    //BOOST_TEST(get<Constant>(fes.args[0]).name == "ar1");
-    //BOOST_TEST(get<Variable>(fes.args[1]).name == "var2");
+    //BOOST_TEST(get<Variable>(actprec1.args[0]).name == "adobe");
+    //BOOST_TEST(get<Variable>(actprec1.args[1]).name == "factory");
 
 
 

@@ -229,8 +229,11 @@ namespace parser {
                                >> ')';
     BOOST_SPIRIT_DEFINE(parameters);
 
-    rule<class TPrecondition, ast::Sentence> const precondition = "precondition";
-    auto const precondition_def = '(' >> lit(":precondition") >> sentence >> ')';
+    rule<class TPrecondition, Sentence> const precondition = "precondition";
+    auto const precondition_def = lit(":precondition")
+                            >> '('
+                            >> sentence
+                            >> ')';
     BOOST_SPIRIT_DEFINE(precondition);
 
     rule<class TAction, ast::Action> const action = "action";
