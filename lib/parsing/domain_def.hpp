@@ -20,8 +20,8 @@ namespace parser {
     auto const name =
         lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
 
+    
     // Rules
-
     rule<class TRequirement, std::vector<Name>> const requirement =
         "requirement";
     auto const requirement_def = ':' >> name;
@@ -219,7 +219,7 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(predicates);
 
 
-/***** Start ***** ***** ***** end current stuff ***** ***** ***** *****/
+    // Action Definition
     struct TAction;
 
     rule<class TParameters, TypedList<Variable>> const parameters = "parameters";
@@ -242,7 +242,7 @@ namespace parser {
                             >> ')';
     BOOST_SPIRIT_DEFINE(action);
     
-
+    // Domain Definition
     rule<class TDomain, ast::Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '('
                          >> lit("domain")
@@ -255,6 +255,7 @@ namespace parser {
                          >> ')';
     BOOST_SPIRIT_DEFINE(domain);
 
+    // Problem Definition
     rule<class TObjects, TypedList<Name>> const objects = "objects";
     auto const objects_def = '(' >> lit(":objects") >> typed_list_names >> ')';
     BOOST_SPIRIT_DEFINE(objects);
