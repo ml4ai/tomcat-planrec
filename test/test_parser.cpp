@@ -130,10 +130,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 (material-used ?m - material)
             )
             (:action BUY-ADOBE
-                :parameters(?house - site ?adobe - material)
+                :parameters (?adobe - material ?house - site)
+            ;    :precondition (on-site ?adobe ?factory)
             )
             (:action BUILD-WALL
-                :parameters (?s - site ?b - bricks)
+                :parameters (?bricks ?wood - material ?factory - site)
             ;    ;:precondition (and
             ;        ;(on-site ?b ?s)
             ;        ;(foundations-set ?s)
@@ -151,14 +152,28 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 /******************** new part **********/
 
     auto dom = parse<Domain>(storage, domain());
+
+    // Test Action Names:
     auto actname1 = dom.actions[0].name; 
     BOOST_TEST(actname1 == "BUY-ADOBE");
     auto actname2 = dom.actions[1].name; 
     BOOST_TEST(actname2 == "BUILD-WALL");
 
+    // Test Action Parameters:
     auto actpara1 = dom.actions[0].parameters;
     auto actpara2 = dom.actions[1].parameters;
-    BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "house"); 
+    BOOST_TEST(get<PrimitiveType>(actpara1.explicitly_typed_lists[0].type) == "material");
+    BOOST_TEST(get<PrimitiveType>(actpara1.explicitly_typed_lists[1].type) == "site");
+    BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "adobe"); 
+    BOOST_TEST(actpara1.explicitly_typed_lists[1].entries[0].name == "house"); 
+
+    BOOST_TEST(get<PrimitiveType>(actpara2.explicitly_typed_lists[0].type) == "material");
+    BOOST_TEST(get<PrimitiveType>(actpara2.explicitly_typed_lists[1].type) == "site");
+    BOOST_TEST(actpara2.explicitly_typed_lists[0].entries[0].name == "bricks"); 
+    BOOST_TEST(actpara2.explicitly_typed_lists[0].entries[1].name == "wood"); 
+    BOOST_TEST(actpara2.explicitly_typed_lists[1].entries[0].name == "factory"); 
+
+
 /*
     auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type", typed_list_variables());
     BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
@@ -174,11 +189,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
 
 
-/* //TODO delete this line after action testing
 
 
-    //auto dom = parse<Domain>(storage, domain());
-    // Test parsing of domain name
+/******************** end of new part **********/
+
+    // Test Domain Name: 
     BOOST_TEST(dom.name == "construction");
 
     // Test requirements
@@ -456,6 +471,5 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Variable>(fes.args[1]).name == "var2");
 
 
-*/ //TODO delete after doing action testing
 
 }
