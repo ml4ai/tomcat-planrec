@@ -101,6 +101,7 @@ namespace ast {
         Name name;
         TypedList<Variable> parameters;
         Sentence precondition;
+        Sentence effect;
     };
 
     struct Domain : x3::position_tagged {

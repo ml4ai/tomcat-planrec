@@ -134,16 +134,17 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                             ?house ?factory - site)
                 :precondition 
                     (on-site ?adobe ?factory)
+            ;    :effect (and (on-site ?adobe ?house)
+            ;                 (not (on-site ?adobe ?factory))
+            ;            )
             ); end action
-           ;     :effect (and (on-site ?adobe ?house)
-           ;                  (not (on-site ?adobe ?factory))
-           ;             )
             
             (:action BUILD-WALL
                 :parameters (?bricks ?wood - material 
                              ?factory - site)
-           ;     :precondition ()
-            ;    :precondition (and
+                :precondition 
+                    (foundations-set ?house-foundation)
+            ;        (and
             ;        ;(on-site ?b ?s)
             ;        ;(foundations-set ?s)
             ;        ;(not (walls-built ?s))
@@ -183,13 +184,27 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(actpara2.explicitly_typed_lists[1].entries[0].name == "factory"); 
 
     // Test Parsing Action Precondition
-    // Test parsing atomic formula of terms
-    //auto actPrec1 = dom.actions[0].precondition;
-    //auto aft = parse<AtomicFormula<Term>>("(predicate name ?variable)",
-      //                                    atomic_formula_terms());
-    //BOOST_TEST(aft.predicate == "predicate");
-    //BOOST_TEST(get<Constant>(aft.args[0]).name == "name");
-    //BOOST_TEST(get<Variable>(aft.args[1]).name == "variable");
+    auto actprec1_f = dom.actions[0].precondition; 
+    auto actprec1_s = get<Literal<Term>>(actprec1_f);
+    BOOST_TEST(actprec1_s.predicate == "on-site");
+    BOOST_TEST(get<Variable>(actprec1_s.args[0]).name == "adobe");
+    
+    auto actprec2_f = dom.actions[1].precondition; 
+    auto actprec2_s = get<Literal<Term>>(actprec2_f);
+    BOOST_TEST(actprec2_s.predicate == "foundations-set"); 
+    BOOST_TEST(get<Variable>(actprec2_s.args[0]).name == "house-foundation");
+
+/*
+    BOOST_TEST(get<Nil>(gd) == Nil());
+    prob = parse<Problem>(storage, problem());
+    auto fef = get<ForallSentence>(prob.goal);
+
+    BOOST_TEST(fef.variables.implicitly_typed_list.value()[0].name == "var1");
+    auto fes = get<Literal<Term>>(fef.sentence);
+    BOOST_TEST(fes.predicate == "pred1"); 
+    BOOST_TEST(get<Constant>(fes.args[0]).name == "ar1");
+    BOOST_TEST(get<Variable>(fes.args[1]).name == "var2");
+*/
 
 
 
