@@ -23,6 +23,8 @@ using boost::get;
 
 BOOST_AUTO_TEST_CASE(test_parser) {
 
+// TEST PARSING OF DATA STRUCTURES
+
     string storage;
 
     // Test variable parsing
@@ -30,8 +32,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(v.name == "var");
 
     // Test primitive type parsing
-// TODO See whether we need to reintroduce the client namespace
-// Ask Adarsh what we had gained from deleting it first
+    // TODO See whether we need to reintroduce the client namespace
     auto pt = parse<PrimitiveType>("type", primitive_type());
     BOOST_TEST(pt == "type");
 
@@ -109,135 +110,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(aft.args[0]).name == "name");
     BOOST_TEST(get<Variable>(aft.args[1]).name == "variable");
 
-    storage = R"(
-    ; Example domain for testing
-        (define
-            (domain construction)
-            (:requirements :strips :typing)
-            (:types
-                site material - object
-                bricks cables windows - material
-            )
-            (:constants mainsite - site)
-
-            (:predicates
-                (walls-built ?s - site)
-                (windows-fitted ?s - site)
-                (foundations-set ?s - site)
-                (cables-installed ?s - site)
-                (site-built ?s - site)
-                (on-site ?m - material ?s - site)
-                (material-used ?m - material)
-            )
-            (:action BUY-ADOBE
-                :parameters (?adobe - material
-                            ?house ?factory - site)
-                :precondition 
-                    (on-site ?adobe ?factory)
-            ;    :effect (and (on-site ?adobe ?house)
-            ;                 (not (on-site ?adobe ?factory))
-            ;            )
-            ); end action
-            
-            (:action BUILD-WALL
-                :parameters (?bricks ?wood - material 
-                             ?factory - site)
-                :precondition 
-                    (foundations-set ?house-foundation)
-            ;        (and
-            ;        ;(on-site ?b ?s)
-            ;        ;(foundations-set ?s)
-            ;        ;(not (walls-built ?s))
-            ;        ;(not (material-used ?b))
-            ;         )
-            ;    ;:effect (and
-            ;        ;(walls-built ?s)
-            ;        ;(material-used ?b)
-                     ;)
-            ); end action
-        ); end define
-    )";
-
-/******************** new part **********/
-
-    auto dom = parse<Domain>(storage, domain());
-
-    // Test Parsing Action Names
-    auto actname1 = dom.actions[0].name; 
-    BOOST_TEST(actname1 == "BUY-ADOBE");
-    auto actname2 = dom.actions[1].name; 
-    BOOST_TEST(actname2 == "BUILD-WALL");
-
-    // Test Parsing Action Parameters
-    auto actpara1 = dom.actions[0].parameters;
-    auto actpara2 = dom.actions[1].parameters;
-    BOOST_TEST(get<PrimitiveType>(actpara1.explicitly_typed_lists[0].type) == "material");
-    BOOST_TEST(get<PrimitiveType>(actpara1.explicitly_typed_lists[1].type) == "site");
-    BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "adobe"); 
-    BOOST_TEST(actpara1.explicitly_typed_lists[1].entries[0].name == "house"); 
-    BOOST_TEST(actpara1.explicitly_typed_lists[1].entries[1].name == "factory"); 
-
-    BOOST_TEST(get<PrimitiveType>(actpara2.explicitly_typed_lists[0].type) == "material");
-    BOOST_TEST(get<PrimitiveType>(actpara2.explicitly_typed_lists[1].type) == "site");
-    BOOST_TEST(actpara2.explicitly_typed_lists[0].entries[0].name == "bricks"); 
-    BOOST_TEST(actpara2.explicitly_typed_lists[0].entries[1].name == "wood"); 
-    BOOST_TEST(actpara2.explicitly_typed_lists[1].entries[0].name == "factory"); 
-
-    // Test Parsing Action Precondition
-    auto actprec1_f = dom.actions[0].precondition; 
-    auto actprec1_s = get<Literal<Term>>(actprec1_f);
-    BOOST_TEST(actprec1_s.predicate == "on-site");
-    BOOST_TEST(get<Variable>(actprec1_s.args[0]).name == "adobe");
-    
-    auto actprec2_f = dom.actions[1].precondition; 
-    auto actprec2_s = get<Literal<Term>>(actprec2_f);
-    BOOST_TEST(actprec2_s.predicate == "foundations-set"); 
-    BOOST_TEST(get<Variable>(actprec2_s.args[0]).name == "house-foundation");
-
-/*
-    BOOST_TEST(get<Nil>(gd) == Nil());
-    prob = parse<Problem>(storage, problem());
-    auto fef = get<ForallSentence>(prob.goal);
-
-    BOOST_TEST(fef.variables.implicitly_typed_list.value()[0].name == "var1");
-    auto fes = get<Literal<Term>>(fef.sentence);
-    BOOST_TEST(fes.predicate == "pred1"); 
-    BOOST_TEST(get<Constant>(fes.args[0]).name == "ar1");
-    BOOST_TEST(get<Variable>(fes.args[1]).name == "var2");
-*/
-
-
-
-
-
-/******************** end of new part **********/
-
-    // Test Domain Name: 
-    BOOST_TEST(dom.name == "construction");
-
-    // Test requirements
-    BOOST_TEST(dom.requirements[0] == "strips");
-    BOOST_TEST(dom.requirements[1] == "typing");
-
-    // Test constants
-    BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
-               "mainsite");
-    BOOST_TEST(get<PrimitiveType>(
-                   dom.constants.explicitly_typed_lists[0].type) == "site");
-
-    // Test parsing of predicates
-    BOOST_TEST(dom.predicates.size() == 7);
-    BOOST_TEST(dom.predicates[0].predicate == "walls-built");
-    BOOST_TEST(
-        dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name ==
-        "s");
-    BOOST_TEST(
-        get<PrimitiveType>(
-            dom.predicates[0].variables.explicitly_typed_lists[0].type) ==
-        "site");
 
     // Test parsing of goal descriptions
-
     // Parse nil
     auto gd = parse<Sentence>("()", sentence());
     BOOST_TEST(get<Nil>(gd) == Nil());
@@ -272,9 +146,146 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Constant>(af.args[0]).name == "name");
     BOOST_TEST(get<Variable>(af.args[1]).name == "variable");
 
-// TODO Salena: 3rd object, rock, is implicit.
-    // Think about function that takes typed lists and returns sets of
-    // explicit and implicit.
+
+// TEST PARSING OF DOMAIN DEFINITION AND ITS COMPONENTS
+    // Example domain definition:
+    storage = R"(
+        (define
+            (domain construction)
+            (:requirements :strips :typing)
+            (:types
+                site material - object
+                bricks cables windows - material
+            )
+            (:constants mainsite - site)
+
+            (:predicates
+                (walls-built ?s - site)
+                (windows-fitted ?s - site)
+                (foundations-set ?s - site)
+                (cables-installed ?s - site)
+                (site-built ?s - site)
+                (on-site ?m - material ?s - site)
+                (material-used ?m - material)
+            )
+            (:action BUY-ADOBE
+                :parameters (?adobe - material
+                            ?house ?factory - site)
+                :precondition 
+                     (or (on-site ?adobe ?factory)
+                         (not (on-site ?adobe ?house)))
+                :effect
+                     (and (on-site ?adobe ?house)
+                          (not (on-site ?adobe ?factory)))
+            )
+
+            (:action BUILD-WALL
+                :parameters (?bricks ?wood - material 
+                             ?factory - site)
+                :precondition 
+                    (foundations-set ?fs)
+                :effect 
+                    (and (walls-built ?s)
+                         (material-used ?b))
+            )
+
+        ) 
+    )";
+
+    auto dom = parse<Domain>(storage, domain());
+
+    // Test Domain Name: 
+    BOOST_TEST(dom.name == "construction");
+
+    // Test requirements
+    BOOST_TEST(dom.requirements[0] == "strips");
+    BOOST_TEST(dom.requirements[1] == "typing");
+
+    // Test constants
+    BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
+               "mainsite");
+    BOOST_TEST(get<PrimitiveType>(
+                   dom.constants.explicitly_typed_lists[0].type) == "site");
+
+    // Test parsing of predicates
+    BOOST_TEST(dom.predicates.size() == 7);
+    BOOST_TEST(dom.predicates[0].predicate == "walls-built");
+    BOOST_TEST(
+        dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name ==
+        "s");
+    BOOST_TEST(
+        get<PrimitiveType>(
+            dom.predicates[0].variables.explicitly_typed_lists[0].type) ==
+        "site");
+
+
+// Test Parsing of DOMAIN ACTIONS and their components:
+    // Test Parsing Action Names
+    auto actname1 = dom.actions[0].name; 
+    BOOST_TEST(actname1 == "BUY-ADOBE");
+    auto actname2 = dom.actions[1].name; 
+    BOOST_TEST(actname2 == "BUILD-WALL");
+
+    // Test Parsing Action Parameters
+    auto actpara1 = dom.actions[0].parameters;
+    auto actpara2 = dom.actions[1].parameters;
+    BOOST_TEST(get<PrimitiveType>(actpara1.explicitly_typed_lists[0].type) == "material");
+    BOOST_TEST(get<PrimitiveType>(actpara1.explicitly_typed_lists[1].type) == "site");
+    BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "adobe"); 
+    BOOST_TEST(actpara1.explicitly_typed_lists[1].entries[0].name == "house"); 
+    BOOST_TEST(actpara1.explicitly_typed_lists[1].entries[1].name == "factory"); 
+
+    BOOST_TEST(get<PrimitiveType>(actpara2.explicitly_typed_lists[0].type) == "material");
+    BOOST_TEST(get<PrimitiveType>(actpara2.explicitly_typed_lists[1].type) == "site");
+    BOOST_TEST(actpara2.explicitly_typed_lists[0].entries[0].name == "bricks"); 
+    BOOST_TEST(actpara2.explicitly_typed_lists[0].entries[1].name == "wood"); 
+    BOOST_TEST(actpara2.explicitly_typed_lists[1].entries[0].name == "factory"); 
+
+
+    // Test Parsing Action Precondition
+    // Action 1 Precondition uses OrSentence and NotSentence
+    auto actprec1_f = dom.actions[0].precondition; 
+    auto actprec1_s = get<ConnectedSentence>(actprec1_f);
+    // Test first sentence
+    auto actprec1_os = get<Literal<Term>>(actprec1_s.sentences[0]);
+    BOOST_TEST(actprec1_os.predicate == "on-site");
+    BOOST_TEST(get<Variable>(actprec1_os.args[0]).name == "adobe");
+    BOOST_TEST(get<Variable>(actprec1_os.args[1]).name == "factory");
+    //Test second sentence
+    auto actprec2_os = get<Literal<Term>>(actprec1_s.sentences[1]);
+    BOOST_TEST(actprec2_os.predicate == "on-site");
+    BOOST_TEST(get<Variable>(actprec2_os.args[0]).name == "adobe");
+    BOOST_TEST(get<Variable>(actprec2_os.args[1]).name == "house");
+
+    // Action 2 Testing
+    auto actprec2_f = dom.actions[1].precondition; 
+    auto actprec2_s = get<Literal<Term>>(actprec2_f);
+    BOOST_TEST(actprec2_s.predicate == "foundations-set"); 
+    BOOST_TEST(get<Variable>(actprec2_s.args[0]).name == "fs");
+
+    // Test Parsing Action Effect
+    // Effect of Action 1 also Tests AndSentence and Nested NotSentence
+    auto effect1_f = dom.actions[0].effect;
+    auto effect1_s = get<ConnectedSentence>(effect1_f);
+    auto effect1_af = get<Literal<Term>>(effect1_s.sentences[0]);
+    BOOST_TEST(effect1_af.predicate == "on-site");
+    BOOST_TEST(get<Variable>(effect1_af.args[0]).name == "adobe");
+    BOOST_TEST(get<Variable>(effect1_af.args[1]).name == "house");
+
+    auto effect1_af2 = get<Literal<Term>>(effect1_s.sentences[1]);
+    BOOST_TEST(effect1_af2.predicate == "on-site");
+    BOOST_TEST(get<Variable>(effect1_af2.args[0]).name == "adobe");
+    BOOST_TEST(get<Variable>(effect1_af2.args[1]).name == "factory");
+
+    // Effect of Action 2 also tests AndSentence
+    auto effect2_f = dom.actions[1].effect;
+    auto effect2_s = get<ConnectedSentence>(effect2_f);
+    auto effect2_af = get<Literal<Term>>(effect2_s.sentences[0]);
+    BOOST_TEST(effect2_af.predicate == "walls-built");
+    BOOST_TEST(get<Variable>(effect2_af.args[0]).name == "s");
+
+
+//  TEST PARSING OF PROBLEM DEFINITION AND ITS COMPONENTS
 
     storage = R"(
         (define
@@ -488,7 +499,5 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(fes.predicate == "pred1"); 
     BOOST_TEST(get<Constant>(fes.args[0]).name == "ar1");
     BOOST_TEST(get<Variable>(fes.args[1]).name == "var2");
-
-
 
 }
