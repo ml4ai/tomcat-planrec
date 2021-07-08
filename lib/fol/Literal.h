@@ -8,6 +8,5 @@ namespace fol {
     struct Literal {
         Predicate predicate;
         std::vector<T> args;
-        bool is_negative=false;
     };
 }

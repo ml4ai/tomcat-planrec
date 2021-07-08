@@ -1,6 +1,5 @@
 #define BOOST_TEST_MODULE TestCNF
 
-
 #include "CNF.h"
 
 #include <boost/test/included/unit_test.hpp>
@@ -10,12 +9,12 @@
 #include <iostream>
 #include <string>
 
+#include "Clause.h"
 #include "parsing/ast.hpp"
 #include "parsing/ast_adapted.hpp"
 #include "parsing/domain.hpp"
 #include "parsing/parse.hpp"
 #include "util.h"
-#include "Clause.h"
 #include <boost/optional.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
 
@@ -53,7 +52,8 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto b7 = get<Literal<Term>>(b3.sentences[1]);
     BOOST_TEST(b7.predicate == "d");
 
-    //  (or (a) (b) (and (c) (d) (e))) => (or (or (a) (b)) (and (and (c) (d)) (e)))
+    //  (or (a) (b) (and (c) (d) (e))) => (or (or (a) (b)) (and (and (c) (d))
+    //  (e)))
     auto c1 = parse<Sentence>("(or (a) (b) (and (c) (d) (e)))", sentence());
     auto c2 = boost::apply_visitor(GeneratePairSentence(), c1);
     auto c3 = get<ConnectedSentence>(c2);
@@ -102,8 +102,10 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto f6 = get<Literal<Term>>(f3.sentences[1]);
     BOOST_TEST(f6.predicate == "b");
 
-    //  (forall (?y) (imply (A ?y) (L ?x ?y))) => (forall (?y) or not (A ?y) (L ?x ?y))
-    auto g1 = parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y)))", sentence());
+    //  (forall (?y) (imply (A ?y) (L ?x ?y))) => (forall (?y) or not (A ?y) (L
+    //  ?x ?y))
+    auto g1 =
+        parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y)))", sentence());
     auto g2 = boost::apply_visitor(ImplicationsOut(), g1);
     auto g3 = get<ForallSentence>(g2);
     auto g4 = get<ConnectedSentence>(g3.sentence);
@@ -113,48 +115,44 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto g7 = get<Literal<Term>>(g4.sentences[1]);
     BOOST_TEST(g7.predicate == "L");
 
-    auto h1 = parse<Sentence>("(not (not (a)))", sentence());
+    //  (not (and (not (a)) (b))) => (or (a) (not (b)))
+    auto h1 = parse<Sentence>("(not (and (not (a)) (b)))", sentence());
     auto h2 = boost::apply_visitor(NegationsIn(), h1);
-    auto h3 = get<Literal<Term>>(h2);
-    BOOST_TEST(h3.predicate == "a");
+    auto h3 = get<ConnectedSentence>(h2);
+    BOOST_TEST(h3.connector == "or");
+    auto h4 = get<Literal<Term>>(h3.sentences[0]);
+    BOOST_TEST(h4.predicate == "a");
+    auto h5 = get<NotSentence>(h3.sentences[1]);
+    auto h6 = get<Literal<Term>>(h5.sentence);
+    BOOST_TEST(h6.predicate == "b");
 
-//    //  (not (and (not (a)) (b))) => (or (a) (not (b)))
-//    auto h1 = parse<Sentence>("(not (and (not (a)) (b)))", sentence());
-//    auto h2 = boost::apply_visitor(NegationsIn(), h1);
-//    auto h3 = get<ConnectedSentence>(h2);
-//    BOOST_TEST(h3.connector == "or");
-//    auto h4 = get<NotSentence>(h3.sentences[0]);
-//    auto h5 = get<Literal<Term>>(h4.sentence);
-//    BOOST_TEST(h5.predicate == "a");
-//    auto h6 = get<NotSentence>(h3.sentences[1]);
-//    auto h7 = get<Literal<Term>>(h6.sentence);
-//    BOOST_TEST(h7.predicate == "b");
-
-//     (not (exists (?y) (and (not (A ?y)) (L ?x ?y)))) => (forall (?y) (or (A ?y) (not (L ?x ?y))))
-//    auto h1 = parse<Sentence>("(not (exists (?y) (and (not (A ?y)) (L ?x ?y)))", sentence());
-//    auto h2 = boost::apply_visitor(NegationsIn(), h1);
-//    auto h3 = get<ForallSentence>(h2);
-//    BOOST_TEST(h3.variables.implicitly_typed_list.value()[0].name ==
-//               "y");
-//    auto h4 = get<ConnectedSentence>(h3.sentence);
-//    BOOST_TEST(h4.connector == "or");
-//    auto h5 = get<Literal<Term>>(h4.sentences[0]);
-//    BOOST_TEST(h5.predicate == "A");
-//    auto h6 = get<NotSentence>(h4.sentences[1]);
-//    auto h7 = get<Literal<Term>>(h6.sentence);
-//    BOOST_TEST(h7.predicate == "L");
+    //  (not (exists (?y) (and (not (A ?y)) (L ?x ?y)))) => (forall (?y) (or
+    //  (A ?y) (not (L ?x ?y))))
+    auto i1 = parse<Sentence>("(not (exists (?y) (and (not (A ?y)) (L ?x ?y))))",
+                              sentence());
+    auto i2 = boost::apply_visitor(NegationsIn(), i1);
+    auto i3 = get<ForallSentence>(i2);
+    BOOST_TEST(i3.variables.implicitly_typed_list.value()[0].name == "y");
+    auto i4 = get<ConnectedSentence>(i3.sentence);
+    BOOST_TEST(i4.connector == "or");
+    auto i5 = get<Literal<Term>>(i4.sentences[0]);
+    BOOST_TEST(i5.predicate == "A");
+    auto i6 = get<NotSentence>(i4.sentences[1]);
+    auto i7 = get<Literal<Term>>(i6.sentence);
+    BOOST_TEST(i7.predicate == "L");
 
     //  test imply
-//    auto s1 =
-//        parse<Sentence>("(imply (Animal ?y) (Loves ?x ?y))", sentence());
+    //    auto s1 =
+    //        parse<Sentence>("(imply (Animal ?y) (Loves ?x ?y))", sentence());
 
-//    auto s1 = parse<ast::Sentence>("(predicate c1 c2)", sentence());
-//    auto s2 = parse<Sentence>("(or (a) (and (b) (c) (d)))", sentence());
-//
-//    // Should produce (a ∨ b) ∧ (a ∨ c)
-//    auto clauses = to_CNF(s2);
-//    cout << endl;
+    //    auto s1 = parse<ast::Sentence>("(predicate c1 c2)", sentence());
+    //    auto s2 = parse<Sentence>("(or (a) (and (b) (c) (d)))", sentence());
+    //
+    //    // Should produce (a ∨ b) ∧ (a ∨ c)
+    //    auto clauses = to_CNF(s2);
+    //    cout << endl;
 
     // THIS TEST FAILS, FIXME
-//    BOOST_TEST(get<ast::AtomicFormula<ast::Term>>(clauses[0].literals[0]).predicate.name == "a");
+    //    BOOST_TEST(get<ast::AtomicFormula<ast::Term>>(clauses[0].literals[0]).predicate.name
+    //    == "a");
 }

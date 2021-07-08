@@ -178,13 +178,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(constant_1.name == "name");
 
     // Test parsing literals of terms
-    auto positive_literal_of_terms =
+    auto literal_of_terms =
         parse<Literal<Term>>("(predicate constant ?variable)", literal_terms());
-    BOOST_TEST(positive_literal_of_terms.predicate == "predicate");
-
-    auto negative_literal_of_terms = parse<Literal<Term>>(
-        "(not (predicate constant ?variable))", literal_terms());
-    BOOST_TEST(negative_literal_of_terms.predicate == "predicate");
+    BOOST_TEST(literal_of_terms.predicate == "predicate");
 
     // Test and sentence parsing
     auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
@@ -225,11 +221,12 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto s4 =
         parse<Sentence>("(not (predicate constant ?variable))", sentence());
 
-    auto af4 = get<Literal<Term>>(s4);
-    BOOST_TEST(af4.predicate == "predicate");
-    BOOST_TEST(af4.args.size() == 2);
-    BOOST_TEST(get<Constant>(af4.args[0]).name == "constant");
-    BOOST_TEST(get<Variable>(af4.args[1]).name == "variable");
+    auto af4 = get<NotSentence>(s4);
+    auto af5 = get<Literal<Term>>(af4.sentence);
+    BOOST_TEST(af5.predicate == "predicate");
+    BOOST_TEST(af5.args.size() == 2);
+    BOOST_TEST(get<Constant>(af5.args[0]).name == "constant");
+    BOOST_TEST(get<Variable>(af5.args[1]).name == "variable");
 
     auto s5 = parse<Sentence>("(forall (?variable) (predicate name ?variable))",
                               sentence());
@@ -237,11 +234,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(fs.variables.implicitly_typed_list.value()[0].name ==
                "variable");
 
-    auto af5 = get<Literal<Term>>(fs.sentence);
-    BOOST_TEST(af5.predicate == "predicate");
-    BOOST_TEST(af5.args.size() == 2);
-    BOOST_TEST(get<Constant>(af5.args[0]).name == "name");
-    BOOST_TEST(get<Variable>(af5.args[1]).name == "variable");
+    auto af_5 = get<Literal<Term>>(fs.sentence);
+    BOOST_TEST(af_5.predicate == "predicate");
+    BOOST_TEST(af_5.args.size() == 2);
+    BOOST_TEST(get<Constant>(af_5.args[0]).name == "name");
+    BOOST_TEST(get<Variable>(af_5.args[1]).name == "variable");
 
     auto s6 = parse<Sentence>("(exists (?variable) (predicate name ?variable))",
                               sentence());
