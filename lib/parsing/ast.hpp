@@ -97,13 +97,20 @@ namespace ast {
         Sentence sentence;
     };
 
+    struct Action : x3::position_tagged {
+        Name name;
+        TypedList<Variable> parameters;
+        Sentence precondition;
+        Sentence effect;
+    };
+
     struct Domain : x3::position_tagged {
         Name name;
         std::vector<std::string> requirements;
         TypedList<Name> types;
         TypedList<Name> constants;
         std::vector<AtomicFormulaSkeleton> predicates;
-        // std::vector<Action> actions;
+        std::vector<Action> actions;
     };
 
     struct Problem : x3::position_tagged {
@@ -113,11 +120,6 @@ namespace ast {
         TypedList<Name> objects;
         Literal<Term> init;
         Sentence goal;
-    }; 
-
-     struct Action : x3::position_tagged {
-        Name name;
-        //std::vector<TypedList<Variable>> parameters;
     };
 
     using boost::fusion::operator<<;
