@@ -8,7 +8,6 @@
 
 using boost::get;
 using namespace std;
-#include <map>
 
 namespace ast {
     struct GetSentenceType : public boost::static_visitor<std::string> {

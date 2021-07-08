@@ -134,3 +134,7 @@ dmypy.json
 *.swp
 cmake-build-debug 
 .vscode
+
+# ignore .idea and .project
+.idea
+.project
