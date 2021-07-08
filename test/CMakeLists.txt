@@ -16,6 +16,7 @@ target_include_directories(test_kb PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # Test unification
 add_executable(test_unification test_unification.cpp)
+target_link_libraries(test_unification tomcat)
 target_include_directories(test_unification PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # Test cnf_conversion
