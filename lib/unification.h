@@ -1,6 +1,5 @@
+#pragma once
 // This is the unification c++ algorithm
-
-// add in the new data structs for the algorithm, the literal changed and the location of some of the structs is different
 
 #include <iostream>
 #include <vector>
@@ -24,13 +23,13 @@ using namespace fol;
 
 // setting up unordered_map for our substitution list
 typedef unordered_map<string, Term> sub_list_type;
-using sub_list = sub_list_type;
+using sub_list = variant<sub_list_type, string>;
 
 // now for the substition formula for replacing the variable in an atom/predicate
 void substitute(Literal<Term> &x, Literal<Term> &y, sub_list &z, int ix) {
     if (boost::apply_visitor(type_visitor(), (y.args).at(ix)) == "Variable") {
         // write the substitution to z
-        z[get<Variable>((x.args).at(ix)).name] = get<Variable>((y.args).at(ix));
+        get<sub_list_type>(z)[get<Variable>((x.args).at(ix)).name] = get<Variable>((y.args).at(ix));
         // insert the new subbed element and then erase the old one
         (x.args).insert(x.args.begin() + ix, get<Variable>((y.args).at(ix)));
         ix++;
@@ -38,7 +37,7 @@ void substitute(Literal<Term> &x, Literal<Term> &y, sub_list &z, int ix) {
     }
     else if (boost::apply_visitor(type_visitor(), (y.args).at(ix)) == "Constant") {
         // write substitution to z
-        z[get<Variable>((x.args).at(ix)).name] = get<Constant>((y.args).at(ix));
+        get<sub_list_type>(z)[get<Variable>((x.args).at(ix)).name] = get<Constant>((y.args).at(ix));
         // insert substitution and then erase the old entry
         (x.args).insert(x.args.begin() + ix, get<Constant>((y.args).at(ix)));
         ix++;
@@ -46,7 +45,7 @@ void substitute(Literal<Term> &x, Literal<Term> &y, sub_list &z, int ix) {
     }
     else if (boost::apply_visitor(type_visitor(), (y.args).at(ix)) == "Predicate") {
         // write substitution to z
-        z[get<Variable>((x.args).at(ix)).name] = get<Function>((y.args).at(ix));
+        get<sub_list_type>(z)[get<Variable>((x.args).at(ix)).name] = get<Function>((y.args).at(ix));
         // insert substitution and then erase the old entry
         (x.args).insert(x.args.begin() + ix, get<Function>((y.args).at(ix)));
         ix++;
@@ -59,10 +58,11 @@ sub_list unification(Literal<Term> x, Literal<Term> y, sub_list z) {
         
     // make sure number of arguments of each expression are the same
     if ((x.args).size() != (y.args).size()) {
-        z.clear();
+        z = "Error: Predicates have different numbers of arguments. Unification not possible.";
         return z; // need to make it return the substitution list with a fail
     }
     // check for unification
+    // heavy lifting here is done in the added operator in the literal definition
     if (x == y) {
         return z;
     }
@@ -97,15 +97,26 @@ sub_list unification(Literal<Term> x, Literal<Term> y, sub_list z) {
             // unified so it doesn't impact the checker? 
             sub_list z1;
             z1 = unification(x1, y1, z1);
-            // merge z1 and z
-            z.insert(z1.begin(), z1.end());
-
+            // merge z1 and z, since unification could have failed z1 could have a fail condition passed along too
+            // concerned 
+            if (holds_alternative<string>(z1)) {
+                return z1;
+            }
+            else {
+                get<sub_list_type>(z).insert(get<sub_list_type>(z1).begin(), get<sub_list_type>(z1).end());
+            }
             // remove the argument
             x.args.erase(x.args.begin() + ix);
             y.args.erase(y.args.begin() + ix);
 
             return unification(x, y, z);
             }
+    }
+    // if unification algorithm can't sub these literal then it has failed / unification isn't possible
+    if (!(x == y)) {
+        sub_list z_s; // need to create a new variant sub_list incase it has already had a sub_list_type filled in
+        z_s = "Error: Constants or Predicates do not match. Unification is not possible.";
+        return z_s;
     }
     
 }

@@ -1,6 +1,6 @@
 #define BOOST_TEST_MODULE TestUnification
 
-#include <boost/test/included/unit_test.hpp>
+#include "boost/test/included/unit_test.hpp"
 #include <vector>
 #include "unification.h"
 #include <iostream>
@@ -11,14 +11,15 @@
 #include "fol/Function.h"
 #include "Visitor.h"
 #include "boost/variant.hpp"
+#include <unordered_map>
 
 #include "parsing/ast.hpp"
 #include "parsing/ast_adapted.hpp"
 #include "parsing/domain.hpp"
 #include "parsing/parse.hpp"
 #include "util.h"
-#include <boost/optional.hpp>
-#include <boost/spirit/home/x3/support/ast/variant.hpp>
+#include "boost/optional.hpp"
+#include "boost/spirit/home/x3/support/ast/variant.hpp"
 
 using boost::unit_test::framework::master_test_suite;
 namespace x3 = boost::spirit::x3;
@@ -27,6 +28,7 @@ namespace x3 = boost::spirit::x3;
 using namespace std;
 using namespace fol;
 using namespace ast;
+using boost::get;
 
 BOOST_AUTO_TEST_CASE(test_unification) {
 
@@ -42,11 +44,17 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     5. T(F1(v1)) and T(F1(C2))
     6. T(v1) and T(F1(C2)) -------> Here is a reason to make the sub_list a string -> term mapping since the arguements are lost here.
     7. T(E1(F1(v1)), C3) and T(E1(F1(C2)), v2)
+    8. Parsing unfication tests predicate(con_1, var_1) and predicate(con_1, con_2)
+    9. Here is a fail test case where unification is not possible: 
+        9.1 Different number of argument of literal 
+        9.2 No variable is given
+        9.3 different nested predicates
     */
 
     // BOOST_TEST(true);
     // setup some definitions
-    Literal<Term> L1, L2, Parsed_L;
+    typedef unordered_map<string, Term> sub_list_type;
+    Literal<Term> L1, L2;
     Term T1, T2, T3, T4, T5, T6, T7, T8;
     Constant C1, C2, C3;
     Variable v1, v2;
@@ -71,10 +79,10 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     L2.predicate = P2;
     L2.args.push_back(T2);
     // correct answer declaration, v1->C2
-    answer["v1"] = C2;
+    get<sub_list_type>(answer)["v1"] = C2;
     // run test for single argument constant unification
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
+    BOOST_CHECK_EQUAL(get<Constant>(get<sub_list_type>(test)["v1"]).name, get<Constant>(get<sub_list_type>(answer)["v1"]).name);
 
     // lets now up the number of arguments, first an extra constant that is already unified
     C3.name = "C3";
@@ -82,10 +90,10 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     L1.args.push_back(T3);
     L2.args.push_back(T3);
     // clear previous substitution list, answer is the same, no need to clear it 
-    test.clear();
+    get<sub_list_type>(test).clear();
     // test unification of T(v1, C3) and T(C2, C3), v1->C2
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
+    BOOST_CHECK_EQUAL(get<Constant>(get<sub_list_type>(test)["v1"]).name, get<Constant>(get<sub_list_type>(answer)["v1"]).name);
 
     // lets now setup for a 2 variable substition 
     v2.name = "v2";
@@ -93,12 +101,12 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     L1.args.clear();
     L1.args.push_back(T1);
     L1.args.push_back(T4);
-    test.clear();
-    answer["v2"] = C3;
+    get<sub_list_type>(test).clear();
+    get<sub_list_type>(answer)["v2"] = C3;
     // testing unifictation of T(v1, v2) and T(C2, C3)
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
-    BOOST_CHECK_EQUAL(get<Constant>(test["v2"]).name, get<Constant>(answer["v2"]).name);
+    BOOST_CHECK_EQUAL(get<Constant>(get<sub_list_type>(test)["v1"]).name, get<Constant>(get<sub_list_type>(answer)["v1"]).name);
+    BOOST_CHECK_EQUAL(get<Constant>(get<sub_list_type>(test)["v2"]).name, get<Constant>(get<sub_list_type>(answer)["v2"]).name);
 
     // Next let's test if there is a variable in the other literals if the substitution works 
 
@@ -108,11 +116,11 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     L2.args.clear();
     L2.args.push_back(T1);
     L2.args.push_back(T3);
-    test.clear();
+    get<sub_list_type>(test).clear();
 
     // testing unificatin of T(C2, C3) and T(v1, C3)
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
+    BOOST_CHECK_EQUAL(get<Constant>(get<sub_list_type>(test)["v1"]).name, get<Constant>(get<sub_list_type>(answer)["v1"]).name);
 
 
     // Next let's test a function for nested predicates in the literal 
@@ -128,21 +136,21 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     L2.args.clear();
     L2.args.push_back(T6);
 
-    test.clear();
+    get<sub_list_type>(test).clear();
     // test of T(F1(v1)) and T(F1(C2)) , so v1->C2
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
+    BOOST_CHECK_EQUAL(get<Constant>(get<sub_list_type>(test)["v1"]).name, get<Constant>(get<sub_list_type>(answer)["v1"]).name);
 
     // add a test case where the variable is equal to a predicate
     L1.args.clear();
     L1.args.push_back(T1);
-    test.clear();
-    answer.clear();
-    answer["v1"] = F1;
+    get<sub_list_type>(test).clear();
+    get<sub_list_type>(answer).clear();
+    get<sub_list_type>(answer)["v1"] = F1;
 
     // test of T(v1) and T(F1(C2)), so v1->F1(C2)
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(get<Function>(test["v1"]).name, get<Function>(answer["v1"]).name);
+    BOOST_CHECK_EQUAL(get<Function>(get<sub_list_type>(test)["v1"]).name, get<Function>(get<sub_list_type>(answer)["v1"]).name);
 
     // last test is a 2 predcicate deep literal with multiple arguments and multiple variables
 
@@ -160,24 +168,56 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     L2.args.clear();
     L2.args.push_back(T8);
     L2.args.push_back(T4);
-    test.clear();
-    answer.clear();
-    answer["v2"] = C3;
-    answer["v1"] = C2;
+    get<sub_list_type>(test).clear();
+    get<sub_list_type>(answer).clear();
+    get<sub_list_type>(answer)["v2"] = C3;
+    get<sub_list_type>(answer)["v1"] = C2;
 
     // running the test
     test = unification(L1, L2, test);
-    BOOST_CHECK_EQUAL(get<Constant>(test["v1"]).name, get<Constant>(answer["v1"]).name);
-    BOOST_CHECK_EQUAL(get<Constant>(test["v2"]).name, get<Constant>(answer["v2"]).name);    
+    BOOST_CHECK_EQUAL(get<Constant>(get<sub_list_type>(test)["v1"]).name, get<Constant>(get<sub_list_type>(answer)["v1"]).name);
+    BOOST_CHECK_EQUAL(get<Constant>(get<sub_list_type>(test)["v2"]).name, get<Constant>(get<sub_list_type>(answer)["v2"]).name);    
 
 
-    // now to run some tests using the PDDl parser
-    auto Test_Parsed_L =
-        parse<Literal<Term>>("(predicate constant ?variable)", parser::literal_terms_type());
-    BOOST_CHECK_EQUAL(Test_Parsed_L.predicate,
-               "predicate");
+    // now to run some tests using the PDDl parser to show how it works and then test it out on our algorithm
+    auto s1 = parse<Sentence>("(predicate con_1 ?var_1)", sentence());
+    Literal<Term> lit1 = get<Literal<Term>>(s1);
+    BOOST_CHECK_EQUAL(lit1.predicate, "predicate");
+    Constant con_1 = get<Constant>(lit1.args[0]);
+    BOOST_CHECK_EQUAL(con_1.name, "con_1");
+    Variable var_1 = get<Variable>(lit1.args[1]);
+    BOOST_CHECK_EQUAL(var_1.name, "var_1");
 
-    // To Do:
-    // perhaps add failed cases to check return when failed unification????
+    // now to run a test with 2 literals parsed from sentences, unifiying them
+    auto s2 = parse<Sentence>("(predicate con_1 con_2)", sentence());
+    Literal<Term> lit2 = get<Literal<Term>>(s2);
+    Constant con_2 = get<Constant>(lit2.args[1]);
+    get<sub_list_type>(test).clear();
+    get<sub_list_type>(answer).clear();
+    get<sub_list_type>(answer)["var_1"] = con_2;
+
+    test = unification(lit1, lit2, test);
+    BOOST_CHECK_EQUAL(get<Constant>(get<sub_list_type>(test)["var_1"]).name, get<Constant>(get<sub_list_type>(answer)["var_1"]).name);
+
+
+    // now for some FAIL checking too with parsed sentences
+    auto s3 = parse<Sentence>("(predicate con_2 ?var_3)", sentence());
+    Literal<Term> lit3 = get<Literal<Term>>(s3);
+    get<sub_list_type>(test).clear();
+    get<sub_list_type>(answer).clear();
+    sub_list answer_s, test1;
+    answer_s = "Error: Constants or Predicates do not match. Unification is not possible.";
+
+    test1 = unification(lit2, lit3, test1); 
+    BOOST_CHECK_EQUAL(get<string>(test1), get<string>(answer_s));
+    
+    // now to test for non atching number of arguments
+    auto s4 = parse<Sentence>("(predicate ?var_2 con_3 con_4)", sentence());
+    Literal<Term> lit4 = get<Literal<Term>>(s4);
+    sub_list answer_s2, test2;
+    answer_s2 = "Error: Predicates have different numbers of arguments. Unification not possible.";
+    
+    test2 = unification(lit1, lit4, test2);
+    BOOST_CHECK_EQUAL(get<string>(test2), get<string>(answer_s2));
 
 }
