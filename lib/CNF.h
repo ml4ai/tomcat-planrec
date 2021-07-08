@@ -58,7 +58,6 @@ namespace ast {
     };
 
     struct ImplicationsOut : public boost::static_visitor<Sentence> {
-        std::vector<Clause> clauses = {};
         Sentence operator()(Nil s) const { return s; }
         Sentence operator()(Literal<Term> s) const { return s; }
         Sentence operator()(ConnectedSentence s) const {
@@ -103,8 +102,121 @@ namespace ast {
         }
     };
 
+    struct NegationsIn : public boost::static_visitor<Sentence> {
+        Sentence operator()(Nil s) const { return s; }
+        Sentence operator()(Literal<Term> s) const { return s; }
+        Sentence operator()(ConnectedSentence s) const {
+            auto s1 =
+                boost::apply_visitor(NegationsIn(), (Sentence)s.sentences[0]);
+            auto s2 =
+                boost::apply_visitor(NegationsIn(), (Sentence)s.sentences[1]);
+            ConnectedSentence rs;
+            rs.connector = s.connector;
+            rs.sentences.push_back(s1);
+            rs.sentences.push_back(s2);
+            return rs;
+        }
+        Sentence operator()(NotSentence s) const {
+            auto s1 = s.sentence;
+            if (boost::apply_visitor(GetSentenceType(), (Sentence)s1) ==
+                "NotSentence") {
+                auto s_ = get<NotSentence>(s1);
+                return boost::apply_visitor(
+                    NegationsIn(),
+                    (Sentence)s_.sentence);
+            }
+
+            if (boost::apply_visitor(GetSentenceType(), (Sentence)s1) ==
+                "ConnectedSentence") {
+                auto s_ = get<ConnectedSentence>(s1);
+                auto s_1 = s_.sentences[0];
+                auto s_2 = s_.sentences[1];
+                if (s_.connector == "and") {
+                    ConnectedSentence rs;
+                    NotSentence rs1;
+                    rs1.sentence = s_1;
+                    NotSentence rs2;
+                    rs2.sentence = s_2;
+                    rs.connector = "or";
+                    rs.sentences.push_back(
+                        boost::apply_visitor(NegationsIn(), (Sentence)rs1));
+                    rs.sentences.push_back(
+                        boost::apply_visitor(NegationsIn(), (Sentence)rs2));
+                    return rs;
+                }
+                if (s_.connector == "or") {
+                    ConnectedSentence rs;
+                    NotSentence rs1;
+                    rs1.sentence = s_1;
+                    NotSentence rs2;
+                    rs2.sentence = s_2;
+                    rs.connector = "and";
+                    rs.sentences.push_back(
+                        boost::apply_visitor(NegationsIn(), (Sentence)rs1));
+                    rs.sentences.push_back(
+                        boost::apply_visitor(NegationsIn(), (Sentence)rs2));
+                    return rs;
+                }
+            }
+
+            if (boost::apply_visitor(GetSentenceType(), (Sentence)s1) ==
+                "ForallSentence") {
+                auto s_ = get<ForallSentence>(s1);
+                NotSentence rs1;
+                rs1.sentence = s_.sentence;
+                auto rs2 = boost::apply_visitor(NegationsIn(), (Sentence)rs1);
+                ExistsSentence rs;
+                rs.variables = s_.variables;
+                rs.sentence = rs2;
+                return rs;
+            }
+
+            if (boost::apply_visitor(GetSentenceType(), (Sentence)s1) ==
+                "ExistsSentence") {
+                auto s_ = get<ExistsSentence>(s1);
+                NotSentence rs1;
+                rs1.sentence = s_.sentence;
+                auto rs2 = boost::apply_visitor(NegationsIn(), (Sentence)rs1);
+                ForallSentence rs;
+                rs.variables = s_.variables;
+                rs.sentence = rs2;
+                return rs;
+            }
+
+            NotSentence rs;
+            rs.sentence =
+                boost::apply_visitor(NegationsIn(), (Sentence)s1);
+
+            return rs;
+        }
+        Sentence operator()(ImplySentence s) const {
+            auto s1 =
+                boost::apply_visitor(NegationsIn(), (Sentence)s.sentence1);
+            auto s2 =
+                boost::apply_visitor(NegationsIn(), (Sentence)s.sentence2);
+
+            ImplySentence rs;
+            rs.sentence1 = s1;
+            rs.sentence2 = s2;
+            return rs;
+        }
+        Sentence operator()(ExistsSentence s) const {
+            ExistsSentence rs;
+            rs.variables = s.variables;
+            rs.sentence =
+                boost::apply_visitor(NegationsIn(), (Sentence)s.sentence);
+            return rs;
+        }
+        Sentence operator()(ForallSentence s) const {
+            ForallSentence rs;
+            rs.variables = s.variables;
+            rs.sentence =
+                boost::apply_visitor(NegationsIn(), (Sentence)s.sentence);
+            return rs;
+        }
+    };
+
     struct DistributeOrOverAnd : public boost::static_visitor<Sentence> {
-        std::vector<Clause> clauses = {};
         Sentence operator()(Nil s) const { return s; }
         Sentence operator()(Literal<Term> s) const { return s; }
         Sentence operator()(ConnectedSentence s) const {
