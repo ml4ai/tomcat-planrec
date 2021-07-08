@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <vector>
-#include <stack>
 #include <queue>
 #include <algorithm>
 #include <variant>
@@ -54,7 +53,7 @@ void substitute(Literal<Term> &x, Literal<Term> &y, sub_list &z, int ix) {
 }
 
 // now we apply the unification algorithm on the predicate pairs
-sub_list unification(Literal<Term> x, Literal<Term> y, sub_list z) {
+sub_list unify(Literal<Term> x, Literal<Term> y, sub_list z) {
         
     // make sure number of arguments of each expression are the same
     if ((x.args).size() != (y.args).size()) {
@@ -71,13 +70,13 @@ sub_list unification(Literal<Term> x, Literal<Term> y, sub_list z) {
         if (boost::apply_visitor(type_visitor(), x.args.at(ix)) == "Variable") {
             // substitute x for y
             substitute(x, y, z, ix);
-            return unification(x, y, z);
+            return unify(x, y, z);
         }
         // if variable is explicit in y expression
         else if (boost::apply_visitor(type_visitor(), (y.args).at(ix)) == "Variable") {
             // substitute y for x
             substitute(y, x, z, ix);
-            return unification(x, y, z);
+            return unify(x, y, z);
         }
         // if they are predicates and thus the variable is implicit (hopefully)
         else if (boost::apply_visitor(type_visitor(), (x.args).at(ix)) == "Predicate" && boost::apply_visitor(type_visitor(), (y.args).at(ix)) == "Predicate") {
@@ -96,7 +95,7 @@ sub_list unification(Literal<Term> x, Literal<Term> y, sub_list z) {
             // the unification function doesnt do the replacements outside the scope of the function, perhaps I remove this argument since its already
             // unified so it doesn't impact the checker? 
             sub_list z1;
-            z1 = unification(x1, y1, z1);
+            z1 = unify(x1, y1, z1);
             // merge z1 and z, since unification could have failed z1 could have a fail condition passed along too
             // concerned 
             if (holds_alternative<string>(z1)) {
@@ -109,7 +108,7 @@ sub_list unification(Literal<Term> x, Literal<Term> y, sub_list z) {
             x.args.erase(x.args.begin() + ix);
             y.args.erase(y.args.begin() + ix);
 
-            return unification(x, y, z);
+            return unify(x, y, z);
             }
     }
     // if unification algorithm can't sub these literal then it has failed / unification isn't possible
