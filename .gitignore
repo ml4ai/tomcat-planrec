@@ -132,3 +132,9 @@ dmypy.json
 
 #Vim swap files
 *.swp
+cmake-build-debug 
+.vscode
+
+# ignore .idea and .project
+.idea
+.project
