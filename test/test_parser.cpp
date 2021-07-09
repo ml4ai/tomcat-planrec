@@ -220,26 +220,26 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:constants surprise - package)
 
             (:predicates
-              (in-transit ?loc1 ?loc2 - site)
-              (at ?box - package ?house - site))
+                (in-transit ?loc1 ?loc2 - site)
+                (at ?box - package ?house - site))
 
-            (:task deliver 
-              :parameters (?p - package 
-                           ?l - site))
+            (:task deliver
+                :parameters 
+                    (?p - package ?s - site))
 
-;            (:task get-to
-;              :parameters (?l - site))
+            (:task get-to
+               :parameters (?s - site))
             
             (:action drive
-              :parameters 
-                  (?box1 ?box2 - package
-                   ?loc1 ?loc2 - site)
+                :parameters 
+                    (?box1 ?box2 - package
+                     ?loc1 ?loc2 - site)
               :precondition 
-                  (and (tAt ?loc1)
-                       (in-transit ?loc1 ?loc2))
+                    (and (tAt ?loc1)
+                         (in-transit ?loc1 ?loc2))
               :effect
-                  (and (tAt ?loc1)
-                       (not (tAt ?loc2)))
+                    (and (tAt ?loc1)
+                         (not (tAt ?loc2)))
               ); end action drive
           );end define domain
     )";

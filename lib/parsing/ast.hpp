@@ -97,18 +97,18 @@ namespace ast {
         Sentence sentence;
     };
 
+    // Abstract Tasks
+    struct Task : x3::position_tagged {
+        Name name;
+        TypedList<Variable> parameters;
+    };
+
     // Primitive Actions 
     struct Action : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
         Sentence precondition;
         Sentence effect;
-    };
-
-    // Abstract Tasks
-    struct Task : x3::position_tagged {
-        Name name;
-        TypedList<Variable> parameters;
     };
 
     struct Domain : x3::position_tagged {

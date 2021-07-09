@@ -11,8 +11,7 @@
 namespace parser {
     using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
         ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList,
-        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, 
-        ast::Task, ast::Action;
+        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, ast::Task, ast::Action;
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -215,9 +214,8 @@ namespace parser {
                                >> +atomic_formula_skeleton >> ')';
     BOOST_SPIRIT_DEFINE(predicates);
 
-
-    // Action Definition
-    struct TAction;
+   // struct TAction;
+   // struct TTask;
 
     rule<class TParameters, TypedList<Variable>> const parameters = "parameters";
     auto const parameters_def = lit(":parameters")
@@ -236,6 +234,23 @@ namespace parser {
                               >> sentence;
     BOOST_SPIRIT_DEFINE(effect);
 
+
+
+/******* Current Work ***********************************/    
+
+    // Abstract Tasks 
+    rule<class TTask, ast::Task> const task = "task";
+    auto const task_def = '(' >> lit(":task")
+                              >> name
+                              >> parameters
+                              >> ')';
+    BOOST_SPIRIT_DEFINE(task);
+
+
+/******* End Current Work ***********************************/    
+
+
+
     // Primitive Actions
     rule<class TAction, ast::Action> const action = "action";
     auto const action_def = '('
@@ -247,30 +262,6 @@ namespace parser {
                                >> ')';
     BOOST_SPIRIT_DEFINE(action);
 
-/********************************************************/
-/******* Current Work ***********************************/    
-
-//     ;            (:task deliver
-//                     :parameters (?p - package ?l - site)
-//                  )
-//8 ;
-
-
-    // Abstract Tasks (defined similar to Primitive Actions
-       // as per EBNF definitions for HDDL.
-    rule<class TTask, ast::Task> const task = "task";
-    auto const task_def = '(' >> lit(":task")
-                              >> name
-                              >> parameters
-                              >> ')';
-    BOOST_SPIRIT_DEFINE(task);
-
-
-/******* End Current Work ***********************************/    
-/********************************************************/
-
-
-
 
     // Domain Definition
     rule<class TDomain, ast::Domain> const domain = "domain";
@@ -281,10 +272,11 @@ namespace parser {
                                >> -types
                                >> -constants
                                >> -predicates 
-                               >> *task
+                               //>> *task
                                >> *action
                                >> ')';
     BOOST_SPIRIT_DEFINE(domain);
+
 
     // Problem Definition
     rule<class TObjects, TypedList<Name>> const objects = "objects";
