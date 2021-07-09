@@ -209,54 +209,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(fs2.variables.implicitly_typed_list.value()[0].name == "y");
 
     // TEST PARSING OF DOMAIN DEFINITION AND ITS COMPONENTS
-/*****
- *
- *OLDER DOMAIN DEFINITION
-
-
- * // Example domain definition:
-    storage = R"(
-        (define
-            (domain construction)
-            (:requirements :strips :typing)
-            (:types
-                site material - object
-                bricks adobe - material
-                house factory - site )
-            (:constants mainsite - site)
-
-            (:predicates
-                (walls-built ?s - site)
-                (foundations-set ?s - site)
-                (site-built ?s - site)
-                (on-site ?m - material ?s - site)
-                (material-used ?m - material)
-            )
-
-            (:action BUY-ADOBE
-                :parameters (?adobe - material
-                            ?house ?factory - site)
-                :precondition 
-                     (or (on-site ?adobe ?factory)
-                         (not (on-site ?adobe ?house)))
-                :effect
-                     (and (on-site ?adobe ?house)
-                          (not (on-site ?adobe ?factory)))
-            )
-        ); end define
-    )";
-
-;            (:action BUILD-WALL
-;                :parameters (?bricks ?wood - material 
-;                             ?factory - site)
-;                :precondition 
-;                    (foundations-set ?fs)
-;                :effect 
-;                    (and (walls-built ?s)
-;                         (material-used ?b))
-;            ); end method build wall
-
-****/ //END OF OLDER DEFINITION
 
     storage = R"(
         (define 
@@ -265,34 +217,35 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:types site package - object
                     house factory - site
                     box letter - package)
-
             (:constants surprise - package)
 
             (:predicates
               (in-transit ?loc1 ?loc2 - site)
               (at ?box - package ?house - site))
 
+            (:task deliver 
+              :parameters (?p - package 
+                           ?l - site))
+
+;            (:task get-to
+;              :parameters (?l - site))
+            
             (:action drive
               :parameters 
-                  (?box1 box2 - package
+                  (?box1 ?box2 - package
                    ?loc1 ?loc2 - site)
-              : precondition 
+              :precondition 
                   (and (tAt ?loc1)
                        (in-transit ?loc1 ?loc2))
               :effect
                   (and (tAt ?loc1)
                        (not (tAt ?loc2)))
-              );end action drive
+              ); end action drive
           );end define domain
     )";
 
 /*** To add to HDDL Domain ***
  *
-;            (:task deliver 
-;              :parameters (?p - package ?l - site))
-;            (:task get-to
- ;             :parameters (?l - site))
-;            
 ;            (:method m-deliver
 ;              :parameters (?p - package
 ;                           ?lp ?ld - site)
@@ -365,50 +318,14 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(actpara1.explicitly_typed_lists[1].entries[0].name == "loc1");
 
     // Test Parsing Action Precondition
-    // Action 1 Precondition uses OrSentence and NotSentence
     auto actprec1_f = dom.actions[0].precondition;
     auto actprec1_s = get<ConnectedSentence>(actprec1_f);
-    // Test first sentence
     auto actprec1_os = get<Literal<Term>>(actprec1_s.sentences[0]);
     BOOST_TEST(actprec1_os.predicate == "tAt");
     BOOST_TEST(get<Variable>(actprec1_os.args[0]).name == "loc1");
 
-/*****
- * Second action, build wall, will be the HDDL method. For now, July 9, it will
- * be commented out
- *
-    // Test second sentence
-    auto actname2 = dom.actions[1].name;
-    BOOST_TEST(actname2 == "BUILD-WALL");
-    
-    auto actpara2 = dom.actions[1].parameters;
-    
-    BOOST_TEST(get<PrimitiveType>(actpara2.explicitly_typed_lists[0].type) ==
-               "material");
-    BOOST_TEST(get<PrimitiveType>(actpara2.explicitly_typed_lists[1].type) ==
-               "site");
-    
-    BOOST_TEST(actpara2.explicitly_typed_lists[0].entries[0].name == "bricks");
-    BOOST_TEST(actpara2.explicitly_typed_lists[0].entries[1].name == "wood");
-    BOOST_TEST(actpara2.explicitly_typed_lists[1].entries[0].name == "factory");
-
-    auto actprec2_ns = get<NotSentence>(actprec1_s.sentences[1]);
-    auto actprec2_ns_literal = get<Literal<Term>>(actprec2_ns.sentence);
-    BOOST_TEST(actprec2_ns_literal.predicate == "on-site");
-    BOOST_TEST(get<Variable>(actprec2_ns_literal.args[0]).name == "adobe");
-    BOOST_TEST(get<Variable>(actprec2_ns_literal.args[1]).name == "house");
-
-    // Action 2 Testing
-    auto actprec2_f = dom.actions[1].precondition;
-    auto actprec2_s = get<Literal<Term>>(actprec2_f);
-    BOOST_TEST(actprec2_s.predicate == "foundations-set");
-    BOOST_TEST(get<Variable>(actprec2_s.args[0]).name == "fs");
-  *
-  *****/
 
     // Test Parsing Action Effect
-    // Effect of Action 1 also Tests AndSentence and Nested NotSentence
-
     auto effect1_f = dom.actions[0].effect;
     auto effect1_s = get<ConnectedSentence>(effect1_f);
     auto effect1_af = get<Literal<Term>>(effect1_s.sentences[0]);
@@ -420,16 +337,27 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(effect1_af2_literal.predicate == "tAt");
     BOOST_TEST(get<Variable>(effect1_af2_literal.args[0]).name == "loc2");
 
-/*****
-     *
-    // Effect of Action 2 also tests AndSentence
-    auto effect2_f = dom.actions[1].effect;
-    auto effect2_s = get<ConnectedSentence>(effect2_f);
-    auto effect2_af = get<Literal<Term>>(effect2_s.sentences[0]);
-    BOOST_TEST(effect2_af.predicate == "walls-built");
-    BOOST_TEST(get<Variable>(effect2_af.args[0]).name == "s");
-    *
-    *****/
+
+
+//            (:task deliver 
+//              :parameters (?p - package ?l - site))
+
+    //Test Parsing Abstract Tasks
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     //  TEST PARSING OF PROBLEM DEFINITION AND ITS COMPONENTS

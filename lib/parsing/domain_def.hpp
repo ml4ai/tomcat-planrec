@@ -11,7 +11,8 @@
 namespace parser {
     using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
         ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList,
-        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, ast::Action;
+        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, 
+        ast::Task, ast::Action;
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -235,6 +236,7 @@ namespace parser {
                               >> sentence;
     BOOST_SPIRIT_DEFINE(effect);
 
+    // Primitive Actions
     rule<class TAction, ast::Action> const action = "action";
     auto const action_def = '('
                                >> lit(":action")
@@ -244,7 +246,32 @@ namespace parser {
                                >> -effect
                                >> ')';
     BOOST_SPIRIT_DEFINE(action);
-    
+
+/********************************************************/
+/******* Current Work ***********************************/    
+
+//     ;            (:task deliver
+//                     :parameters (?p - package ?l - site)
+//                  )
+//8 ;
+
+
+    // Abstract Tasks (defined similar to Primitive Actions
+       // as per EBNF definitions for HDDL.
+    rule<class TTask, ast::Task> const task = "task";
+    auto const task_def = '(' >> lit(":task")
+                              >> name
+                              >> parameters
+                              >> ')';
+    BOOST_SPIRIT_DEFINE(task);
+
+
+/******* End Current Work ***********************************/    
+/********************************************************/
+
+
+
+
     // Domain Definition
     rule<class TDomain, ast::Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '('
@@ -254,6 +281,7 @@ namespace parser {
                                >> -types
                                >> -constants
                                >> -predicates 
+                               >> *task
                                >> *action
                                >> ')';
     BOOST_SPIRIT_DEFINE(domain);

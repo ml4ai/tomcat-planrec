@@ -97,11 +97,18 @@ namespace ast {
         Sentence sentence;
     };
 
+    // Primitive Actions 
     struct Action : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
         Sentence precondition;
         Sentence effect;
+    };
+
+    // Abstract Tasks
+    struct Task : x3::position_tagged {
+        Name name;
+        TypedList<Variable> parameters;
     };
 
     struct Domain : x3::position_tagged {
@@ -110,6 +117,7 @@ namespace ast {
         TypedList<Name> types;
         TypedList<Name> constants;
         std::vector<AtomicFormulaSkeleton> predicates;
+        std::vector<Task> tasks;
         std::vector<Action> actions;
     };
 
