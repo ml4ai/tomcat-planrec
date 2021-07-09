@@ -8,6 +8,7 @@
 
 BOOST_FUSION_ADAPT_STRUCT(ast::Constant, name)
 BOOST_FUSION_ADAPT_STRUCT(ast::Variable, name)
+BOOST_FUSION_ADAPT_STRUCT(ast::Literal<ast::Term>, predicate, args)
 
 // Typed list of names
 BOOST_FUSION_ADAPT_STRUCT(ast::ExplicitlyTypedList<ast::Name>, entries, type)
