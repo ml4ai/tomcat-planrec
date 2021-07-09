@@ -1,3 +1,8 @@
+/*****
+ * This file is in process of parsing PDDL and HDDL domains and problems.
+ *
+ * The action, BUY-ADOBE, currently****/
+
 #define BOOST_TEST_MODULE TestParser
 
 #include <boost/test/included/unit_test.hpp>
@@ -155,7 +160,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:requirements :strips :typing)
             (:types
                 site material - object
-                bricks cables windows - material
+                bricks adobe cables windows - material
+                house factory - site
             )
             (:constants mainsite - site)
 
@@ -168,7 +174,29 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 (on-site ?m - material ?s - site)
                 (material-used ?m - material)
             )
-            (:action BUY-ADOBE
+;            (:task t-DELIVER
+;                 :parameters (?m - material
+;                              ?s - site)
+;                ); end task-deliver
+;
+;            (:task t-DRIVE-TO
+;                 :parameters (?s - site)
+;                ); end task-drive
+;
+;            (:method m-DELIVER-MATERIAL
+;                 :parameters (?m - material
+;                             ?factory ?house - site)
+;                 :task (deliver ?s ?house)
+;                 :ordered-subtasks ;totally ordered
+;                     (and (DRIVE-TO ?factory)
+                           ()
+;                          ()
+;                     )
+;            );end m-deliver-material
+;
+;
+
+            (:action a-BUY-ADOBE
                 :parameters (?adobe - material
                             ?house ?factory - site)
                 :precondition 
@@ -191,6 +219,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
         ) 
     )";
+
+    /*** Notes for adding abstract tasks and methods to current domain.
+     *
+     */
+
 
     auto dom = parse<Domain>(storage, domain());
 
@@ -222,7 +255,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 // Test Parsing of DOMAIN ACTIONS and their components:
     // Test Parsing Action Names
     auto actname1 = dom.actions[0].name; 
-    BOOST_TEST(actname1 == "BUY-ADOBE");
+    BOOST_TEST(actname1 == "a-BUY-ADOBE");
     auto actname2 = dom.actions[1].name; 
     BOOST_TEST(actname2 == "BUILD-WALL");
 
