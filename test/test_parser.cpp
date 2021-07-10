@@ -230,6 +230,16 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:task get-to
                :parameters (?s - site))
             
+;            (:method m-deliver
+;              :parameters (?p - package
+;                           ?lp ?ld - site)
+;              :task (deliver ?p ?ld)
+;              :ordered-subtasks 
+;                (and (get-to ?lp)
+;                (pick-up ?ld ?p)
+;                (get-to ?ld)
+;                (drop ?ld ?p)))
+;            
             (:action drive
                 :parameters 
                     (?box1 ?box2 - package
@@ -308,6 +318,22 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(taskname1 == "deliver");
     auto taskpara1 = dom.tasks[0].parameters;
     BOOST_TEST(get<PrimitiveType>(taskpara1.explicitly_typed_lists[0].type) == "package");
+
+/********************************* CURRENT WORK ******************************
+
+;            (:method m-deliver
+;              :parameters (?p - package
+;                           ?lp ?ld - site)
+;              :task (deliver ?p ?ld)
+;              :ordered-subtasks 
+;                (and (get-to ?lp)
+;                (pick-up ?ld ?p)
+;                (get-to ?ld)
+;                (drop ?ld ?p)))
+;
+
+******************************** END CURRENT WORK ******************************/
+
 
     // Test Parsing of DOMAIN ACTIONS and their components:
     // Test Parsing Action Names

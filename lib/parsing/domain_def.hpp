@@ -12,7 +12,7 @@ namespace parser {
     using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
         ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList,
         ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, 
-        ast::Domain, ast::Problem, ast::Task, ast::Action;
+        ast::Domain, ast::Problem, ast::Task, ast::Method, ast::Action;
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -215,8 +215,6 @@ namespace parser {
                                >> +atomic_formula_skeleton >> ')';
     BOOST_SPIRIT_DEFINE(predicates);
 
-   // struct TAction;
-   // struct TTask;
 
     rule<class TParameters, TypedList<Variable>> const parameters = "parameters";
     auto const parameters_def = lit(":parameters")
@@ -244,6 +242,43 @@ namespace parser {
                               >> ')';
     BOOST_SPIRIT_DEFINE(task);
 
+    /*************** CURRENT WORK **********************************/
+
+    rule<class TOrderedSubTask, ast::Sentence> const osubtask = "osubtask";
+    auto const osubtask_def = lit(":ordered-subtasks")
+                              >> *sentence;
+    BOOST_SPIRIT_DEFINE(osubtask);
+
+    rule<class TSubtask, ast::Sentence> const subtask = "subtask";
+    auto const subtask_def = lit(":subtasks")
+                              >> *sentence;
+    BOOST_SPIRIT_DEFINE(subtask);
+
+    //Come back to this-- should this be a sentence?
+    rule<class TConstraint, ast::Sentence> const constraint = "constraint";
+    auto const constraint_def = lit(":constraints")
+                               >> *sentence
+                               ;
+         // Will not parse '=' constraints right now. Come back
+
+
+    // Methods used to decompose abstract tasks into primitive actions
+    rule<class TMethod, ast::Method> const method = "method";
+    auto const method_def = '(' >> lit(":method")
+                                >> name
+                                >> parameters
+                                >> task //only one task per method
+                                >> -(*constraint)
+                                >> -(*osubtask)
+                                >> -(*subtask)
+                                >> ')';
+    BOOST_SPIRIT_DEFINE(method);
+
+
+    /*************** END CURRENT WORK ******************************/
+    
+
+
     // Primitive Actions
     rule<class TAction, ast::Action> const action = "action";
     auto const action_def = '('
@@ -265,6 +300,7 @@ namespace parser {
                                >> -constants
                                >> -predicates 
                                >> *task
+                               >> *method
                                >> *action
                                >> ')';
     BOOST_SPIRIT_DEFINE(domain);
