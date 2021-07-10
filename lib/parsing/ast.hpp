@@ -98,7 +98,7 @@ namespace ast {
     };
 
     // Abstract Tasks
-    struct Task : x3::position_tagged {
+    struct Task {//: x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
     };

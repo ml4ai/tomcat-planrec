@@ -302,7 +302,13 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<PrimitiveType>(
         dom.predicates[0].variables.explicitly_typed_lists[0].type) == "site");
  
- 
+
+    // Test Parsing of Abstract Tasks
+    auto taskname1 = dom.tasks[0].name;
+    BOOST_TEST(taskname1 == "deliver");
+    auto taskpara1 = dom.tasks[0].parameters;
+    BOOST_TEST(get<PrimitiveType>(taskpara1.explicitly_typed_lists[0].type) == "package");
+
     // Test Parsing of DOMAIN ACTIONS and their components:
     // Test Parsing Action Names
     auto actname1 = dom.actions[0].name;
@@ -336,25 +342,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto effect1_af2_literal = get<Literal<Term>>(effect1_af2.sentence);
     BOOST_TEST(effect1_af2_literal.predicate == "tAt");
     BOOST_TEST(get<Variable>(effect1_af2_literal.args[0]).name == "loc2");
-
-
-
-//            (:task deliver 
-//              :parameters (?p - package ?l - site))
-
-    //Test Parsing Abstract Tasks
-    
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -11,7 +11,8 @@
 namespace parser {
     using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
         ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList,
-        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, ast::Task, ast::Action;
+        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, 
+        ast::Domain, ast::Problem, ast::Task, ast::Action;
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -235,21 +236,13 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(effect);
 
 
-
-/******* Current Work ***********************************/    
-
-    // Abstract Tasks 
+    // Abstract Tasks
     rule<class TTask, ast::Task> const task = "task";
     auto const task_def = '(' >> lit(":task")
                               >> name
-                              >> parameters
+                              >> parameters 
                               >> ')';
     BOOST_SPIRIT_DEFINE(task);
-
-
-/******* End Current Work ***********************************/    
-
-
 
     // Primitive Actions
     rule<class TAction, ast::Action> const action = "action";
@@ -262,7 +255,6 @@ namespace parser {
                                >> ')';
     BOOST_SPIRIT_DEFINE(action);
 
-
     // Domain Definition
     rule<class TDomain, ast::Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '('
@@ -272,7 +264,7 @@ namespace parser {
                                >> -types
                                >> -constants
                                >> -predicates 
-                               //>> *task
+                               >> *task
                                >> *action
                                >> ')';
     BOOST_SPIRIT_DEFINE(domain);
