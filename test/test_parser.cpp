@@ -221,7 +221,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
             (:predicates
                 (in-transit ?loc1 ?loc2 - site)
-                (at ?box - package ?house - site))
+                (at ?box - package ?house - site)
+                (tAt ?l))
 
             (:task deliver
                 :parameters 
@@ -234,14 +235,16 @@ BOOST_AUTO_TEST_CASE(test_parser) {
               :parameters (?p - package
                            ?lp ?ld - site)
               :task (deliver ?p ?ld)
-            ); temporary method end parenthesis
+              
+              :precondition (or (tAt ?l)
+                                (tAt ?s))
 
-;              :ordered-subtasks 
-;                (and (get-to ?lp)
-;                (pick-up ?ld ?p)
-;                (get-to ?ld)
-;                (drop ?ld ?p)))
-;            
+              :ordered-subtasks 
+                (and (get-to ?lp)
+                     (pick-up ?ld ?p)
+                     (get-to ?ld)
+                     (drop ?ld ?p)))
+
             (:action drive
                 :parameters 
                     (?box1 ?box2 - package
@@ -285,11 +288,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto dom = parse<Domain>(storage, domain());
 
 /********************************* CURRENT WORK ******************************
-
 ;            (:method m-deliver
 ;              :parameters (?p - package
 ;                           ?lp ?ld - site)
 ;              :task (deliver ?p ?ld)
+;              :precondition (tAt ?l)
 ;              :ordered-subtasks 
 ;                (and (get-to ?lp)
 ;                (pick-up ?ld ?p)
@@ -313,6 +316,20 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Variable>(get<Literal<Term>>(methodtask).args[0]).name ==
                "p");
 
+    // Test Parsing Method's Precondition: 
+    auto methodprec_f = dom.methods[0].precondition;
+    auto methodprec_s = get<ConnectedSentence>(methodprec_f);
+    auto methodprec1_os = get<Literal<Term>>(methodprec_s.sentences[0]);
+    auto methodprec2_os = get<Literal<Term>>(methodprec_s.sentences[1]);
+    BOOST_TEST(methodprec1_os.predicate == "tAt");
+    BOOST_TEST(get<Variable>(methodprec2_os.args[0]).name == "s");
+
+    // Test Parsing Method Optional Ordered-Subtasks (Totally-Ordered Methods)
+    auto osubtask_f = dom.methods[0].osubtasks;
+    auto osubtask_s = get<ConnectedSentence>(osubtask_f);
+    auto osubtask3_os = get<Literal<Term>>(osubtask_s.sentences[2]);
+    BOOST_TEST(osubtask3_os.predicate == "get-to");
+    BOOST_TEST(get<Variable>(osubtask3_os.args[0]).name == "ld");
 /******************************** END CURRENT WORK ******************************/
 
     // Test Domain Name:
@@ -329,7 +346,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                    dom.constants.explicitly_typed_lists[0].type) == "package");
 
     // Test parsing of predicates
-    BOOST_TEST(dom.predicates.size() == 2);
+    BOOST_TEST(dom.predicates.size() == 3);
     BOOST_TEST(dom.predicates[0].predicate == "in-transit");
     BOOST_TEST(dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name == "loc1");
     BOOST_TEST(get<PrimitiveType>(

@@ -104,17 +104,6 @@ namespace ast {
     };
 
 /********************************* CURRENT WORK ******************************
-// Four totally-ordered subtasks:
-;            (:method m-deliver
-;              :parameters (?p - package
-;                           ?lp ?ld - site)
-;              :task (deliver ?p ?ld)
-;              :ordered-subtasks
-;                (and (get-to ?lp)
-;                (pick-up ?ld ?p)
-;                (get-to ?ld)
-;                (drop ?ld ?p)))
-
 // Partially-ordered subtasks. Ordering keyword gives these constraints. 
 // However, in this method, this results in a totally-ordered method.
 ;;            (:method m-drive-to-via
@@ -145,14 +134,15 @@ namespace ast {
 ;              :subtasks (drive ?ls ?d))
 
 ***********************/ 
-
+// Totally-ordered methods use the keyword 'ordered-subtasks'
+// Partially-ordered methods use the keyword 'subtasks'
     struct Method : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
         Literal<Term> tasks;
 //        Sentence constraints;//optional
-//        Sentence precondition; //optional
-//        Sentence osubtasks;// iff keyword ordered-subtasks
+        Sentence precondition; //optional
+        Sentence osubtasks;// iff keyword ordered-subtasks
 //        Sentence subtasks; //iff keyword subtasks
 
         /*  I am not sure if constraints should be a sentence ***/

@@ -248,10 +248,10 @@ namespace parser {
 
     /*************** CURRENT WORK **********************************/
 
-//    rule<class TOrderedSubTask, ast::Sentence> const osubtask = "osubtask";
-//    auto const osubtask_def = lit(":ordered-subtasks")
-//                              >> *sentence;
-//    BOOST_SPIRIT_DEFINE(osubtask);
+    rule<class TOrderedSubTask, ast::Sentence> const osubtask = "osubtask";
+    auto const osubtask_def = lit(":ordered-subtasks")
+                              >> sentence;
+    BOOST_SPIRIT_DEFINE(osubtask);
 
 //    rule<class TSubtask, ast::Sentence> const subtask = "subtask";
 //    auto const subtask_def = lit(":subtasks")
@@ -261,8 +261,8 @@ namespace parser {
     //Come back to this-- should this be a sentence?
 //    rule<class TConstraint, ast::Sentence> const constraint = "constraint";
 //    auto const constraint_def = lit(":constraints")
-//                               >> *sentence
-                               ;
+//                               >> sentence;
+                               
          // Will not parse '=' constraints right now. Come back
 
 
@@ -279,8 +279,9 @@ namespace parser {
                                 >> name
                                 >> parameters
                                 >> mtask // one task
+                                >> -precondition
 //                                >> -(*constraint)
-//                                >> -(*osubtask)
+                                >> -osubtask
 //                                >> -(*subtask)
                                 >> ')';
     BOOST_SPIRIT_DEFINE(method);
