@@ -242,35 +242,46 @@ namespace parser {
                               >> ')';
     BOOST_SPIRIT_DEFINE(task);
 
+
+
+
+
     /*************** CURRENT WORK **********************************/
 
-    rule<class TOrderedSubTask, ast::Sentence> const osubtask = "osubtask";
-    auto const osubtask_def = lit(":ordered-subtasks")
-                              >> *sentence;
-    BOOST_SPIRIT_DEFINE(osubtask);
+//    rule<class TOrderedSubTask, ast::Sentence> const osubtask = "osubtask";
+//    auto const osubtask_def = lit(":ordered-subtasks")
+//                              >> *sentence;
+//    BOOST_SPIRIT_DEFINE(osubtask);
 
-    rule<class TSubtask, ast::Sentence> const subtask = "subtask";
-    auto const subtask_def = lit(":subtasks")
-                              >> *sentence;
-    BOOST_SPIRIT_DEFINE(subtask);
+//    rule<class TSubtask, ast::Sentence> const subtask = "subtask";
+//    auto const subtask_def = lit(":subtasks")
+//                              >> *sentence;
+//    BOOST_SPIRIT_DEFINE(subtask);
 
     //Come back to this-- should this be a sentence?
-    rule<class TConstraint, ast::Sentence> const constraint = "constraint";
-    auto const constraint_def = lit(":constraints")
-                               >> *sentence
+//    rule<class TConstraint, ast::Sentence> const constraint = "constraint";
+//    auto const constraint_def = lit(":constraints")
+//                               >> *sentence
                                ;
          // Will not parse '=' constraints right now. Come back
 
 
     // Methods used to decompose abstract tasks into primitive actions
+    // task as defined in Method struct != task defined in task struct
+    // mtask refers to task definition found within a method:
+    rule<class TMtask, Literal<Term>> const mtask = "mtask";
+    auto const mtask_def = lit(":task") 
+                               >> literal_terms; 
+    BOOST_SPIRIT_DEFINE(mtask);
+
     rule<class TMethod, ast::Method> const method = "method";
     auto const method_def = '(' >> lit(":method")
                                 >> name
                                 >> parameters
-                                >> task //only one task per method
-                                >> -(*constraint)
-                                >> -(*osubtask)
-                                >> -(*subtask)
+                                >> mtask // one task
+//                                >> -(*constraint)
+//                                >> -(*osubtask)
+//                                >> -(*subtask)
                                 >> ')';
     BOOST_SPIRIT_DEFINE(method);
 

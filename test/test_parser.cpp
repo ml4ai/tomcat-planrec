@@ -230,10 +230,12 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:task get-to
                :parameters (?s - site))
             
-;            (:method m-deliver
-;              :parameters (?p - package
-;                           ?lp ?ld - site)
-;              :task (deliver ?p ?ld)
+            (:method m-deliver
+              :parameters (?p - package
+                           ?lp ?ld - site)
+              :task (deliver ?p ?ld)
+            ); temporary method end parenthesis
+
 ;              :ordered-subtasks 
 ;                (and (get-to ?lp)
 ;                (pick-up ?ld ?p)
@@ -256,16 +258,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
 /*** To add to HDDL Domain ***
  *
-;            (:method m-deliver
-;              :parameters (?p - package
-;                           ?lp ?ld - site)
-;              :task (deliver ?p ?ld)
-;              :ordered-subtasks 
-;                (and (get-to ?lp)
-;                (pick-up ?ld ?p)
-;                (get-to ?ld)
-;                (drop ?ld ?p)))
-;            
 ;            (:method m-drive-to-via
 ;              :parameters (?li ?ld - site)
 ;              :task (get-to ?ld)
@@ -291,6 +283,37 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 *****/ // end what to add to HDDL parser
 
     auto dom = parse<Domain>(storage, domain());
+
+/********************************* CURRENT WORK ******************************
+
+;            (:method m-deliver
+;              :parameters (?p - package
+;                           ?lp ?ld - site)
+;              :task (deliver ?p ?ld)
+;              :ordered-subtasks 
+;                (and (get-to ?lp)
+;                (pick-up ?ld ?p)
+;                (get-to ?ld)
+;                (drop ?ld ?p)))
+*/
+
+    // Test Methods:
+    // Test Methods Name:
+    auto methodname1 = dom.methods[0].name;
+    BOOST_TEST(methodname1 == "m-deliver");
+
+    // Test Methods Parameters:
+    auto methodpara1 = dom.methods[0].parameters;
+    BOOST_TEST(get<PrimitiveType>(methodpara1.explicitly_typed_lists[0].type) == "package");
+
+    // Test Method's Task to be Broken Down. In the abstract task, 'task' is
+    // defined similar to an action. Here, it is defined as <Literal<Term>>
+    auto methodtask = dom.methods[0].tasks;
+    BOOST_TEST(get<Literal<Term>>(methodtask).predicate == "deliver");
+    BOOST_TEST(get<Variable>(get<Literal<Term>>(methodtask).args[0]).name ==
+               "p");
+
+/******************************** END CURRENT WORK ******************************/
 
     // Test Domain Name:
     BOOST_TEST(dom.name == "transport");
@@ -318,21 +341,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(taskname1 == "deliver");
     auto taskpara1 = dom.tasks[0].parameters;
     BOOST_TEST(get<PrimitiveType>(taskpara1.explicitly_typed_lists[0].type) == "package");
-
-/********************************* CURRENT WORK ******************************
-
-;            (:method m-deliver
-;              :parameters (?p - package
-;                           ?lp ?ld - site)
-;              :task (deliver ?p ?ld)
-;              :ordered-subtasks 
-;                (and (get-to ?lp)
-;                (pick-up ?ld ?p)
-;                (get-to ?ld)
-;                (drop ?ld ?p)))
-;
-
-******************************** END CURRENT WORK ******************************/
 
 
     // Test Parsing of DOMAIN ACTIONS and their components:

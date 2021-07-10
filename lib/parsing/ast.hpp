@@ -149,11 +149,11 @@ namespace ast {
     struct Method : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
-        std::vector<AtomicFormula<Term>> tasks;
-        Sentence constraints;//optional
-        Sentence precondition; //optional
-        Sentence osubtasks;// iff keyword ordered-subtasks
-        Sentence subtasks; //iff keyword subtasks
+        Literal<Term> tasks;
+//        Sentence constraints;//optional
+//        Sentence precondition; //optional
+//        Sentence osubtasks;// iff keyword ordered-subtasks
+//        Sentence subtasks; //iff keyword subtasks
 
         /*  I am not sure if constraints should be a sentence ***/
     };
