@@ -103,37 +103,7 @@ namespace ast {
         TypedList<Variable> parameters;
     };
 
-/********************************* CURRENT WORK ******************************
-// Partially-ordered subtasks. Ordering keyword gives these constraints. 
-// However, in this method, this results in a totally-ordered method.
-;;            (:method m-drive-to-via
-;              :parameters (?li ?ld - site)
-;              :task (get-to ?ld)
-;              :subtasks 
-;                (and (t1 (get-to ?li))
-;                     (t2 (drive ?li ld)))
-;              :ordering 
-;                (and (t1 < t2)))
-;            
-// To Add Precondition before all other subtasks.
-// Effects are not formally defined for any Methods.
-;            (:method m-already-there
-;              :parameters (?l - site)
-;              :task (get-to ?l)
-;              :precondition (tAt ?l)
-;              :subtasks ())
 
-// Constraints are not effects or preconditions!
-// These are more intuitive and logical than using preconditions as
-// constraints.
-;            (:method m-direct
-;              :parameters (?ls ?ls - site)
-;              :task (get-to ?ld)
-;              :constraints 
-;                (not (= ?li ?ld))
-;              :subtasks (drive ?ls ?d))
-
-***********************/ 
 // Totally-ordered methods use the keyword 'ordered-subtasks'
 // Partially-ordered methods use the keyword 'subtasks'
     struct Method : x3::position_tagged {
@@ -144,11 +114,8 @@ namespace ast {
         Sentence precondition; //optional
         Sentence osubtasks;// iff keyword ordered-subtasks
 //        Sentence subtasks; //iff keyword subtasks
-
-        /*  I am not sure if constraints should be a sentence ***/
     };
-    
-/******************************* END CURRENT WORK ******************************/
+
 
     // Primitive Actions 
     struct Action : x3::position_tagged {

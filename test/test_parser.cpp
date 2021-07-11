@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto fs2 = get<ExistsSentence>(cs.sentence2);
     BOOST_TEST(fs2.variables.implicitly_typed_list.value()[0].name == "y");
 
-    // TEST PARSING OF DOMAIN DEFINITION AND ITS COMPONENTS
+// TEST PARSING OF DOMAIN DEFINITION AND ITS COMPONENTS
 
     storage = R"(
         (define 
@@ -259,48 +259,38 @@ BOOST_AUTO_TEST_CASE(test_parser) {
           );end define domain
     )";
 
-/*** To add to HDDL Domain ***
- *
-;            (:method m-drive-to-via
-;              :parameters (?li ?ld - site)
-;              :task (get-to ?ld)
-;              :subtasks 
-;                (and (t1 (get-to ?li))
-;                     (t2 (drive ?li ld)))
-;              :ordering 
-;                (and (t1 < t2)))
-;            
-;            (:method m-already-there
-;              :parameters (?l - site)
-;              :task (get-to ?l)
-;              :precondition (tAt ?l)
-;              :subtasks ())
-;            
-;            (:method m-direct
-;              :parameters (?ls ?ls - site)
-;              :task (get-to ?ld)
-;              :constraints ;not effects or precs!
-;                (not (= ?li ?ld))
-;              :subtasks (drive ?ls ?d))
-;
-*****/ // end what to add to HDDL parser
-
     auto dom = parse<Domain>(storage, domain());
 
-/********************************* CURRENT WORK ******************************
-;            (:method m-deliver
-;              :parameters (?p - package
-;                           ?lp ?ld - site)
-;              :task (deliver ?p ?ld)
-;              :precondition (tAt ?l)
-;              :ordered-subtasks 
-;                (and (get-to ?lp)
-;                (pick-up ?ld ?p)
-;                (get-to ?ld)
-;                (drop ?ld ?p)))
-*/
 
-    // Test Methods:
+    // Test Domain Name:
+    BOOST_TEST(dom.name == "transport");
+
+    // Test requirements
+    BOOST_TEST(dom.requirements[0] == "strips");
+    BOOST_TEST(dom.requirements[1] == "typing");
+
+    // Test constants
+    BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
+               "surprise");
+    BOOST_TEST(get<PrimitiveType>(
+                   dom.constants.explicitly_typed_lists[0].type) == "package");
+
+    // Test parsing of predicates
+    BOOST_TEST(dom.predicates.size() == 3);
+    BOOST_TEST(dom.predicates[0].predicate == "in-transit");
+    BOOST_TEST(dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name == "loc1");
+    BOOST_TEST(get<PrimitiveType>(
+        dom.predicates[0].variables.explicitly_typed_lists[0].type) == "site");
+ 
+
+    // Test Parsing of Abstract Tasks
+    auto taskname1 = dom.tasks[0].name;
+    BOOST_TEST(taskname1 == "deliver");
+    auto taskpara1 = dom.tasks[0].parameters;
+    BOOST_TEST(get<PrimitiveType>(taskpara1.explicitly_typed_lists[0].type) == "package");
+
+
+    // Test Methods and their Components (Totally-Ordered):
     // Test Methods Name:
     auto methodname1 = dom.methods[0].name;
     BOOST_TEST(methodname1 == "m-deliver");
@@ -330,34 +320,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto osubtask3_os = get<Literal<Term>>(osubtask_s.sentences[2]);
     BOOST_TEST(osubtask3_os.predicate == "get-to");
     BOOST_TEST(get<Variable>(osubtask3_os.args[0]).name == "ld");
-/******************************** END CURRENT WORK ******************************/
-
-    // Test Domain Name:
-    BOOST_TEST(dom.name == "transport");
-
-    // Test requirements
-    BOOST_TEST(dom.requirements[0] == "strips");
-    BOOST_TEST(dom.requirements[1] == "typing");
-
-    // Test constants
-    BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
-               "surprise");
-    BOOST_TEST(get<PrimitiveType>(
-                   dom.constants.explicitly_typed_lists[0].type) == "package");
-
-    // Test parsing of predicates
-    BOOST_TEST(dom.predicates.size() == 3);
-    BOOST_TEST(dom.predicates[0].predicate == "in-transit");
-    BOOST_TEST(dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name == "loc1");
-    BOOST_TEST(get<PrimitiveType>(
-        dom.predicates[0].variables.explicitly_typed_lists[0].type) == "site");
- 
-
-    // Test Parsing of Abstract Tasks
-    auto taskname1 = dom.tasks[0].name;
-    BOOST_TEST(taskname1 == "deliver");
-    auto taskpara1 = dom.tasks[0].parameters;
-    BOOST_TEST(get<PrimitiveType>(taskpara1.explicitly_typed_lists[0].type) == "package");
 
 
     // Test Parsing of DOMAIN ACTIONS and their components:
@@ -395,10 +357,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Variable>(effect1_af2_literal.args[0]).name == "loc2");
 
 
-
-
-
-    //  TEST PARSING OF PROBLEM DEFINITION AND ITS COMPONENTS
+//  TEST PARSING OF PROBLEM DEFINITION AND ITS COMPONENTS
     storage = R"(
         (define
             (problem adobe)
@@ -449,32 +408,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                "factory");
 
     // Test problem goal
-    // Testing ConnectedSentences
-    auto goal_as = get<ConnectedSentence>(
-        prob.goal); // We know this is a ConnectedSentence
-    BOOST_TEST(goal_as.sentences.size() == 2); // that containing two terms
-    auto goal_af = get<Literal<Term>>(goal_as.sentences[0]); // first predicate
-    auto goal_af2 =
-        get<Literal<Term>>(goal_as.sentences[1]); // second predicate
-    BOOST_TEST(goal_af.predicate == "off-site");
-    BOOST_TEST(goal_af2.predicate == "on-site");
-    BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[0]).name ==
-        "adobe1");
-    BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(goal_as.sentences[0]).args[1]).name ==
-        "factory1");
-    BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[0]).name ==
-        "adobe2");
-    BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(goal_as.sentences[1]).args[1]).name ==
-        "house2");
-
-    // Testing Problems with goal definitions corresponding to FOL Sentences of
-    // different kinds. The 'storage' variable is redefined to only include
-    // required components (problem, domain) and the goal, which demonstrates
-    // the FOL variation.
     storage = R"(
         (define
             (problem adobe)
@@ -507,39 +440,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         get<Constant>(get<Literal<Term>>(goal_os.sentences[0]).args[0]).name ==
         "adobe3");
     BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(goal_os.sentences[0]).args[1]).name ==
-        "factory3");
-    BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[0]).name ==
-        "adobe4");
-    BOOST_TEST(
         get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[1]).name ==
         "house4");
 
-    // Testing NotSentences
-    storage = R"(
-        (define
-            (problem adobe)
-            (:domain construction)
-            (:requirements :strips :typing)
-            (:objects
-                factory house - site
-                adobe - material
-                rock) ;testing implicitly-typed
-            (:init
-               (on-site adobe factory))
-            (:goal
-                (not (on-site adobe3 factory3)))
-        );end define
-    )";
-
-    prob = parse<Problem>(storage, problem());
-
-    auto goal_ns = get<Literal<Term>>(get<NotSentence>(prob.goal).sentence);
-    BOOST_TEST(goal_ns.predicate == "on-site");
-    BOOST_TEST(goal_ns.args.size() == 2);
-    BOOST_TEST(get<Constant>(goal_ns.args[0]).name == "adobe3");
-    BOOST_TEST(get<Constant>(goal_ns.args[1]).name == "factory3");
 
     // Testing Imply Sentence
     storage = R"(
@@ -563,12 +466,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(imply_f2.predicate == "off-site");
     BOOST_TEST(
         get<Constant>(get<Literal<Term>>(imply_s.sentence1).args[0]).name ==
-        "adobe3");
-    BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(imply_s.sentence1).args[1]).name ==
-        "factory3");
-    BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[0]).name ==
         "adobe3");
     BOOST_TEST(
         get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[1]).name ==
@@ -632,5 +529,4 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(fes.predicate == "pred1");
     BOOST_TEST(get<Constant>(fes.args[0]).name == "ar1");
     BOOST_TEST(get<Variable>(fes.args[1]).name == "var2");
-
 }

@@ -108,8 +108,6 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(atomic_formula_terms);
 
     // Literals of terms
-
-
     rule<class TLiteralTerms, ast::Literal<ast::Term>> const literal_terms =
                                  "literal_terms";
     auto const literal_terms_def = atomic_formula_terms;
@@ -132,7 +130,6 @@ namespace parser {
                 ("or"    , "or")
             ;
         }
-
     } connector;
 
 
@@ -244,25 +241,19 @@ namespace parser {
 
 
 
-
-
-    /*************** CURRENT WORK **********************************/
-
     rule<class TOrderedSubTask, ast::Sentence> const osubtask = "osubtask";
     auto const osubtask_def = lit(":ordered-subtasks")
                               >> sentence;
     BOOST_SPIRIT_DEFINE(osubtask);
 
-//    rule<class TSubtask, ast::Sentence> const subtask = "subtask";
-//    auto const subtask_def = lit(":subtasks")
-//                              >> *sentence;
-//    BOOST_SPIRIT_DEFINE(subtask);
+    rule<class TSubtask, ast::Sentence> const subtask = "subtask";
+    auto const subtask_def = lit(":subtasks")
+                              >> sentence;
+    BOOST_SPIRIT_DEFINE(subtask);
 
-    //Come back to this-- should this be a sentence?
-//    rule<class TConstraint, ast::Sentence> const constraint = "constraint";
-//    auto const constraint_def = lit(":constraints")
-//                               >> sentence;
-                               
+    rule<class TConstraint, ast::Sentence> const constraint = "constraint";
+    auto const constraint_def = lit(":constraints")
+                               >> sentence;
          // Will not parse '=' constraints right now. Come back
 
 
@@ -280,15 +271,11 @@ namespace parser {
                                 >> parameters
                                 >> mtask // one task
                                 >> -precondition
-//                                >> -(*constraint)
+//                                >> -constraint
                                 >> -osubtask
-//                                >> -(*subtask)
+//                                >> -subtask
                                 >> ')';
     BOOST_SPIRIT_DEFINE(method);
-
-
-    /*************** END CURRENT WORK ******************************/
-    
 
 
     // Primitive Actions
