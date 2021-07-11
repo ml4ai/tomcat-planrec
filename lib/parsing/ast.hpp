@@ -97,6 +97,27 @@ namespace ast {
         Sentence sentence;
     };
 
+    // Abstract Tasks
+    struct Task : x3::position_tagged {
+        Name name;
+        TypedList<Variable> parameters;
+    };
+
+
+// Totally-ordered methods use the keyword 'ordered-subtasks'
+// Partially-ordered methods use the keyword 'subtasks'
+    struct Method : x3::position_tagged {
+        Name name;
+        TypedList<Variable> parameters;
+        Literal<Term> tasks;
+//        Sentence constraints;//optional
+        Sentence precondition; //optional
+        Sentence osubtasks;// iff keyword ordered-subtasks
+//        Sentence subtasks; //iff keyword subtasks
+    };
+
+
+    // Primitive Actions 
     struct Action : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
@@ -110,6 +131,8 @@ namespace ast {
         TypedList<Name> types;
         TypedList<Name> constants;
         std::vector<AtomicFormulaSkeleton> predicates;
+        std::vector<Task> tasks;
+        std::vector<Method> methods;
         std::vector<Action> actions;
     };
 
