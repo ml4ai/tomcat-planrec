@@ -11,7 +11,8 @@
 namespace parser {
     using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
         ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList,
-        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, ast::Action;
+        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, 
+        ast::Domain, ast::Problem, ast::Task, ast::Method, ast::Action;
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -107,8 +108,6 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(atomic_formula_terms);
 
     // Literals of terms
-
-
     rule<class TLiteralTerms, ast::Literal<ast::Term>> const literal_terms =
                                  "literal_terms";
     auto const literal_terms_def = atomic_formula_terms;
@@ -131,7 +130,6 @@ namespace parser {
                 ("or"    , "or")
             ;
         }
-
     } connector;
 
 
@@ -215,9 +213,6 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(predicates);
 
 
-    // Action Definition
-    struct TAction;
-
     rule<class TParameters, TypedList<Variable>> const parameters = "parameters";
     auto const parameters_def = lit(":parameters")
                                >> '('
@@ -235,6 +230,55 @@ namespace parser {
                               >> sentence;
     BOOST_SPIRIT_DEFINE(effect);
 
+
+    // Abstract Tasks
+    rule<class TTask, ast::Task> const task = "task";
+    auto const task_def = '(' >> lit(":task")
+                              >> name
+                              >> parameters 
+                              >> ')';
+    BOOST_SPIRIT_DEFINE(task);
+
+
+
+    rule<class TOrderedSubTask, ast::Sentence> const osubtask = "osubtask";
+    auto const osubtask_def = lit(":ordered-subtasks")
+                              >> sentence;
+    BOOST_SPIRIT_DEFINE(osubtask);
+
+    rule<class TSubtask, ast::Sentence> const subtask = "subtask";
+    auto const subtask_def = lit(":subtasks")
+                              >> sentence;
+    BOOST_SPIRIT_DEFINE(subtask);
+
+    rule<class TConstraint, ast::Sentence> const constraint = "constraint";
+    auto const constraint_def = lit(":constraints")
+                               >> sentence;
+         // Will not parse '=' constraints right now. Come back
+
+
+    // Methods used to decompose abstract tasks into primitive actions
+    // task as defined in Method struct != task defined in task struct
+    // mtask refers to task definition found within a method:
+    rule<class TMtask, Literal<Term>> const mtask = "mtask";
+    auto const mtask_def = lit(":task") 
+                               >> literal_terms; 
+    BOOST_SPIRIT_DEFINE(mtask);
+
+    rule<class TMethod, ast::Method> const method = "method";
+    auto const method_def = '(' >> lit(":method")
+                                >> name
+                                >> parameters
+                                >> mtask // one task
+                                >> -precondition
+//                                >> -constraint
+                                >> -osubtask
+//                                >> -subtask
+                                >> ')';
+    BOOST_SPIRIT_DEFINE(method);
+
+
+    // Primitive Actions
     rule<class TAction, ast::Action> const action = "action";
     auto const action_def = '('
                                >> lit(":action")
@@ -244,7 +288,7 @@ namespace parser {
                                >> -effect
                                >> ')';
     BOOST_SPIRIT_DEFINE(action);
-    
+
     // Domain Definition
     rule<class TDomain, ast::Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '('
@@ -254,9 +298,12 @@ namespace parser {
                                >> -types
                                >> -constants
                                >> -predicates 
+                               >> *task
+                               >> *method
                                >> *action
                                >> ')';
     BOOST_SPIRIT_DEFINE(domain);
+
 
     // Problem Definition
     rule<class TObjects, TypedList<Name>> const objects = "objects";
