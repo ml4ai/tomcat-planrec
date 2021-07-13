@@ -23,30 +23,38 @@ namespace parser {
     rule<class TRequirement, std::vector<Name>> const requirement =
         "requirement";
     auto const requirement_def = ':' >> name;
+    BOOST_SPIRIT_DEFINE(requirement);
 
     rule<class TPredicate, Name> const predicate = "predicate";
     auto const predicate_def = name;
+    BOOST_SPIRIT_DEFINE(predicate);
 
     rule<class TRequirements, std::vector<Name>> const requirements =
         "requirements";
     auto const requirements_def = '(' >> lit(":requirements") >> +requirement >>
                                   ')';
+    BOOST_SPIRIT_DEFINE(requirements);
 
     rule<class TConstant, Constant> const constant = "constant";
     auto const constant_def = name;
+    BOOST_SPIRIT_DEFINE(constant);
 
     rule<class TVariable, Variable> const variable = "variable";
     auto const variable_def = '?' >> name;
+    BOOST_SPIRIT_DEFINE(variable);
 
     rule<class TPrimitiveType, PrimitiveType> const primitive_type =
         "primitive_type";
     auto const primitive_type_def = name;
+    BOOST_SPIRIT_DEFINE(primitive_type);
 
     rule<class TEitherType, EitherType> const either_type = "either_type";
     auto const either_type_def = '(' >> lit("either") >> +primitive_type >> ')';
+    BOOST_SPIRIT_DEFINE(either_type);
 
     rule<class TType, Type> const type = "type";
     auto const type_def = primitive_type | either_type;
+    BOOST_SPIRIT_DEFINE(type);
 
     // Typed list of names
     rule<class TExplicitlyTypedListNames, ExplicitlyTypedList<Name>> const
@@ -331,14 +339,6 @@ namespace parser {
                                >> ')';
     BOOST_SPIRIT_DEFINE(problem);
 
-    BOOST_SPIRIT_DEFINE(constant,
-                        variable,
-                        primitive_type,
-                        either_type,
-                        type,
-                        predicate,
-                        requirement,
-                        requirements);
 
 } // namespace parser
 
