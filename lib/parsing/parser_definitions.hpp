@@ -5,7 +5,7 @@
 
 #include "ast.hpp"
 #include "ast_adapted.hpp"
-#include "domain.hpp"
+#include "parser_definitions.hpp"
 #include "error_handler.hpp"
 
 namespace parser {
