@@ -9,10 +9,7 @@
 #include "error_handler.hpp"
 
 namespace parser {
-    using ast::Constant, ast::Variable, ast::PrimitiveType, ast::EitherType,
-        ast::Type, ast::ImplicitlyTypedList, ast::ExplicitlyTypedList,
-        ast::TypedList, ast::Name, ast::Term, ast::Literal, ast::Sentence, 
-        ast::Domain, ast::Problem, ast::Task, ast::Method, ast::Action;
+    using namespace ast;
 
     using boost::fusion::at_c;
     using x3::lexeme, x3::lit, x3::alnum, x3::_attr, x3::_val, x3::space,
@@ -90,35 +87,35 @@ namespace parser {
                         typed_list_variables);
 
     // Atomic formula skeleton
-    rule<class TAtomicFormulaSkeleton, ast::AtomicFormulaSkeleton> const
+    rule<class TAtomicFormulaSkeleton, AtomicFormulaSkeleton> const
         atomic_formula_skeleton = "atomic_formula_skeleton";
     auto const atomic_formula_skeleton_def =
         '(' >> name >> typed_list_variables >> ')';
     BOOST_SPIRIT_DEFINE(atomic_formula_skeleton);
 
     // Term
-    rule<class TTerm, ast::Term> const term = "term";
+    rule<class TTerm, Term> const term = "term";
     auto const term_def = constant | variable;
     BOOST_SPIRIT_DEFINE(term);
 
     // Atomic formula of terms
-    rule<class TAtomicFormulaTerms, ast::AtomicFormula<ast::Term>> const
+    rule<class TAtomicFormulaTerms, AtomicFormula<Term>> const
         atomic_formula_terms = "atomic_formula_terms";
     auto const atomic_formula_terms_def = '(' >> predicate >> *term >> ')';
     BOOST_SPIRIT_DEFINE(atomic_formula_terms);
 
     // Literals of terms
-    rule<class TLiteralTerms, ast::Literal<ast::Term>> const literal_terms =
+    rule<class TLiteralTerms, Literal<Term>> const literal_terms =
                                  "literal_terms";
     auto const literal_terms_def = atomic_formula_terms;
     BOOST_SPIRIT_DEFINE(literal_terms);
 
     // Nil
-    rule<class TNil, ast::Nil> const nil = "nil";
+    rule<class TNil, Nil> const nil = "nil";
     auto const nil_def = '(' >> lit(")");
     BOOST_SPIRIT_DEFINE(nil);
 
-    rule<class TSentence, ast::Sentence> sentence = "sentence";
+    rule<class TSentence, Sentence> sentence = "sentence";
 
 
     struct connector_ : x3::symbols<std::string>
@@ -133,7 +130,7 @@ namespace parser {
     } connector;
 
 
-    rule<class TConnectedSentence, ast::ConnectedSentence> const connected_sentence =
+    rule<class TConnectedSentence, ConnectedSentence> const connected_sentence =
                                   "connected_sentence";
     auto const connected_sentence_def = '('
                                >> connector
@@ -142,7 +139,7 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(connected_sentence);
 
 
-    rule<class TNotSentence, ast::NotSentence> const not_sentence =
+    rule<class TNotSentence, NotSentence> const not_sentence =
                                   "not_sentence";
     auto const not_sentence_def = '('
                                >> lit("not")
@@ -151,7 +148,7 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(not_sentence);
 
 
-    rule<class TImplySentence, ast::ImplySentence> const imply_sentence =
+    rule<class TImplySentence, ImplySentence> const imply_sentence =
                                    "imply_sentence";
     auto const imply_sentence_def = '('
                                >> lit("imply")
@@ -161,7 +158,7 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(imply_sentence);
 
 
-    rule<class TExistsSentence, ast::ExistsSentence> const exists_sentence =
+    rule<class TExistsSentence, ExistsSentence> const exists_sentence =
                                    "exists_sentence";
     auto const exists_sentence_def = '('
                                >> lit("exists")
@@ -173,7 +170,7 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(exists_sentence);
 
 
-    rule<class TForallSentence, ast::ForallSentence> const forall_sentence =
+    rule<class TForallSentence, ForallSentence> const forall_sentence =
                                    "forall_sentence";
     auto const forall_sentence_def = '('
                                >> lit("forall")
@@ -205,7 +202,7 @@ namespace parser {
                                >> ')';
     BOOST_SPIRIT_DEFINE(constants);
 
-    rule<class TPredicates, std::vector<ast::AtomicFormulaSkeleton>> const
+    rule<class TPredicates, std::vector<AtomicFormulaSkeleton>> const
         predicates = "predicates";
     auto const predicates_def = '(' 
                                >> lit(":predicates") 
@@ -220,19 +217,19 @@ namespace parser {
                                >> ')';
     BOOST_SPIRIT_DEFINE(parameters);
 
-    rule<class TPrecondition, ast::Sentence> const precondition = "precondition";
+    rule<class TPrecondition, Sentence> const precondition = "precondition";
     auto const precondition_def = lit(":precondition")
                                >> sentence;
     BOOST_SPIRIT_DEFINE(precondition);
 
-    rule<class TEffect, ast::Sentence> const effect = "effect";
+    rule<class TEffect, Sentence> const effect = "effect";
     auto const effect_def = lit(":effect")
                               >> sentence;
     BOOST_SPIRIT_DEFINE(effect);
 
 
     // Abstract Tasks
-    rule<class TTask, ast::Task> const task = "task";
+    rule<class TTask, Task> const task = "task";
     auto const task_def = '(' >> lit(":task")
                               >> name
                               >> parameters 
@@ -241,17 +238,17 @@ namespace parser {
 
 
 
-    rule<class TOrderedSubTask, ast::Sentence> const osubtask = "osubtask";
+    rule<class TOrderedSubTask, Sentence> const osubtask = "osubtask";
     auto const osubtask_def = lit(":ordered-subtasks")
                               >> sentence;
     BOOST_SPIRIT_DEFINE(osubtask);
 
-    rule<class TSubtask, ast::Sentence> const subtask = "subtask";
+    rule<class TSubtask, Sentence> const subtask = "subtask";
     auto const subtask_def = lit(":subtasks")
                               >> sentence;
     BOOST_SPIRIT_DEFINE(subtask);
 
-    rule<class TConstraint, ast::Sentence> const constraint = "constraint";
+    rule<class TConstraint, Sentence> const constraint = "constraint";
     auto const constraint_def = lit(":constraints")
                                >> sentence;
          // Will not parse '=' constraints right now. Come back
@@ -260,12 +257,11 @@ namespace parser {
     // Methods used to decompose abstract tasks into primitive actions
     // task as defined in Method struct != task defined in task struct
     // mtask refers to task definition found within a method:
-    rule<class TMtask, Literal<Term>> const mtask = "mtask";
-    auto const mtask_def = lit(":task") 
-                               >> literal_terms; 
+    rule<class TMtask, MTask> const mtask = "mtask";
+    auto const mtask_def = lit(":task") >> '(' >> name >> *term >> ')';
     BOOST_SPIRIT_DEFINE(mtask);
 
-    rule<class TMethod, ast::Method> const method = "method";
+    rule<class TMethod, Method> const method = "method";
     auto const method_def = '(' >> lit(":method")
                                 >> name
                                 >> parameters
@@ -279,7 +275,7 @@ namespace parser {
 
 
     // Primitive Actions
-    rule<class TAction, ast::Action> const action = "action";
+    rule<class TAction, Action> const action = "action";
     auto const action_def = '('
                                >> lit(":action")
                                >> name
@@ -290,7 +286,7 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(action);
 
     // Domain Definition
-    rule<class TDomain, ast::Domain> const domain = "domain";
+    rule<class TDomain, Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '('
                                >> lit("domain")
                                >> name >> ')'
@@ -324,7 +320,7 @@ namespace parser {
                                >> ')';
     BOOST_SPIRIT_DEFINE(goal);
 
-    rule<class TProblem, ast::Problem> const problem = "problem";
+    rule<class TProblem, Problem> const problem = "problem";
     auto const problem_def = '(' >> lit("define")
                                >> '(' >> lit("problem") >> name >> ')'
                                >> '(' >> lit(":domain") >> name >> ')'

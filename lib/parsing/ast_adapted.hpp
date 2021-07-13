@@ -38,4 +38,5 @@ BOOST_FUSION_ADAPT_STRUCT(ast::Domain, name, requirements, types, constants, pre
 BOOST_FUSION_ADAPT_STRUCT(ast::Problem, name, domain_name, requirements, objects, init, goal)
 BOOST_FUSION_ADAPT_STRUCT(ast::Action, name, parameters, precondition, effect)
 BOOST_FUSION_ADAPT_STRUCT(ast::Task, name, parameters)
-BOOST_FUSION_ADAPT_STRUCT(ast::Method, name, parameters, tasks, precondition, osubtasks)
+BOOST_FUSION_ADAPT_STRUCT(ast::MTask, name, parameters)
+BOOST_FUSION_ADAPT_STRUCT(ast::Method, name, parameters, task, precondition, osubtasks)

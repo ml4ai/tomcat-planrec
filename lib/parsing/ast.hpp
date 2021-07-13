@@ -103,13 +103,18 @@ namespace ast {
         TypedList<Variable> parameters;
     };
 
+    // Task that a method decomposes
+    struct MTask : x3::position_tagged {
+        Name name;
+        std::vector<Term> parameters;
+    };
 
-// Totally-ordered methods use the keyword 'ordered-subtasks'
-// Partially-ordered methods use the keyword 'subtasks'
+    // Totally-ordered methods use the keyword 'ordered-subtasks'
+    // Partially-ordered methods use the keyword 'subtasks'
     struct Method : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
-        Literal<Term> tasks;
+        MTask task;
 //        Sentence constraints;//optional
         Sentence precondition; //optional
         Sentence osubtasks;// iff keyword ordered-subtasks
