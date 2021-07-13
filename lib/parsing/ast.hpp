@@ -2,10 +2,10 @@
 
 #include "../fol/Constant.h"
 #include "../fol/Function.h"
+#include "../fol/Literal.h"
 #include "../fol/Predicate.h"
 #include "../fol/Term.h"
 #include "../fol/Variable.h"
-#include "../fol/Literal.h"
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
@@ -21,10 +21,10 @@ namespace ast {
 
     // Import some classes that are more generally useful
     using fol::Constant;
+    using fol::Literal;
     using fol::Predicate;
     using fol::Term;
     using fol::Variable;
-    using fol::Literal;
 
     using PrimitiveType = std::string;
 
@@ -109,20 +109,23 @@ namespace ast {
         std::vector<Term> parameters;
     };
 
+    struct TaskNetwork {
+        //        Sentence subtasks; //iff keyword subtasks
+        // Sentence constraints;//optional
+    };
+
     // Totally-ordered methods use the keyword 'ordered-subtasks'
     // Partially-ordered methods use the keyword 'subtasks'
     struct Method : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
         MTask task;
-//        Sentence constraints;//optional
-        Sentence precondition; //optional
+        Sentence precondition; // optional
         Sentence osubtasks;// iff keyword ordered-subtasks
-//        Sentence subtasks; //iff keyword subtasks
+        //TaskNetwork task_network;
     };
 
-
-    // Primitive Actions 
+    // Primitive Actions
     struct Action : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
