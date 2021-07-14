@@ -33,6 +33,8 @@ BOOST_FUSION_ADAPT_STRUCT(ast::NotSentence, sentence)
 BOOST_FUSION_ADAPT_STRUCT(ast::ImplySentence, sentence1, sentence2)
 BOOST_FUSION_ADAPT_STRUCT(ast::ExistsSentence, variables, sentence)
 BOOST_FUSION_ADAPT_STRUCT(ast::ForallSentence, variables, sentence)
+BOOST_FUSION_ADAPT_STRUCT(ast::EqualsSentence, lhs, rhs)
+BOOST_FUSION_ADAPT_STRUCT(ast::NotEqualsSentence, lhs, rhs)
 
 BOOST_FUSION_ADAPT_STRUCT(ast::Domain,
                           name,

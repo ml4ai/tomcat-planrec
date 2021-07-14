@@ -180,9 +180,9 @@ namespace parser {
                                    "imply_sentence";
     auto const imply_sentence_def = '('
                                >> lit("imply")
-                               >> sentence
-                               >> sentence
-                               >> ')';
+                               > sentence
+                               > sentence
+                               > ')';
     BOOST_SPIRIT_DEFINE(imply_sentence);
     struct TImplySentence: x3::annotate_on_success {};
 
@@ -212,9 +212,15 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(forall_sentence);
     struct TForallSentence: x3::annotate_on_success {};
 
-    auto const sentence_def = nil | literal_terms |
-                              connected_sentence | not_sentence |
-                              imply_sentence | exists_sentence | forall_sentence;
+
+    auto const sentence_def = 
+        nil 
+        | literal_terms 
+        | connected_sentence 
+        | not_sentence 
+        | imply_sentence 
+        | exists_sentence 
+        | forall_sentence;
     BOOST_SPIRIT_DEFINE(sentence);
     struct TSentence : x3::annotate_on_success {};
 
@@ -272,7 +278,7 @@ namespace parser {
 
     // Abstract Tasks
     rule<class TAbstractTask, Task> const abstract_task = "abstract_task";
-    auto const abstract_task_def = '(' >> lit(":task") > task >> ')';
+    auto const abstract_task_def = ('(' >> lit(":task")) > task >> ')';
     BOOST_SPIRIT_DEFINE(abstract_task);
     struct TAbstractTask: x3::annotate_on_success {};
 
@@ -335,24 +341,47 @@ namespace parser {
     rule<class TMethodSubTasks, MethodSubTasks> const method_subtasks = "method_subtasks";
     auto const method_subtasks_def = ':' >> ordering_kw >> subtasks;
     BOOST_SPIRIT_DEFINE(method_subtasks);
-    struct TMethodSubTasks: x3::annotate_on_success {};
+    struct TMethodSubTasks : x3::annotate_on_success {};
 
-    rule<class TConstraint, Sentence> const constraint = "constraint";
-    auto const constraint_def = lit(":constraints")
-                               >> sentence;
-         // Will not parse '=' constraints right now. Come back
+    rule<class TEqualsSentence, EqualsSentence> const equals_sentence =
+                                   "equals_sentence";
+    auto const equals_sentence_def = '('
+                               >> lit("=")
+                               > term
+                               > term
+                               > ')';
+    BOOST_SPIRIT_DEFINE(equals_sentence);
+    struct TEqualsSentence : x3::annotate_on_success {};
+
+    rule<class TNotEqualsSentence, NotEqualsSentence> const not_equals_sentence =
+                                   "not_equals_sentence";
+    auto const not_equals_sentence_def = '('
+                               >> lit("not")
+                               > equals_sentence
+                               > ')';
+    BOOST_SPIRIT_DEFINE(not_equals_sentence);
+    struct TNotEqualsSentence: x3::annotate_on_success {};
+
+    rule<class TConstraint, Constraint> const constraint = "constraint";
+    auto const constraint_def = nil | not_equals_sentence | equals_sentence;
     BOOST_SPIRIT_DEFINE(constraint);
-    struct TConstraint: x3::annotate_on_success {};
+    struct TConstraint : x3::annotate_on_success {};
+
+    rule<class TConstraints, Constraints> const constraints = "constraints";
+    auto const constraints_def = nil | constraint | '(' >> lit("and") >> +constraint >> ')';
+    struct TConstraints : x3::annotate_on_success {};
 
     rule<class TTaskNetwork, TaskNetwork> const task_network = "task_network";
-    auto const task_network_def = -method_subtasks >> -task_network_orderings;
+    auto const task_network_def = -method_subtasks 
+                               >> -task_network_orderings 
+                               >> -(lit(":constraints") > constraints);
     BOOST_SPIRIT_DEFINE(task_network);
     struct TTaskNetwork: x3::annotate_on_success {};
 
 
 
     rule<class TMethod, Method> const method = "method";
-    auto const method_def = '(' >> lit(":method")
+    auto const method_def = ('(' >> lit(":method"))
                                 > name
                                 > parameters
                                 > mtask // one task
@@ -365,8 +394,7 @@ namespace parser {
 
     // Primitive actions
     rule<class TAction, Action> const action = "action";
-    auto const action_def = '('
-                               >> lit(":action")
+    auto const action_def = ('(' >> lit(":action"))
                                > name
                                > parameters 
                                >> -precondition
@@ -377,7 +405,7 @@ namespace parser {
 
     // Domain definition
     rule<class TDomain, Domain> const domain = "domain";
-    auto const domain_def = '(' >> lit("define") > '('
+    auto const domain_def = ('(' >> lit("define") ) > '('
                                >> lit("domain")
                                > name > ')'
                                > requirements

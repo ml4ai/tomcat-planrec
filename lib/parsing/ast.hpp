@@ -64,6 +64,7 @@ namespace ast {
     struct ImplySentence;
     struct ExistsSentence;
     struct ForallSentence;
+    struct EqualsSentence;
 
     using Sentence = boost::variant<Nil,
                                     Literal<Term>,
@@ -71,7 +72,8 @@ namespace ast {
                                     boost::recursive_wrapper<NotSentence>,
                                     boost::recursive_wrapper<ImplySentence>,
                                     boost::recursive_wrapper<ExistsSentence>,
-                                    boost::recursive_wrapper<ForallSentence>>;
+                                    boost::recursive_wrapper<ForallSentence>
+                                    >;
 
     struct ConnectedSentence : x3::position_tagged {
         std::string connector;
@@ -96,6 +98,19 @@ namespace ast {
         TypedList<Variable> variables;
         Sentence sentence;
     };
+
+    struct EqualsSentence : x3::position_tagged {
+        Term lhs;
+        Term rhs;
+    };
+
+    struct NotEqualsSentence : x3::position_tagged {
+        Term lhs;
+        Term rhs;
+    };
+
+    using Constraint = boost::variant<Nil, EqualsSentence, NotEqualsSentence>;
+    using Constraints = boost::variant<Nil, Constraint, std::vector<Constraint>>;
 
     // Abstract Tasks
     struct Task : x3::position_tagged {
