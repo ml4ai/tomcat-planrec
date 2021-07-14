@@ -652,8 +652,20 @@ template <class State> pTasks assign_tasks1a(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900) {
-    return {1.0,
+  bool need_to_triage = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" && !state.c_seen[a].empty() &&
+        state.agent_loc[a] == state.agent_loc[agent1] &&
+        state.agent_loc[a] == state.agent_loc[agent2] &&
+        state.agent_loc[a] == state.agent_loc[agent3]) {
+      need_to_triage = true;
+    }
+  }
+
+  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900 && 
+     (!need_to_triage || state.time[agent1] > 885 || state.time[agent2] > 885 || 
+      state.time[agent3] > 885)) {
+    return {1.0/6,
           {Task("Do_task", Args({{"agent",agent1}})),
            Task("Do_task", Args({{"agent",agent2}})),
            Task("Do_task", Args({{"agent",agent3}})),
@@ -666,8 +678,20 @@ template <class State> pTasks assign_tasks1b(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900) {
-    return {1.0,
+  bool need_to_triage = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" && !state.c_seen[a].empty() &&
+        state.agent_loc[a] == state.agent_loc[agent1] &&
+        state.agent_loc[a] == state.agent_loc[agent2] &&
+        state.agent_loc[a] == state.agent_loc[agent3]) {
+      need_to_triage = true;
+    }
+  }
+
+  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900 && 
+     (!need_to_triage || state.time[agent1] > 885 || state.time[agent2] > 885 || 
+      state.time[agent3] > 885)) {
+    return {1.0/6,
           {Task("Do_task", Args({{"agent",agent1}})),
            Task("Do_task", Args({{"agent",agent3}})),
            Task("Do_task", Args({{"agent",agent2}})),
@@ -680,8 +704,20 @@ template <class State> pTasks assign_tasks1c(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900) {
-    return {1.0,
+  bool need_to_triage = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" && !state.c_seen[a].empty() &&
+        state.agent_loc[a] == state.agent_loc[agent1] &&
+        state.agent_loc[a] == state.agent_loc[agent2] &&
+        state.agent_loc[a] == state.agent_loc[agent3]) {
+      need_to_triage = true;
+    }
+  }
+
+  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900 && 
+     (!need_to_triage || state.time[agent1] > 885 || state.time[agent2] > 885 || 
+      state.time[agent3] > 885)) {
+    return {1.0/6,
           {Task("Do_task", Args({{"agent",agent2}})),
            Task("Do_task", Args({{"agent",agent1}})),
            Task("Do_task", Args({{"agent",agent3}})),
@@ -694,8 +730,20 @@ template <class State> pTasks assign_tasks1d(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900) {
-    return {1.0,
+  bool need_to_triage = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" && !state.c_seen[a].empty() &&
+        state.agent_loc[a] == state.agent_loc[agent1] &&
+        state.agent_loc[a] == state.agent_loc[agent2] &&
+        state.agent_loc[a] == state.agent_loc[agent3]) {
+      need_to_triage = true;
+    }
+  }
+
+  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900 && 
+     (!need_to_triage || state.time[agent1] > 885 || state.time[agent2] > 885 || 
+      state.time[agent3] > 885)) {
+    return {1.0/6,
           {Task("Do_task", Args({{"agent",agent2}})),
            Task("Do_task", Args({{"agent",agent3}})),
            Task("Do_task", Args({{"agent",agent1}})),
@@ -708,8 +756,20 @@ template <class State> pTasks assign_tasks1e(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900) {
-    return {1.0,
+  bool need_to_triage = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" && !state.c_seen[a].empty() &&
+        state.agent_loc[a] == state.agent_loc[agent1] &&
+        state.agent_loc[a] == state.agent_loc[agent2] &&
+        state.agent_loc[a] == state.agent_loc[agent3]) {
+      need_to_triage = true;
+    }
+  }
+
+  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900 && 
+     (!need_to_triage || state.time[agent1] > 885 || state.time[agent2] > 885 || 
+      state.time[agent3] > 885)) {
+    return {1.0/6,
           {Task("Do_task", Args({{"agent",agent3}})),
            Task("Do_task", Args({{"agent",agent1}})),
            Task("Do_task", Args({{"agent",agent2}})),
@@ -722,8 +782,20 @@ template <class State> pTasks assign_tasks1f(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900) {
-    return {1.0,
+  bool need_to_triage = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" && !state.c_seen[a].empty() &&
+        state.agent_loc[a] == state.agent_loc[agent1] &&
+        state.agent_loc[a] == state.agent_loc[agent2] &&
+        state.agent_loc[a] == state.agent_loc[agent3]) {
+      need_to_triage = true;
+    }
+  }
+
+  if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] < 900 && 
+     (!need_to_triage || state.time[agent1] > 885 || state.time[agent2] > 885 || 
+      state.time[agent3] > 885)) {
+    return {1.0/6,
           {Task("Do_task", Args({{"agent",agent3}})),
            Task("Do_task", Args({{"agent",agent2}})),
            Task("Do_task", Args({{"agent",agent1}})),
@@ -732,12 +804,126 @@ template <class State> pTasks assign_tasks1f(State state, Args args) {
   return {0,{}};
 }
 
+template <class State> pTasks triage_crit_vic(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  bool need_to_triage = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" && !state.c_seen[a].empty() &&
+        state.agent_loc[a] == state.agent_loc[agent1] &&
+        state.agent_loc[a] == state.agent_loc[agent2] &&
+        state.agent_loc[a] == state.agent_loc[agent3]) {
+      need_to_triage = true;
+    }
+  }
+
+  if (state.time[agent1] <= 885 && state.time[agent2] <= 885 && state.time[agent3] <= 885 && 
+      need_to_triage) {
+    return {1.0,
+          {Task("Wake_and_triage_crit", Args({{"agent1",agent1},
+                                              {"agent2",agent2},
+                                              {"agent3",agent3},
+                                              {"area",state.agent_loc[agent1]}})),
+           Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}))}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks wake_and_triage(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  auto area = args["area"];
+  std::string medic;
+  std::string non_medic1;
+  std::string non_medic2;
+
+  if (state.role[agent1] == "medic") {
+    medic = agent1;
+    non_medic1 = agent2;
+    non_medic2 = agent3;
+  }
+  else {
+    if (state.role[agent2] == "medic") {
+      medic = agent2;
+      non_medic1 = agent1;
+      non_medic2 = agent3;
+    }
+    else {
+      medic = agent3;
+      non_medic1 = agent1;
+      non_medic2 = agent2;
+    }
+  }
+
+  std::string duration_wake;
+  std::string start_wake_medic;
+  std::string start_wake_non1;
+  std::string start_wake_non2;
+
+  duration_wake = std::to_string(7);
+
+  int start_num_wake_medic = std::max({state.write_agent_loc[medic],
+                               state.write_agent_loc[non_medic1],
+                               state.write_agent_loc[non_medic2],
+                               state.write_role[medic],
+                               state.write_role[non_medic1],
+                               state.write_role[non_medic2],
+                               state.write_c_seen[medic],
+                               state.write_c_seen[non_medic1],
+                               state.write_c_seen[non_medic2]});
+
+  int start_num_wake_non1 = std::max({start_num_wake_medic,
+                                      state.read_help_wake[non_medic1],
+                                      state.read_time[non_medic1]});
+
+  int start_num_wake_non2 = std::max({start_num_wake_medic,
+                                      state.read_help_wake[non_medic2],
+                                      state.read_time[non_medic2]});
+
+  std::string c = state.c_seen[medic].back();
+  int start_num_wake_medic = std::max({start_num_wake_medic,
+                                      state.read_help_wake[medic],
+                                      state.read_help_wake[non_medic1],
+                                      state.read_help_wake[non_medic2],
+                                      state.read_c_awake[c],
+                                      state.read_time[medic]});
+
+  start_wake_medic = std::to_string(start_num_wake_medic);
+  start_wake_non1 = std::to_string(start_num_wake_non1);
+  start_wake_non2 = std::to_string(start_num_wake_non2);
+
+  std::string duration_triage;
+  std::string start_triage;
+
+  duration_triage = std::to_string(8);
+  start_triage = std::to_string(start_wake_medic + 8);
+  return {1,
+         {Task("!wakeCrit",Args({{"agent",non_medic1},
+                                 {"area",area},
+                                 {"start",start_wake_non1},
+                                 {"duration",duration_wake}})),
+          Task("!wakeCrit",Args({{"agent",non_medic2},
+                                 {"area",area},
+                                 {"start",start_wake_non2},
+                                 {"duration",duration_wake}})),
+          Task("!wakeCrit",Args({{"agent",medic},
+                                 {"area",area},
+                                 {"start",start_wake_medic},
+                                 {"duration",duration_wake}})),
+          Task("!triageCrit",Args({{"agent",medic},
+                                   {"area",area},
+                                   {"start",start_triage},
+                                   {"duration",duration_triage}}))}};
+}
+
 template <class State> pTasks assign_tasks2a(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   if (state.time[agent1] >= 900 && state.time[agent2] < 900 && state.time[agent3] < 900) {
-    return {1.0,
+    return {0.5,
           {Task("Do_task", Args({{"agent",agent2}})),
            Task("Do_task", Args({{"agent",agent3}})),
            Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}))}};
@@ -750,7 +936,7 @@ template <class State> pTasks assign_tasks2b(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   if (state.time[agent1] >= 900 && state.time[agent2] < 900 && state.time[agent3] < 900) {
-    return {1.0,
+    return {0.5,
           {Task("Do_task", Args({{"agent",agent3}})),
            Task("Do_task", Args({{"agent",agent2}})),
            Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}))}};
@@ -763,7 +949,7 @@ template <class State> pTasks assign_tasks3a(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   if (state.time[agent1] < 900 && state.time[agent2] >= 900 && state.time[agent3] < 900) {
-    return {1.0,
+    return {0.5,
           {Task("Do_task", Args({{"agent",agent1}})),
            Task("Do_task", Args({{"agent",agent3}})),
            Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}))}};
@@ -776,7 +962,7 @@ template <class State> pTasks assign_tasks3b(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   if (state.time[agent1] < 900 && state.time[agent2] >= 900 && state.time[agent3] < 900) {
-    return {1.0,
+    return {0.5,
           {Task("Do_task", Args({{"agent",agent3}})),
            Task("Do_task", Args({{"agent",agent1}})),
            Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}))}};
@@ -789,7 +975,7 @@ template <class State> pTasks assign_tasks4a(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] >= 900) {
-    return {1.0,
+    return {0.5,
           {Task("Do_task", Args({{"agent",agent1}})),
            Task("Do_task", Args({{"agent",agent2}})),
            Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}))}};
@@ -802,7 +988,7 @@ template <class State> pTasks assign_tasks4b(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   if (state.time[agent1] < 900 && state.time[agent2] < 900 && state.time[agent3] >= 900) {
-    return {1.0,
+    return {0.5,
           {Task("Do_task", Args({{"agent",agent2}})),
            Task("Do_task", Args({{"agent",agent1}})),
            Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}))}};
@@ -1700,20 +1886,23 @@ class SARState {
                {"rooms",this->rooms},
                {"role",this->role},
                {"agent_loc",this->agent_loc},
-               {"g_total",this->g_total},
-               {"y_seen",this->y_seen},
-               {"g_seen",this->g_seen},
-               {"left_region",this->left_region},
-               {"right_region",this->right_region},
-               {"mid_region",this->mid_region},
-               {"left_explored",this->left_explored},
-               {"right_explored",this->right_explored},
-               {"mid_explored",this->mid_explored},
+               {"c_vic_loc",this->c_vic_loc},
+               {"r_vic_loc",this->r_vic_loc},
+               {"obs",this->obs},
+               {"c_awake",this->c_awake},
+               {"hall_blockage",this->hall_blockage},
+               {"room_blocks",this->room_blocks},
+               {"help_wake",this->help_wake},
+               {"holding",this->holding},
+               {"c_triage_total",this->c_triage_total},
+               {"r_triage_total",this->r_triage_total},
+               {"c_max", this->c_max},
+               {"r_max",this->r_max},
+               {"c_seen",this->c_seen},
+               {"r_max",this->r_seen},
                {"time",this->time},
-               {"times_searched", this->times_searched},
-               {"visited",this->visited},
-               {"y_max",this->y_max},
-               {"g_max",this->g_max}};
+               {"times_searched",this->times_searched},
+               {"visited",this->visited}};
     }
 };
 
@@ -1736,29 +1925,51 @@ class SARDomain {
   public:
     Operators<SARState> operators = 
       Operators<SARState>({{"!search",search},
-                           {"!triageGreen",triageGreen},
-                           {"!triageYellow",triageYellow},
+                           {"!triageReg",triageReg},
+                           {"!wakeCrit",wakeCrit},
+                           {"!triageCrit",triageCrit},
+                           {"!clear_hall_block",clear_hall_block},
+                           {"!clear_room_block",clear_room_block},
+                           {"!pickup_vic",pickup_vic},
+                           {"!put_down_vic",put_down_vic},
+                           {"!change_to_medic",change_to_medic},
+                           {"!change_to_engineer",change_to_engineer},
+                           {"!change_to_searcher",change_to_searcher},
                            {"!move",move},
+                           {"!do_nothing",do_nothing},
                            {"!exit",exit}});
 
     pOperators<SARState> poperators = 
       pOperators<SARState>({{"!search",search},
-                           {"!triageGreen",triageGreen},
-                           {"!triageYellow",triageYellow},
+                           {"!triageReg",triageReg},
+                           {"!wakeCrit",wakeCrit},
+                           {"!triageCrit",triageCrit},
+                           {"!clear_hall_block",clear_hall_block},
+                           {"!clear_room_block",clear_room_block},
+                           {"!pickup_vic",pickup_vic},
+                           {"!put_down_vic",put_down_vic},
+                           {"!change_to_medic",change_to_medic},
+                           {"!change_to_engineer",change_to_engineer},
+                           {"!change_to_searcher",change_to_searcher},
                            {"!move",move},
+                           {"!do_nothing",do_nothing},
                            {"!exit",exit}});
 
 
     Methods<SARState> methods =
       Methods<SARState>({{"SAR",
-                          {SAR}},
-                         {"SAR_O",
-                          {sweep_left_O,
-                           sweep_right_O,
-                           zigzag_left_O,
-                           zigzag_right_O}},
-                         {"sweep_left_O",
-                          {explore_right_to_left_O}},
+                          {pick_initial_roles}},
+                         {"Change_role",
+                          {choose_medic,
+                           choose_engineer,
+                           choose_searcher}},
+                         {"Explore",
+                          {assign_tasks1a,
+                           assign_tasks1b,
+                           assign_tasks1c,
+                           assign_tasks1d,
+                           assign_tasks1e,
+                           assign_tasks1f,}},
                          {"sweep_right_O",
                           {explore_left_to_right_O}},
                          {"zigzag_left_O",
