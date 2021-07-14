@@ -8,12 +8,13 @@
 #include <map>
 #include <typeinfo>
 #include <utility>
+#include <unordered_map>
 
 using boost::get;
 using namespace std;
 
 namespace ast {
-    bool contains_variable(std::vector<Variable> v, Variable x) {
+    bool vector_contains_variable(std::vector<Variable> v, Variable x) {
         for (auto & i : v){
             if (i == x){
                 return true;
@@ -21,7 +22,7 @@ namespace ast {
         }
         return false;
     }
-    bool contains_variable(std::map<Variable, Symbol> m, Variable x) {
+    bool map_contains_variable(std::unordered_map<Variable, Symbol> m, Variable x) {
         for (const auto& [key, value] : m) {
             if (key == x){
                 return true;
@@ -239,244 +240,284 @@ namespace ast {
         int getNextIndex() { return this->index++; }
     };
 
-    struct SubstVisitor : public boost::static_visitor<Sentence> {
-        Sentence operator()(std::map<Variable, Symbol> theta,
-                            Sentence s) const {
-            return boost::apply_visitor(SubstVisitor(), s, theta);
-        }
-//        Symbol operator()(std::map<Variable, Symbol> theta,
-//                          Symbol s) const {
-//            return (Symbol)boost::apply_visitor(SubstVisitor(), s, theta);
+//    struct SubstVisitor : public boost::static_visitor<Sentence> {
+////        Sentence operator()(std::unordered_map<Variable, Symbol> theta,
+////                            Sentence s) const {
+////            return boost::apply_visitor(SubstVisitor(), s, theta);
+////        }
+////        Sentence operator()(std::unordered_map<Variable, Symbol> theta, Nil s) const {
+////            return boost::apply_visitor(SubstVisitor(), s, theta);;
+////        }
+////        Sentence operator()(std::unordered_map<Variable, Symbol> theta, Literal<Term> s) const {
+////            return boost::apply_visitor(SubstVisitor(), s, theta);
+////        }
+////        Sentence operator()(std::unordered_map<Variable, Symbol> theta, ConnectedSentence s) const {
+////            return boost::apply_visitor(SubstVisitor(), s, theta);
+////        }
+////        Sentence operator()(std::unordered_map<Variable, Symbol> theta, NotSentence s) const {
+////            return boost::apply_visitor(SubstVisitor(), s, theta);
+////        }
+////
+////        Sentence operator()(std::unordered_map<Variable, Symbol> theta, ImplySentence s) const {
+////            return boost::apply_visitor(SubstVisitor(), s, theta);
+////        }
+////        Sentence operator()(std::unordered_map<Variable, Symbol> theta, ExistsSentence s) const {
+////            return boost::apply_visitor(SubstVisitor(), s, theta);
+////        }
+////        Sentence operator()(std::unordered_map<Variable, Symbol> theta, ForallSentence s) const {
+////
+////        }
+//
+////        Symbol operator()(std::unordered_map<Variable, Symbol> theta,
+////                          Symbol s) const {
+////            return (Symbol)boost::apply_visitor(SubstVisitor(), s, theta);
+////        }
+////        fol::Function operator()(std::unordered_map<Variable, Symbol> theta,
+////                                 fol::Function s) const {
+////            return (fol::Function)boost::apply_visitor(
+////                SubstVisitor(), s, theta);
+////        }
+////        Literal<Term> operator()(std::unordered_map<Variable, Symbol> theta,
+////                                 Literal<Term> s) const {
+////            return (Literal<Term>)boost::apply_visitor(
+////                SubstVisitor(), s, theta);
+////        }
+//
+//        Variable operator()(Variable s, std::unordered_map<Variable, Symbol> theta) const {
+//            std::unordered_map<Variable, Symbol> substitution(std::move(theta));
+//            Variable rs;
+//            if (map_contains_variable(substitution, s)) {
+//                rs.name = substitution.find(s)->second.name;
+//                return rs;
+//            }
+//            rs.name = s.name;
+//            return rs;
 //        }
-//        fol::Function operator()(std::map<Variable, Symbol> theta,
-//                                 fol::Function s) const {
-//            return (fol::Function)boost::apply_visitor(
-//                SubstVisitor(), s, theta);
+//
+//        Sentence operator()(ForallSentence s,
+//                            std::unordered_map<Variable, Symbol> theta) const {
+//            std::unordered_map<Variable, Symbol> substitution(std::move(theta));
+//            auto quantifiedAfterSubs =
+//                boost::apply_visitor(SubstVisitor(), (Sentence)s.sentence, theta);
+//
+//            std::vector<Variable> variables;
+//            for (auto v : s.variables.implicitly_typed_list.value()) {
+//                if (map_contains_variable(substitution, v)) {
+//                    Symbol st = substitution.find(v)->second;
+//                    if (typeid(st) == typeid(Variable)){
+//                        Variable rs;
+//                        rs.name = st.name;
+//                        variables.push_back(rs);
+//                    }
+//                }
+//                else {
+//                    Variable rs;
+//                    rs.name = v.name;
+//                    variables.push_back(rs);
+//                }
+//            }
+//            if (variables.empty()) {
+//                return quantifiedAfterSubs;
+//            }
+//
+//            ForallSentence rs;
+//            for (const auto& variable : variables) {
+//                rs.variables.implicitly_typed_list.value().push_back(variable);
+//            }
+//            rs.sentence = quantifiedAfterSubs;
+//            return rs;
 //        }
-//        Literal<Term> operator()(std::map<Variable, Symbol> theta,
-//                                 Literal<Term> s) const {
-//            return (Literal<Term>)boost::apply_visitor(
-//                SubstVisitor(), s, theta);
+//
+//        Sentence operator()(ExistsSentence s,
+//                            std::unordered_map<Variable, Symbol> theta) const {
+//            std::unordered_map<Variable, Symbol> substitution(std::move(theta));
+//            auto quantifiedAfterSubs =
+//                boost::apply_visitor(SubstVisitor(), s.sentence, theta);
+//
+//            std::vector<Variable> variables;
+//            for (auto v : s.variables.implicitly_typed_list.value()) {
+//                if (map_contains_variable(substitution, v)) {
+//                    Symbol st = substitution.find(v)->second;
+//                    if (typeid(st) == typeid(Variable)){
+//                        Variable rs;
+//                        rs.name = st.name;
+//                        variables.push_back(rs);
+//                    }
+//                }
+//                else {
+//                    Variable rs;
+//                    rs.name = v.name;
+//                    variables.push_back(rs);
+//                }
+//            }
+//            if (variables.empty()) {
+//                return quantifiedAfterSubs;
+//            }
+//
+//            ExistsSentence rs;
+//            for (const auto& variable : variables) {
+//                rs.variables.implicitly_typed_list.value().push_back(variable);
+//            }
+//            rs.sentence = quantifiedAfterSubs;
+//            return rs;
 //        }
-
-        Variable operator()(Variable s,
-                            std::map<Variable, Symbol> theta) const {
-            std::map<Variable, Symbol> substitution(std::move(theta));
-            Variable rs;
-            if (contains_variable(substitution, s)) {
-                rs.name = substitution.find(s)->second.name;
-                return rs;
-            }
-            rs.name = s.name;
-            return rs;
-        }
-
-        Sentence operator()(ForallSentence s,
-                            std::map<Variable, Symbol> theta) const {
-            std::map<Variable, Symbol> substitution(std::move(theta));
-            auto quantifiedAfterSubs =
-                boost::apply_visitor(SubstVisitor(), s.sentence, theta);
-
-            std::vector<Variable> variables;
-            for (auto v : s.variables.implicitly_typed_list.value()) {
-                if (contains_variable(substitution, v)) {
-                    Symbol st = substitution.find(v)->second;
-                    if (typeid(st) == typeid(Variable)){
-                        Variable rs;
-                        rs.name = st.name;
-                        variables.push_back(rs);
-                    }
-                }
-                else {
-                    Variable rs;
-                    rs.name = v.name;
-                    variables.push_back(rs);
-                }
-            }
-            if (variables.empty()) {
-                return quantifiedAfterSubs;
-            }
-
-            ForallSentence rs;
-            for (const auto& variable : variables) {
-                rs.variables.implicitly_typed_list.value().push_back(variable);
-            }
-            rs.sentence = quantifiedAfterSubs;
-            return rs;
-        }
-
-        Sentence operator()(ExistsSentence s,
-                            std::map<Variable, Symbol> theta) const {
-            std::map<Variable, Symbol> substitution(std::move(theta));
-            auto quantifiedAfterSubs =
-                boost::apply_visitor(SubstVisitor(), s.sentence, theta);
-
-            std::vector<Variable> variables;
-            for (auto v : s.variables.implicitly_typed_list.value()) {
-                if (contains_variable(substitution, v)) {
-                    Symbol st = substitution.find(v)->second;
-                    if (typeid(st) == typeid(Variable)){
-                        Variable rs;
-                        rs.name = st.name;
-                        variables.push_back(rs);
-                    }
-                }
-                else {
-                    Variable rs;
-                    rs.name = v.name;
-                    variables.push_back(rs);
-                }
-            }
-            if (variables.empty()) {
-                return quantifiedAfterSubs;
-            }
-
-            ExistsSentence rs;
-            for (const auto& variable : variables) {
-                rs.variables.implicitly_typed_list.value().push_back(variable);
-            }
-            rs.sentence = quantifiedAfterSubs;
-            return rs;
-        }
-
-//        Sentence operator()(Nil s, std::map<Variable, Symbol> theta) const { return s; }
-//        Sentence operator()(Literal<Term> s, std::map<Variable, Symbol> theta) const { return s; }
-//        Sentence operator()(ConnectedSentence s, std::map<Variable, Symbol> theta) const {
-//            return boost::apply_visitor(this, s, theta);
+//
+//        Sentence operator()(Nil s, std::unordered_map<Variable, Symbol> theta) const { return s; }
+//        Sentence operator()(Literal<Term> s, std::unordered_map<Variable, Symbol> theta) const { return s; }
+//        Sentence operator()(ConnectedSentence s, std::unordered_map<Variable, Symbol> theta) const {
+//            auto s1 = boost::apply_visitor(SubstVisitor(),
+//                                           (Sentence)s.sentences[0], theta);
+//            auto s2 = boost::apply_visitor(SubstVisitor(),
+//                                           (Sentence)s.sentences[1], theta);
+//            ConnectedSentence rs;
+//            rs.connector = s.connector;
+//            rs.sentences.push_back(s1);
+//            rs.sentences.push_back(s2);
+//            return rs;
 //        }
-//        Sentence operator()(NotSentence s, std::map<Variable, Symbol> theta) const {
-//            return boost::apply_visitor(StandardizeQuantiferVariables(), s, theta);
+//        Sentence operator()(NotSentence s, std::unordered_map<Variable, Symbol> theta) const {
+//            NotSentence rs;
+//            rs.sentence = boost::apply_visitor(SubstVisitor(),
+//                                               (Sentence)s.sentence, theta);
+//            return rs;
 //        }
-//        Sentence operator()(ImplySentence s, std::map<Variable, Symbol> theta) const {
-//            return boost::apply_visitor(StandardizeQuantiferVariables(), s, theta);
+//        Sentence operator()(ImplySentence s, std::unordered_map<Variable, Symbol> theta) const {
+//            auto s1 = boost::apply_visitor(SubstVisitor(),
+//                                           (Sentence)s.sentence1, theta);
+//            auto s2 = boost::apply_visitor(SubstVisitor(),
+//                                           (Sentence)s.sentence2, theta);
+//            ImplySentence rs;
+//            rs.sentence1 = s1;
+//            rs.sentence2 = s2;
+//            return rs;
 //        }
-    };
-
-    struct StandardizeQuantiferVariables
-        : public boost::static_visitor<Sentence> {
-        StandardizeApartIndexical quantifiedIndexical;
-        int i = quantifiedIndexical.getNextIndex();
-
-        Sentence operator()(Nil s, vector<Variable> arg) const { return s; }
-        Sentence operator()(Literal<Term> s, vector<Variable> arg) const {
-            return s;
-        }
-        Sentence operator()(ConnectedSentence s, vector<Variable> arg) const {
-            auto s1 = boost::apply_visitor(StandardizeQuantiferVariables(),
-                                           (Sentence)s.sentences[0]);
-            auto s2 = boost::apply_visitor(StandardizeQuantiferVariables(),
-                                           (Sentence)s.sentences[1]);
-            ConnectedSentence rs;
-            rs.connector = s.connector;
-            rs.sentences.push_back(s1);
-            rs.sentences.push_back(s2);
-            return rs;
-        }
-        Sentence operator()(NotSentence s, vector<Variable> arg) const {
-            NotSentence rs;
-            rs.sentence = boost::apply_visitor(StandardizeQuantiferVariables(),
-                                               (Sentence)s.sentence);
-            return rs;
-        }
-
-        Sentence operator()(ImplySentence s, vector<Variable> arg) const {
-            auto s1 = boost::apply_visitor(StandardizeQuantiferVariables(),
-                                           (Sentence)s.sentence1);
-            auto s2 = boost::apply_visitor(StandardizeQuantiferVariables(),
-                                           (Sentence)s.sentence2);
-            ImplySentence rs;
-            rs.sentence1 = s1;
-            rs.sentence2 = s2;
-            return rs;
-        }
-        // can't be constant
-        Sentence operator()(ExistsSentence s, vector<Variable> arg) {
-            vector<Variable> seenSoFar = arg;
-            std::map<Variable, Symbol> localSubst;
-            std::vector<Variable> replVariables;
-            for (auto v : s.variables.implicitly_typed_list.value()) {
-                if (contains_variable(seenSoFar, v)) {
-                    Variable sV;
-                    sV.name = this->quantifiedIndexical.getPrefix() +
-                              std::to_string(
-                                  this->quantifiedIndexical.getNextIndex());
-                    localSubst.insert({v, sV});
-                    // Replacement variables should contain new name for
-                    // variable
-                    replVariables.push_back(sV);
-                }
-                else {
-                    // Not already replaced, this name is good
-                    replVariables.push_back(v);
-                }
-            }
-            // Apply the local subst
-            auto subst = boost::apply_visitor(
-                SubstVisitor(), localSubst, s.sentence);
-            //            Sentence subst = substVisitor.subst(localSubst,
-            //                                                sentence.getQuantified());
-
-            // Ensure all my existing and replaced variable
-            // names are tracked
-            for (const auto & replVariable : replVariables){
-                seenSoFar.push_back(replVariable);
-            }
-
-            auto sQuantified = boost::apply_visitor(
-                StandardizeQuantiferVariables(), localSubst, subst);
-
-            ExistsSentence rs;
-            for (const auto & replVariable : replVariables){
-                rs.variables.implicitly_typed_list.value().push_back(replVariable);
-            }
-            rs.sentence = sQuantified;
-
-            return rs;
-        }
-        Sentence operator()(ForallSentence s, vector<Variable> arg) {
-            vector<Variable> seenSoFar = arg;
-            std::map<Variable, Symbol> localSubst;
-            std::vector<Variable> replVariables;
-            for (auto v : s.variables.implicitly_typed_list.value()) {
-                if (contains_variable(seenSoFar, v)) {
-                    Variable sV;
-                    sV.name = this->quantifiedIndexical.getPrefix() +
-                              std::to_string(
-                                  this->quantifiedIndexical.getNextIndex());
-                    localSubst.insert({v, sV});
-                    // Replacement variables should contain new name for
-                    // variable
-                    replVariables.push_back(sV);
-                }
-                else {
-                    // Not already replaced, this name is good
-                    replVariables.push_back(v);
-                }
-            }
-            // Apply the local subst
-            auto subst = boost::apply_visitor(
-                SubstVisitor(), localSubst, (Sentence)s.sentence);
-            //            Sentence subst = substVisitor.subst(localSubst,
-            //                                                sentence.getQuantified());
-
-            // Ensure all my existing and replaced variable
-            // names are tracked
-            for (const auto & replVariable : replVariables){
-                seenSoFar.push_back(replVariable);
-            }
-
-            auto sQuantified = boost::apply_visitor(
-                StandardizeQuantiferVariables(), localSubst, subst);
-
-            ForallSentence rs;
-            for (const auto & replVariable : replVariables){
-                rs.variables.implicitly_typed_list.value().push_back(replVariable);
-            }
-            rs.sentence = sQuantified;
-
-            return rs;
-        }
-    };
+//    };
+//
+//    struct StandardizeQuantiferVariables
+//        : public boost::static_visitor<Sentence> {
+//        StandardizeApartIndexical quantifiedIndexical;
+//        int i = quantifiedIndexical.getNextIndex();
+//
+//        Sentence operator()(Nil s, vector<Variable> arg) const { return s; }
+//        Sentence operator()(Literal<Term> s, vector<Variable> arg) const {
+//            return s;
+//        }
+//        Sentence operator()(ConnectedSentence s, vector<Variable> arg) const {
+//            auto s1 = boost::apply_visitor(StandardizeQuantiferVariables(),
+//                                           (Sentence)s.sentences[0]);
+//            auto s2 = boost::apply_visitor(StandardizeQuantiferVariables(),
+//                                           (Sentence)s.sentences[1]);
+//            ConnectedSentence rs;
+//            rs.connector = s.connector;
+//            rs.sentences.push_back(s1);
+//            rs.sentences.push_back(s2);
+//            return rs;
+//        }
+//        Sentence operator()(NotSentence s, vector<Variable> arg) const {
+//            NotSentence rs;
+//            rs.sentence = boost::apply_visitor(StandardizeQuantiferVariables(),
+//                                               (Sentence)s.sentence);
+//            return rs;
+//        }
+//
+//        Sentence operator()(ImplySentence s, vector<Variable> arg) const {
+//            auto s1 = boost::apply_visitor(StandardizeQuantiferVariables(),
+//                                           (Sentence)s.sentence1);
+//            auto s2 = boost::apply_visitor(StandardizeQuantiferVariables(),
+//                                           (Sentence)s.sentence2);
+//            ImplySentence rs;
+//            rs.sentence1 = s1;
+//            rs.sentence2 = s2;
+//            return rs;
+//        }
+//        // can't be constant
+//        Sentence operator()(ExistsSentence s, vector<Variable> arg) {
+//            vector<Variable> seenSoFar = arg;
+//            std::unordered_map<Variable, Symbol> localSubst;
+//            std::vector<Variable> replVariables;
+//            for (auto v : s.variables.implicitly_typed_list.value()) {
+//                if (vector_contains_variable(seenSoFar, v)) {
+//                    Variable sV;
+//                    sV.name = this->quantifiedIndexical.getPrefix() +
+//                              std::to_string(
+//                                  this->quantifiedIndexical.getNextIndex());
+//                    localSubst.insert({v, sV});
+//                    // Replacement variables should contain new name for
+//                    // variable
+//                    replVariables.push_back(sV);
+//                }
+//                else {
+//                    // Not already replaced, this name is good
+//                    replVariables.push_back(v);
+//                }
+//            }
+//            // Apply the local subst
+//            auto subst = boost::apply_visitor(
+//                SubstVisitor(), s.sentence, localSubst);
+//            //            Sentence subst = substVisitor.subst(localSubst,
+//            //                                                sentence.getQuantified());
+//
+//            // Ensure all my existing and replaced variable
+//            // names are tracked
+//            for (const auto & replVariable : replVariables){
+//                seenSoFar.push_back(replVariable);
+//            }
+//
+//            auto sQuantified = boost::apply_visitor(
+//                StandardizeQuantiferVariables(), localSubst, subst);
+//
+//            ExistsSentence rs;
+//            for (const auto & replVariable : replVariables){
+//                rs.variables.implicitly_typed_list.value().push_back(replVariable);
+//            }
+//            rs.sentence = sQuantified;
+//
+//            return rs;
+//        }
+//        Sentence operator()(ForallSentence s, vector<Variable> arg) {
+//            vector<Variable> seenSoFar = arg;
+//            std::unordered_map<Variable, Symbol> localSubst;
+//            std::vector<Variable> replVariables;
+//            for (auto v : s.variables.implicitly_typed_list.value()) {
+//                if (vector_contains_variable(seenSoFar, v)) {
+//                    Variable sV;
+//                    sV.name = this->quantifiedIndexical.getPrefix() +
+//                              std::to_string(
+//                                  this->quantifiedIndexical.getNextIndex());
+//                    localSubst.insert({v, sV});
+//                    // Replacement variables should contain new name for
+//                    // variable
+//                    replVariables.push_back(sV);
+//                }
+//                else {
+//                    // Not already replaced, this name is good
+//                    replVariables.push_back(v);
+//                }
+//            }
+//            // Apply the local subst
+//            auto subst = boost::apply_visitor(
+//                SubstVisitor(), localSubst, (Sentence)s.sentence);
+//            //            Sentence subst = substVisitor.subst(localSubst,
+//            //                                                sentence.getQuantified());
+//
+//            // Ensure all my existing and replaced variable
+//            // names are tracked
+//            for (const auto & replVariable : replVariables){
+//                seenSoFar.push_back(replVariable);
+//            }
+//
+//            auto sQuantified = boost::apply_visitor(
+//                StandardizeQuantiferVariables(), localSubst, subst);
+//
+//            ForallSentence rs;
+//            for (const auto & replVariable : replVariables){
+//                rs.variables.implicitly_typed_list.value().push_back(replVariable);
+//            }
+//            rs.sentence = sQuantified;
+//
+//            return rs;
+//        }
+//    };
 
     struct RemoveQuantifiers : public boost::static_visitor<Sentence> {
         Sentence operator()(Nil s) const { return s; }
@@ -561,15 +602,92 @@ namespace ast {
         Sentence operator()(ForallSentence s) const { return s; }
     };
 
-    struct CNFConstructor : public boost::static_visitor<Sentence> {
-        Sentence operator()(Nil s) const { return s; }
-        Sentence operator()(Literal<Term> s) const { return s; }
-        Sentence operator()(ConnectedSentence s) const { return s; }
-        Sentence operator()(NotSentence s) const { return s; }
+    struct ArgData {
+      std::vector<Clause> clauses;
+      bool negated = false;
+    };
 
-        Sentence operator()(ImplySentence s) const { return s; }
-        Sentence operator()(ExistsSentence s) const { return s; }
-        Sentence operator()(ForallSentence s) const { return s; }
+    struct CNF {
+
+      std::vector<Clause> conjunctionOfClauses;
+
+      CNF(std::vector<Clause> conjunctionOfClauses) {
+          for (const auto & conjunctionOfClause : conjunctionOfClauses){
+              this->conjunctionOfClauses.push_back(conjunctionOfClause);
+          }
+      }
+
+      int getNumberOfClauses() {
+            return conjunctionOfClauses.size();
+        }
+
+      std::vector<Clause> getConjunctionOfClauses() {
+            return this->conjunctionOfClauses;
+        }
+    };
+
+    struct CNFConstructor : public boost::static_visitor<Sentence> {
+
+        CNF construct(Sentence orDistributedOverAnd){
+            ArgData ad;
+            boost::apply_visitor(CNFConstructor(), orDistributedOverAnd, ad);
+            CNF c(ad.clauses);
+            return c;
+        }
+
+//        CNF construct(Literal<Term> orDistributedOverAnd){
+//            ArgData ad;
+//            boost::apply_visitor(CNFConstructor(), (Sentence)orDistributedOverAnd, (ArgData)ad);
+//            CNF c(ad.clauses);
+//            return c;
+//        }
+//
+//        CNF construct(ConnectedSentence orDistributedOverAnd){
+//            ArgData ad;
+//            boost::apply_visitor(CNFConstructor(), orDistributedOverAnd, ad);
+//            CNF c(ad.clauses);
+//            return c;
+//        }
+//
+//        CNF construct(NotSentence orDistributedOverAnd){
+//            ArgData ad;
+//            boost::apply_visitor(CNFConstructor(), orDistributedOverAnd, ad);
+//            CNF c(ad.clauses);
+//            return c;
+//        }
+
+        Sentence operator()(Nil s, ArgData ad) const { return s; }
+        Sentence operator()(Literal<Term> s, ArgData ad) const {
+            ArgData ad_ = ad;
+            if (ad.negated){
+                ad.clauses[ad.clauses.size() - 1].literals.push_back(s);
+            }
+            else{
+                ad.clauses[ad.clauses.size() - 1].literals.push_back(s);
+            }
+            return s;
+        }
+        Sentence operator()(ConnectedSentence s, ArgData ad) const {
+            ArgData ad_ = ad;
+            boost::apply_visitor(CNFConstructor(), s.sentences[0], ad);
+            if (s.connector == "and"){
+                Clause c;
+                ad_.clauses.push_back(c);
+            }
+            boost::apply_visitor(CNFConstructor(), s.sentences[1], ad);
+            return s;
+        }
+        Sentence operator()(NotSentence s, ArgData ad) const {
+            ArgData ad_ = ad;
+            ad_.negated = true;
+            boost::apply_visitor(CNFConstructor(), s.sentence, ad);
+            ad_.negated = false;
+            return s;
+        }
+
+        Sentence operator()(ImplySentence s, ArgData ad) const { return s; }
+        Sentence operator()(ExistsSentence s, ArgData ad) const { return s; }
+        Sentence operator()(ForallSentence s, ArgData ad) const { return s; }
     };
 
     Sentence to_CNF(Sentence s) {
