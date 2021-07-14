@@ -1800,7 +1800,7 @@ template <class State> pTasks change_searcher(State state, Args args) {
   return {0,{}};
 }
 
-class SARState {
+class TeamSARState {
   public:
     std::vector<std::string> agents;
 
@@ -1906,7 +1906,7 @@ class SARState {
     }
 };
 
-class SARSelector {
+class TeamSARSelector {
   public:
     double mean = 0;
     int sims = 0;
@@ -1915,16 +1915,16 @@ class SARSelector {
       return this->mean + ((c*r_l)/r_t)*sqrt(log(pSims)/this->sims);
     }
 
-    double rewardFunc(SARState s) {
-      return (50.00*s.y_total + 10.00*s.g_total)/(50.00*s.y_max + 10.00*s.g_max);
+    double rewardFunc(TeamSARState s) {
+      return (50.00*s.c_triage_total + 10.00*s.r_triage_total)/(50.00*s.c_max + 10.00*s.r_max);
     }
 
 };
 
-class SARDomain {
+class TeamSARDomain {
   public:
-    Operators<SARState> operators = 
-      Operators<SARState>({{"!search",search},
+    Operators<TeamSARState> operators = 
+      Operators<TeamSARState>({{"!search",search},
                            {"!triageReg",triageReg},
                            {"!wakeCrit",wakeCrit},
                            {"!triageCrit",triageCrit},
@@ -1939,8 +1939,8 @@ class SARDomain {
                            {"!do_nothing",do_nothing},
                            {"!exit",exit}});
 
-    pOperators<SARState> poperators = 
-      pOperators<SARState>({{"!search",search},
+    pOperators<TeamSARState> poperators = 
+      pOperators<TeamSARState>({{"!search",search},
                            {"!triageReg",triageReg},
                            {"!wakeCrit",wakeCrit},
                            {"!triageCrit",triageCrit},
@@ -1956,8 +1956,8 @@ class SARDomain {
                            {"!exit",exit}});
 
 
-    Methods<SARState> methods =
-      Methods<SARState>({{"SAR",
+    Methods<TeamSARState> methods =
+      Methods<TeamSARState>({{"SAR",
                           {pick_initial_roles}},
                          {"Change_role",
                           {choose_medic,
@@ -2009,7 +2009,7 @@ class SARDomain {
                            clear_hall_engineer,
                            fail_to_move_engineer}}});
 
-    SARDomain() {
+    TeamSARDomain() {
       std::cout << "Operators: ";
       print(this->operators);
 

@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
       e = 0.4; 
     }
 
-    auto state1 = SARState();
+    auto state1 = TeamSARState();
     state1.agents.push_back("A1");
     state1.agents.push_back("A2");
     state1.agents.push_back("A3");
@@ -356,29 +356,37 @@ int main(int argc, char* argv[]) {
     state1.hall_blockage[area4][area11] = 4;
     state1.hall_blockage[area11][area4] = 4;
 
-    state1.room_blocks[area1] = 0;
-    state1.room_blocks[area2] = 1;
-    state1.room_blocks[area3] = 0;
-    state1.room_blocks[area4] = 0;
-    state1.room_blocks[area5] = 0;
-    state1.room_blocks[area6] = 0;
-    state1.room_blocks[area7] = 0;
-    state1.room_blocks[area8] = 0;
-    state1.room_blocks[area9] = 0;
-    state1.room_blocks[area10] = 0;
-    state1.room_blocks[area11] = 0;
-    state1.room_blocks[area12] = 0;
+    state1.room_blocks[area1] = 9;
+    state1.room_blocks[area2] = 5;
+    state1.room_blocks[area3] = 6;
+    state1.room_blocks[area5] = 2;
+    state1.room_blocks[area6] = 4;
+    state1.room_blocks[area7] = 7;
+    state1.room_blocks[area10] = 4;
+    state1.room_blocks[area11] = 2;
+    state1.room_blocks[area12] = 5;
 
-    auto domain = SARDomain();
+    state1.c_triage_total = 0;
+    state1.read_c_triage_total = 0;
+    state1.write_c_triage_total = 0;
 
-    auto selector = SARSelector();
+    state1.r_triage_total = 0;
+    state1.read_r_triage_total = 0;
+    state1.write_r_triage_total = 0;
+
+    state1.c_max = 3;
+    state1.r_max = 24;
+
+    auto domain = TeamSARDomain();
+
+    auto selector = TeamSARSelector();
 
     Tasks tasks = {
-        {Task("sweep_left_YF", Args({{"agent", "me"}}))}};
+        {Task("SAR", Args({{"agent1", "A1"},{"agent2", "A2"},{"agent3","A3"}}))}};
     auto pt = cpphopMCTS(state1, tasks, domain, selector,N,e);
 
-    json j = generate_plan_trace_tree(pt.first,pt.second,true,"simple_sar_trace_tree.json");
-    generate_graph_from_json(j, "simple_sar_tree_graph.png");
-    generate_plan_trace(pt.first,pt.second,true,"simple_sar_trace.json");
+    json j = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_trace_tree.json");
+    generate_graph_from_json(j, "team_sar_tree_graph.png");
+    generate_plan_trace(pt.first,pt.second,true,"team_sar_trace.json");
     return EXIT_SUCCESS;
 }
