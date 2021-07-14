@@ -2,6 +2,7 @@
 
 #include "config.hpp"
 #include "error_handler.hpp"
+#include <boost/throw_exception.hpp>
 #include <exception>
 #include <iostream>
 #include <string>
@@ -17,14 +18,13 @@ template <class T, class U> T parse(std::string storage, U parser) {
         x3::with<x3::error_handler_tag>(std::ref(error_handler))[parser];
     bool r =
         phrase_parse(iter, end, error_handling_parser, parser::skipper, object);
-    if (!r) {
-        std::cerr << "Parsing failed" << std::endl;
+    if (r) {
         if (iter != end) {
             error_handler(iter, "Error! Expecting end of input here: ");
         }
     }
-    //else {
-        //throw std::runtime_error("Parsing error!");
-    //}
+    else {
+        BOOST_THROW_EXCEPTION(std::runtime_error("Parsing error!"));
+    }
     return object;
 }

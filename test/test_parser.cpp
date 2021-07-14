@@ -304,7 +304,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test methods and their components (totally-ordered):
     // Test methods name:
-    cout << dom.methods.size() << endl;
     BOOST_TEST(dom.methods[0].name == "m-deliver");
 
     // Test Methods Parameters:
