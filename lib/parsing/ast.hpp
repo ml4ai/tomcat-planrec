@@ -49,7 +49,7 @@ namespace ast {
         TypedList<Variable> variables;
     };
 
-    struct Nil {
+    struct Nil : x3::position_tagged {
         bool operator==(const Nil& nil) const;
     };
 
@@ -73,26 +73,26 @@ namespace ast {
                                     boost::recursive_wrapper<ExistsSentence>,
                                     boost::recursive_wrapper<ForallSentence>>;
 
-    struct ConnectedSentence {
+    struct ConnectedSentence : x3::position_tagged {
         std::string connector;
         std::vector<Sentence> sentences;
     };
 
-    struct NotSentence {
+    struct NotSentence : x3::position_tagged {
         Sentence sentence;
     };
 
-    struct ImplySentence {
+    struct ImplySentence : x3::position_tagged {
         Sentence sentence1;
         Sentence sentence2;
     };
 
-    struct ExistsSentence {
+    struct ExistsSentence : x3::position_tagged {
         TypedList<Variable> variables;
         Sentence sentence;
     };
 
-    struct ForallSentence {
+    struct ForallSentence : x3::position_tagged {
         TypedList<Variable> variables;
         Sentence sentence;
     };
@@ -109,7 +109,7 @@ namespace ast {
         std::vector<Term> parameters;
     };
 
-    struct SubTaskWithId {
+    struct SubTaskWithId : x3::position_tagged {
         Name id;
         MTask subtask;
     };
@@ -118,19 +118,19 @@ namespace ast {
 
     using SubTasks = boost::variant<Nil, SubTask, std::vector<SubTask>>;
 
-    struct Ordering {
+    struct Ordering : x3::position_tagged {
         Name first;
         Name second;
     };
 
     using Orderings = boost::variant<Nil, Ordering, std::vector<Ordering>>;
 
-    struct MethodSubTasks {
+    struct MethodSubTasks : x3::position_tagged {
         std::string ordering_kw;
         SubTasks subtasks;
     };
 
-    struct TaskNetwork {
+    struct TaskNetwork : x3::position_tagged {
         MethodSubTasks subtasks;
         Orderings orderings;
     };

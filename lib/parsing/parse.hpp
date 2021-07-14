@@ -4,6 +4,7 @@
 #include <iostream>
 #include "config.hpp"
 #include "error_handler.hpp"
+#include <exception>
 
 template <class T, class U> T parse(std::string storage, U parser) {
     using parser::error_handler_tag, parser::error_handler_type;
@@ -17,6 +18,7 @@ template <class T, class U> T parse(std::string storage, U parser) {
         phrase_parse(iter, end, error_handling_parser, parser::skipper, object);
     if (!(r && iter == end)) {
         error_handler(iter, "Error!");
+        throw std::runtime_error("Parsing error!");
     }
     return object;
 }

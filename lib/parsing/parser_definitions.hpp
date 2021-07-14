@@ -22,7 +22,7 @@ namespace parser {
     // Rules
     rule<class TRequirement, std::vector<Name>> const requirement =
         "requirement";
-    auto const requirement_def = ':' >> name;
+    auto const requirement_def = ':' > name;
     BOOST_SPIRIT_DEFINE(requirement);
 
     rule<class TPredicate, Name> const predicate = "predicate";
@@ -40,7 +40,7 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(constant);
 
     rule<class TVariable, Variable> const variable = "variable";
-    auto const variable_def = '?' >> name;
+    auto const variable_def = '?' > name;
     BOOST_SPIRIT_DEFINE(variable);
 
     rule<class TPrimitiveType, PrimitiveType> const primitive_type =
@@ -292,7 +292,7 @@ namespace parser {
     } ordering_kw;
 
     rule<class TMethodSubTasks, MethodSubTasks> const method_subtasks = "method_subtasks";
-    auto const method_subtasks_def = ':' >> ordering_kw >> subtasks;
+    auto const method_subtasks_def = ':' > ordering_kw >> subtasks;
     BOOST_SPIRIT_DEFINE(method_subtasks);
 
     rule<class TConstraint, Sentence> const constraint = "constraint";

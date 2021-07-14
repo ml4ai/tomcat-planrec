@@ -200,9 +200,18 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(name(af6.args[1]) == "variable");
 
     auto s7 =
-        parse<Sentence>("(imply (forall (?x) (forall (?y) (imply (Animal ?y) "
-                        "(Loves ?x ?y)))) (exists (?y) (Loves ?y ?x)))",
-                        sentence());
+        parse<Sentence>(R"(
+        (imply 
+            (forall 
+                (?x) 
+                (forall 
+                    (?y) 
+                    (imply 
+                        (Animal ?y) 
+                        (Loves ?x ?y))))
+            (exists (?y) (Loves ?y ?x)))
+        )",
+        sentence());
     auto cs = get<ImplySentence>(s7);
     auto fs1 = get<ForallSentence>(cs.sentence1);
     BOOST_TEST(fs1.variables.implicitly_typed_list.value()[0].name == "x");
@@ -226,18 +235,17 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 (tAt ?l))
 
             (:task deliver
-                :parameters 
-                    (?p - package ?s - site))
+             :parameters (?p - package ?s - site))
 
             (:task get-to
-               :parameters (?s - site))
+             :parameters (?s - site))
             
             (:method m-deliver
-              :parameters (?p - package
-                           ?lp ?ld - site)
-              :task (deliver ?p ?ld)
-              :precondition (or (tAt ?l)
-                                (tAt ?s))
+             :parameters (?p - package
+                          ?lp ?ld - site)
+             :task (deliver ?p ?ld)
+             :precondition (or (tAt ?l)
+                               (tAt ?s))
 
               :ordered-subtasks 
                 (and (get-to ?lp)
@@ -285,14 +293,15 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             dom.predicates[0].variables.explicitly_typed_lists[0].type) ==
         "site");
 
-    // Test Parsing of Abstract Tasks
+    // Test parsing of abstract tasks
     BOOST_TEST(dom.tasks[0].name == "deliver");
     auto taskpara1 = dom.tasks[0].parameters;
     BOOST_TEST(get<PrimitiveType>(taskpara1.explicitly_typed_lists[0].type) ==
                "package");
 
-    // Test Methods and their Components (Totally-Ordered):
-    // Test Methods Name:
+    // Test methods and their components (totally-ordered):
+    // Test methods name:
+    cout << dom.methods.size() << endl;
     BOOST_TEST(dom.methods[0].name == "m-deliver");
 
     // Test Methods Parameters:
