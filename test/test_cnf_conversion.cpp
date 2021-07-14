@@ -141,6 +141,12 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto i7 = get<Literal<Term>>(i6.sentence);
     BOOST_TEST(i7.predicate == "L");
 
+    auto j1 =
+        parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y)))", sentence());
+    vector<Variable> arg;
+    auto j2 = boost::apply_visitor(StandardizeQuantiferVariables(), g1, arg);
+    cout << endl;
+
     //  test imply
     //    auto s1 =
     //        parse<Sentence>("(imply (Animal ?y) (Loves ?x ?y))", sentence());
