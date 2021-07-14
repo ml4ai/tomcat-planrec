@@ -107,36 +107,162 @@ int main(int argc, char* argv[]) {
       state1.r_vic_loc[s] = {}
       state1.read_r_vic_loc[s] = 0;
       state1.write_r_vic_loc[s] = 0;
+      
+      state1.room_blocks[s] = 0;
+      state1.read_room_blocks[s] = 0;
+      state1.write_room_blocks[s] = 0;
+
+      for (auto r : state1.rooms) {
+        state1.hall_blockage[s][r] = 0;
+        state1.read_hall_blockage[s][r] = 0;
+        state1.write_hall_blockage[s][r] = 0;
+      }
     }
 
     std::string crit1 = "C1";
+    state1.obs[crit1] = false;
+    state1.read_obs[crit1] = 0;
+    state1.write_obs[crit1] = 0;
+    state1.c_awake[crit1] = false;
+    state1.read_c_awake[crit1] = 0;
+    state1.write_c_awake[crit1] = 0;
+
     std::string crit2 = "C2";
+    state1.obs[crit2] = false;
+    state1.read_obs[crit2] = 0;
+    state1.write_obs[crit2] = 0;
+    state1.c_awake[crit2] = false;
+    state1.read_c_awake[crit2] = 0;
+    state1.write_c_awake[crit2] = 0;
+
     std::string crit3 = "C3";
+    state1.obs[crit3] = true;
+    state1.read_obs[crit3] = 0;
+    state1.write_obs[crit3] = 0;
+    state1.c_awake[crit3] = false;
+    state1.read_c_awake[crit3] = 0;
+    state1.write_c_awake[crit3] = 0;
 
     std::string reg1 = "R1";
+    state1.obs[reg1] = false;
+    state1.read_obs[reg1] = 0;
+    state1.write_obs[reg1] = 0;
+ 
     std::string reg2 = "R2";
+    state1.obs[reg2] = false;
+    state1.read_obs[reg2] = 0;
+    state1.write_obs[reg2] = 0;
+ 
     std::string reg3 = "R3";
+    state1.obs[reg3] = false;
+    state1.read_obs[reg3] = 0;
+    state1.write_obs[reg3] = 0;
+ 
     std::string reg4 = "R4";
+    state1.obs[reg4] = false;
+    state1.read_obs[reg4] = 0;
+    state1.write_obs[reg4] = 0;
+ 
     std::string reg5 = "R5";
+    state1.obs[reg5] = true;
+    state1.read_obs[reg5] = 0;
+    state1.write_obs[reg5] = 0;
+ 
     std::string reg6 = "R6";
+    state1.obs[reg6] = true;
+    state1.read_obs[reg6] = 0;
+    state1.write_obs[reg6] = 0;
+ 
     std::string reg7 = "R7";
+    state1.obs[reg7] = true;
+    state1.read_obs[reg7] = 0;
+    state1.write_obs[reg7] = 0;
+ 
     std::string reg8 = "R8";
+    state1.obs[reg8] = true;
+    state1.read_obs[reg8] = 0;
+    state1.write_obs[reg8] = 0;
+ 
     std::string reg9 = "R9";
+    state1.obs[reg9] = false;
+    state1.read_obs[reg9] = 0;
+    state1.write_obs[reg9] = 0;
+ 
     std::string reg10 = "R10";
+    state1.obs[reg10] = false;
+    state1.read_obs[reg10] = 0;
+    state1.write_obs[reg10] = 0;
+ 
     std::string reg11 = "R11";
+    state1.obs[reg11] = false;
+    state1.read_obs[reg11] = 0;
+    state1.write_obs[reg11] = 0;
+ 
     std::string reg12 = "R12";
+    state1.obs[reg12] = false;
+    state1.read_obs[reg12] = 0;
+    state1.write_obs[reg12] = 0;
+ 
     std::string reg13 = "R13";
+    state1.obs[reg13] = false;
+    state1.read_obs[reg13] = 0;
+    state1.write_obs[reg13] = 0;
+ 
     std::string reg14 = "R14";
+    state1.obs[reg14] = true;
+    state1.read_obs[reg14] = 0;
+    state1.write_obs[reg14] = 0;
+ 
     std::string reg15 = "R15";
+    state1.obs[reg15] = true;
+    state1.read_obs[reg15] = 0;
+    state1.write_obs[reg15] = 0;
+ 
     std::string reg16 = "R16";
+    state1.obs[reg16] = false;
+    state1.read_obs[reg16] = 0;
+    state1.write_obs[reg16] = 0;
+ 
     std::string reg17 = "R17";
+    state1.obs[reg17] = false;
+    state1.read_obs[reg17] = 0;
+    state1.write_obs[reg17] = 0;
+ 
     std::string reg18 = "R18";
+    state1.obs[reg18] = false;
+    state1.read_obs[reg18] = 0;
+    state1.write_obs[reg18] = 0;
+ 
     std::string reg19 = "R19";
+    state1.obs[reg19] = true;
+    state1.read_obs[reg19] = 0;
+    state1.write_obs[reg19] = 0;
+ 
     std::string reg20 = "R20";
+    state1.obs[reg20] = true;
+    state1.read_obs[reg20] = 0;
+    state1.write_obs[reg20] = 0;
+ 
     std::string reg21 = "R21";
+    state1.obs[reg21] = false;
+    state1.read_obs[reg21] = 0;
+    state1.write_obs[reg21] = 0;
+ 
     std::string reg22 = "R22";
+    state1.obs[reg22] = true;
+    state1.read_obs[reg22] = 0;
+    state1.write_obs[reg22] = 0;
+ 
     std::string reg23 = "R23";
+    state1.obs[reg23] = false;
+    state1.read_obs[reg23] = 0;
+    state1.write_obs[reg23] = 0;
+ 
     std::string reg24 = "R24";
+    state1.obs[reg24] = true;
+    state1.read_obs[reg24] = 0;
+    state1.write_obs[reg24] = 0;
+ 
 
     state1.c_vic_loc[area4].push_back(crit1);
     state1.c_vic_loc[area5].push_back(crit2);
@@ -166,6 +292,82 @@ int main(int argc, char* argv[]) {
     state1.r_vic_loc[area12].push_back(reg22);
     state1.r_vic_loc[area9].push_back(reg23);
     state1.r_vic_loc[area3].push_back(reg24);
+
+    state1.hall_blockage[area4][area12] = 15;
+    state1.hall_blockage[area4][area12] = 15;
+
+    state1.hall_blockage[area1][area4] = 2;
+    state1.hall_blockage[area4][area1] = 2;
+
+    state1.hall_blockage[area2][area8] = 12;
+    state1.hall_blockage[area8][area2] = 12;
+
+    state1.hall_blockage[area2][area11] = 8;
+    state1.hall_blockage[area11][area2] = 8;
+
+    state1.hall_blockage[area3][area11] = 8;
+    state1.hall_blockage[area11][area3] = 8;
+
+    state1.hall_blockage[area1][area9] = 8;
+    state1.hall_blockage[area9][area1] = 8;
+
+    state1.hall_blockage[area9][area10] = 3;
+    state1.hall_blockage[area10][area9] = 3;
+
+    state1.hall_blockage[area1][area8] = 16;
+    state1.hall_blockage[area8][area1] = 16;
+
+    state1.hall_blockage[area5][area6] = 6;
+    state1.hall_blockage[area6][area5] = 6;
+
+    state1.hall_blockage[area6][area8] = 7;
+    state1.hall_blockage[area8][area6] = 7;
+
+    state1.hall_blockage[area2][area12] = 2;
+    state1.hall_blockage[area12][area2] = 2;
+
+    state1.hall_blockage[area7][area9] = 4;
+    state1.hall_blockage[area9][area7] = 4;
+
+    state1.hall_blockage[area6][area11] = 6;
+    state1.hall_blockage[area11][area6] = 6;
+
+    state1.hall_blockage[area9][area12] = 3;
+    state1.hall_blockage[area12][area9] = 3;
+
+    state1.hall_blockage[area5][area10] = 4;
+    state1.hall_blockage[area10][area5] = 4;
+
+    state1.hall_blockage[area3][area9] = 4;
+    state1.hall_blockage[area9][area3] = 4;
+
+    state1.hall_blockage[area2][area3] = 6;
+    state1.hall_blockage[area3][area2] = 6;
+
+    state1.hall_blockage[area2][area9] = 8;
+    state1.hall_blockage[area9][area2] = 8;
+
+    state1.hall_blockage[area5][area12] = 7;
+    state1.hall_blockage[area12][area5] = 7;
+
+    state1.hall_blockage[area1][area11] = 2;
+    state1.hall_blockage[area11][area1] = 2;
+
+    state1.hall_blockage[area4][area11] = 4;
+    state1.hall_blockage[area11][area4] = 4;
+
+    state1.room_blocks[area1] = 0;
+    state1.room_blocks[area2] = 1;
+    state1.room_blocks[area3] = 0;
+    state1.room_blocks[area4] = 0;
+    state1.room_blocks[area5] = 0;
+    state1.room_blocks[area6] = 0;
+    state1.room_blocks[area7] = 0;
+    state1.room_blocks[area8] = 0;
+    state1.room_blocks[area9] = 0;
+    state1.room_blocks[area10] = 0;
+    state1.room_blocks[area11] = 0;
+    state1.room_blocks[area12] = 0;
 
     auto domain = SARDomain();
 
