@@ -109,9 +109,30 @@ namespace ast {
         std::vector<Term> parameters;
     };
 
+    struct SubTaskWithId {
+        Name id;
+        MTask subtask;
+    };
+
+    using SubTask = boost::variant<MTask, SubTaskWithId>;
+
+    using SubTasks = boost::variant<Nil, SubTask, std::vector<SubTask>>;
+
+    struct Ordering {
+        Name first;
+        Name second;
+    };
+
+    using Orderings = boost::variant<Nil, Ordering, std::vector<Ordering>>;
+
+    struct MethodSubTasks {
+        std::string ordering_kw;
+        SubTasks subtasks;
+    };
+
     struct TaskNetwork {
-        //        Sentence subtasks; //iff keyword subtasks
-        // Sentence constraints;//optional
+        MethodSubTasks subtasks;
+        Orderings orderings;
     };
 
     // Totally-ordered methods use the keyword 'ordered-subtasks'
@@ -121,8 +142,7 @@ namespace ast {
         TypedList<Variable> parameters;
         MTask task;
         Sentence precondition; // optional
-        Sentence osubtasks;// iff keyword ordered-subtasks
-        //TaskNetwork task_network;
+        TaskNetwork task_network;
     };
 
     // Primitive Actions

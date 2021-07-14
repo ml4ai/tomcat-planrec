@@ -7,9 +7,9 @@
 #include <iostream>
 #include <string>
 
+#include "parsing/api.hpp"
 #include "parsing/ast.hpp"
 #include "parsing/ast_adapted.hpp"
-#include "parsing/api.hpp"
 #include "parsing/parse.hpp"
 #include "util.h"
 #include <boost/optional.hpp>
@@ -236,7 +236,6 @@ BOOST_AUTO_TEST_CASE(test_parser) {
               :parameters (?p - package
                            ?lp ?ld - site)
               :task (deliver ?p ?ld)
-              
               :precondition (or (tAt ?l)
                                 (tAt ?s))
 
@@ -287,20 +286,18 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         "site");
 
     // Test Parsing of Abstract Tasks
-    auto taskname1 = dom.tasks[0].name;
-    BOOST_TEST(taskname1 == "deliver");
+    BOOST_TEST(dom.tasks[0].name == "deliver");
     auto taskpara1 = dom.tasks[0].parameters;
     BOOST_TEST(get<PrimitiveType>(taskpara1.explicitly_typed_lists[0].type) ==
                "package");
 
     // Test Methods and their Components (Totally-Ordered):
     // Test Methods Name:
-    auto methodname1 = dom.methods[0].name;
-    BOOST_TEST(methodname1 == "m-deliver");
+    BOOST_TEST(dom.methods[0].name == "m-deliver");
 
     // Test Methods Parameters:
-    auto methodpara1 = dom.methods[0].parameters;
-    BOOST_TEST(get<PrimitiveType>(methodpara1.explicitly_typed_lists[0].type) ==
+    BOOST_TEST(get<PrimitiveType>(
+                   dom.methods[0].parameters.explicitly_typed_lists[0].type) ==
                "package");
 
     // Test Method's Task to be Broken Down. In the abstract task, 'task' is
@@ -318,11 +315,12 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(get<Variable>(methodprec2_os.args[0]).name == "s");
 
     // Test Parsing Method Optional Ordered-Subtasks (Totally-Ordered Methods)
-    auto osubtask_f = dom.methods[0].osubtasks;
-    auto osubtask_s = get<ConnectedSentence>(osubtask_f);
-    auto osubtask3_os = get<Literal<Term>>(osubtask_s.sentences[2]);
-    BOOST_TEST(osubtask3_os.predicate == "get-to");
-    BOOST_TEST(get<Variable>(osubtask3_os.args[0]).name == "ld");
+    // auto osubtask_f = dom.methods[0].osubtasks;
+    auto osubtask_s = get<MTask>(
+        get<vector<SubTask>>(dom.methods[0].task_network.subtasks.subtasks)[2]);
+    // auto osubtask_s = get<ConnectedSentence>(osubtask_f);
+    BOOST_TEST(osubtask_s.name == "get-to");
+    BOOST_TEST(name(osubtask_s.parameters[0]) == "ld");
 
     // Test Parsing of DOMAIN ACTIONS and their components:
     // Test Parsing Action Names

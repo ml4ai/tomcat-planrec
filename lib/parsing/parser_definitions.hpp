@@ -126,13 +126,12 @@ namespace parser {
     rule<class TSentence, Sentence> sentence = "sentence";
 
 
-    struct connector_ : x3::symbols<std::string>
-    {
-        connector_()
-        {
+    // Connectors (and/or)
+    struct connector_ : x3::symbols<std::string> {
+        connector_() {
             add
-                ("and"    , "and")
-                ("or"    , "or")
+                ("and", "and")
+                ("or" , "or")
             ;
         }
     } connector;
@@ -217,14 +216,6 @@ namespace parser {
                                >> +atomic_formula_skeleton >> ')';
     BOOST_SPIRIT_DEFINE(predicates);
 
-
-    rule<class TParameters, TypedList<Variable>> const parameters = "parameters";
-    auto const parameters_def = lit(":parameters")
-                               >> '('
-                               >> typed_list_variables
-                               >> ')';
-    BOOST_SPIRIT_DEFINE(parameters);
-
     rule<class TPrecondition, Sentence> const precondition = "precondition";
     auto const precondition_def = lit(":precondition")
                                >> sentence;
@@ -235,54 +226,99 @@ namespace parser {
                               >> sentence;
     BOOST_SPIRIT_DEFINE(effect);
 
+    rule<class TParameters, TypedList<Variable>> const parameters = "parameters";
+    auto const parameters_def = lit(":parameters")
+                               >> '('
+                               >> typed_list_variables
+                               >> ')';
+    BOOST_SPIRIT_DEFINE(parameters);
 
-    // Abstract Tasks
     rule<class TTask, Task> const task = "task";
-    auto const task_def = '(' >> lit(":task")
-                              >> name
-                              >> parameters 
-                              >> ')';
+    auto const task_def = name >> parameters;
     BOOST_SPIRIT_DEFINE(task);
 
 
+    // Abstract Tasks
+    rule<class TAbstractTask, Task> const abstract_task = "abstract_task";
+    auto const abstract_task_def = '(' >> lit(":task") >> task >> ')';
+    BOOST_SPIRIT_DEFINE(abstract_task);
 
-    rule<class TOrderedSubTask, Sentence> const osubtask = "osubtask";
-    auto const osubtask_def = lit(":ordered-subtasks")
-                              >> sentence;
-    BOOST_SPIRIT_DEFINE(osubtask);
 
-    rule<class TSubtask, Sentence> const subtask = "subtask";
-    auto const subtask_def = lit(":subtasks")
-                              >> sentence;
+    rule<class TTaskSymbolWithTerms, MTask> const task_symbol_with_terms = "task_symbol_with_terms";
+    auto const task_symbol_with_terms_def = '(' >> name >> *term >> ')';
+    BOOST_SPIRIT_DEFINE(task_symbol_with_terms);
+
+    // Methods used to decompose abstract tasks into primitive actions
+    // task as defined in Method struct != task defined in task struct
+    // mtask refers to task definition found within a method:
+    rule<class TMTask, MTask> const mtask = "mtask";
+    auto const mtask_def = lit(":task") >> task_symbol_with_terms;
+    BOOST_SPIRIT_DEFINE(mtask);
+
+    rule<class TSubTaskWithId, SubTaskWithId> const subtask_with_id = "subtask_with_id";
+    auto const subtask_with_id_def = '(' >> name >> task_symbol_with_terms >> ')';
+    BOOST_SPIRIT_DEFINE(subtask_with_id);
+
+    rule<class TSubTask, SubTask> const subtask = "subtask";
+    auto const subtask_def = task_symbol_with_terms | subtask_with_id;
     BOOST_SPIRIT_DEFINE(subtask);
+
+    rule<class TSubTasks, SubTasks> const subtasks = "subtasks";
+    auto const subtasks_def = nil | subtask | '(' >> lit("and") >> +subtask >> ')';
+    BOOST_SPIRIT_DEFINE(subtasks);
+
+    rule<class TOrdering, Ordering> const ordering = "ordering";
+    auto const ordering_def = '(' >> name >> '<' >> name >> ')';
+    BOOST_SPIRIT_DEFINE(ordering);
+
+    rule<class TOrderings, Orderings> const orderings = "orderings";
+    auto const orderings_def = nil | ordering | '(' >> lit("and") >> +ordering >> ')';
+    BOOST_SPIRIT_DEFINE(orderings);
+
+    rule<class TTaskNetworkOrderings, Orderings> const task_network_orderings = "task_network_orderings";
+    auto const task_network_orderings_def = lit(":ordering") >> orderings;
+    BOOST_SPIRIT_DEFINE(task_network_orderings);
+
+    // Ordering keyword
+    struct ordering_kw_ : x3::symbols<std::string> {
+        ordering_kw_() {
+            add
+                ("tasks", "tasks")
+                ("subtasks" , "subtasks")
+                ("ordered-tasks" , "ordered-tasks")
+                ("ordered-subtasks" , "ordered-subtasks")
+            ;
+        }
+    } ordering_kw;
+
+    rule<class TMethodSubTasks, MethodSubTasks> const method_subtasks = "method_subtasks";
+    auto const method_subtasks_def = ':' >> ordering_kw >> subtasks;
+    BOOST_SPIRIT_DEFINE(method_subtasks);
 
     rule<class TConstraint, Sentence> const constraint = "constraint";
     auto const constraint_def = lit(":constraints")
                                >> sentence;
          // Will not parse '=' constraints right now. Come back
+    BOOST_SPIRIT_DEFINE(constraint);
+
+    rule<class TTaskNetwork, TaskNetwork> const task_network = "task_network";
+    auto const task_network_def = method_subtasks >> task_network_orderings;
+    BOOST_SPIRIT_DEFINE(task_network);
 
 
-    // Methods used to decompose abstract tasks into primitive actions
-    // task as defined in Method struct != task defined in task struct
-    // mtask refers to task definition found within a method:
-    rule<class TMtask, MTask> const mtask = "mtask";
-    auto const mtask_def = lit(":task") >> '(' >> name >> *term >> ')';
-    BOOST_SPIRIT_DEFINE(mtask);
 
     rule<class TMethod, Method> const method = "method";
     auto const method_def = '(' >> lit(":method")
                                 >> name
                                 >> parameters
                                 >> mtask // one task
-                                >> -precondition
-//                                >> -constraint
-                                >> -osubtask
-//                                >> -subtask
+                                >> precondition
+                                >> task_network
                                 >> ')';
     BOOST_SPIRIT_DEFINE(method);
 
 
-    // Primitive Actions
+    // Primitive actions
     rule<class TAction, Action> const action = "action";
     auto const action_def = '('
                                >> lit(":action")
@@ -293,7 +329,7 @@ namespace parser {
                                >> ')';
     BOOST_SPIRIT_DEFINE(action);
 
-    // Domain Definition
+    // Domain definition
     rule<class TDomain, Domain> const domain = "domain";
     auto const domain_def = '(' >> lit("define") >> '('
                                >> lit("domain")
@@ -302,14 +338,14 @@ namespace parser {
                                >> -types
                                >> -constants
                                >> -predicates 
-                               >> *task
+                               >> *abstract_task
                                >> *method
                                >> *action
                                >> ')';
     BOOST_SPIRIT_DEFINE(domain);
 
 
-    // Problem Definition
+    // Problem definition
     rule<class TObjects, TypedList<Name>> const objects = "objects";
     auto const objects_def = '(' >> lit(":objects") 
                                >> typed_list_names 
