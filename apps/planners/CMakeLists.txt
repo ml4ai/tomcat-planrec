@@ -26,7 +26,7 @@ target_include_directories(simple_sar_MCTS_planner PRIVATE ${GRAPHVIZ_INCLUDE_DI
 target_link_libraries(simple_sar_MCTS_planner PRIVATE ${GRAPHVIZ_LIBS})
 
 # Team SAR domain using Monte Carlo Tree Search
-add_executable(team_sar_MCTS_planner simple_sar_MCTS_planner.cpp)
+add_executable(team_sar_MCTS_planner team_sar_MCTS_planner.cpp)
 target_include_directories(team_sar_MCTS_planner PRIVATE ${Boost_INCLUDE_DIR}
     ../../lib/cpphop)
 target_include_directories(team_sar_MCTS_planner PRIVATE ${GRAPHVIZ_INCLUDE_DIR}
