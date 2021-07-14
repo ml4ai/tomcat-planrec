@@ -130,7 +130,6 @@ namespace ast {
     };
 
     using SubTask = boost::variant<MTask, SubTaskWithId>;
-
     using SubTasks = boost::variant<Nil, SubTask, std::vector<SubTask>>;
 
     struct Ordering : x3::position_tagged {
@@ -148,6 +147,7 @@ namespace ast {
     struct TaskNetwork : x3::position_tagged {
         MethodSubTasks subtasks;
         Orderings orderings;
+        Constraints constraints;
     };
 
     // Totally-ordered methods use the keyword 'ordered-subtasks'

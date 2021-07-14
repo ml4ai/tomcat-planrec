@@ -53,6 +53,6 @@ BOOST_FUSION_ADAPT_STRUCT(ast::MTask, name, parameters)
 BOOST_FUSION_ADAPT_STRUCT(ast::Ordering, first, second)
 BOOST_FUSION_ADAPT_STRUCT(ast::SubTaskWithId, id, subtask)
 BOOST_FUSION_ADAPT_STRUCT(ast::MethodSubTasks, ordering_kw, subtasks)
-BOOST_FUSION_ADAPT_STRUCT(ast::TaskNetwork, subtasks, orderings)
+BOOST_FUSION_ADAPT_STRUCT(ast::TaskNetwork, subtasks, orderings, constraints)
 BOOST_FUSION_ADAPT_STRUCT(
     ast::Method, name, parameters, task, precondition, task_network)

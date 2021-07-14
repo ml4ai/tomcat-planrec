@@ -178,11 +178,10 @@ namespace parser {
 
     rule<class TImplySentence, ImplySentence> const imply_sentence =
                                    "imply_sentence";
-    auto const imply_sentence_def = '('
-                               >> lit("imply")
-                               > sentence
-                               > sentence
-                               > ')';
+    auto const imply_sentence_def = ('(' >> lit("imply"))
+                                    > sentence
+                                    > sentence
+                                    > ')';
     BOOST_SPIRIT_DEFINE(imply_sentence);
     struct TImplySentence: x3::annotate_on_success {};
 
@@ -227,38 +226,35 @@ namespace parser {
 
     // Typed Lists
     rule<class TTypes, TypedList<Name>> const types = "types";
-    auto const types_def = '(' 
-                               >> lit(":types") 
-                               >> typed_list_names 
-                               >> ')';
+    auto const types_def = ('(' >> lit(":types"))
+                               > typed_list_names 
+                               > ')';
     BOOST_SPIRIT_DEFINE(types);
     struct TTypes: x3::annotate_on_success {};
 
     rule<class TConstants, TypedList<Name>> const constants = "constants";
-    auto const constants_def = '(' 
-                               >> lit(":constants") 
-                               >> typed_list_names 
-                               >> ')';
+    auto const constants_def = ('(' >> lit(":constants"))
+                               > typed_list_names 
+                               > ')';
     BOOST_SPIRIT_DEFINE(constants);
     struct TConstants : x3::annotate_on_success {};
 
     rule<class TPredicates, std::vector<AtomicFormulaSkeleton>> const
         predicates = "predicates";
-    auto const predicates_def = '(' 
-                               >> lit(":predicates") 
-                               >> +atomic_formula_skeleton >> ')';
+    auto const predicates_def = ('(' >> lit(":predicates"))
+                               > +atomic_formula_skeleton > ')';
     BOOST_SPIRIT_DEFINE(predicates);
     struct TPredicates: x3::annotate_on_success {};
 
     rule<class TPrecondition, Sentence> const precondition = "precondition";
     auto const precondition_def = lit(":precondition")
-                               >> sentence;
+                               > sentence;
     BOOST_SPIRIT_DEFINE(precondition);
     struct TPrecondition: x3::annotate_on_success {};
 
     rule<class TEffect, Sentence> const effect = "effect";
     auto const effect_def = lit(":effect")
-                              >> sentence;
+                              > sentence;
     BOOST_SPIRIT_DEFINE(effect);
     struct TEffect: x3::annotate_on_success {};
 
@@ -266,7 +262,7 @@ namespace parser {
     auto const parameters_def = lit(":parameters")
                                > '('
                                > typed_list_variables
-                               >> ')';
+                               > ')';
     BOOST_SPIRIT_DEFINE(parameters);
     struct TParameters: x3::annotate_on_success {};
 
@@ -292,7 +288,7 @@ namespace parser {
     // task as defined in Method struct != task defined in task struct
     // mtask refers to task definition found within a method:
     rule<class TMTask, MTask> const mtask = "mtask";
-    auto const mtask_def = lit(":task") >> task_symbol_with_terms;
+    auto const mtask_def = lit(":task") > task_symbol_with_terms;
     BOOST_SPIRIT_DEFINE(mtask);
     struct TMTask: x3::annotate_on_success {};
 
@@ -322,7 +318,7 @@ namespace parser {
     struct TOrderings: x3::annotate_on_success {};
 
     rule<class TTaskNetworkOrderings, Orderings> const task_network_orderings = "task_network_orderings";
-    auto const task_network_orderings_def = lit(":ordering") >> orderings;
+    auto const task_network_orderings_def = lit(":ordering") > orderings;
     BOOST_SPIRIT_DEFINE(task_network_orderings);
     struct TTaskNetworkOrderings: x3::annotate_on_success {};
 
@@ -345,18 +341,17 @@ namespace parser {
 
     rule<class TEqualsSentence, EqualsSentence> const equals_sentence =
                                    "equals_sentence";
-    auto const equals_sentence_def = '('
-                               >> lit("=")
-                               > term
-                               > term
-                               > ')';
+    auto const equals_sentence_def = ('(' >> lit("="))
+                                 > term
+                                 > term
+                                 > ')';
     BOOST_SPIRIT_DEFINE(equals_sentence);
     struct TEqualsSentence : x3::annotate_on_success {};
 
     rule<class TNotEqualsSentence, NotEqualsSentence> const not_equals_sentence =
                                    "not_equals_sentence";
-    auto const not_equals_sentence_def = '('
-                               >> lit("not")
+    auto const not_equals_sentence_def = ('('
+                               >> lit("not"))
                                > equals_sentence
                                > ')';
     BOOST_SPIRIT_DEFINE(not_equals_sentence);
@@ -369,6 +364,7 @@ namespace parser {
 
     rule<class TConstraints, Constraints> const constraints = "constraints";
     auto const constraints_def = nil | constraint | '(' >> lit("and") >> +constraint >> ')';
+    BOOST_SPIRIT_DEFINE(constraints);
     struct TConstraints : x3::annotate_on_success {};
 
     rule<class TTaskNetwork, TaskNetwork> const task_network = "task_network";
@@ -377,8 +373,6 @@ namespace parser {
                                >> -(lit(":constraints") > constraints);
     BOOST_SPIRIT_DEFINE(task_network);
     struct TTaskNetwork: x3::annotate_on_success {};
-
-
 
     rule<class TMethod, Method> const method = "method";
     auto const method_def = ('(' >> lit(":method"))
@@ -405,7 +399,7 @@ namespace parser {
 
     // Domain definition
     rule<class TDomain, Domain> const domain = "domain";
-    auto const domain_def = ('(' >> lit("define") ) > '('
+    auto const domain_def = ('(' >> lit("define")) > '('
                                >> lit("domain")
                                > name > ')'
                                > requirements
@@ -422,35 +416,35 @@ namespace parser {
 
     // Problem definition
     rule<class TObjects, TypedList<Name>> const objects = "objects";
-    auto const objects_def = '(' >> lit(":objects") 
-                               >> typed_list_names 
-                               >> ')';
+    auto const objects_def = ('(' >> lit(":objects"))
+                               > typed_list_names 
+                               > ')';
     BOOST_SPIRIT_DEFINE(objects);
     struct TObjects: x3::annotate_on_success {};
 
     rule<class TInit, Literal<Term>> const init = "init";
-    auto const init_def = '(' >> lit(":init") 
-                               >> literal_terms 
-                               >> ')';
+    auto const init_def = ('(' >> lit(":init"))
+                               > literal_terms 
+                               > ')';
     BOOST_SPIRIT_DEFINE(init);
     struct TInit: x3::annotate_on_success {};
 
     rule<class TGoal, Sentence> const goal = "goal";
-    auto const goal_def = '(' >> lit(":goal") 
-                               >> sentence 
-                               >> ')';
+    auto const goal_def = ('(' >> lit(":goal"))
+                               > sentence 
+                               > ')';
     BOOST_SPIRIT_DEFINE(goal);
     struct TGoal: x3::annotate_on_success {};
 
     rule<class TProblem, Problem> const problem = "problem";
-    auto const problem_def = '(' >> lit("define")
-                               >> '(' >> lit("problem") >> name >> ')'
-                               >> '(' >> lit(":domain") >> name >> ')'
+    auto const problem_def = ('(' >> lit("define"))
+                               > ('(' >> lit("problem")) > name > ')'
+                               > ('(' >> lit(":domain")) > name > ')'
                                >> -requirements
                                >> -objects
-                               >> init
-                               >> goal
-                               >> ')';
+                               > init
+                               > goal
+                               > ')';
     BOOST_SPIRIT_DEFINE(problem);
     struct TProblem: x3::annotate_on_success {};
 
