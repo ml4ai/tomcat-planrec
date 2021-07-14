@@ -199,19 +199,18 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(name(af6.args[0]) == "name");
     BOOST_TEST(name(af6.args[1]) == "variable");
 
-    auto s7 =
-        parse<Sentence>(R"(
-        (imply 
-            (forall 
-                (?x) 
-                (forall 
-                    (?y) 
-                    (imply 
-                        (Animal ?y) 
+    auto s7 = parse<Sentence>(R"(
+        (imply
+            (forall
+                (?x)
+                (forall
+                    (?y)
+                    (imply
+                        (Animal ?y)
                         (Loves ?x ?y))))
             (exists (?y) (Loves ?y ?x)))
         )",
-        sentence());
+                              sentence());
     auto cs = get<ImplySentence>(s7);
     auto fs1 = get<ForallSentence>(cs.sentence1);
     BOOST_TEST(fs1.variables.implicitly_typed_list.value()[0].name == "x");
@@ -221,7 +220,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // TEST PARSING OF DOMAIN DEFINITION AND ITS COMPONENTS
 
     storage = R"(
-        (define 
+        (define
             (domain transport)
             (:requirements :strips :typing)
             (:types site package - object
@@ -240,7 +239,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
             (:task get-to
              :parameters (?s - site))
-            
+
             ;; Methods
             (:method m-deliver
              :parameters (?p - package
@@ -249,7 +248,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
              :precondition (or (tAt ?l)
                                (tAt ?s))
 
-             :ordered-subtasks 
+             :ordered-subtasks
                 (and (get-to ?lp)
                      (pick-up ?ld ?p)
                      (get-to ?ld)
@@ -257,10 +256,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
             ;; Actions
             (:action drive
-              :parameters 
+              :parameters
                     (?box1 ?box2 - package
                      ?loc1 ?loc2 - site)
-              :precondition 
+              :precondition
                     (and (tAt ?loc1)
                          (in-transit ?loc1 ?loc2))
               :effect
@@ -323,18 +322,16 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto methodprec1_os = get<Literal<Term>>(methodprec_s.sentences[0]);
     auto methodprec2_os = get<Literal<Term>>(methodprec_s.sentences[1]);
     BOOST_TEST(methodprec1_os.predicate == "tAt");
-    BOOST_TEST(get<Variable>(methodprec2_os.args[0]).name == "s");
+    BOOST_TEST(name(methodprec2_os.args[0]) == "s");
 
-    // Test Parsing Method Optional Ordered-Subtasks (Totally-Ordered Methods)
-    // auto osubtask_f = dom.methods[0].osubtasks;
-    auto osubtask_s = get<MTask>(
-        get<vector<SubTask>>(dom.methods[0].task_network.subtasks.subtasks)[2]);
-    // auto osubtask_s = get<ConnectedSentence>(osubtask_f);
+    // Test parsing method optional ordered-subtasks (totally-ordered methods)
+    auto osubtask_s = get<MTask>(get<vector<SubTask>>(
+        dom.methods[0].task_network.subtasks.value().subtasks)[2]);
     BOOST_TEST(osubtask_s.name == "get-to");
     BOOST_TEST(name(osubtask_s.parameters[0]) == "ld");
 
-    // Test Parsing of DOMAIN ACTIONS and their components:
-    // Test Parsing Action Names
+    // Test parsing of domain actions and their components:
+    // Test parsing action names
     auto actname1 = dom.actions[0].name;
     BOOST_TEST(actname1 == "drive");
 
@@ -411,9 +408,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test initial state
     BOOST_TEST(get<Literal<Term>>(prob.init).predicate == "on-site");
-    BOOST_TEST(get<Constant>(get<Literal<Term>>(prob.init).args[0]).name ==
+    BOOST_TEST(name(get<Literal<Term>>(prob.init).args[0]) ==
                "adobe");
-    BOOST_TEST(get<Constant>(get<Literal<Term>>(prob.init).args[1]).name ==
+    BOOST_TEST(name(get<Literal<Term>>(prob.init).args[1]) ==
                "factory");
 
     // Test problem goal
@@ -491,7 +488,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:init
                (on-site adobe factory))
             (:goal
-                (exists (?var1) 
+                (exists (?var1)
                         (and (pred1 ar1 ?var2)
                              (pred1 ar2 ?var3)))
             );end goal
@@ -523,7 +520,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (:init
                (on-site adobe factory))
             (:goal
-                (forall (?var1) 
+                (forall (?var1)
                         (not (pred1 ar1 ?var2)))
             );end goal
         );end define

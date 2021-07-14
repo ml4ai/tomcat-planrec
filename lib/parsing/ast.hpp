@@ -41,7 +41,7 @@ namespace ast {
 
     template <class T> struct TypedList {
         std::vector<ExplicitlyTypedList<T>> explicitly_typed_lists;
-        boost::optional<ImplicitlyTypedList<T>> implicitly_typed_list;
+        std::optional<ImplicitlyTypedList<T>> implicitly_typed_list;
     };
 
     struct AtomicFormulaSkeleton : x3::position_tagged {
@@ -145,9 +145,9 @@ namespace ast {
     };
 
     struct TaskNetwork : x3::position_tagged {
-        MethodSubTasks subtasks;
-        Orderings orderings;
-        Constraints constraints;
+        std::optional<MethodSubTasks> subtasks;
+        std::optional<Orderings> orderings;
+        std::optional<Constraints> constraints;
     };
 
     // Totally-ordered methods use the keyword 'ordered-subtasks'
