@@ -234,12 +234,14 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                 (at ?box - package ?house - site)
                 (tAt ?l))
 
+            ;; Abstract tasks
             (:task deliver
              :parameters (?p - package ?s - site))
 
             (:task get-to
              :parameters (?s - site))
             
+            ;; Methods
             (:method m-deliver
              :parameters (?p - package
                           ?lp ?ld - site)
@@ -247,14 +249,15 @@ BOOST_AUTO_TEST_CASE(test_parser) {
              :precondition (or (tAt ?l)
                                (tAt ?s))
 
-              :ordered-subtasks 
+             :ordered-subtasks 
                 (and (get-to ?lp)
                      (pick-up ?ld ?p)
                      (get-to ?ld)
                      (drop ?ld ?p)))
 
+            ;; Actions
             (:action drive
-                :parameters 
+              :parameters 
                     (?box1 ?box2 - package
                      ?loc1 ?loc2 - site)
               :precondition 
