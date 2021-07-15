@@ -185,31 +185,27 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(imply_sentence);
     struct TImplySentence: x3::annotate_on_success {};
 
+    // Quantifier (exists/forall)
+    struct quantifier_ : x3::symbols<std::string> {
+        quantifier_() {
+            add
+                ("exists", "exists")
+                ("forall" , "forall")
+            ;
+        }
+    } quantifier;
 
-    rule<class TExistsSentence, ExistsSentence> const exists_sentence =
-                                   "exists_sentence";
-    auto const exists_sentence_def = '('
-                               >> lit("exists")
+    rule<class TQuantifiedSentence, QuantifiedSentence> const quantified_sentence =
+                                   "quantified_sentence";
+    auto const quantified_sentence_def = '('
+                               >> quantifier
                                >> '('
                                >> typed_list_variables
                                >> ')'
                                >> sentence
                                >> ')';
-    BOOST_SPIRIT_DEFINE(exists_sentence);
-    struct TExistsSentence: x3::annotate_on_success {};
-
-
-    rule<class TForallSentence, ForallSentence> const forall_sentence =
-                                   "forall_sentence";
-    auto const forall_sentence_def = '('
-                               >> lit("forall")
-                               >> '('
-                               >> typed_list_variables
-                               >> ')'
-                               >> sentence
-                               >> ')';
-    BOOST_SPIRIT_DEFINE(forall_sentence);
-    struct TForallSentence: x3::annotate_on_success {};
+    BOOST_SPIRIT_DEFINE(quantified_sentence);
+    struct TQuantifiedSentence: x3::annotate_on_success {};
 
 
     auto const sentence_def = 
@@ -218,8 +214,8 @@ namespace parser {
         | connected_sentence 
         | not_sentence 
         | imply_sentence 
-        | exists_sentence 
-        | forall_sentence;
+        | quantified_sentence
+        ;
     BOOST_SPIRIT_DEFINE(sentence);
     struct TSentence : x3::annotate_on_success {};
 

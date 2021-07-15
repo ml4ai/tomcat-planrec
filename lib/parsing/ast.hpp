@@ -68,17 +68,16 @@ namespace ast {
     struct ConnectedSentence;
     struct NotSentence;
     struct ImplySentence;
-    struct ExistsSentence;
-    struct ForallSentence;
+    struct QuantifiedSentence;
     struct EqualsSentence;
 
-    using Sentence = boost::variant<Nil,
-                                    Literal<Term>,
-                                    boost::recursive_wrapper<ConnectedSentence>,
-                                    boost::recursive_wrapper<NotSentence>,
-                                    boost::recursive_wrapper<ImplySentence>,
-                                    boost::recursive_wrapper<ExistsSentence>,
-                                    boost::recursive_wrapper<ForallSentence>>;
+    using Sentence =
+        boost::variant<Nil,
+                       Literal<Term>,
+                       boost::recursive_wrapper<ConnectedSentence>,
+                       boost::recursive_wrapper<NotSentence>,
+                       boost::recursive_wrapper<ImplySentence>,
+                       boost::recursive_wrapper<QuantifiedSentence>>;
 
     struct ConnectedSentence : x3::position_tagged {
         std::string connector;
@@ -94,12 +93,8 @@ namespace ast {
         Sentence sentence2;
     };
 
-    struct ExistsSentence : x3::position_tagged {
-        TypedList<Variable> variables;
-        Sentence sentence;
-    };
-
-    struct ForallSentence : x3::position_tagged {
+    struct QuantifiedSentence : x3::position_tagged {
+        std::string quantifier;
         TypedList<Variable> variables;
         Sentence sentence;
     };
