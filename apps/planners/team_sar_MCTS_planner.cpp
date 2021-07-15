@@ -100,11 +100,11 @@ int main(int argc, char* argv[]) {
     }
     
     for (auto s : state1.rooms) {
-      state1.c_vic_loc[s] = {}
+      state1.c_vic_loc[s] = {};
       state1.read_c_vic_loc[s] = 0;
       state1.write_c_vic_loc[s] = 0;
 
-      state1.r_vic_loc[s] = {}
+      state1.r_vic_loc[s] = {};
       state1.read_r_vic_loc[s] = 0;
       state1.write_r_vic_loc[s] = 0;
       
