@@ -1,5 +1,5 @@
 #include "config.hpp"
-#include "domain_def.hpp"
+#include "parser_definitions.hpp"
 
 namespace parser {
     BOOST_SPIRIT_INSTANTIATE(constant_type, iterator_type, context_type);
