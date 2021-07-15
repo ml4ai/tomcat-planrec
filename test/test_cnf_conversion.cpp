@@ -91,6 +91,9 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(e5.predicate == "a");
     auto e6 = get<Literal<Term>>(e4.sentences[1]);
     BOOST_TEST(e6.predicate == "c");
+    CNFConstructor c;
+    auto e7 = c.construct(e2);
+//    auto e7 = boost::apply_visitor(CNFConstructor(), e2);
 
     // (imply (a) (b)) => (or not (a) (b))
     auto f1 = parse<Sentence>("(imply (a) (b))", sentence());
@@ -141,11 +144,13 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto i7 = get<Literal<Term>>(i6.sentence);
     BOOST_TEST(i7.predicate == "L");
 
-    auto j1 =
-        parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y)))", sentence());
-    vector<Variable> arg;
-    auto j2 = boost::apply_visitor(StandardizeQuantiferVariables(), g1, arg);
-    cout << endl;
+
+
+//    auto j1 =
+//        parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y)))", sentence());
+//    vector<Variable> arg;
+//    auto j2 = boost::apply_visitor(StandardizeQuantiferVariables(), g1, arg);
+//    cout << endl;
 
     //  test imply
     //    auto s1 =

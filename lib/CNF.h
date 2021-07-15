@@ -605,82 +605,61 @@ namespace ast {
     struct ArgData {
       std::vector<Clause> clauses;
       bool negated = false;
+      ArgData() {
+          Clause c;
+          clauses.push_back(c);
+      }
     };
+
+    using Arg = boost::variant<ArgData>;
 
     struct CNF {
 
       std::vector<Clause> conjunctionOfClauses;
 
-      CNF(std::vector<Clause> conjunctionOfClauses) {
+      explicit CNF(const std::vector<Clause>& conjunctionOfClauses) {
           for (const auto & conjunctionOfClause : conjunctionOfClauses){
               this->conjunctionOfClauses.push_back(conjunctionOfClause);
           }
       }
 
-      int getNumberOfClauses() {
-            return conjunctionOfClauses.size();
+      int getNumberOfClauses() const {
+            return this->conjunctionOfClauses.size();
         }
 
-      std::vector<Clause> getConjunctionOfClauses() {
+      std::vector<Clause> getConjunctionOfClauses() const {
             return this->conjunctionOfClauses;
         }
     };
 
     struct CNFConstructor : public boost::static_visitor<Sentence> {
-
         CNF construct(Sentence orDistributedOverAnd){
             ArgData ad;
-            boost::apply_visitor(CNFConstructor(), orDistributedOverAnd, ad);
+            boost::apply_visitor(CNFConstructor(), (Sentence)orDistributedOverAnd, (Arg)ad);
             CNF c(ad.clauses);
             return c;
         }
 
-//        CNF construct(Literal<Term> orDistributedOverAnd){
-//            ArgData ad;
-//            boost::apply_visitor(CNFConstructor(), (Sentence)orDistributedOverAnd, (ArgData)ad);
-//            CNF c(ad.clauses);
-//            return c;
-//        }
-//
-//        CNF construct(ConnectedSentence orDistributedOverAnd){
-//            ArgData ad;
-//            boost::apply_visitor(CNFConstructor(), orDistributedOverAnd, ad);
-//            CNF c(ad.clauses);
-//            return c;
-//        }
-//
-//        CNF construct(NotSentence orDistributedOverAnd){
-//            ArgData ad;
-//            boost::apply_visitor(CNFConstructor(), orDistributedOverAnd, ad);
-//            CNF c(ad.clauses);
-//            return c;
-//        }
-
         Sentence operator()(Nil s, ArgData ad) const { return s; }
         Sentence operator()(Literal<Term> s, ArgData ad) const {
-            ArgData ad_ = ad;
-            if (ad.negated){
-                ad.clauses[ad.clauses.size() - 1].literals.push_back(s);
-            }
-            else{
-                ad.clauses[ad.clauses.size() - 1].literals.push_back(s);
-            }
+            ArgData ad_ = std::move(ad);
+            ad_.clauses[ad_.clauses.size() - 1].literals.push_back(s);
             return s;
         }
         Sentence operator()(ConnectedSentence s, ArgData ad) const {
             ArgData ad_ = ad;
-            boost::apply_visitor(CNFConstructor(), s.sentences[0], ad);
+            boost::apply_visitor(CNFConstructor(), s.sentences[0], (Arg)ad);
             if (s.connector == "and"){
                 Clause c;
                 ad_.clauses.push_back(c);
             }
-            boost::apply_visitor(CNFConstructor(), s.sentences[1], ad);
+            boost::apply_visitor(CNFConstructor(), s.sentences[1], (Arg)ad);
             return s;
         }
         Sentence operator()(NotSentence s, ArgData ad) const {
             ArgData ad_ = ad;
             ad_.negated = true;
-            boost::apply_visitor(CNFConstructor(), s.sentence, ad);
+            boost::apply_visitor(CNFConstructor(), s.sentence, (Arg)ad);
             ad_.negated = false;
             return s;
         }
