@@ -12,7 +12,7 @@
 #include "Clause.h"
 #include "parsing/ast.hpp"
 #include "parsing/ast_adapted.hpp"
-#include "parsing/domain.hpp"
+#include "parsing/api.hpp"
 #include "parsing/parse.hpp"
 #include "util.h"
 #include <boost/optional.hpp>
