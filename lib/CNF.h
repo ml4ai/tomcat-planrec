@@ -634,9 +634,9 @@ namespace ast {
 
     struct CNFConstructor : public boost::static_visitor<Sentence> {
         CNF construct(Sentence orDistributedOverAnd){
-            ArgData ad;
+            ArgData ad = ArgData();
             boost::apply_visitor(CNFConstructor(), (Sentence)orDistributedOverAnd, (Arg)ad);
-            CNF c(ad.clauses);
+            CNF c= CNF(ad.clauses);
             return c;
         }
 
