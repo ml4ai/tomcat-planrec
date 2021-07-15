@@ -81,19 +81,26 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(d5.predicate == "a");
     auto d6 = get<Literal<Term>>(d4.sentences[1]);
     BOOST_TEST(d6.predicate == "b");
+    auto d7 = construct(d2);
+    BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].predicate == "a");
+    BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].is_negative == false);
+    BOOST_TEST(d7.conjunctionOfClauses[0].literals[1].predicate == "b");
+    BOOST_TEST(d7.conjunctionOfClauses[0].literals[1].is_negative == false);
 
     // (or (and (a) (b)) (c)) => (and (or (a) (c)) (or (b) (c)))
-    auto e1 = parse<Sentence>("(or (and (a) (b)) (c))", sentence());
+    auto e1 = parse<Sentence>("(or (and (a) (b)) (not (c)))", sentence());
     auto e2 = boost::apply_visitor(DistributeOrOverAnd(), e1);
     auto e3 = get<ConnectedSentence>(e2);
     auto e4 = get<ConnectedSentence>(e3.sentences[0]);
     auto e5 = get<Literal<Term>>(e4.sentences[0]);
     BOOST_TEST(e5.predicate == "a");
-    auto e6 = get<Literal<Term>>(e4.sentences[1]);
+    auto e6 = get<Literal<Term>>(get<NotSentence>(e4.sentences[1]).sentence);
     BOOST_TEST(e6.predicate == "c");
-    CNFConstructor c;
-    auto e7 = c.construct(e2);
-//    auto e7 = boost::apply_visitor(CNFConstructor(), e2);
+    auto e7 = construct(e2);
+    BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].predicate == "a");
+    BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].is_negative == false);
+    BOOST_TEST(e7.conjunctionOfClauses[0].literals[1].predicate == "c");
+    BOOST_TEST(e7.conjunctionOfClauses[0].literals[1].is_negative == true);
 
     // (imply (a) (b)) => (or not (a) (b))
     auto f1 = parse<Sentence>("(imply (a) (b))", sentence());

@@ -20,8 +20,7 @@ namespace ast {
         return false;
     }
     // Custom hash
-    template<class T>
-    struct Hash {
+    template <class T> struct Hash {
         std::size_t operator()(T const& x) const noexcept {
             return std::hash<std::string>{}(x.name);
         }
@@ -544,44 +543,44 @@ namespace ast {
         }
     };
 
-    struct CNFConstructor : public boost::static_visitor<Sentence> {
-        CNF construct(Sentence orDistributedOverAnd) {
-            ArgData ad;
-            boost::apply_visitor(
-                CNFConstructor(), (Sentence)orDistributedOverAnd, (Arg)ad);
-            CNF c(ad.clauses);
-            return c;
+    struct CNFConstructor : public boost::static_visitor<> {
+        ArgData ad = ArgData();
+        void operator()(Nil& s) {}
+        void operator()(Literal<Term>& s) {
+            this->ad.clauses[this->ad.clauses.size() - 1].literals.push_back(s);
         }
-
-        Sentence operator()(Nil s, ArgData ad) const { return s; }
-        Sentence operator()(Literal<Term> s, ArgData ad) const {
-            ArgData ad_ = std::move(ad);
-            ad_.clauses[ad_.clauses.size() - 1].literals.push_back(s);
-            return s;
-        }
-        Sentence operator()(ConnectedSentence s, ArgData ad) const {
-            ArgData ad_ = ad;
-            boost::apply_visitor(CNFConstructor(), s.sentences[0], (Arg)ad);
+        void operator()(ConnectedSentence& s) {
+            boost::apply_visitor(*this, s.sentences[0]);
             if (s.connector == "and") {
                 Clause c;
-                ad_.clauses.push_back(c);
+                this->ad.clauses.push_back(c);
             }
-            boost::apply_visitor(CNFConstructor(), s.sentences[1], (Arg)ad);
-            return s;
+            boost::apply_visitor(*this, s.sentences[1]);
         }
-        Sentence operator()(NotSentence s, ArgData ad) const {
-            ArgData ad_ = ad;
-            ad_.negated = true;
-            boost::apply_visitor(CNFConstructor(), s.sentence, (Arg)ad);
-            ad_.negated = false;
-            return s;
+        void operator()(NotSentence& s) {
+            if (boost::apply_visitor(GetSentenceType(), s.sentence) ==
+                "Literal") {
+                get<Literal<Term>>(s.sentence).is_negative = true;
+            }
+            boost::apply_visitor(*this, s.sentence);
         }
 
-        Sentence operator()(ImplySentence s, ArgData ad) const { return s; }
-        Sentence operator()(QuantifiedSentence s, ArgData ad) const {
-            return s;
+        void operator()(ImplySentence& s) {
+            BOOST_THROW_EXCEPTION(std::runtime_error(
+                "All imply sentences should already have been removed."));
+        }
+        void operator()(QuantifiedSentence& s) {
+            BOOST_THROW_EXCEPTION(std::runtime_error(
+                "All quantified sentences should already have been removed."));
         }
     };
+
+    CNF construct(Sentence orDistributedOverAnd) {
+        auto cnf_constructor = CNFConstructor();
+        boost::apply_visitor(cnf_constructor, orDistributedOverAnd);
+        CNF c(cnf_constructor.ad.clauses);
+        return c;
+    }
 
     Sentence to_CNF(Sentence s) {
         //        auto visitor1 = GeneratePairSentence();
