@@ -73,21 +73,21 @@ namespace ast {
                        boost::recursive_wrapper<ImplySentence>,
                        boost::recursive_wrapper<QuantifiedSentence>>;
 
-    struct ConnectedSentence : x3::position_tagged {
+    struct ConnectedSentence {
         std::string connector;
         std::vector<Sentence> sentences;
     };
 
-    struct NotSentence : x3::position_tagged {
+    struct NotSentence {
         Sentence sentence;
     };
 
-    struct ImplySentence : x3::position_tagged {
+    struct ImplySentence {
         Sentence sentence1;
         Sentence sentence2;
     };
 
-    struct QuantifiedSentence : x3::position_tagged {
+    struct QuantifiedSentence {
         std::string quantifier;
         TypedList<Variable> variables;
         Sentence sentence;

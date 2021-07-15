@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto g1 =
         parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y)))", sentence());
     auto g2 = boost::apply_visitor(ImplicationsOut(), g1);
-    auto g3 = get<ForallSentence>(g2);
+    auto g3 = get<QuantifiedSentence>(g2);
     auto g4 = get<ConnectedSentence>(g3.sentence);
     auto g5 = get<NotSentence>(g4.sentences[0]);
     auto g6 = get<Literal<Term>>(g5.sentence);
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto i1 = parse<Sentence>("(not (exists (?y) (and (not (A ?y)) (L ?x ?y))))",
                               sentence());
     auto i2 = boost::apply_visitor(NegationsIn(), i1);
-    auto i3 = get<ForallSentence>(i2);
+    auto i3 = get<QuantifiedSentence>(i2);
     BOOST_TEST(i3.variables.implicitly_typed_list.value()[0].name == "y");
     auto i4 = get<ConnectedSentence>(i3.sentence);
     BOOST_TEST(i4.connector == "or");
@@ -143,8 +143,6 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto i6 = get<NotSentence>(i4.sentences[1]);
     auto i7 = get<Literal<Term>>(i6.sentence);
     BOOST_TEST(i7.predicate == "L");
-
-
 
 //    auto j1 =
 //        parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y)))", sentence());
@@ -162,8 +160,12 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     //    // Should produce (a ∨ b) ∧ (a ∨ c)
     //    auto clauses = to_CNF(s2);
     //    cout << endl;
-
-    // THIS TEST FAILS, FIXME
-    //    BOOST_TEST(get<ast::AtomicFormula<ast::Term>>(clauses[0].literals[0]).predicate.name
-    //    == "a");
 }
+
+BOOST_AUTO_TEST_CASE(test_custom_map) {
+    std::unordered_map<Variable, Symbol, Hash<Variable>> mymap;
+    auto v = Variable{"var"};
+    mymap[v] =  Symbol{"sym"};
+    BOOST_TEST(mymap.contains(v));
+}
+
