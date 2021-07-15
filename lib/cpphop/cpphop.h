@@ -242,7 +242,6 @@ simulation(Tree<State, Selector> t,
            Domain domain,
            Selector selector,
            int seed) {
-
     if (t[n].tasks.empty()) {
         return t[n].likelihood;
     }
@@ -251,6 +250,7 @@ simulation(Tree<State, Selector> t,
     auto [task_id, args] = task;
     if (in(task_id, domain.operators)) {
         Operator<State> op = domain.operators[task_id];
+        std::cout << "task_id: " << task_id << std::endl;
         std::optional<State> newstate = op(t[n].state, args);
         if (newstate) {
             pOperator<State> pop = domain.poperators[task_id];
@@ -266,8 +266,10 @@ simulation(Tree<State, Selector> t,
             v.likelihood = t[n].likelihood*pop(t[n].state,v.state,args);
             int w = boost::add_vertex(v, t);
             t[n].successors.push_back(w);
+            seed++;
             return simulation(t, w, domain, selector,seed);
         }
+        std::cout << task_id << std::endl;
         throw std::logic_error(
             "Action Preconditions failed during simulation!");
     }
