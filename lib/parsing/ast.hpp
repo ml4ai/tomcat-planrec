@@ -2,10 +2,10 @@
 
 #include "../fol/Constant.h"
 #include "../fol/Function.h"
+#include "../fol/Literal.h"
 #include "../fol/Predicate.h"
 #include "../fol/Term.h"
 #include "../fol/Variable.h"
-#include "../fol/Literal.h"
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
@@ -21,10 +21,10 @@ namespace ast {
 
     // Import some classes that are more generally useful
     using fol::Constant;
+    using fol::Literal;
     using fol::Predicate;
     using fol::Term;
     using fol::Variable;
-    using fol::Literal;
 
     using PrimitiveType = std::string;
 
@@ -41,7 +41,7 @@ namespace ast {
 
     template <class T> struct TypedList {
         std::vector<ExplicitlyTypedList<T>> explicitly_typed_lists;
-        boost::optional<ImplicitlyTypedList<T>> implicitly_typed_list;
+        std::optional<ImplicitlyTypedList<T>> implicitly_typed_list;
     };
 
     struct AtomicFormulaSkeleton : x3::position_tagged {
@@ -49,7 +49,7 @@ namespace ast {
         TypedList<Variable> variables;
     };
 
-    struct Nil {
+    struct Nil : x3::position_tagged {
         bool operator==(const Nil& nil) const;
     };
 
@@ -62,16 +62,16 @@ namespace ast {
     struct ConnectedSentence;
     struct NotSentence;
     struct ImplySentence;
-    struct ExistsSentence;
-    struct ForallSentence;
+    struct QuantifiedSentence;
+    struct EqualsSentence;
 
-    using Sentence = boost::variant<Nil,
-                                    Literal<Term>,
-                                    boost::recursive_wrapper<ConnectedSentence>,
-                                    boost::recursive_wrapper<NotSentence>,
-                                    boost::recursive_wrapper<ImplySentence>,
-                                    boost::recursive_wrapper<ExistsSentence>,
-                                    boost::recursive_wrapper<ForallSentence>>;
+    using Sentence =
+        boost::variant<Nil,
+                       Literal<Term>,
+                       boost::recursive_wrapper<ConnectedSentence>,
+                       boost::recursive_wrapper<NotSentence>,
+                       boost::recursive_wrapper<ImplySentence>,
+                       boost::recursive_wrapper<QuantifiedSentence>>;
 
     struct ConnectedSentence {
         std::string connector;
@@ -87,15 +87,25 @@ namespace ast {
         Sentence sentence2;
     };
 
-    struct ExistsSentence {
+    struct QuantifiedSentence {
+        std::string quantifier;
         TypedList<Variable> variables;
         Sentence sentence;
     };
 
-    struct ForallSentence {
-        TypedList<Variable> variables;
-        Sentence sentence;
+    struct EqualsSentence : x3::position_tagged {
+        Term lhs;
+        Term rhs;
     };
+
+    struct NotEqualsSentence : x3::position_tagged {
+        Term lhs;
+        Term rhs;
+    };
+
+    using Constraint = boost::variant<Nil, EqualsSentence, NotEqualsSentence>;
+    using Constraints =
+        boost::variant<Nil, Constraint, std::vector<Constraint>>;
 
     // Abstract Tasks
     struct Task : x3::position_tagged {
@@ -103,21 +113,49 @@ namespace ast {
         TypedList<Variable> parameters;
     };
 
+    // Task that a method decomposes
+    struct MTask : x3::position_tagged {
+        Name name;
+        std::vector<Term> parameters;
+    };
 
-// Totally-ordered methods use the keyword 'ordered-subtasks'
-// Partially-ordered methods use the keyword 'subtasks'
+    struct SubTaskWithId : x3::position_tagged {
+        Name id;
+        MTask subtask;
+    };
+
+    using SubTask = boost::variant<MTask, SubTaskWithId>;
+    using SubTasks = boost::variant<Nil, SubTask, std::vector<SubTask>>;
+
+    struct Ordering : x3::position_tagged {
+        Name first;
+        Name second;
+    };
+
+    using Orderings = boost::variant<Nil, Ordering, std::vector<Ordering>>;
+
+    struct MethodSubTasks : x3::position_tagged {
+        std::string ordering_kw;
+        SubTasks subtasks;
+    };
+
+    struct TaskNetwork : x3::position_tagged {
+        std::optional<MethodSubTasks> subtasks;
+        std::optional<Orderings> orderings;
+        std::optional<Constraints> constraints;
+    };
+
+    // Totally-ordered methods use the keyword 'ordered-subtasks'
+    // Partially-ordered methods use the keyword 'subtasks'
     struct Method : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
-        Literal<Term> tasks;
-//        Sentence constraints;//optional
-        Sentence precondition; //optional
-        Sentence osubtasks;// iff keyword ordered-subtasks
-//        Sentence subtasks; //iff keyword subtasks
+        MTask task;
+        Sentence precondition; // optional
+        TaskNetwork task_network;
     };
 
-
-    // Primitive Actions 
+    // Primitive Actions
     struct Action : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;

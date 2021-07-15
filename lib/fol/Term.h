@@ -10,4 +10,5 @@ namespace fol {
 
     using Term =
         boost::variant<Constant, Variable, boost::recursive_wrapper<Function>>;
+
 } // namespace fol
