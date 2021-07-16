@@ -250,7 +250,6 @@ simulation(Tree<State, Selector> t,
     auto [task_id, args] = task;
     if (in(task_id, domain.operators)) {
         Operator<State> op = domain.operators[task_id];
-        std::cout << "task_id: " << task_id << std::endl;
         std::optional<State> newstate = op(t[n].state, args);
         if (newstate) {
             pOperator<State> pop = domain.poperators[task_id];
