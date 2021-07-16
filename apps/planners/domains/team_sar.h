@@ -450,7 +450,7 @@ template <class State> std::optional<State> pickup_vic(State state, Args args) {
   int end = start + duration;
 
   if (state.agent_loc[agent] == area && state.role[agent] == "searcher" &&
-      state.holding[agent] == "NONE" && state.r_seen[agent].size() > 0 &&
+      state.holding[agent] == "NONE" && !state.r_seen[agent].empty() &&
       end <= 900) {
     
     state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
@@ -1657,8 +1657,10 @@ template <class State> pTasks move_victim_searcher(State state, Args args) {
 
   for (auto a : state.agents) {
     if (state.role[a] == "medic") {
-      n_area = state.agent_loc[a];
-      if (n_area == state.agent_loc[agent]) {
+      if (state.hall_blockage[state.agent_loc[agent]][state.agent_loc[a]] == 0) {
+        n_area = state.agent_loc[a];
+      }
+      if (state.agent_loc[a] == state.agent_loc[agent]) {
         medic_here = true;
       }
     }
@@ -1713,7 +1715,7 @@ template <class State> pTasks move_victim_searcher(State state, Args args) {
                           {"start",start_move},
                           {"duration",duration_move}})),
        Task("!put_down_vic",Args({{"agent",agent},
-                                 {"n_area",n_area},
+                                 {"area",n_area},
                                  {"start",start_putdown},
                                  {"duration",duration_putdown}}))}};
   }  
