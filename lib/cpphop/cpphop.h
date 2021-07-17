@@ -17,7 +17,7 @@ template <class State, class Domain>
 pTasks seek_plan(State state,
                  std::vector<Task> tasks,
                  pTasks plan,
-                 Domain domain,
+                 Domain& domain,
                  int depth) {
     std::cout << "depth: " << depth << std::endl;
     std::cout << "tasks: ";
@@ -67,7 +67,7 @@ pTasks seek_plan(State state,
 
 template <class State, class Domain, class Selector>
 Tree<State, Selector>
-seek_planDFS(Tree<State, Selector> t, int v, Domain domain) {
+seek_planDFS(Tree<State, Selector>& t, int v, Domain domain) {
     std::cout << "depth: " << t[v].depth << std::endl;
     std::cout << "tasks: ";
     print(t[v].tasks);
@@ -134,7 +134,7 @@ pTasks cpphop(State state, Tasks tasks, Domain domain) {
 }
 
 template <class State, class Domain, class Selector>
-Plans cpphopDFS(State state, Tasks tasks, Domain domain, Selector selector) {
+Plans cpphopDFS(State state, Tasks tasks, Domain& domain, Selector selector) {
     Tree<State, Selector> t;
     Node<State, Selector> root;
     root.state = state;
@@ -152,9 +152,9 @@ Plans cpphopDFS(State state, Tasks tasks, Domain domain, Selector selector) {
 // the successor/predecessor functions are not used
 template <class State, class Selector>
 int
-selection(Tree<State, Selector> t, 
-          int v, 
-          double eps, 
+selection(Tree<State, Selector>& t,
+          int v,
+          double eps,
           int seed = 4021) {
     if (t[v].successors.empty()) {
         return v;
@@ -219,7 +219,7 @@ selection(Tree<State, Selector> t,
 }
 
 template <class State, class Selector>
-Tree<State, Selector> backprop(Tree<State, Selector> t, int n, double r) {
+Tree<State, Selector> backprop(Tree<State, Selector>& t, int n, double r) {
   if (t[n].successors.empty()) {
     t[n].selector.mean = r;
     t[n].selector.sims++;
@@ -237,9 +237,9 @@ Tree<State, Selector> backprop(Tree<State, Selector> t, int n, double r) {
 
 template <class State, class Domain, class Selector>
 double
-simulation(Tree<State, Selector> t, 
-           int n, 
-           Domain domain,
+simulation(Tree<State, Selector>& t,
+           int n,
+           Domain& domain,
            Selector selector,
            int seed) {
     if (t[n].tasks.empty()) {
@@ -309,9 +309,9 @@ simulation(Tree<State, Selector> t,
 }
 
 template <class State, class Domain, class Selector>
-std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector> t,
+std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector>& t,
                                                 int n,
-                                                Domain domain,
+                                                Domain& domain,
                                                 Selector selector,
                                                 int seed = 4021) {
     Task task = t[n].tasks.back();
@@ -331,7 +331,7 @@ std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector> t,
             v.plan.second.push_back(task);
             v.selector = selector;
             v.pred = n;
-            v.likelihood = t[n].likelihood*pop(t[n].state,v.state,args); 
+            v.likelihood = t[n].likelihood*pop(t[n].state,v.state,args);
             int w = boost::add_vertex(v, t);
             t[n].successors.push_back(w);
             return std::make_pair(t, w);
@@ -377,7 +377,7 @@ template <class State, class Domain, class Selector>
 Tree<State,Selector>
 seek_planMCTS(Tree<State,Selector> t,
                  int v,
-                 Domain domain, 
+                 Domain& domain,
                  Selector selector,
                  int N = 30,
                  double eps = 0.4,
@@ -419,10 +419,10 @@ seek_planMCTS(Tree<State,Selector> t,
         seed++;
         double r = simulation(m_new, n_p, domain, selector,seed);
         seed++;
-        m = backprop(m_new,n_p,r);   
+        m = backprop(m_new,n_p,r);
       }
     }
-  } 
+  }
   int arg_max = m[w].successors.front();
   double max = m[arg_max].selector.mean;
   for (int s : m[w].successors) {
@@ -449,7 +449,7 @@ seek_planMCTS(Tree<State,Selector> t,
 template <class State, class Domain, class Selector>
 std::pair<Tree<State,Selector>,int> cpphopMCTS(State state,
                   Tasks tasks,
-                  Domain domain,
+                  Domain& domain,
                   Selector selector,
                   int N,
                   double eps = 0.4,
