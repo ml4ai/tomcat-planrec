@@ -242,6 +242,7 @@ simulation(Tree<State, Selector> t,
            Domain domain,
            Selector selector,
            int seed) {
+    std::cout << seed << std::endl;
     if (t[n].tasks.empty()) {
         return t[n].likelihood;
     }
