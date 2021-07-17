@@ -242,7 +242,6 @@ simulation(Tree<State, Selector> t,
            Domain domain,
            Selector selector,
            int seed) {
-    std::cout << seed << std::endl;
     if (t[n].tasks.empty()) {
         return t[n].likelihood;
     }
@@ -259,6 +258,7 @@ simulation(Tree<State, Selector> t,
             v.tasks = t[n].tasks;
             v.tasks.pop_back();
             v.depth = t[n].depth + 1;
+            std::cout << v.depth << std::endl;
             v.plan = t[n].plan;
             v.plan.second.push_back(task);
             v.selector = selector;
