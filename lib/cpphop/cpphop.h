@@ -219,7 +219,7 @@ selection(Tree<State, Selector>& t,
 }
 
 template <class State, class Selector>
-Tree<State, Selector> backprop(Tree<State, Selector>& t, int n, double r) {
+void backprop(Tree<State, Selector>& t, int n, double r) {
   if (t[n].successors.empty()) {
     t[n].selector.mean = r;
     t[n].selector.sims++;
@@ -229,45 +229,35 @@ Tree<State, Selector> backprop(Tree<State, Selector>& t, int n, double r) {
     t[n].selector.sims++;
   }
   if (t[n].pred == -1) {
-    return t;
+    return;
   }
 
-  return backprop(t,t[n].pred,r);
+  backprop(t,t[n].pred,r);
+  return;
 }
 
-template <class State, class Domain, class Selector>
+template <class State, class Domain>
 double
-simulation(Tree<State, Selector>& t,
-           int n,
+simulation(State state,
+           Tasks tasks,
            Domain& domain,
-           Selector selector,
+           double likelihood,
            int seed) {
-    if (t[n].tasks.empty()) {
-        return t[n].likelihood;
+    if (tasks.empty()) {
+        return likelihood;
     }
 
-    Task task = t[n].tasks.back();
+    Task task = tasks.back();
     auto [task_id, args] = task;
     if (in(task_id, domain.operators)) {
         Operator<State> op = domain.operators[task_id];
-        std::optional<State> newstate = op(t[n].state, args);
+        std::optional<State> newstate = op(state, args);
         if (newstate) {
             pOperator<State> pop = domain.poperators[task_id];
-            Node<State, Selector> v;
-            v.state = newstate.value();
-            v.tasks = t[n].tasks;
-            v.tasks.pop_back();
-            v.depth = t[n].depth + 1;
-            std::cout << v.depth << std::endl;
-            v.plan = t[n].plan;
-            v.plan.second.push_back(task);
-            v.selector = selector;
-            v.pred = n;
-            v.likelihood = t[n].likelihood*pop(t[n].state,v.state,args);
-            int w = boost::add_vertex(v, t);
-            t[n].successors.push_back(w);
+            tasks.pop_back();
+            likelihood = likelihood*pop(state,newstate.value(),args);
             seed++;
-            return simulation(t, w, domain, selector,seed);
+            return simulation(newstate.value(),tasks,domain,likelihood,seed);
         }
         std::cout << task_id << std::endl;
         throw std::logic_error(
@@ -276,44 +266,33 @@ simulation(Tree<State, Selector>& t,
 
     if (in(task_id, domain.methods)) {
         auto relevant = domain.methods[task_id];
-        std::vector<int> c = {};
-        std::vector<double> wts = {};
+        std::vector<pTasks> c = {};
         for (auto method : relevant) {
-            pTasks subtasks = method(t[n].state, args);
+            pTasks subtasks = method(state, args);
             if (subtasks.first) {
-                wts.push_back(subtasks.first);
-                Node<State, Selector> v;
-                v.state = t[n].state;
-                v.tasks = t[n].tasks;
-                v.tasks.pop_back();
-                v.depth = t[n].depth + 1;
-                v.plan = t[n].plan;
-                v.selector = selector;
-                v.likelihood = t[n].likelihood*subtasks.first;
-                for (auto i = subtasks.second.end();
-                     i != subtasks.second.begin();) {
-                    v.tasks.push_back(*(--i));
-                }
-                v.pred = n;
-                int w = boost::add_vertex(v, t);
-                t[n].successors.push_back(w);
-                c.push_back(w);
+                c.push_back(subtasks);
             }
         }
         seed++;
-        int r = sample_method(c,wts,seed);
+        pTasks r = *select_randomly(c.begin(), c.end(), seed);
         seed++;
-        return simulation(t,r,domain,selector,seed);
+        tasks.pop_back();
+        likelihood = likelihood*r.first;
+        for (auto i = r.second.end();
+            i != r.second.begin();) {
+          tasks.push_back(*(--i));
+        }
+        return simulation(state,tasks,domain,likelihood,seed);
     }
     throw std::logic_error("Invalid task during simulation!");
 }
 
 template <class State, class Domain, class Selector>
-std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector>& t,
-                                                int n,
-                                                Domain& domain,
-                                                Selector selector,
-                                                int seed = 4021) {
+int expansion(Tree<State, Selector>& t,
+              int n,
+              Domain& domain,
+              Selector selector,
+              int seed = 4021) {
     Task task = t[n].tasks.back();
     auto [task_id, args] = task;
 
@@ -334,7 +313,7 @@ std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector>& t,
             v.likelihood = t[n].likelihood*pop(t[n].state,v.state,args);
             int w = boost::add_vertex(v, t);
             t[n].successors.push_back(w);
-            return std::make_pair(t, w);
+            return w;
         }
         throw std::logic_error("Action Preconditions failed during expansion!");
     }
@@ -368,14 +347,14 @@ std::pair<Tree<State, Selector>, int> expansion(Tree<State, Selector>& t,
         //std::cout << total << std::endl;
         seed++;
         int r = *select_randomly(c.begin(), c.end(), seed);
-        return std::make_pair(t, r);
+        return r;
     }
     throw std::logic_error("Invalid task during expansion!");
 }
 
 template <class State, class Domain, class Selector>
 Tree<State,Selector>
-seek_planMCTS(Tree<State,Selector> t,
+seek_planMCTS(Tree<State,Selector>& t,
                  int v,
                  Domain& domain,
                  Selector selector,
@@ -405,21 +384,21 @@ seek_planMCTS(Tree<State,Selector> t,
     int n = selection(m,w,eps,seed);
     seed++;
     if (m[n].tasks.empty()) {
-        double r = simulation(m, n, domain, selector,seed);
-        m = backprop(m,n,r);
+        double r = simulation(m[n].state, m[n].tasks, domain, m[n].likelihood,seed);
+        backprop(m,n,r);
     }
     else {
       if (m[n].selector.sims == 0) {
-        double r = simulation(m, n, domain, selector,seed);
+        double r = simulation(m[n].state, m[n].tasks, domain, m[n].likelihood,seed);
         seed++;
-        m = backprop(m,n,r);
+        backprop(m,n,r);
       }
       else {
-        auto [m_new, n_p] = expansion(m,n,domain,selector,seed);
+        int n_p = expansion(m,n,domain,selector,seed);
         seed++;
-        double r = simulation(m_new, n_p, domain, selector,seed);
+        double r = simulation(m[n_p].state, m[n_p].tasks, domain, m[n_p].likelihood,seed);
         seed++;
-        m = backprop(m_new,n_p,r);
+        backprop(m,n_p,r);
       }
     }
   }
@@ -467,7 +446,7 @@ std::pair<Tree<State,Selector>,int> cpphopMCTS(State state,
     std::cout << "Initial State:" << std::endl;
     std::cout << t[v].state.to_json() << std::endl;
     std::cout << std::endl;
-    t = seek_planMCTS(t, v, domain, selector, N, eps, seed);
+    seek_planMCTS(t, v, domain, selector, N, eps, seed);
     std::cout << "Plan:" << std::endl;
     print(t[boost::graph_bundle].plans.back());
     return std::make_pair(t,v);
