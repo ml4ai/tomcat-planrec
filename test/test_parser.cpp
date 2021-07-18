@@ -25,95 +25,21 @@ std::string name(Term term) {
     return boost::apply_visitor([](const auto& t) { return t.name; }, term);
 }
 
-bool test_either_type(Type et, std::unordered_set<std::string> types) {
-    return boost::get<EitherType>(et) == types;
-}
+// String variable that we will use to store inputs (make sure the tests in
+// this module are not run in parallel!)
+string storage;
 
-BOOST_AUTO_TEST_CASE(test_parser) {
-
-    // TEST PARSING OF DATA STRUCTURES
-
-    string storage;
-
-    // Test variable parsing
-    auto v = parse<Variable>("?var", variable());
-    BOOST_TEST(v.name == "var");
-
-    // Test primitive type parsing
-    // TODO See whether we need to reintroduce the client namespace
-    auto pt = parse<PrimitiveType>("type", primitive_type());
-    BOOST_TEST(pt == "type");
-
-    // Test either type parsing
-    auto et = parse<EitherType>("(either type0 type1)", either_type());
-    BOOST_TEST(et == std::unordered_set<std::string>({"type0", "type1"}));
-
+BOOST_AUTO_TEST_CASE(test_type_parsing) {
     // Test type parsing
     auto t = parse<Type>("type", type());
     BOOST_TEST(boost::get<PrimitiveType>(t) == "type");
 
     t = parse<Type>("(either type0 type1)", type());
-    BOOST_TEST(test_either_type(t, {"type0", "type1"}));
+    BOOST_TEST(boost::get<EitherType>(t) ==
+               unordered_set<string>({"type0", "type1"}));
+}
 
-    // Test implicitly typed list of names
-    auto tl = parse<TypedList<Name>>("t0 t1 t2", typed_list_names());
-    BOOST_TEST(tl.explicitly_typed_lists.size() == 0);
-    BOOST_TEST(tl.implicitly_typed_list.value() ==
-               vector<string>({"t0", "t1", "t2"}));
-
-    // Test explicitly typed list of names
-    tl = parse<TypedList<Name>>("name0 name1 name2 - type", typed_list_names());
-    BOOST_TEST(tl.explicitly_typed_lists.size() == 1);
-    BOOST_TEST(tl.implicitly_typed_list.value().size() == 0);
-    BOOST_TEST(tl.explicitly_typed_lists[0].entries ==
-               vector<string>({"name0", "name1", "name2"}));
-    BOOST_TEST(
-        boost::get<PrimitiveType>(tl.explicitly_typed_lists[0].type) ==
-        "type");
-
-    // Test explicitly typed list with either type
-    tl = parse<TypedList<Name>>("name0 name1 name2 - (either type0 type1)",
-                                typed_list_names());
-    BOOST_TEST(tl.explicitly_typed_lists.size() == 1);
-    BOOST_TEST(tl.implicitly_typed_list.value().size() == 0);
-    BOOST_TEST(tl.explicitly_typed_lists[0].entries ==
-               vector<string>({"name0", "name1", "name2"}));
-    BOOST_TEST(test_either_type(tl.explicitly_typed_lists[0].type, {"type0", "type1"}));
-
-    // Test explicitly typed list of variables
-    auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type",
-                                          typed_list_variables());
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[1].name == "var1");
-    BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
-    BOOST_TEST(boost::get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) ==
-               "type");
-
-    // Test atomic formula skeleton
-    auto afs = parse<AtomicFormulaSkeleton>(
-        "(predicate ?var0 ?var1 - type0 ?var2)", atomic_formula_skeleton());
-    BOOST_TEST(afs.predicate == "predicate");
-    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[0].name ==
-               "var0");
-    BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[1].name ==
-               "var1");
-    BOOST_TEST(boost::get<PrimitiveType>(
-                   afs.variables.explicitly_typed_lists[0].type) == "type0");
-    BOOST_TEST(afs.variables.implicitly_typed_list.value()[0].name == "var2");
-
-    // Test requirements
-    auto reqs = parse<vector<string>>("(:requirements :strips :typing)",
-                                      requirements());
-    BOOST_TEST(reqs[0] == "strips");
-    BOOST_TEST(reqs[1] == "typing");
-
-    // Test parsing atomic formula of terms
-    auto aft = parse<AtomicFormula<Term>>("(predicate name ?variable)",
-                                          atomic_formula_terms());
-    BOOST_TEST(aft.predicate == "predicate");
-    BOOST_TEST(name(aft.args[0]) == "name");
-    BOOST_TEST(name(aft.args[1]) == "variable");
-
+BOOST_AUTO_TEST_CASE(test_fol_sentence_parsing) {
     // Test parsing of goal descriptions
     // Parse nil
     auto gd = parse<Sentence>("()", sentence());
@@ -124,6 +50,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto lit1 = boost::get<Literal<Term>>(gd2);
     BOOST_TEST(lit1.predicate == "predicate");
     BOOST_TEST(name(lit1.args[0]) == "name");
+
+    // Testing connected sentence parsing
 
     // Test and sentence parsing
     auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
@@ -145,6 +73,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test parsing or sentence
     auto s2 = parse<Sentence>("(or () (predicate name ?variable))", sentence());
     auto os = boost::get<ConnectedSentence>(s2);
+    BOOST_TEST(os.connector == "or");
     BOOST_TEST(os.sentences.size() == 2);
     BOOST_TEST(boost::get<Nil>(os.sentences[0]) == Nil());
 
@@ -220,7 +149,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto fs2 = boost::get<QuantifiedSentence>(cs.sentence2);
     BOOST_TEST(fs2.quantifier == "exists");
     BOOST_TEST(fs2.variables.implicitly_typed_list.value()[0].name == "y");
+}
 
+BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     // TEST PARSING OF DOMAIN DEFINITION AND ITS COMPONENTS
 
     storage = R"(
@@ -367,8 +298,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(effect1_af2_literal.predicate == "tAt");
     BOOST_TEST(boost::get<Variable>(effect1_af2_literal.args[0]).name ==
                "loc2");
+}
 
-    //  TEST PARSING OF PROBLEM DEFINITION AND ITS COMPONENTS
+BOOST_AUTO_TEST_CASE(test_problem_parsing) {
+    //  Test parsing of problem definition and its components
     storage = R"(
         (define
             (problem adobe)
@@ -394,8 +327,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(prob.domain_name == "construction");
 
     // Test requirements
-    BOOST_TEST(prob.requirements[0] == "strips");
-    BOOST_TEST(prob.requirements[1] == "typing");
+    BOOST_TEST(prob.requirements == vector<string>({"strips", "typing"}));
 
     // Test objects
     BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 2);
