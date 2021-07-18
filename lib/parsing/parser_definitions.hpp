@@ -18,7 +18,7 @@ namespace parser {
     auto const name =
         lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
 
-    
+
     // Rules
     rule<class TRequirement, std::vector<Name>> const requirement =
         "requirement";
@@ -208,12 +208,12 @@ namespace parser {
     struct TQuantifiedSentence: x3::annotate_on_success {};
 
 
-    auto const sentence_def = 
-        nil 
-        | literal_terms 
-        | connected_sentence 
-        | not_sentence 
-        | imply_sentence 
+    auto const sentence_def =
+        nil
+        | literal_terms
+        | connected_sentence
+        | not_sentence
+        | imply_sentence
         | quantified_sentence
         ;
     BOOST_SPIRIT_DEFINE(sentence);
@@ -223,14 +223,14 @@ namespace parser {
     // Typed Lists
     rule<class TTypes, TypedList<Name>> const types = "types";
     auto const types_def = ('(' >> lit(":types"))
-                               > typed_list_names 
+                               > typed_list_names
                                > ')';
     BOOST_SPIRIT_DEFINE(types);
     struct TTypes: x3::annotate_on_success {};
 
     rule<class TConstants, TypedList<Name>> const constants = "constants";
     auto const constants_def = ('(' >> lit(":constants"))
-                               > typed_list_names 
+                               > typed_list_names
                                > ')';
     BOOST_SPIRIT_DEFINE(constants);
     struct TConstants : x3::annotate_on_success {};
@@ -364,8 +364,8 @@ namespace parser {
     struct TConstraints : x3::annotate_on_success {};
 
     rule<class TTaskNetwork, TaskNetwork> const task_network = "task_network";
-    auto const task_network_def = -method_subtasks 
-                               >> -task_network_orderings 
+    auto const task_network_def = -method_subtasks
+                               >> -task_network_orderings
                                >> -(lit(":constraints") > constraints);
     BOOST_SPIRIT_DEFINE(task_network);
     struct TTaskNetwork: x3::annotate_on_success {};
@@ -386,7 +386,7 @@ namespace parser {
     rule<class TAction, Action> const action = "action";
     auto const action_def = ('(' >> lit(":action"))
                                > name
-                               > parameters 
+                               > parameters
                                >> -precondition
                                >> -effect
                                > ')';
@@ -401,7 +401,7 @@ namespace parser {
                                > requirements
                                >> -types
                                >> -constants
-                               >> -predicates 
+                               >> -predicates
                                >> *abstract_task
                                >> *method
                                >> *action
@@ -413,21 +413,21 @@ namespace parser {
     // Problem definition
     rule<class TObjects, TypedList<Name>> const objects = "objects";
     auto const objects_def = ('(' >> lit(":objects"))
-                               > typed_list_names 
+                               > typed_list_names
                                > ')';
     BOOST_SPIRIT_DEFINE(objects);
     struct TObjects: x3::annotate_on_success {};
 
     rule<class TInit, Literal<Term>> const init = "init";
     auto const init_def = ('(' >> lit(":init"))
-                               > literal_terms 
+                               > literal_terms
                                > ')';
     BOOST_SPIRIT_DEFINE(init);
     struct TInit: x3::annotate_on_success {};
 
     rule<class TGoal, Sentence> const goal = "goal";
     auto const goal_def = ('(' >> lit(":goal"))
-                               > sentence 
+                               > sentence
                                > ')';
     BOOST_SPIRIT_DEFINE(goal);
     struct TGoal: x3::annotate_on_success {};
@@ -447,28 +447,8 @@ namespace parser {
 
 } // namespace parser
 
-parser::constant_type constant() { return parser::constant; }
-parser::variable_type variable() { return parser::variable; }
-parser::primitive_type_type primitive_type() { return parser::primitive_type; }
-parser::either_type_type either_type() { return parser::either_type; }
 parser::type_type type() { return parser::type; }
-
-parser::typed_list_names_type typed_list_names() {
-    return parser::typed_list_names;
-}
-parser::typed_list_variables_type typed_list_variables() {
-    return parser::typed_list_variables;
-}
-parser::atomic_formula_skeleton_type atomic_formula_skeleton() {
-    return parser::atomic_formula_skeleton;
-}
-parser::atomic_formula_terms_type atomic_formula_terms() {
-    return parser::atomic_formula_terms;
-}
 parser::literal_terms_type literal_terms() { return parser::literal_terms; }
-
 parser::sentence_type sentence() { return parser::sentence; }
-parser::requirements_type requirements() { return parser::requirements; }
 parser::domain_type domain() { return parser::domain; }
 parser::problem_type problem() { return parser::problem; }
-parser::action_type action() { return parser::action; }

@@ -2,7 +2,6 @@
 
 #include <boost/test/included/unit_test.hpp>
 
-//#include <boost/variant/get.hpp>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -17,9 +16,9 @@
 
 using boost::unit_test::framework::master_test_suite;
 namespace x3 = boost::spirit::x3;
-using namespace std;
 using namespace ast;
 using boost::get;
+using std::string, std::vector, std::unordered_set;
 
 std::string name(Term term) {
     return boost::apply_visitor([](const auto& t) { return t.name; }, term);
@@ -210,8 +209,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(dom.name == "transport");
 
     // Test requirements
-    BOOST_TEST(dom.requirements[0] == "strips");
-    BOOST_TEST(dom.requirements[1] == "typing");
+    BOOST_TEST(equals(dom.requirements, {"strips", "typing"}));
 
     // Test constants
     BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
@@ -245,13 +243,13 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
                    dom.methods[0].parameters.explicitly_typed_lists[0].type) ==
                "package");
 
-    // Test Method's Task to be Broken Down. In the abstract task, 'task' is
+    // Test method's task to be broken down. In the abstract task, 'task' is
     // defined similar to an action. Here, it is defined as <Literal<Term>>
     auto methodtask = dom.methods[0].task;
     BOOST_TEST(methodtask.name == "deliver");
     BOOST_TEST(boost::get<Variable>(methodtask.parameters[0]).name == "p");
 
-    // Test Parsing Method's Precondition:
+    // Test parsing method's precondition:
     auto methodprec_f = dom.methods[0].precondition;
     auto methodprec_s = boost::get<ConnectedSentence>(methodprec_f);
     auto methodprec1_os = boost::get<Literal<Term>>(methodprec_s.sentences[0]);
@@ -296,8 +294,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto effect1_af2 = boost::get<NotSentence>(effect1_s.sentences[1]);
     auto effect1_af2_literal = boost::get<Literal<Term>>(effect1_af2.sentence);
     BOOST_TEST(effect1_af2_literal.predicate == "tAt");
-    BOOST_TEST(boost::get<Variable>(effect1_af2_literal.args[0]).name ==
-               "loc2");
+    BOOST_TEST(name(effect1_af2_literal.args[0]) == "loc2");
 }
 
 BOOST_AUTO_TEST_CASE(test_problem_parsing) {
@@ -327,13 +324,12 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     BOOST_TEST(prob.domain_name == "construction");
 
     // Test requirements
-    BOOST_TEST(prob.requirements == vector<string>({"strips", "typing"}));
+    BOOST_TEST(equals(prob.requirements, {"strips", "typing"}));
 
     // Test objects
     BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 2);
 
-    BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
-    BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
+    BOOST_TEST(equals(prob.objects.explicitly_typed_lists[0].entries, {"factory", "house"}));
     BOOST_TEST(boost::get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[0].type) == "site");
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
