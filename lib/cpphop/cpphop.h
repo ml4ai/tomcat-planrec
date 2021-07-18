@@ -243,48 +243,51 @@ simulation(State state,
            Domain& domain,
            double likelihood,
            int seed) {
-    if (tasks.empty()) {
-        return likelihood;
-    }
+    while (!tasks.empty()) {
 
-    Task task = tasks.back();
-    auto [task_id, args] = task;
-    if (in(task_id, domain.operators)) {
-        Operator<State> op = domain.operators[task_id];
-        std::optional<State> newstate = op(state, args);
-        if (newstate) {
-            pOperator<State> pop = domain.poperators[task_id];
-            tasks.pop_back();
-            likelihood = likelihood*pop(state,newstate.value(),args);
-            seed++;
-            return simulation(newstate.value(),tasks,domain,likelihood,seed);
-        }
-        std::cout << task_id << std::endl;
-        throw std::logic_error(
-            "Action Preconditions failed during simulation!");
-    }
+      Task task = tasks.back();
+      auto [task_id, args] = task;
 
-    if (in(task_id, domain.methods)) {
-        auto relevant = domain.methods[task_id];
-        std::vector<pTasks> c = {};
-        for (auto method : relevant) {
-            pTasks subtasks = method(state, args);
-            if (subtasks.first) {
+      if (in(task_id, domain.operators)) {
+          Operator<State> op = domain.operators[task_id];
+          std::optional<State> newstate = op(state, args);
+          if (newstate) {
+              pOperator<State> pop = domain.poperators[task_id];
+              tasks.pop_back();
+              likelihood = likelihood*pop(state,newstate.value(),args);
+              seed++;
+              state = newstate.value();
+              continue;
+          }
+          std::string message = task_id;
+          message += " preconditions failed during simulation!";
+          throw std::logic_error(
+              message);
+      }
+
+      if (in(task_id, domain.methods)) {
+          auto relevant = domain.methods[task_id];
+          std::vector<pTasks> c = {};
+          for (auto method : relevant) {
+              pTasks subtasks = method(state, args);
+              if (subtasks.first) {
                 c.push_back(subtasks);
-            }
-        }
-        seed++;
-        pTasks r = *select_randomly(c.begin(), c.end(), seed);
-        seed++;
-        tasks.pop_back();
-        likelihood = likelihood*r.first;
-        for (auto i = r.second.end();
-            i != r.second.begin();) {
-          tasks.push_back(*(--i));
-        }
-        return simulation(state,tasks,domain,likelihood,seed);
+              }
+          }
+          seed++;
+          pTasks r = *select_randomly(c.begin(), c.end(), seed);
+          seed++;
+          tasks.pop_back();
+          likelihood = likelihood*r.first;
+          for (auto i = r.second.end();
+              i != r.second.begin();) {
+            tasks.push_back(*(--i));
+          }
+          continue;;
+      }   
+      throw std::logic_error("Invalid task during simulation!");
     }
-    throw std::logic_error("Invalid task during simulation!");
+    return likelihood;
 }
 
 template <class State, class Domain, class Selector>
@@ -315,7 +318,10 @@ int expansion(Tree<State, Selector>& t,
             t[n].successors.push_back(w);
             return w;
         }
-        throw std::logic_error("Action Preconditions failed during expansion!");
+        std::string message = task_id;
+        message += " preconditions failed during expansion!";
+        throw std::logic_error(
+            message);
     }
 
     if (in(task_id, domain.methods)) {
