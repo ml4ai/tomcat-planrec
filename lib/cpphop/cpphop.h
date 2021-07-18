@@ -353,7 +353,7 @@ int expansion(Tree<State, Selector>& t,
 }
 
 template <class State, class Domain, class Selector>
-Tree<State,Selector>
+void
 seek_planMCTS(Tree<State,Selector>& t,
                  int v,
                  Domain& domain,
@@ -369,7 +369,7 @@ seek_planMCTS(Tree<State,Selector>& t,
         std::cout << "Final State:" << std::endl;
         std::cout << t[v].state.to_json() << std::endl;
         std::cout << std::endl;
-        return t;
+        return;
   }
   Tree<State, Selector> m;
   Node<State, Selector> n;
@@ -422,7 +422,8 @@ seek_planMCTS(Tree<State,Selector>& t,
   int y = boost::add_vertex(k, t);
   t[v].successors.push_back(y);
   seed++;
-  return seek_planMCTS(t, y, domain, selector, N, eps, seed);
+  seek_planMCTS(t, y, domain, selector, N, eps, seed);
+  return;
 }
 
 template <class State, class Domain, class Selector>
