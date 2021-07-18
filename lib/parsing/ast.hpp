@@ -8,8 +8,8 @@
 #include "../fol/Variable.h"
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
-#include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
+#include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/variant/recursive_wrapper.hpp>
 #include <iostream>
 #include <string>
@@ -31,11 +31,12 @@ namespace ast {
 
     using EitherType = std::unordered_set<PrimitiveType>;
 
+    // Whenever we don't have recursive variants, we use x3::variant instead of
+    // boost::variant, so we get a distinct type.
     struct Type : x3::variant<PrimitiveType, EitherType> {
         using base_type::base_type;
         using base_type::operator=;
     };
-    // using Type = boost::variant<PrimitiveType, EitherType>;
 
     template <class T> using ImplicitlyTypedList = std::vector<T>;
 
@@ -113,9 +114,15 @@ namespace ast {
         Term rhs;
     };
 
-    using Constraint = boost::variant<Nil, EqualsSentence, NotEqualsSentence>;
-    using Constraints =
-        boost::variant<Nil, Constraint, std::vector<Constraint>>;
+    struct Constraint : x3::variant<Nil, EqualsSentence, NotEqualsSentence> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
+
+    struct Constraints : x3::variant<Nil, Constraint, std::vector<Constraint>> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
 
     // Abstract Tasks
     struct Task : x3::position_tagged {
@@ -134,15 +141,25 @@ namespace ast {
         MTask subtask;
     };
 
-    using SubTask = boost::variant<MTask, SubTaskWithId>;
-    using SubTasks = boost::variant<Nil, SubTask, std::vector<SubTask>>;
+    struct SubTask : x3::variant<MTask, SubTaskWithId> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
+
+    struct SubTasks : x3::variant<Nil, SubTask, std::vector<SubTask>> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
 
     struct Ordering : x3::position_tagged {
         Name first;
         Name second;
     };
 
-    using Orderings = boost::variant<Nil, Ordering, std::vector<Ordering>>;
+    struct Orderings : x3::variant<Nil, Ordering, std::vector<Ordering>> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
 
     struct MethodSubTasks : x3::position_tagged {
         std::string ordering_kw;

@@ -2,7 +2,7 @@
 
 #include <boost/test/included/unit_test.hpp>
 
-#include <boost/variant/get.hpp>
+//#include <boost/variant/get.hpp>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -13,7 +13,7 @@
 #include "parsing/parse.hpp"
 #include "util.h"
 #include <boost/optional.hpp>
-//#include <boost/spirit/home/x3/support/ast/variant.hpp>
+#include <boost/spirit/home/x3/support/ast/variant.hpp>
 
 using boost::unit_test::framework::master_test_suite;
 namespace x3 = boost::spirit::x3;
@@ -47,15 +47,13 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test type parsing
     auto t = parse<Type>("type", type());
-    //cout << (t.get() == "type") << endl;
-    //auto x = t.get();
     auto x = boost::get<PrimitiveType>(t);
     BOOST_TEST(x == "type");
     BOOST_TEST(boost::get<PrimitiveType>(t) == "type");
 
     t = parse<Type>("(either type0 type1)", type());
-    BOOST_TEST(in("type0", get<EitherType>(et)));
-    BOOST_TEST(in("type1", get<EitherType>(et)));
+    BOOST_TEST(in("type0", boost::get<EitherType>(et)));
+    BOOST_TEST(in("type1", boost::get<EitherType>(et)));
 
     // Test implicitly typed list of names
     auto tl = parse<TypedList<Name>>("t0 t1 t2", typed_list_names());
@@ -120,22 +118,22 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test parsing of goal descriptions
     // Parse nil
     auto gd = parse<Sentence>("()", sentence());
-    BOOST_TEST(get<Nil>(gd) == Nil());
+    BOOST_TEST(boost::get<Nil>(gd) == Nil());
 
     // Parse atomic formula of terms
     auto gd2 = parse<Sentence>("(predicate name ?variable)", sentence());
-    auto lit1 = get<Literal<Term>>(gd2);
+    auto lit1 = boost::get<Literal<Term>>(gd2);
     BOOST_TEST(lit1.predicate == "predicate");
     BOOST_TEST(name(lit1.args[0]) == "name");
 
     // Test and sentence parsing
     auto s = parse<Sentence>("(and () (predicate name ?variable))", sentence());
-    auto as = get<ConnectedSentence>(s);
+    auto as = boost::get<ConnectedSentence>(s);
     BOOST_TEST(as.connector == "and");
     BOOST_TEST(as.sentences.size() == 2);
-    BOOST_TEST(get<Nil>(as.sentences[0]) == Nil());
+    BOOST_TEST(boost::get<Nil>(as.sentences[0]) == Nil());
 
-    auto af = get<Literal<Term>>(as.sentences[1]);
+    auto af = boost::get<Literal<Term>>(as.sentences[1]);
     BOOST_TEST(af.predicate == "predicate");
     BOOST_TEST(af.args.size() == 2);
     BOOST_TEST(name(af.args[0]) == "name");
@@ -148,11 +146,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test parsing or sentence
     auto s2 = parse<Sentence>("(or () (predicate name ?variable))", sentence());
-    auto os = get<ConnectedSentence>(s2);
+    auto os = boost::get<ConnectedSentence>(s2);
     BOOST_TEST(os.sentences.size() == 2);
-    BOOST_TEST(get<Nil>(os.sentences[0]) == Nil());
+    BOOST_TEST(boost::get<Nil>(os.sentences[0]) == Nil());
 
-    auto af2 = get<Literal<Term>>(os.sentences[1]);
+    auto af2 = boost::get<Literal<Term>>(os.sentences[1]);
     BOOST_TEST(af2.predicate == "predicate");
     BOOST_TEST(af2.args.size() == 2);
     BOOST_TEST(name(af2.args[0]) == "name");
@@ -160,10 +158,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     auto s3 =
         parse<Sentence>("(imply () (predicate name ?variable))", sentence());
-    auto is = get<ImplySentence>(s3);
-    BOOST_TEST(get<Nil>(is.sentence1) == Nil());
+    auto is = boost::get<ImplySentence>(s3);
+    BOOST_TEST(boost::get<Nil>(is.sentence1) == Nil());
 
-    auto af3 = get<Literal<Term>>(is.sentence2);
+    auto af3 = boost::get<Literal<Term>>(is.sentence2);
     BOOST_TEST(af3.predicate == "predicate");
     BOOST_TEST(af3.args.size() == 2);
     BOOST_TEST(name(af3.args[0]) == "name");
@@ -172,8 +170,8 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     auto s4 =
         parse<Sentence>("(not (predicate constant ?variable))", sentence());
 
-    auto af4 = get<NotSentence>(s4);
-    auto af5 = get<Literal<Term>>(af4.sentence);
+    auto af4 = boost::get<NotSentence>(s4);
+    auto af5 = boost::get<Literal<Term>>(af4.sentence);
     BOOST_TEST(af5.predicate == "predicate");
     BOOST_TEST(af5.args.size() == 2);
     BOOST_TEST(name(af5.args[0]) == "constant");
@@ -181,11 +179,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     auto s5 = parse<Sentence>("(forall (?variable) (predicate name ?variable))",
                               sentence());
-    auto fs = get<ForallSentence>(s5);
+    auto fs = boost::get<ForallSentence>(s5);
     BOOST_TEST(fs.variables.implicitly_typed_list.value()[0].name ==
                "variable");
 
-    auto af_5 = get<Literal<Term>>(fs.sentence);
+    auto af_5 = boost::get<Literal<Term>>(fs.sentence);
     BOOST_TEST(af_5.predicate == "predicate");
     BOOST_TEST(af_5.args.size() == 2);
     BOOST_TEST(name(af_5.args[0]) == "name");
@@ -193,11 +191,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     auto s6 = parse<Sentence>("(exists (?variable) (predicate name ?variable))",
                               sentence());
-    auto es = get<ExistsSentence>(s6);
+    auto es = boost::get<ExistsSentence>(s6);
     BOOST_TEST(es.variables.implicitly_typed_list.value()[0].name ==
                "variable");
 
-    auto af6 = get<Literal<Term>>(es.sentence);
+    auto af6 = boost::get<Literal<Term>>(es.sentence);
     BOOST_TEST(af6.predicate == "predicate");
     BOOST_TEST(af6.args.size() == 2);
     BOOST_TEST(name(af6.args[0]) == "name");
@@ -215,10 +213,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
             (exists (?y) (Loves ?y ?x)))
         )",
                               sentence());
-    auto cs = get<ImplySentence>(s7);
-    auto fs1 = get<ForallSentence>(cs.sentence1);
+    auto cs = boost::get<ImplySentence>(s7);
+    auto fs1 = boost::get<ForallSentence>(cs.sentence1);
     BOOST_TEST(fs1.variables.implicitly_typed_list.value()[0].name == "x");
-    auto fs2 = get<ExistsSentence>(cs.sentence2);
+    auto fs2 = boost::get<ExistsSentence>(cs.sentence2);
     BOOST_TEST(fs2.variables.implicitly_typed_list.value()[0].name == "y");
 
     // TEST PARSING OF DOMAIN DEFINITION AND ITS COMPONENTS
@@ -318,18 +316,18 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // defined similar to an action. Here, it is defined as <Literal<Term>>
     auto methodtask = dom.methods[0].task;
     BOOST_TEST(methodtask.name == "deliver");
-    BOOST_TEST(get<Variable>(methodtask.parameters[0]).name == "p");
+    BOOST_TEST(boost::get<Variable>(methodtask.parameters[0]).name == "p");
 
     // Test Parsing Method's Precondition:
     auto methodprec_f = dom.methods[0].precondition;
-    auto methodprec_s = get<ConnectedSentence>(methodprec_f);
-    auto methodprec1_os = get<Literal<Term>>(methodprec_s.sentences[0]);
-    auto methodprec2_os = get<Literal<Term>>(methodprec_s.sentences[1]);
+    auto methodprec_s = boost::get<ConnectedSentence>(methodprec_f);
+    auto methodprec1_os = boost::get<Literal<Term>>(methodprec_s.sentences[0]);
+    auto methodprec2_os = boost::get<Literal<Term>>(methodprec_s.sentences[1]);
     BOOST_TEST(methodprec1_os.predicate == "tAt");
     BOOST_TEST(name(methodprec2_os.args[0]) == "s");
 
     // Test parsing method optional ordered-subtasks (totally-ordered methods)
-    auto osubtask_s = get<MTask>(get<vector<SubTask>>(
+    auto osubtask_s = boost::get<MTask>(boost::get<vector<SubTask>>(
         dom.methods[0].task_network.subtasks.value().subtasks)[2]);
     BOOST_TEST(osubtask_s.name == "get-to");
     BOOST_TEST(name(osubtask_s.parameters[0]) == "ld");
@@ -350,22 +348,22 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test Parsing Action Precondition
     auto actprec1_f = dom.actions[0].precondition;
-    auto actprec1_s = get<ConnectedSentence>(actprec1_f);
-    auto actprec1_os = get<Literal<Term>>(actprec1_s.sentences[0]);
+    auto actprec1_s = boost::get<ConnectedSentence>(actprec1_f);
+    auto actprec1_os = boost::get<Literal<Term>>(actprec1_s.sentences[0]);
     BOOST_TEST(actprec1_os.predicate == "tAt");
-    BOOST_TEST(get<Variable>(actprec1_os.args[0]).name == "loc1");
+    BOOST_TEST(boost::get<Variable>(actprec1_os.args[0]).name == "loc1");
 
     // Test Parsing Action Effect
     auto effect1_f = dom.actions[0].effect;
-    auto effect1_s = get<ConnectedSentence>(effect1_f);
-    auto effect1_af = get<Literal<Term>>(effect1_s.sentences[0]);
+    auto effect1_s = boost::get<ConnectedSentence>(effect1_f);
+    auto effect1_af = boost::get<Literal<Term>>(effect1_s.sentences[0]);
     BOOST_TEST(effect1_af.predicate == "tAt");
-    BOOST_TEST(get<Variable>(effect1_af.args[0]).name == "loc1");
+    BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "loc1");
 
-    auto effect1_af2 = get<NotSentence>(effect1_s.sentences[1]);
-    auto effect1_af2_literal = get<Literal<Term>>(effect1_af2.sentence);
+    auto effect1_af2 = boost::get<NotSentence>(effect1_s.sentences[1]);
+    auto effect1_af2_literal = boost::get<Literal<Term>>(effect1_af2.sentence);
     BOOST_TEST(effect1_af2_literal.predicate == "tAt");
-    BOOST_TEST(get<Variable>(effect1_af2_literal.args[0]).name == "loc2");
+    BOOST_TEST(boost::get<Variable>(effect1_af2_literal.args[0]).name == "loc2");
 
     //  TEST PARSING OF PROBLEM DEFINITION AND ITS COMPONENTS
     storage = R"(
@@ -411,10 +409,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                "rock"); // default type = object
 
     // Test initial state
-    BOOST_TEST(get<Literal<Term>>(prob.init).predicate == "on-site");
-    BOOST_TEST(name(get<Literal<Term>>(prob.init).args[0]) ==
+    BOOST_TEST(boost::get<Literal<Term>>(prob.init).predicate == "on-site");
+    BOOST_TEST(name(boost::get<Literal<Term>>(prob.init).args[0]) ==
                "adobe");
-    BOOST_TEST(name(get<Literal<Term>>(prob.init).args[1]) ==
+    BOOST_TEST(name(boost::get<Literal<Term>>(prob.init).args[1]) ==
                "factory");
 
     // Test problem goal
@@ -437,20 +435,20 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     prob = parse<Problem>(storage, problem());
 
     // Testing ConnectedSentences
-    auto goal_os = get<ConnectedSentence>(
+    auto goal_os = boost::get<ConnectedSentence>(
         prob.goal); // we know this is an ConnectedSentence
     BOOST_TEST(goal_os.connector == "or");     // Test connector
     BOOST_TEST(goal_os.sentences.size() == 2); // containing two terms
-    auto goal_of = get<Literal<Term>>(goal_os.sentences[0]); // first predicate
+    auto goal_of = boost::get<Literal<Term>>(goal_os.sentences[0]); // first predicate
     auto goal_of2 =
-        get<Literal<Term>>(goal_os.sentences[1]); // second predicate
+        boost::get<Literal<Term>>(goal_os.sentences[1]); // second predicate
     BOOST_TEST(goal_of.predicate == "off-site");
     BOOST_TEST(goal_of2.predicate == "on-site");
     BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(goal_os.sentences[0]).args[0]).name ==
+        boost::get<Constant>(boost::get<Literal<Term>>(goal_os.sentences[0]).args[0]).name ==
         "adobe3");
     BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(goal_os.sentences[1]).args[1]).name ==
+        boost::get<Constant>(boost::get<Literal<Term>>(goal_os.sentences[1]).args[1]).name ==
         "house4");
 
     // Testing Imply Sentence
@@ -468,16 +466,16 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
 
     prob = parse<Problem>(storage, problem());
-    auto imply_s = get<ImplySentence>(prob.goal);
-    auto imply_f = get<Literal<Term>>(imply_s.sentence1);
-    auto imply_f2 = get<Literal<Term>>(imply_s.sentence2);
+    auto imply_s = boost::get<ImplySentence>(prob.goal);
+    auto imply_f = boost::get<Literal<Term>>(imply_s.sentence1);
+    auto imply_f2 = boost::get<Literal<Term>>(imply_s.sentence2);
     BOOST_TEST(imply_f.predicate == "on-site");
     BOOST_TEST(imply_f2.predicate == "off-site");
     BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(imply_s.sentence1).args[0]).name ==
+        boost::get<Constant>(boost::get<Literal<Term>>(imply_s.sentence1).args[0]).name ==
         "adobe3");
     BOOST_TEST(
-        get<Constant>(get<Literal<Term>>(imply_s.sentence2).args[1]).name ==
+        boost::get<Constant>(boost::get<Literal<Term>>(imply_s.sentence2).args[1]).name ==
         "house");
 
     // Testing ExistsSentence --and-- AndSentence (ConnectedSentence)
@@ -500,17 +498,17 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
 
     prob = parse<Problem>(storage, problem());
-    auto ef = get<ExistsSentence>(prob.goal);
+    auto ef = boost::get<ExistsSentence>(prob.goal);
 
     BOOST_TEST(ef.variables.implicitly_typed_list.value()[0].name == "var1");
 
-    auto connected = get<ConnectedSentence>(ef.sentence); // trial
+    auto connected = boost::get<ConnectedSentence>(ef.sentence); // trial
 
-    auto es1 = get<Literal<Term>>(connected.sentences[0]);
-    auto es2 = get<Literal<Term>>(connected.sentences[1]);
+    auto es1 = boost::get<Literal<Term>>(connected.sentences[0]);
+    auto es2 = boost::get<Literal<Term>>(connected.sentences[1]);
     BOOST_TEST(es1.predicate == "pred1");
-    BOOST_TEST(get<Constant>(es1.args[0]).name == "ar1");
-    BOOST_TEST(get<Variable>(es2.args[1]).name == "var3");
+    BOOST_TEST(boost::get<Constant>(es1.args[0]).name == "ar1");
+    BOOST_TEST(boost::get<Variable>(es2.args[1]).name == "var3");
 
     // Testing ForallSentence --and-- NotSentence
     storage = R"(
@@ -531,10 +529,10 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     )";
 
     prob = parse<Problem>(storage, problem());
-    auto fef = get<ForallSentence>(prob.goal);
+    auto fef = boost::get<ForallSentence>(prob.goal);
 
     BOOST_TEST(fef.variables.implicitly_typed_list.value()[0].name == "var1");
-    auto fes = get<Literal<Term>>(get<NotSentence>(fef.sentence).sentence);
+    auto fes = boost::get<Literal<Term>>(boost::get<NotSentence>(fef.sentence).sentence);
     BOOST_TEST(fes.predicate == "pred1");
     BOOST_TEST(name(fes.args[0]) == "ar1");
     BOOST_TEST(name(fes.args[1]) == "var2");
