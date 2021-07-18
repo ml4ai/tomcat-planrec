@@ -1035,7 +1035,7 @@ template <class State> pTasks assign_tasks8(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.time[agent1] >= 900 && state.time[agent2] >= 900 && state.time[agent3] < 900) {
+  if (state.time[agent1] >= 900 && state.time[agent2] >= 900 && state.time[agent3] >= 900) {
     return {1.0,{}};
   }
   return {0,{}};
@@ -1320,6 +1320,22 @@ template <class State> pTasks change_medic(State state, Args args) {
   return {0,{}};
 }
 
+template <class State> pTasks do_nothing_medic(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "medic" && ((state.r_seen[agent].empty() &&
+      state.time[agent] > 890) || (!state.r_seen[agent].empty() && state.time[agent] > 893))) {
+
+    std::string start = std::to_string(state.read_time[agent]);
+    std::string duration = std::to_string(900-state.time[agent]);
+
+    return {1,
+      {Task("!do_nothing",Args({{"agent",agent},
+                                {"start",start},
+                                {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
 template <class State> pTasks clear_room_blocks_engineer(State state, Args args) {
   auto agent = args["agent"];
   if (state.role[agent] == "engineer" && state.room_blocks[state.agent_loc[agent]] > 0 &&
@@ -1578,6 +1594,22 @@ template <class State> pTasks change_engineer(State state, Args args) {
   return {0,{}};
 }
 
+template <class State> pTasks do_nothing_engineer(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "engineer" && ((state.room_blocks[state.agent_loc[agent]] == 0 &&
+      state.time[agent] > 885) || (state.room_blocks[state.agent_loc[agent]] > 0 && state.time[agent] > 895))) {
+
+    std::string start = std::to_string(state.read_time[agent]);
+    std::string duration = std::to_string(900-state.time[agent]);
+
+    return {1,
+      {Task("!do_nothing",Args({{"agent",agent},
+                                {"start",start},
+                                {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
 template <class State> pTasks search_searcher(State state, Args args) {
   auto agent = args["agent"];
   bool medic_here = false;
@@ -1667,7 +1699,7 @@ template <class State> pTasks move_victim_searcher(State state, Args args) {
   }
 
   if (state.role[agent] == "searcher" && !state.r_seen[agent].empty() &&
-      !medic_here && state.time[agent] <= 893) {
+      !medic_here && state.time[agent] <= 887) {
 
     std::string duration_pickup;
     std::string start_pickup;
@@ -1691,7 +1723,7 @@ template <class State> pTasks move_victim_searcher(State state, Args args) {
 
     duration_move = std::to_string(5);
 
-    int start_num_move = start_num_pickup + 1;
+    int start_num_move = start_num_pickup + 7;
 
     start_move = std::to_string(start_num_move);
 
@@ -1788,6 +1820,22 @@ template <class State> pTasks change_searcher(State state, Args args) {
 
     return {0.05,
       {Task("Change_role",Args({{"agent",agent}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks do_nothing_searcher(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "searcher" && ((state.r_seen[agent].empty() &&
+      state.time[agent] > 995) || (!state.r_seen[agent].empty() && state.time[agent] > 887))) {
+
+    std::string start = std::to_string(state.read_time[agent]);
+    std::string duration = std::to_string(900-state.time[agent]);
+
+    return {1,
+      {Task("!do_nothing",Args({{"agent",agent},
+                                {"start",start},
+                                {"duration",duration}}))}};
   }  
   return {0,{}};
 }
@@ -1981,16 +2029,19 @@ class TeamSARDomain {
                           {search_medic,
                            triage_medic,
                            move_medic,
-                           change_medic}},
+                           change_medic,
+                           do_nothing_medic}},
                          {"Do_engineer_task",
                           {clear_room_blocks_engineer,
                            move_engineer,
-                           change_engineer}},
+                           change_engineer,
+                           do_nothing_engineer}},
                          {"Do_searcher_task",
                           {search_searcher,
                            move_victim_searcher,
                            move_searcher,
-                           change_searcher}},
+                           change_searcher,
+                           do_nothing_searcher}},
                          {"Wake_and_triage_crit",
                           {wake_and_triage}},
                          {"Break_room_blocks",
