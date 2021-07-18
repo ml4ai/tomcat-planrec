@@ -8,6 +8,7 @@
 #include "../fol/Variable.h"
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
+#include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
 #include <boost/variant/recursive_wrapper.hpp>
 #include <iostream>
@@ -30,7 +31,11 @@ namespace ast {
 
     using EitherType = std::unordered_set<PrimitiveType>;
 
-    using Type = boost::variant<PrimitiveType, EitherType>;
+    struct Type : x3::variant<PrimitiveType, EitherType> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
+    // using Type = boost::variant<PrimitiveType, EitherType>;
 
     template <class T> using ImplicitlyTypedList = std::vector<T>;
 
@@ -72,8 +77,7 @@ namespace ast {
                                     boost::recursive_wrapper<NotSentence>,
                                     boost::recursive_wrapper<ImplySentence>,
                                     boost::recursive_wrapper<ExistsSentence>,
-                                    boost::recursive_wrapper<ForallSentence>
-                                    >;
+                                    boost::recursive_wrapper<ForallSentence>>;
 
     struct ConnectedSentence : x3::position_tagged {
         std::string connector;
@@ -110,7 +114,8 @@ namespace ast {
     };
 
     using Constraint = boost::variant<Nil, EqualsSentence, NotEqualsSentence>;
-    using Constraints = boost::variant<Nil, Constraint, std::vector<Constraint>>;
+    using Constraints =
+        boost::variant<Nil, Constraint, std::vector<Constraint>>;
 
     // Abstract Tasks
     struct Task : x3::position_tagged {

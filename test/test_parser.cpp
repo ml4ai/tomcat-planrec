@@ -13,7 +13,7 @@
 #include "parsing/parse.hpp"
 #include "util.h"
 #include <boost/optional.hpp>
-#include <boost/spirit/home/x3/support/ast/variant.hpp>
+//#include <boost/spirit/home/x3/support/ast/variant.hpp>
 
 using boost::unit_test::framework::master_test_suite;
 namespace x3 = boost::spirit::x3;
@@ -47,7 +47,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test type parsing
     auto t = parse<Type>("type", type());
-    BOOST_TEST(get<PrimitiveType>(t) == "type");
+    //cout << (t.get() == "type") << endl;
+    //auto x = t.get();
+    auto x = boost::get<PrimitiveType>(t);
+    BOOST_TEST(x == "type");
+    BOOST_TEST(boost::get<PrimitiveType>(t) == "type");
 
     t = parse<Type>("(either type0 type1)", type());
     BOOST_TEST(in("type0", get<EitherType>(et)));
@@ -65,7 +69,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(tl.implicitly_typed_list.value().size() == 0);
     BOOST_TEST(tl.explicitly_typed_lists[0].entries ==
                vector<string>({"name0", "name1", "name2"}));
-    BOOST_TEST(get<PrimitiveType>(tl.explicitly_typed_lists[0].type) == "type");
+    BOOST_TEST(boost::get<PrimitiveType>(tl.explicitly_typed_lists[0].type) == "type");
 
     // Test explicitly typed list with either type
     tl = parse<TypedList<Name>>("name0 name1 name2 - (either type0 type1)",
@@ -75,9 +79,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(tl.explicitly_typed_lists[0].entries ==
                vector<string>({"name0", "name1", "name2"}));
     BOOST_TEST(in(PrimitiveType{"type0"},
-                  get<EitherType>(tl.explicitly_typed_lists[0].type)));
+                  boost::get<EitherType>(tl.explicitly_typed_lists[0].type)));
     BOOST_TEST(in(PrimitiveType{"type1"},
-                  get<EitherType>(tl.explicitly_typed_lists[0].type)));
+                  boost::get<EitherType>(tl.explicitly_typed_lists[0].type)));
 
     // Test explicitly typed list of variables
     auto vvl = parse<TypedList<Variable>>("?var0 ?var1 ?var2 - type",
@@ -85,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(vvl.explicitly_typed_lists[0].entries[0].name == "var0");
     BOOST_TEST(vvl.explicitly_typed_lists[0].entries[1].name == "var1");
     BOOST_TEST(vvl.explicitly_typed_lists[0].entries[2].name == "var2");
-    BOOST_TEST(get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) ==
+    BOOST_TEST(boost::get<PrimitiveType>(vvl.explicitly_typed_lists[0].type) ==
                "type");
 
     // Test atomic formula skeleton
@@ -96,7 +100,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
                "var0");
     BOOST_TEST(afs.variables.explicitly_typed_lists[0].entries[1].name ==
                "var1");
-    BOOST_TEST(get<PrimitiveType>(
+    BOOST_TEST(boost::get<PrimitiveType>(
                    afs.variables.explicitly_typed_lists[0].type) == "type0");
     BOOST_TEST(afs.variables.implicitly_typed_list.value()[0].name == "var2");
 
@@ -281,7 +285,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     // Test constants
     BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
                "surprise");
-    BOOST_TEST(get<PrimitiveType>(
+    BOOST_TEST(boost::get<PrimitiveType>(
                    dom.constants.explicitly_typed_lists[0].type) == "package");
 
     // Test parsing of predicates
@@ -291,14 +295,14 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name ==
         "loc1");
     BOOST_TEST(
-        get<PrimitiveType>(
+        boost::get<PrimitiveType>(
             dom.predicates[0].variables.explicitly_typed_lists[0].type) ==
         "site");
 
     // Test parsing of abstract tasks
     BOOST_TEST(dom.tasks[0].name == "deliver");
     auto taskpara1 = dom.tasks[0].parameters;
-    BOOST_TEST(get<PrimitiveType>(taskpara1.explicitly_typed_lists[0].type) ==
+    BOOST_TEST(boost::get<PrimitiveType>(taskpara1.explicitly_typed_lists[0].type) ==
                "package");
 
     // Test methods and their components (totally-ordered):
@@ -306,7 +310,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
     BOOST_TEST(dom.methods[0].name == "m-deliver");
 
     // Test Methods Parameters:
-    BOOST_TEST(get<PrimitiveType>(
+    BOOST_TEST(boost::get<PrimitiveType>(
                    dom.methods[0].parameters.explicitly_typed_lists[0].type) ==
                "package");
 
@@ -337,9 +341,9 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     // Test Parsing Action Parameters
     auto actpara1 = dom.actions[0].parameters;
-    BOOST_TEST(get<PrimitiveType>(actpara1.explicitly_typed_lists[0].type) ==
+    BOOST_TEST(boost::get<PrimitiveType>(actpara1.explicitly_typed_lists[0].type) ==
                "package");
-    BOOST_TEST(get<PrimitiveType>(actpara1.explicitly_typed_lists[1].type) ==
+    BOOST_TEST(boost::get<PrimitiveType>(actpara1.explicitly_typed_lists[1].type) ==
                "site");
     BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "box1");
     BOOST_TEST(actpara1.explicitly_typed_lists[1].entries[0].name == "loc1");
@@ -397,11 +401,11 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[0] == "factory");
     BOOST_TEST(prob.objects.explicitly_typed_lists[0].entries[1] == "house");
-    BOOST_TEST(get<ast::PrimitiveType>(
+    BOOST_TEST(boost::get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[0].type) == "site");
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
 
-    BOOST_TEST(get<ast::PrimitiveType>(
+    BOOST_TEST(boost::get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[1].type) == "material");
     BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] ==
                "rock"); // default type = object
