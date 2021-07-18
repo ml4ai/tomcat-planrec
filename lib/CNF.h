@@ -64,6 +64,19 @@ namespace ast {
         }
     };
 
+    using args = boost::variant<fol::Constant, fol::Variable, fol::Function>;
+    struct GetArgType : public boost::static_visitor<std::string> {
+        std::string operator()(fol::Constant s) const {
+            return "Constant";
+        }
+        std::string operator()(fol::Variable s) const {
+            return "Variable";
+        }
+        std::string operator()(fol::Function s) const {
+            return "Function";
+        }
+    };
+
     struct GeneratePairSentence : public boost::static_visitor<Sentence> {
 
         // For connected sentences (and/or sentences), we generate pairs.
@@ -171,167 +184,76 @@ namespace ast {
         int getNextIndex() { return this->index++; }
     };
 
-    //    struct SubstVisitor : public boost::static_visitor<Sentence> {
-    ////        Sentence operator()(std::unordered_map<Variable, Symbol> theta,
-    ////                            Sentence s) const {
-    ////            return visit<SubstVisitor(), s, theta);
-    ////        }
-    ////        Sentence operator()(std::unordered_map<Variable, Symbol> theta,
-    /// Nil s) const { /            return visit<SubstVisitor(),
-    /// s, theta);; /        } /        Sentence
-    /// operator()(std::unordered_map<Variable, Symbol> theta, Literal<Term> s)
-    /// const { /            return visit<SubstVisitor(), s,
-    /// theta); /        } /        Sentence
-    /// operator()(std::unordered_map<Variable, Symbol> theta, ConnectedSentence
-    /// s) const { /            return visit<SubstVisitor(), s,
-    /// theta); /        } /        Sentence
-    /// operator()(std::unordered_map<Variable, Symbol> theta, NotSentence s)
-    /// const { /            return visit<SubstVisitor(), s,
-    /// theta); /        }
-    ////
-    ////        Sentence operator()(std::unordered_map<Variable, Symbol> theta,
-    /// ImplySentence s) const { /            return
-    /// visit<SubstVisitor(), s, theta); /        } / Sentence
-    /// operator()(std::unordered_map<Variable, Symbol> theta, ExistsSentence s)
-    /// const { /            return visit<SubstVisitor(), s,
-    /// theta); /        } /        Sentence
-    /// operator()(std::unordered_map<Variable, Symbol> theta, ForallSentence s)
-    /// const {
-    ////
-    ////        }
-    //
-    ////        Symbol operator()(std::unordered_map<Variable, Symbol> theta,
-    ////                          Symbol s) const {
-    ////            return (Symbol)visit<SubstVisitor(), s,
-    /// theta); /        } /        fol::Function
-    /// operator()(std::unordered_map<Variable, Symbol> theta, / fol::Function
-    /// s) const { /            return (fol::Function)visit< /
-    /// SubstVisitor(), s, theta); /        } /        Literal<Term>
-    /// operator()(std::unordered_map<Variable, Symbol> theta, / Literal<Term>
-    /// s) const { /            return (Literal<Term>)visit< /
-    /// SubstVisitor(), s, theta); /        }
-    //
-    //        Variable operator()(Variable s, std::unordered_map<Variable,
-    //        Symbol> theta) const {
-    //            std::unordered_map<Variable, Symbol>
-    //            substitution(std::move(theta)); Variable rs; if
-    //            (map_contains_variable(substitution, s)) {
-    //                rs.name = substitution.find(s)->second.name;
-    //                return rs;
-    //            }
-    //            rs.name = s.name;
-    //            return rs;
-    //        }
-    //
-    //        Sentence operator()(ForallSentence s,
-    //                            std::unordered_map<Variable, Symbol> theta)
-    //                            const {
-    //            std::unordered_map<Variable, Symbol>
-    //            substitution(std::move(theta)); auto quantifiedAfterSubs =
-    //                visit<SubstVisitor(), (Sentence)s.sentence,
-    //                theta);
-    //
-    //            std::vector<Variable> variables;
-    //            for (auto v : s.variables.implicitly_typed_list.value()) {
-    //                if (map_contains_variable(substitution, v)) {
-    //                    Symbol st = substitution.find(v)->second;
-    //                    if (typeid(st) == typeid(Variable)){
-    //                        Variable rs;
-    //                        rs.name = st.name;
-    //                        variables.push_back(rs);
-    //                    }
-    //                }
-    //                else {
-    //                    Variable rs;
-    //                    rs.name = v.name;
-    //                    variables.push_back(rs);
-    //                }
-    //            }
-    //            if (variables.empty()) {
-    //                return quantifiedAfterSubs;
-    //            }
-    //
-    //            ForallSentence rs;
-    //            for (const auto& variable : variables) {
-    //                rs.variables.implicitly_typed_list.value().push_back(variable);
-    //            }
-    //            rs.sentence = quantifiedAfterSubs;
-    //            return rs;
-    //        }
-    //
-    //        Sentence operator()(ExistsSentence s,
-    //                            std::unordered_map<Variable, Symbol> theta)
-    //                            const {
-    //            std::unordered_map<Variable, Symbol>
-    //            substitution(std::move(theta)); auto quantifiedAfterSubs =
-    //                visit<SubstVisitor(), s.sentence, theta);
-    //
-    //            std::vector<Variable> variables;
-    //            for (auto v : s.variables.implicitly_typed_list.value()) {
-    //                if (map_contains_variable(substitution, v)) {
-    //                    Symbol st = substitution.find(v)->second;
-    //                    if (typeid(st) == typeid(Variable)){
-    //                        Variable rs;
-    //                        rs.name = st.name;
-    //                        variables.push_back(rs);
-    //                    }
-    //                }
-    //                else {
-    //                    Variable rs;
-    //                    rs.name = v.name;
-    //                    variables.push_back(rs);
-    //                }
-    //            }
-    //            if (variables.empty()) {
-    //                return quantifiedAfterSubs;
-    //            }
-    //
-    //            ExistsSentence rs;
-    //            for (const auto& variable : variables) {
-    //                rs.variables.implicitly_typed_list.value().push_back(variable);
-    //            }
-    //            rs.sentence = quantifiedAfterSubs;
-    //            return rs;
-    //        }
-    //
-    //        Sentence operator()(Nil s, std::unordered_map<Variable, Symbol>
-    //        theta) const { return s; } Sentence operator()(Literal<Term> s,
-    //        std::unordered_map<Variable, Symbol> theta) const { return s; }
-    //        Sentence operator()(ConnectedSentence s,
-    //        std::unordered_map<Variable, Symbol> theta) const {
-    //            auto s1 = visit<SubstVisitor(),
-    //                                           (Sentence)s.sentences[0],
-    //                                           theta);
-    //            auto s2 = visit<SubstVisitor(),
-    //                                           (Sentence)s.sentences[1],
-    //                                           theta);
-    //            ConnectedSentence rs;
-    //            rs.connector = s.connector;
-    //            rs.sentences.push_back(s1);
-    //            rs.sentences.push_back(s2);
-    //            return rs;
-    //        }
-    //        Sentence operator()(NotSentence s, std::unordered_map<Variable,
-    //        Symbol> theta) const {
-    //            NotSentence rs;
-    //            rs.sentence = visit<SubstVisitor(),
-    //                                               (Sentence)s.sentence,
-    //                                               theta);
-    //            return rs;
-    //        }
-    //        Sentence operator()(ImplySentence s, std::unordered_map<Variable,
-    //        Symbol> theta) const {
-    //            auto s1 = visit<SubstVisitor(),
-    //                                           (Sentence)s.sentence1, theta);
-    //            auto s2 = visit<SubstVisitor(),
-    //                                           (Sentence)s.sentence2, theta);
-    //            ImplySentence rs;
-    //            rs.sentence1 = s1;
-    //            rs.sentence2 = s2;
-    //            return rs;
-    //        }
-    //    };
-    //
+    struct SubstVisitor : public boost::static_visitor<Sentence>, public boost::static_visitor<Term>{
+        std::unordered_map<Variable, Symbol, Hash<Variable>> theta;
+
+        Term operator()(Variable s) const {
+            if (this->theta.contains(s)) {
+//                return Symbol{this->theta.at(s).name};
+                return Variable{this->theta.at(s).name};
+//                return this->theta.at(s).name;
+            }
+            return Variable{s.name};
+//            return s.name;
+        }
+
+        Term operator()(Constant s) const {
+            return s;
+        }
+
+        Term operator()(fol::Function s) const {
+            return s;
+        }
+
+        Sentence operator()(Literal<Term> s) const {
+            if (!s.args.empty()) {
+                for (int i=0; i <s.args.size(); i++) {
+                    if (visit<GetArgType>((Term)s.args[i]) == "Variable"){
+                        get<Variable>(s.args[i]).name = get<Variable>(boost::apply_visitor(*this, s.args[i])).name;
+                    }
+                }
+            }
+//            return visit(*this, s);
+            return s;
+        }
+
+        Sentence operator()(QuantifiedSentence s) const {
+            auto quantifiedAfterSubs =
+                    boost::apply_visitor(*this, (Sentence)s.sentence);
+
+            std::vector<Variable> variables;
+            for (auto v : s.variables.implicitly_typed_list.value()) {
+                if (this->theta.contains(v)){
+                    Symbol st = this->theta.at(v);
+                    if (typeid(st) == typeid(Variable)) {
+                        Variable rs;
+                        rs.name = st.name;
+                        variables.push_back(rs);
+                    }
+                }
+                else {
+                    Variable rs;
+                    rs.name = v.name;
+                    variables.push_back(rs);
+                }
+            }
+            if (variables.empty()) {
+                return quantifiedAfterSubs;
+            }
+
+            QuantifiedSentence rs;
+            rs.quantifier = s.quantifier;
+            for (const auto & variable : variables){
+                rs.variables.implicitly_typed_list.value().push_back(variable);
+            }
+            rs.sentence = quantifiedAfterSubs;
+
+            return rs;
+        }
+
+        template <class T> Sentence operator()(T s) const { return s; }
+    };
+
     //    struct StandardizeQuantiferVariables
     //        : public boost::static_visitor<Sentence> {
     //        StandardizeApartIndexical quantifiedIndexical;
