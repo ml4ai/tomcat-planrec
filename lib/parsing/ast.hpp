@@ -62,39 +62,33 @@ namespace ast {
     struct ConnectedSentence;
     struct NotSentence;
     struct ImplySentence;
-    struct ExistsSentence;
-    struct ForallSentence;
+    struct QuantifiedSentence;
     struct EqualsSentence;
 
-    using Sentence = boost::variant<Nil,
-                                    Literal<Term>,
-                                    boost::recursive_wrapper<ConnectedSentence>,
-                                    boost::recursive_wrapper<NotSentence>,
-                                    boost::recursive_wrapper<ImplySentence>,
-                                    boost::recursive_wrapper<ExistsSentence>,
-                                    boost::recursive_wrapper<ForallSentence>
-                                    >;
+    using Sentence =
+        boost::variant<Nil,
+                       Literal<Term>,
+                       boost::recursive_wrapper<ConnectedSentence>,
+                       boost::recursive_wrapper<NotSentence>,
+                       boost::recursive_wrapper<ImplySentence>,
+                       boost::recursive_wrapper<QuantifiedSentence>>;
 
-    struct ConnectedSentence : x3::position_tagged {
+    struct ConnectedSentence {
         std::string connector;
         std::vector<Sentence> sentences;
     };
 
-    struct NotSentence : x3::position_tagged {
+    struct NotSentence {
         Sentence sentence;
     };
 
-    struct ImplySentence : x3::position_tagged {
+    struct ImplySentence {
         Sentence sentence1;
         Sentence sentence2;
     };
 
-    struct ExistsSentence : x3::position_tagged {
-        TypedList<Variable> variables;
-        Sentence sentence;
-    };
-
-    struct ForallSentence : x3::position_tagged {
+    struct QuantifiedSentence {
+        std::string quantifier;
         TypedList<Variable> variables;
         Sentence sentence;
     };
@@ -110,7 +104,8 @@ namespace ast {
     };
 
     using Constraint = boost::variant<Nil, EqualsSentence, NotEqualsSentence>;
-    using Constraints = boost::variant<Nil, Constraint, std::vector<Constraint>>;
+    using Constraints =
+        boost::variant<Nil, Constraint, std::vector<Constraint>>;
 
     // Abstract Tasks
     struct Task : x3::position_tagged {
