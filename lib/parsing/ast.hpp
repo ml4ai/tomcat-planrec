@@ -69,7 +69,16 @@ namespace ast {
     struct NotSentence;
     struct ImplySentence;
     struct QuantifiedSentence;
-    struct EqualsSentence;
+
+    struct EqualsSentence : x3::position_tagged {
+        Term lhs;
+        Term rhs;
+    };
+
+    struct NotEqualsSentence : x3::position_tagged {
+        Term lhs;
+        Term rhs;
+    };
 
     using Sentence =
         boost::variant<Nil,
@@ -77,7 +86,8 @@ namespace ast {
                        boost::recursive_wrapper<ConnectedSentence>,
                        boost::recursive_wrapper<NotSentence>,
                        boost::recursive_wrapper<ImplySentence>,
-                       boost::recursive_wrapper<QuantifiedSentence>>;
+                       boost::recursive_wrapper<QuantifiedSentence>,
+                       EqualsSentence>;
 
     struct ConnectedSentence : x3::position_tagged {
         std::string connector;
@@ -97,16 +107,6 @@ namespace ast {
         std::string quantifier;
         TypedList<Variable> variables;
         Sentence sentence;
-    };
-
-    struct EqualsSentence : x3::position_tagged {
-        Term lhs;
-        Term rhs;
-    };
-
-    struct NotEqualsSentence : x3::position_tagged {
-        Term lhs;
-        Term rhs;
     };
 
     struct Constraint : x3::variant<Nil, EqualsSentence, NotEqualsSentence> {
@@ -186,10 +186,11 @@ namespace ast {
     struct AndCEffect;
 
     using CEffect = boost::variant<boost::recursive_wrapper<ForallCEffect>,
-                                 boost::recursive_wrapper<WhenCEffect>,
-                                 PEffect>;
+                                   boost::recursive_wrapper<WhenCEffect>,
+                                   PEffect>;
 
-    using Effect = boost::variant<Nil, boost::recursive_wrapper<AndCEffect>, CEffect>;
+    using Effect =
+        boost::variant<Nil, boost::recursive_wrapper<AndCEffect>, CEffect>;
 
     struct WhenCEffect {
         Sentence gd;

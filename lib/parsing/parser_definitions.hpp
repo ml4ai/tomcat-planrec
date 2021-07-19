@@ -221,6 +221,24 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(quantified_sentence);
     struct TQuantifiedSentence: x3::annotate_on_success {};
 
+    rule<class TEqualsSentence, EqualsSentence> const equals_sentence =
+                                   "equals_sentence";
+    auto const equals_sentence_def = ('(' >> lit("="))
+                                 > term
+                                 > term
+                                 > ')';
+    BOOST_SPIRIT_DEFINE(equals_sentence);
+    struct TEqualsSentence : x3::annotate_on_success {};
+
+    rule<class TNotEqualsSentence, NotEqualsSentence> const not_equals_sentence =
+                                   "not_equals_sentence";
+    auto const not_equals_sentence_def = ('('
+                               >> lit("not"))
+                               > equals_sentence
+                               > ')';
+    BOOST_SPIRIT_DEFINE(not_equals_sentence);
+    struct TNotEqualsSentence: x3::annotate_on_success {};
+
 
     auto const sentence_def =
         nil
@@ -229,6 +247,7 @@ namespace parser {
         | not_sentence
         | imply_sentence
         | quantified_sentence
+        | equals_sentence // Note: HDDL has equals sentences, but PDDL 2.1 does not.
         ;
     BOOST_SPIRIT_DEFINE(sentence);
     struct TSentence : x3::annotate_on_success {};
@@ -270,8 +289,8 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(when_c_effect);
     BOOST_SPIRIT_DEFINE(c_effect);
     BOOST_SPIRIT_DEFINE(effect);
-    //struct TEffect: x3::annotate_on_success {};
-    //struct TCEffect: x3::annotate_on_success {};
+    struct TEffect: x3::annotate_on_success {};
+    struct TCEffect: x3::annotate_on_success {};
 
 
     // Typed Lists
@@ -383,23 +402,6 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(method_subtasks);
     struct TMethodSubTasks : x3::annotate_on_success {};
 
-    rule<class TEqualsSentence, EqualsSentence> const equals_sentence =
-                                   "equals_sentence";
-    auto const equals_sentence_def = ('(' >> lit("="))
-                                 > term
-                                 > term
-                                 > ')';
-    BOOST_SPIRIT_DEFINE(equals_sentence);
-    struct TEqualsSentence : x3::annotate_on_success {};
-
-    rule<class TNotEqualsSentence, NotEqualsSentence> const not_equals_sentence =
-                                   "not_equals_sentence";
-    auto const not_equals_sentence_def = ('('
-                               >> lit("not"))
-                               > equals_sentence
-                               > ')';
-    BOOST_SPIRIT_DEFINE(not_equals_sentence);
-    struct TNotEqualsSentence: x3::annotate_on_success {};
 
     rule<class TConstraint, Constraint> const constraint = "constraint";
     auto const constraint_def = nil | not_equals_sentence | equals_sentence;
