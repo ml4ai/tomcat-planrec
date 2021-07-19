@@ -504,7 +504,9 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(goal);
     struct TGoal: x3::annotate_on_success {};
 
-    // Connectors (and/or)
+    // Problem class. For the first version of HDDL, only :htn is allowed.
+    // Later versions might allow different classes to denote problems with
+    // task insertion, etc.
     struct problem_class_ : x3::symbols<std::string> {
         problem_class_() {
             add
