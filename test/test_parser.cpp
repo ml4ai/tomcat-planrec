@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(test_fol_sentence_parsing) {
 }
 
 BOOST_AUTO_TEST_CASE(test_domain_parsing) {
-    // TEST PARSING OF DOMAIN DEFINITION AND ITS COMPONENTS
+    // Test parsing of domain definition and its components
 
     storage = R"(
         (define

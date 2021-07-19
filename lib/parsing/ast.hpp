@@ -177,6 +177,34 @@ namespace ast {
         TaskNetwork task_network;
     };
 
+    // Conditional effects
+    using PEffect = Literal<Term>;
+    using CondEffect = boost::variant<PEffect, std::vector<PEffect>>;
+
+    struct WhenCEffect;
+    struct ForallCEffect;
+    struct AndCEffect;
+
+    using CEffect = boost::variant<boost::recursive_wrapper<ForallCEffect>,
+                                   boost::recursive_wrapper<WhenCEffect>,
+                                   PEffect>;
+
+    using Effect = boost::variant<Nil, boost::recursive_wrapper<AndCEffect>, CEffect>;
+
+    struct WhenCEffect {
+        Sentence gd;
+        CondEffect cond_effect;
+    };
+
+    struct ForallCEffect {
+        std::vector<Variable> variables;
+        Effect effect;
+    };
+
+    struct AndCEffect {
+        std::vector<CEffect> c_effects;
+    };
+
     // Primitive Actions
     struct Action : x3::position_tagged {
         Name name;

@@ -137,6 +137,20 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(literal_terms);
     struct TLiteralTerms: x3::annotate_on_success {};
 
+    // Negative literals
+    auto parse_negative_literal = [](auto& ctx) {
+          _val(ctx).predicate = _attr(ctx).predicate;
+          _val(ctx).args = _attr(ctx).args;
+          _val(ctx).is_negative = true;
+    };
+
+    rule<class TNegativeLiteralTerms, Literal<Term>> const negative_literal_terms = "negative_literal_terms";
+    auto const negative_literal_terms_def = ('(' >> lit("not") >> literal_terms >> ')')[parse_negative_literal];
+    BOOST_SPIRIT_DEFINE(negative_literal_terms);
+    struct TNegativeLiteralTerms: x3::annotate_on_success {};
+
+
+
     // Nil
     rule<class TNil, Nil> const nil = "nil";
     auto const nil_def = '(' >> lit(")");
@@ -217,7 +231,47 @@ namespace parser {
         | quantified_sentence
         ;
     BOOST_SPIRIT_DEFINE(sentence);
-    struct TSentence : x3::annotate_on_success {};
+    //struct TSentence : x3::annotate_on_success {};
+
+    // <p-effect>
+    rule<class TPEffect, Literal<Term>> const p_effect = "p_effect";
+    auto const p_effect_def = literal_terms | negative_literal_terms;
+    BOOST_SPIRIT_DEFINE(p_effect);
+    //struct TPEffect: x3::annotate_on_success {};
+
+    // <cond-effect>
+    rule<class TCondEffect, CondEffect> const cond_effect = "cond_effect";
+    auto const cond_effect_def = p_effect | '(' >> lit("and") >> *p_effect >> ')';
+    BOOST_SPIRIT_DEFINE(cond_effect);
+    //struct TCondEffect: x3::annotate_on_success {};
+
+    // <effect and <c-effect>
+    rule<class TEffect, Effect> const effect = "effect";
+    rule<class TCEffect, CEffect> const c_effect = "c_effect";
+
+    rule<class TForallCEffect, ForallCEffect> const forall_c_effect = "forall_c_effect";
+    auto const forall_c_effect_def = ('(' >> lit("forall")) >> '(' >> *variable >> ')' >> effect > ')';
+
+    rule<class TAndCEffect, AndCEffect> const and_c_effect = "and_c_effect";
+    auto const and_c_effect_def = ('(' >> lit("and")) >> *c_effect >> ')';
+
+    rule<class TWhenCEffect, WhenCEffect> const when_c_effect = "when_c_effect";
+    auto const when_c_effect_def = ('(' >> lit("when")) >> sentence >> cond_effect >> ')';
+
+    auto const c_effect_def = forall_c_effect | when_c_effect | p_effect;
+          
+    auto const effect_def = 
+        nil
+        | and_c_effect 
+        | c_effect;
+
+    BOOST_SPIRIT_DEFINE(forall_c_effect);
+    BOOST_SPIRIT_DEFINE(and_c_effect);
+    BOOST_SPIRIT_DEFINE(when_c_effect);
+    BOOST_SPIRIT_DEFINE(c_effect);
+    BOOST_SPIRIT_DEFINE(effect);
+    //struct TEffect: x3::annotate_on_success {};
+    //struct TCEffect: x3::annotate_on_success {};
 
 
     // Typed Lists
@@ -247,12 +301,6 @@ namespace parser {
                                > sentence;
     BOOST_SPIRIT_DEFINE(precondition);
     struct TPrecondition: x3::annotate_on_success {};
-
-    rule<class TEffect, Sentence> const effect = "effect";
-    auto const effect_def = lit(":effect")
-                              > sentence;
-    BOOST_SPIRIT_DEFINE(effect);
-    struct TEffect: x3::annotate_on_success {};
 
     rule<class TParameters, TypedList<Variable>> const parameters = "parameters";
     auto const parameters_def = lit(":parameters")
@@ -388,7 +436,7 @@ namespace parser {
                                > name
                                > parameters
                                >> -precondition
-                               >> -effect
+                               >> lit(":effects") >> sentence
                                > ')';
     BOOST_SPIRIT_DEFINE(action);
     struct TAction: x3::annotate_on_success {};
