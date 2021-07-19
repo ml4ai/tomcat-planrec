@@ -137,6 +137,20 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(literal_terms);
     struct TLiteralTerms: x3::annotate_on_success {};
 
+    // Atomic formula of names
+    rule<class TAtomicFormulaNames, AtomicFormula<Name>> const
+        atomic_formula_names = "atomic_formula_names";
+    auto const atomic_formula_names_def = '(' >> predicate >> *name >> ')';
+    BOOST_SPIRIT_DEFINE(atomic_formula_names);
+    struct TAtomicFormulaNames: x3::annotate_on_success {};
+
+    // Literals of names
+    rule<class TLiteralNames, Literal<Name>> const literal_names =
+                                 "literal_names";
+    auto const literal_names_def = atomic_formula_names;
+    BOOST_SPIRIT_DEFINE(literal_names);
+    struct TLiteralNames: x3::annotate_on_success {};
+
     // Negative literals
     auto parse_negative_literal = [](auto& ctx) {
           _val(ctx).predicate = _attr(ctx).predicate;
@@ -212,12 +226,12 @@ namespace parser {
     rule<class TQuantifiedSentence, QuantifiedSentence> const quantified_sentence =
                                    "quantified_sentence";
     auto const quantified_sentence_def = '('
-                               >> quantifier
-                               >> '('
-                               >> typed_list_variables
-                               >> ')'
-                               >> sentence
-                               >> ')';
+                               > quantifier
+                               > '('
+                               > typed_list_variables
+                               > ')'
+                               > sentence
+                               > ')';
     BOOST_SPIRIT_DEFINE(quantified_sentence);
     struct TQuantifiedSentence: x3::annotate_on_success {};
 
@@ -270,23 +284,25 @@ namespace parser {
 
     rule<class TForallCEffect, ForallCEffect> const forall_c_effect = "forall_c_effect";
     auto const forall_c_effect_def = ('(' >> lit("forall")) > '(' >> *variable >> ')' >> effect > ')';
+    BOOST_SPIRIT_DEFINE(forall_c_effect);
+    struct TForallCEffect: x3::annotate_on_success {};
 
     rule<class TAndCEffect, AndCEffect> const and_c_effect = "and_c_effect";
     auto const and_c_effect_def = ('(' >> lit("and")) > *c_effect > ')';
+    BOOST_SPIRIT_DEFINE(and_c_effect);
+    struct TAndCEffect: x3::annotate_on_success {};
 
     rule<class TWhenCEffect, WhenCEffect> const when_c_effect = "when_c_effect";
     auto const when_c_effect_def = ('(' >> lit("when")) > sentence > cond_effect >> ')';
+    BOOST_SPIRIT_DEFINE(when_c_effect);
+    struct TWhenCEffect: x3::annotate_on_success {};
 
     auto const c_effect_def = forall_c_effect | when_c_effect | p_effect;
-          
     auto const effect_def = 
         nil
         | and_c_effect 
         | c_effect;
 
-    BOOST_SPIRIT_DEFINE(forall_c_effect);
-    BOOST_SPIRIT_DEFINE(and_c_effect);
-    BOOST_SPIRIT_DEFINE(when_c_effect);
     BOOST_SPIRIT_DEFINE(c_effect);
     BOOST_SPIRIT_DEFINE(effect);
     struct TEffect: x3::annotate_on_success {};
@@ -472,10 +488,12 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(objects);
     struct TObjects: x3::annotate_on_success {};
 
-    rule<class TInit, Literal<Term>> const init = "init";
+    // <p-init> ::= (:init <init-el>*)
+    // <init-el> ::= <literal (name)>
+    rule<class TInit, Init> const init = "init";
     auto const init_def = ('(' >> lit(":init"))
-                               > literal_terms
-                               > ')';
+                               >> *literal_names
+                               >> ')';
     BOOST_SPIRIT_DEFINE(init);
     struct TInit: x3::annotate_on_success {};
 
@@ -486,14 +504,29 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(goal);
     struct TGoal: x3::annotate_on_success {};
 
+    // Connectors (and/or)
+    struct problem_class_ : x3::symbols<std::string> {
+        problem_class_() {
+            add
+                (":htn" , ":htn")
+            ;
+        }
+    } problem_class;
+
+    rule<class TProblemHTN, ProblemHTN> problem_htn = "problem_htn";
+    auto const problem_htn_def = '('  > problem_class >> -parameters >> task_network > ')';
+    BOOST_SPIRIT_DEFINE(problem_htn);
+    struct TProblemHTN: x3::annotate_on_success {};
+
     rule<class TProblem, Problem> const problem = "problem";
     auto const problem_def = ('(' >> lit("define"))
                                > ('(' >> lit("problem")) > name > ')'
                                > ('(' >> lit(":domain")) > name > ')'
                                >> -requirements
                                >> -objects
+                               >> -problem_htn
                                > init
-                               > goal
+                               > -goal
                                > ')';
     BOOST_SPIRIT_DEFINE(problem);
     struct TProblem: x3::annotate_on_success {};

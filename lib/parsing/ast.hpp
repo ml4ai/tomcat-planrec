@@ -16,6 +16,8 @@
 #include <tuple>
 #include <unordered_set>
 
+// TODO Enforce optionality wherever appropriate, based on EBNF specification.
+
 namespace ast {
     using Name = std::string;
     namespace x3 = boost::spirit::x3;
@@ -225,12 +227,21 @@ namespace ast {
         std::vector<Action> actions;
     };
 
+    struct ProblemHTN : x3::position_tagged {
+        std::string problem_class;
+        TypedList<Variable> parameters;
+        TaskNetwork task_network;
+    };
+
+    using Init = std::vector<Literal<Name>>;
+
     struct Problem : x3::position_tagged {
         Name name;
         Name domain_name;
         std::vector<std::string> requirements;
         TypedList<Name> objects;
-        Literal<Term> init;
+        ProblemHTN problem_htn;
+        Init init;
         Sentence goal;
     };
 
