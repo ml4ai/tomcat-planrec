@@ -59,210 +59,122 @@ int main(int argc, char* argv[]) {
 
     for (auto a : state1.agents) {
       state1.role[a] = "NONE";
-      state1.read_role[a] = 0;
-      state1.write_role[a] = 0;
 
       state1.agent_loc[a] = "entrance";
-      state1.read_agent_loc[a] = 0;
-      state1.write_agent_loc[a] = 0;
-
-      state1.help_wake[a] = false;
-      state1.read_help_wake[a] = 0;
-      state1.write_help_wake[a] = 0;
 
       state1.holding[a] = "NONE";
-      state1.read_holding[a] = 0;
-      state1.write_holding[a] = 0;
 
       state1.c_seen[a] = {};
-      state1.read_c_seen[a] = 0;
-      state1.write_c_seen[a] = 0;
 
       state1.r_seen[a] = {};
-      state1.read_r_seen[a] = 0;
-      state1.write_r_seen[a] = 0;
 
       state1.time[a] = 0;
-      state1.read_time[a] = 0;
-      state1.write_time[a] = 0;
 
       state1.times_searched[a] = 0;
-      state1.read_times_searched[a] = 0;
-      state1.write_times_searched[a] = 0;
       
       state1.loc_tracker[a] = {};
 
       for (auto s : state1.rooms) {
         state1.visited[a][s] = 0;
-        state1.read_visited[a][s] = 0;
-        state1.write_visited[a][s] = 0;
       }
     }
     
     for (auto s : state1.rooms) {
       state1.c_vic_loc[s] = {};
-      state1.read_c_vic_loc[s] = 0;
-      state1.write_c_vic_loc[s] = 0;
 
       state1.r_vic_loc[s] = {};
-      state1.read_r_vic_loc[s] = 0;
-      state1.write_r_vic_loc[s] = 0;
       
       state1.room_blocks[s] = 0;
-      state1.read_room_blocks[s] = 0;
-      state1.write_room_blocks[s] = 0;
+
+      state1.hall_blockage[s]["entrance"] = 0;
+      state1.hall_blockage["entrance"][s] = 0;
 
       for (auto r : state1.rooms) {
         state1.hall_blockage[s][r] = 0;
-        state1.read_hall_blockage[s][r] = 0;
-        state1.write_hall_blockage[s][r] = 0;
+        state1.hall_blockage[r][s] = 0;
       }
     }
 
     std::string crit1 = "C1";
     state1.obs[crit1] = false;
-    state1.read_obs[crit1] = 0;
-    state1.write_obs[crit1] = 0;
-    state1.c_awake[crit1] = false;
-    state1.read_c_awake[crit1] = 0;
-    state1.write_c_awake[crit1] = 0;
 
     std::string crit2 = "C2";
     state1.obs[crit2] = false;
-    state1.read_obs[crit2] = 0;
-    state1.write_obs[crit2] = 0;
-    state1.c_awake[crit2] = false;
-    state1.read_c_awake[crit2] = 0;
-    state1.write_c_awake[crit2] = 0;
 
     std::string crit3 = "C3";
     state1.obs[crit3] = true;
-    state1.read_obs[crit3] = 0;
-    state1.write_obs[crit3] = 0;
-    state1.c_awake[crit3] = false;
-    state1.read_c_awake[crit3] = 0;
-    state1.write_c_awake[crit3] = 0;
 
     std::string reg1 = "RV1";
     state1.obs[reg1] = false;
-    state1.read_obs[reg1] = 0;
-    state1.write_obs[reg1] = 0;
  
     std::string reg2 = "RV2";
     state1.obs[reg2] = false;
-    state1.read_obs[reg2] = 0;
-    state1.write_obs[reg2] = 0;
  
     std::string reg3 = "RV3";
     state1.obs[reg3] = false;
-    state1.read_obs[reg3] = 0;
-    state1.write_obs[reg3] = 0;
  
     std::string reg4 = "RV4";
     state1.obs[reg4] = false;
-    state1.read_obs[reg4] = 0;
-    state1.write_obs[reg4] = 0;
  
     std::string reg5 = "RV5";
     state1.obs[reg5] = true;
-    state1.read_obs[reg5] = 0;
-    state1.write_obs[reg5] = 0;
  
     std::string reg6 = "RV6";
     state1.obs[reg6] = true;
-    state1.read_obs[reg6] = 0;
-    state1.write_obs[reg6] = 0;
  
     std::string reg7 = "RV7";
     state1.obs[reg7] = true;
-    state1.read_obs[reg7] = 0;
-    state1.write_obs[reg7] = 0;
  
     std::string reg8 = "RV8";
     state1.obs[reg8] = true;
-    state1.read_obs[reg8] = 0;
-    state1.write_obs[reg8] = 0;
  
     std::string reg9 = "RV9";
     state1.obs[reg9] = false;
-    state1.read_obs[reg9] = 0;
-    state1.write_obs[reg9] = 0;
  
     std::string reg10 = "RV10";
     state1.obs[reg10] = false;
-    state1.read_obs[reg10] = 0;
-    state1.write_obs[reg10] = 0;
  
     std::string reg11 = "RV11";
     state1.obs[reg11] = false;
-    state1.read_obs[reg11] = 0;
-    state1.write_obs[reg11] = 0;
  
     std::string reg12 = "RV12";
     state1.obs[reg12] = false;
-    state1.read_obs[reg12] = 0;
-    state1.write_obs[reg12] = 0;
  
     std::string reg13 = "RV13";
     state1.obs[reg13] = false;
-    state1.read_obs[reg13] = 0;
-    state1.write_obs[reg13] = 0;
  
     std::string reg14 = "RV14";
     state1.obs[reg14] = true;
-    state1.read_obs[reg14] = 0;
-    state1.write_obs[reg14] = 0;
  
     std::string reg15 = "RV15";
     state1.obs[reg15] = true;
-    state1.read_obs[reg15] = 0;
-    state1.write_obs[reg15] = 0;
  
     std::string reg16 = "RV16";
     state1.obs[reg16] = false;
-    state1.read_obs[reg16] = 0;
-    state1.write_obs[reg16] = 0;
  
     std::string reg17 = "RV17";
     state1.obs[reg17] = false;
-    state1.read_obs[reg17] = 0;
-    state1.write_obs[reg17] = 0;
  
     std::string reg18 = "RV18";
     state1.obs[reg18] = false;
-    state1.read_obs[reg18] = 0;
-    state1.write_obs[reg18] = 0;
  
     std::string reg19 = "RV19";
     state1.obs[reg19] = true;
-    state1.read_obs[reg19] = 0;
-    state1.write_obs[reg19] = 0;
  
     std::string reg20 = "RV20";
     state1.obs[reg20] = true;
-    state1.read_obs[reg20] = 0;
-    state1.write_obs[reg20] = 0;
  
     std::string reg21 = "RV21";
     state1.obs[reg21] = false;
-    state1.read_obs[reg21] = 0;
-    state1.write_obs[reg21] = 0;
  
     std::string reg22 = "RV22";
     state1.obs[reg22] = true;
-    state1.read_obs[reg22] = 0;
-    state1.write_obs[reg22] = 0;
  
     std::string reg23 = "RV23";
     state1.obs[reg23] = false;
-    state1.read_obs[reg23] = 0;
-    state1.write_obs[reg23] = 0;
  
     std::string reg24 = "RV24";
     state1.obs[reg24] = true;
-    state1.read_obs[reg24] = 0;
-    state1.write_obs[reg24] = 0;
- 
 
     state1.c_vic_loc[area4].push_back(crit1);
     state1.c_vic_loc[area5].push_back(crit2);
@@ -294,7 +206,7 @@ int main(int argc, char* argv[]) {
     state1.r_vic_loc[area3].push_back(reg24);
 
     state1.hall_blockage[area4][area12] = 15;
-    state1.hall_blockage[area4][area12] = 15;
+    state1.hall_blockage[area12][area4] = 15;
 
     state1.hall_blockage[area1][area4] = 2;
     state1.hall_blockage[area4][area1] = 2;
@@ -367,12 +279,8 @@ int main(int argc, char* argv[]) {
     state1.room_blocks[area12] = 5;
 
     state1.c_triage_total = 0;
-    state1.read_c_triage_total = 0;
-    state1.write_c_triage_total = 0;
 
     state1.r_triage_total = 0;
-    state1.read_r_triage_total = 0;
-    state1.write_r_triage_total = 0;
 
     state1.c_max = 3;
     state1.r_max = 24;

@@ -244,7 +244,6 @@ simulation(State state,
            double likelihood,
            int seed) {
     while (!tasks.empty()) {
-
       Task task = tasks.back();
       auto [task_id, args] = task;
 
@@ -275,6 +274,9 @@ simulation(State state,
               }
           }
           seed++;
+          if (c.empty()) {
+            throw std::logic_error("No valid task during simulation!");
+          }
           pTasks r = *select_randomly(c.begin(), c.end(), seed);
           seed++;
           tasks.pop_back();
@@ -283,7 +285,7 @@ simulation(State state,
               i != r.second.begin();) {
             tasks.push_back(*(--i));
           }
-          continue;;
+          continue;
       }   
       throw std::logic_error("Invalid task during simulation!");
     }
