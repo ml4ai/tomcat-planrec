@@ -156,83 +156,79 @@ selection(Tree<State, Selector>& t,
           int v,
           double eps,
           int seed = 4021) {
-    if (t[v].successors.empty()) {
-        return v;
-    }
-    seed++;
+
     std::mt19937 gen(seed);
-    seed++;
     std::uniform_real_distribution<> dis(0.0,1.0);
-    double e = dis(gen);
-    if (e > eps) {
-      std::vector<double> r_maxes = {};
-      r_maxes.push_back(t[v].successors.front());
-      double r_max = t[r_maxes.back()].selector.mean;
-      for (int w : t[v].successors) {
+    while (!t[v].successors.empty()) {
+      double e = dis(gen);
+      if (e > eps) {
+        std::vector<double> r_maxes = {};
+        r_maxes.push_back(t[v].successors.front());
+        double r_max = t[r_maxes.back()].selector.mean;
+        for (int w : t[v].successors) {
+            if (t[w].selector.sims == 0) {
+              return w;
+            }
+            double s = t[w].selector.mean;
+            if (s >= r_max) {
+              if (s > r_max) {
+                r_max = s;
+                r_maxes.clear();
+                r_maxes.push_back(w);
+              }
+              else {
+                r_maxes.push_back(w);
+              }
+            }
+        }
+        std::vector<double> v_maxes = {};
+        v_maxes.push_back(r_maxes.front());
+        int v_max = t[v_maxes.back()].selector.sims;
+        for (int w : r_maxes) {
+          int s = t[w].selector.sims;
+          if (s >= v_max) {
+            if (s > v_max) {
+              v_max = s;
+              v_maxes.clear();
+              v_maxes.push_back(w);
+            }
+            else {
+              v_maxes.push_back(w);
+            }
+          }
+        }
+        seed++;
+        v = *select_randomly(v_maxes.begin(), v_maxes.end(), seed);
+        seed++;
+      }
+      else {
+        for (int w : t[v].successors) {
           if (t[w].selector.sims == 0) {
             return w;
           }
-          double s = t[w].selector.mean;
-          if (s >= r_max) {
-            if (s > r_max) {
-              r_max = s;
-              r_maxes.clear();
-              r_maxes.push_back(w);
-            }
-            else {
-              r_maxes.push_back(w);
-            }
-          }
-      }
-      std::vector<double> v_maxes = {};
-      v_maxes.push_back(r_maxes.front());
-      int v_max = t[v_maxes.back()].selector.sims;
-      for (int w : r_maxes) {
-        int s = t[w].selector.sims;
-        if (s >= v_max) {
-          if (s > v_max) {
-            v_max = s;
-            v_maxes.clear();
-            v_maxes.push_back(w);
-          }
-          else {
-            v_maxes.push_back(w);
-          }
         }
+        seed++;
+        v = *select_randomly(t[v].successors.begin(), t[v].successors.end(), seed);
+        seed++;
       }
-      seed++;
-      int n = *select_randomly(v_maxes.begin(), v_maxes.end(), seed);
-      seed++;
-      return selection(t, n, eps, seed);
     }
-    else {
-      for (int w : t[v].successors) {
-        if (t[w].selector.sims == 0) {
-          return w;
-        }
-      }
-      seed++;
-      int n = *select_randomly(t[v].successors.begin(), t[v].successors.end(), seed);
-      seed++;
-      return selection(t,n,eps,seed);
-    }
+    return v;
 }
 
 template <class State, class Selector>
 void backprop(Tree<State, Selector>& t, int n, double r) {
-  if (t[n].successors.empty()) {
-    t[n].selector.mean = r;
-    t[n].selector.sims++;
+  do {
+    if (t[n].successors.empty()) {
+      t[n].selector.mean = r;
+      t[n].selector.sims++;
+    }
+    else {
+      t[n].selector.mean = (r + t[n].selector.sims*t[n].selector.mean)/(t[n].selector.sims + 1);
+      t[n].selector.sims++;
+    }
+    n = t[n].pred;
   }
-  else {
-    t[n].selector.mean = (r + t[n].selector.sims*t[n].selector.mean)/(t[n].selector.sims + 1);
-    t[n].selector.sims++;
-  }
-  if (t[n].pred == -1) {
-    return;
-  }
-
-  backprop(t,t[n].pred,r);
+  while (n != -1);
   return;
 }
 
@@ -369,69 +365,69 @@ seek_planMCTS(Tree<State,Selector>& t,
                  int N = 30,
                  double eps = 0.4,
                  int seed = 4021) {
-  if (t[v].tasks.empty()) {
-        t[boost::graph_bundle].plans.push_back(t[v].plan);
-        std::cout << "Plan found at depth " << t[v].depth << " and score of " << t[v].selector.rewardFunc(t[v].state);
-        std::cout << " with likelihood " << t[v].likelihood << std::endl;
-        std::cout << std::endl;
-        std::cout << "Final State:" << std::endl;
-        std::cout << t[v].state.to_json() << std::endl;
-        std::cout << std::endl;
-        return;
-  }
-  Tree<State, Selector> m;
-  Node<State, Selector> n;
-  n.state = t[v].state;
-  n.tasks = t[v].tasks;
-  n.depth = t[v].depth;
-  n.plan = t[v].plan;
-  n.selector = selector;
-  n.likelihood = t[v].likelihood;
-  int w = boost::add_vertex(n, m);
-  for (int i = 0; i < N; i++) {
-    int n = selection(m,w,eps,seed);
-    seed++;
-    if (m[n].tasks.empty()) {
-        double r = simulation(m[n].state, m[n].tasks, domain, m[n].likelihood,seed);
-        backprop(m,n,r);
-    }
-    else {
-      if (m[n].selector.sims == 0) {
-        double r = simulation(m[n].state, m[n].tasks, domain, m[n].likelihood,seed);
-        seed++;
-        backprop(m,n,r);
+  while (!t[v].tasks.empty()) {
+    Tree<State, Selector> m;
+    Node<State, Selector> n_node;
+    n_node.state = t[v].state;
+    n_node.tasks = t[v].tasks;
+    n_node.depth = t[v].depth;
+    n_node.plan = t[v].plan;
+    n_node.selector = selector;
+    n_node.likelihood = t[v].likelihood;
+    int w = boost::add_vertex(n_node, m);
+    for (int i = 0; i < N; i++) {
+      int n = selection(m,w,eps,seed);
+      seed++;
+      if (m[n].tasks.empty()) {
+          double r = simulation(m[n].state, m[n].tasks, domain, m[n].likelihood,seed);
+          backprop(m,n,r);
       }
       else {
-        int n_p = expansion(m,n,domain,selector,seed);
-        seed++;
-        double r = simulation(m[n_p].state, m[n_p].tasks, domain, m[n_p].likelihood,seed);
-        seed++;
-        backprop(m,n_p,r);
+        if (m[n].selector.sims == 0) {
+          double r = simulation(m[n].state, m[n].tasks, domain, m[n].likelihood,seed);
+          seed++;
+          backprop(m,n,r);
+        }
+        else {
+          int n_p = expansion(m,n,domain,selector,seed);
+          seed++;
+          double r = simulation(m[n_p].state, m[n_p].tasks, domain, m[n_p].likelihood,seed);
+          seed++;
+          backprop(m,n_p,r);
+        }
       }
     }
+    int arg_max = m[w].successors.front();
+    double max = m[arg_max].selector.mean;
+    for (int s : m[w].successors) {
+        double mean = m[s].selector.mean;
+        if (mean > max) {
+            max = mean;
+            arg_max = s;
+        }
+    }
+    Node<State, Selector> k;
+    k.state = m[arg_max].state;
+    k.tasks = m[arg_max].tasks;
+    k.plan = m[arg_max].plan;
+    k.selector = selector;
+    k.depth = t[v].depth + 1;
+    k.pred = v;
+    k.likelihood = m[arg_max].likelihood;
+    int y = boost::add_vertex(k, t);
+    t[v].successors.push_back(y);
+    seed++;
+    v = y;
   }
-  int arg_max = m[w].successors.front();
-  double max = m[arg_max].selector.mean;
-  for (int s : m[w].successors) {
-      double mean = m[s].selector.mean;
-      if (mean > max) {
-          max = mean;
-          arg_max = s;
-      }
-  }
-  Node<State, Selector> k;
-  k.state = m[arg_max].state;
-  k.tasks = m[arg_max].tasks;
-  k.plan = m[arg_max].plan;
-  k.selector = selector;
-  k.depth = t[v].depth + 1;
-  k.pred = v;
-  k.likelihood = m[arg_max].likelihood;
-  int y = boost::add_vertex(k, t);
-  t[v].successors.push_back(y);
-  seed++;
-  seek_planMCTS(t, y, domain, selector, N, eps, seed);
+  t[boost::graph_bundle].plans.push_back(t[v].plan);
+  std::cout << "Plan found at depth " << t[v].depth << " and score of " << t[v].selector.rewardFunc(t[v].state);
+  std::cout << " with likelihood " << t[v].likelihood << std::endl;
+  std::cout << std::endl;
+  std::cout << "Final State:" << std::endl;
+  std::cout << t[v].state.to_json() << std::endl;
+  std::cout << std::endl;
   return;
+ 
 }
 
 template <class State, class Domain, class Selector>
