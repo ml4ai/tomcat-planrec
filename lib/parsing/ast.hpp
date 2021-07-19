@@ -186,8 +186,8 @@ namespace ast {
     struct AndCEffect;
 
     using CEffect = boost::variant<boost::recursive_wrapper<ForallCEffect>,
-                                   boost::recursive_wrapper<WhenCEffect>,
-                                   PEffect>;
+                                 boost::recursive_wrapper<WhenCEffect>,
+                                 PEffect>;
 
     using Effect = boost::variant<Nil, boost::recursive_wrapper<AndCEffect>, CEffect>;
 
@@ -210,7 +210,7 @@ namespace ast {
         Name name;
         TypedList<Variable> parameters;
         Sentence precondition;
-        Sentence effect;
+        Effect effect;
     };
 
     struct Domain : x3::position_tagged {

@@ -231,32 +231,32 @@ namespace parser {
         | quantified_sentence
         ;
     BOOST_SPIRIT_DEFINE(sentence);
-    //struct TSentence : x3::annotate_on_success {};
+    struct TSentence : x3::annotate_on_success {};
 
     // <p-effect>
     rule<class TPEffect, Literal<Term>> const p_effect = "p_effect";
     auto const p_effect_def = literal_terms | negative_literal_terms;
     BOOST_SPIRIT_DEFINE(p_effect);
-    //struct TPEffect: x3::annotate_on_success {};
+    struct TPEffect: x3::annotate_on_success {};
 
     // <cond-effect>
     rule<class TCondEffect, CondEffect> const cond_effect = "cond_effect";
     auto const cond_effect_def = p_effect | '(' >> lit("and") >> *p_effect >> ')';
     BOOST_SPIRIT_DEFINE(cond_effect);
-    //struct TCondEffect: x3::annotate_on_success {};
+    struct TCondEffect: x3::annotate_on_success {};
 
     // <effect and <c-effect>
     rule<class TEffect, Effect> const effect = "effect";
     rule<class TCEffect, CEffect> const c_effect = "c_effect";
 
     rule<class TForallCEffect, ForallCEffect> const forall_c_effect = "forall_c_effect";
-    auto const forall_c_effect_def = ('(' >> lit("forall")) >> '(' >> *variable >> ')' >> effect > ')';
+    auto const forall_c_effect_def = ('(' >> lit("forall")) > '(' >> *variable >> ')' >> effect > ')';
 
     rule<class TAndCEffect, AndCEffect> const and_c_effect = "and_c_effect";
-    auto const and_c_effect_def = ('(' >> lit("and")) >> *c_effect >> ')';
+    auto const and_c_effect_def = ('(' >> lit("and")) > *c_effect > ')';
 
     rule<class TWhenCEffect, WhenCEffect> const when_c_effect = "when_c_effect";
-    auto const when_c_effect_def = ('(' >> lit("when")) >> sentence >> cond_effect >> ')';
+    auto const when_c_effect_def = ('(' >> lit("when")) > sentence > cond_effect >> ')';
 
     auto const c_effect_def = forall_c_effect | when_c_effect | p_effect;
           
@@ -431,12 +431,16 @@ namespace parser {
 
 
     // Primitive actions
+
+    // Note: There is a typo in section 4 of the HDDL paper
+    // https://arxiv.org/pdf/1911.05499.pdf - in the specification of actions,
+    // it should be ':effect' instead of ':effects' (line 44 of their listing).
     rule<class TAction, Action> const action = "action";
     auto const action_def = ('(' >> lit(":action"))
                                > name
                                > parameters
                                >> -precondition
-                               >> lit(":effects") >> sentence
+                               >> -(lit(":effect") >> effect)
                                > ')';
     BOOST_SPIRIT_DEFINE(action);
     struct TAction: x3::annotate_on_success {};

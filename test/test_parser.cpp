@@ -268,7 +268,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto actname1 = dom.actions[0].name;
     BOOST_TEST(actname1 == "drive");
 
-    // Test Parsing Action Parameters
+    // Test parsing action parameters
     auto actpara1 = dom.actions[0].parameters;
     BOOST_TEST(boost::get<PrimitiveType>(
                    actpara1.explicitly_typed_lists[0].type) == "package");
@@ -277,22 +277,21 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "box1");
     BOOST_TEST(actpara1.explicitly_typed_lists[1].entries[0].name == "loc1");
 
-    // Test Parsing Action Precondition
+    // Test parsing action precondition
     auto actprec1_f = dom.actions[0].precondition;
     auto actprec1_s = boost::get<ConnectedSentence>(actprec1_f);
     auto actprec1_os = boost::get<Literal<Term>>(actprec1_s.sentences[0]);
     BOOST_TEST(actprec1_os.predicate == "tAt");
     BOOST_TEST(boost::get<Variable>(actprec1_os.args[0]).name == "loc1");
 
-    // Test Parsing Action Effect
+    // Test parsing action effect
     auto effect1_f = dom.actions[0].effect;
-    auto effect1_s = boost::get<ConnectedSentence>(effect1_f);
-    auto effect1_af = boost::get<Literal<Term>>(effect1_s.sentences[0]);
+    auto effect1_s = boost::get<AndCEffect>(effect1_f);
+    auto effect1_af = boost::get<Literal<Term>>(effect1_s.c_effects[0]);
     BOOST_TEST(effect1_af.predicate == "tAt");
     BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "loc1");
 
-    auto effect1_af2 = boost::get<NotSentence>(effect1_s.sentences[1]);
-    auto effect1_af2_literal = boost::get<Literal<Term>>(effect1_af2.sentence);
+    auto effect1_af2_literal = boost::get<Literal<Term>>(effect1_s.c_effects[1]);
     BOOST_TEST(effect1_af2_literal.predicate == "tAt");
     BOOST_TEST(name(effect1_af2_literal.args[0]) == "loc2");
 }
