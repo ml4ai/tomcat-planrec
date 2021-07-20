@@ -72,7 +72,7 @@ namespace ast {
     struct ImplySentence;
     struct QuantifiedSentence;
 
-    struct EqualsSentence : x3::position_tagged {
+    struct EqualsSentence {
         Term lhs;
         Term rhs;
     };
@@ -105,7 +105,7 @@ namespace ast {
         Sentence sentence2;
     };
 
-    struct QuantifiedSentence : x3::position_tagged {
+    struct QuantifiedSentence {
         std::string quantifier;
         TypedList<Variable> variables;
         Sentence sentence;
