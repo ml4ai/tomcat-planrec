@@ -18,7 +18,7 @@ namespace parser {
     auto const name =
         lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
 
-    
+
     // Rules
     rule<class TRequirement, std::vector<Name>> const requirement =
         "requirement";
@@ -137,6 +137,34 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(literal_terms);
     struct TLiteralTerms: x3::annotate_on_success {};
 
+    // Atomic formula of names
+    rule<class TAtomicFormulaNames, AtomicFormula<Name>> const
+        atomic_formula_names = "atomic_formula_names";
+    auto const atomic_formula_names_def = '(' >> predicate >> *name >> ')';
+    BOOST_SPIRIT_DEFINE(atomic_formula_names);
+    struct TAtomicFormulaNames: x3::annotate_on_success {};
+
+    // Literals of names
+    rule<class TLiteralNames, Literal<Name>> const literal_names =
+                                 "literal_names";
+    auto const literal_names_def = atomic_formula_names;
+    BOOST_SPIRIT_DEFINE(literal_names);
+    struct TLiteralNames: x3::annotate_on_success {};
+
+    // Negative literals
+    auto parse_negative_literal = [](auto& ctx) {
+          _val(ctx).predicate = _attr(ctx).predicate;
+          _val(ctx).args = _attr(ctx).args;
+          _val(ctx).is_negative = true;
+    };
+
+    rule<class TNegativeLiteralTerms, Literal<Term>> const negative_literal_terms = "negative_literal_terms";
+    auto const negative_literal_terms_def = ('(' >> lit("not") >> literal_terms >> ')')[parse_negative_literal];
+    BOOST_SPIRIT_DEFINE(negative_literal_terms);
+    struct TNegativeLiteralTerms: x3::annotate_on_success {};
+
+
+
     // Nil
     rule<class TNil, Nil> const nil = "nil";
     auto const nil_def = '(' >> lit(")");
@@ -198,39 +226,100 @@ namespace parser {
     rule<class TQuantifiedSentence, QuantifiedSentence> const quantified_sentence =
                                    "quantified_sentence";
     auto const quantified_sentence_def = '('
-                               >> quantifier
-                               >> '('
-                               >> typed_list_variables
-                               >> ')'
-                               >> sentence
-                               >> ')';
+                               > quantifier
+                               > '('
+                               > typed_list_variables
+                               > ')'
+                               > sentence
+                               > ')';
     BOOST_SPIRIT_DEFINE(quantified_sentence);
     struct TQuantifiedSentence: x3::annotate_on_success {};
 
+    rule<class TEqualsSentence, EqualsSentence> const equals_sentence =
+                                   "equals_sentence";
+    auto const equals_sentence_def = ('(' >> lit("="))
+                                 > term
+                                 > term
+                                 > ')';
+    BOOST_SPIRIT_DEFINE(equals_sentence);
+    struct TEqualsSentence : x3::annotate_on_success {};
 
-    auto const sentence_def = 
-        nil 
-        | literal_terms 
-        | connected_sentence 
-        | not_sentence 
-        | imply_sentence 
+    rule<class TNotEqualsSentence, NotEqualsSentence> const not_equals_sentence =
+                                   "not_equals_sentence";
+    auto const not_equals_sentence_def = ('('
+                               >> lit("not"))
+                               > equals_sentence
+                               > ')';
+    BOOST_SPIRIT_DEFINE(not_equals_sentence);
+    struct TNotEqualsSentence: x3::annotate_on_success {};
+
+
+    auto const sentence_def =
+        nil
+        | literal_terms
+        | connected_sentence
+        | not_sentence
+        | imply_sentence
         | quantified_sentence
+        | equals_sentence // Note: HDDL has equals sentences, but PDDL 2.1 does not.
         ;
     BOOST_SPIRIT_DEFINE(sentence);
     struct TSentence : x3::annotate_on_success {};
+
+    // <p-effect>
+    rule<class TPEffect, Literal<Term>> const p_effect = "p_effect";
+    auto const p_effect_def = literal_terms | negative_literal_terms;
+    BOOST_SPIRIT_DEFINE(p_effect);
+    struct TPEffect: x3::annotate_on_success {};
+
+    // <cond-effect>
+    rule<class TCondEffect, CondEffect> const cond_effect = "cond_effect";
+    auto const cond_effect_def = p_effect | '(' >> lit("and") >> *p_effect >> ')';
+    BOOST_SPIRIT_DEFINE(cond_effect);
+    struct TCondEffect: x3::annotate_on_success {};
+
+    // <effect and <c-effect>
+    rule<class TEffect, Effect> const effect = "effect";
+    rule<class TCEffect, CEffect> const c_effect = "c_effect";
+
+    rule<class TForallCEffect, ForallCEffect> const forall_c_effect = "forall_c_effect";
+    auto const forall_c_effect_def = ('(' >> lit("forall")) > '(' >> *variable >> ')' >> effect > ')';
+    BOOST_SPIRIT_DEFINE(forall_c_effect);
+    struct TForallCEffect: x3::annotate_on_success {};
+
+    rule<class TAndCEffect, AndCEffect> const and_c_effect = "and_c_effect";
+    auto const and_c_effect_def = ('(' >> lit("and")) > *c_effect > ')';
+    BOOST_SPIRIT_DEFINE(and_c_effect);
+    struct TAndCEffect: x3::annotate_on_success {};
+
+    rule<class TWhenCEffect, WhenCEffect> const when_c_effect = "when_c_effect";
+    auto const when_c_effect_def = ('(' >> lit("when")) > sentence > cond_effect >> ')';
+    BOOST_SPIRIT_DEFINE(when_c_effect);
+    struct TWhenCEffect: x3::annotate_on_success {};
+
+    auto const c_effect_def = forall_c_effect | when_c_effect | p_effect;
+    auto const effect_def = 
+        nil
+        | and_c_effect 
+        | c_effect;
+
+    BOOST_SPIRIT_DEFINE(c_effect);
+    BOOST_SPIRIT_DEFINE(effect);
+    struct TEffect: x3::annotate_on_success {};
+    struct TCEffect: x3::annotate_on_success {};
 
 
     // Typed Lists
     rule<class TTypes, TypedList<Name>> const types = "types";
     auto const types_def = ('(' >> lit(":types"))
-                               > typed_list_names 
+                               > typed_list_names
                                > ')';
     BOOST_SPIRIT_DEFINE(types);
     struct TTypes: x3::annotate_on_success {};
 
     rule<class TConstants, TypedList<Name>> const constants = "constants";
     auto const constants_def = ('(' >> lit(":constants"))
-                               > typed_list_names 
+                               > typed_list_names
                                > ')';
     BOOST_SPIRIT_DEFINE(constants);
     struct TConstants : x3::annotate_on_success {};
@@ -247,12 +336,6 @@ namespace parser {
                                > sentence;
     BOOST_SPIRIT_DEFINE(precondition);
     struct TPrecondition: x3::annotate_on_success {};
-
-    rule<class TEffect, Sentence> const effect = "effect";
-    auto const effect_def = lit(":effect")
-                              > sentence;
-    BOOST_SPIRIT_DEFINE(effect);
-    struct TEffect: x3::annotate_on_success {};
 
     rule<class TParameters, TypedList<Variable>> const parameters = "parameters";
     auto const parameters_def = lit(":parameters")
@@ -335,23 +418,6 @@ namespace parser {
     BOOST_SPIRIT_DEFINE(method_subtasks);
     struct TMethodSubTasks : x3::annotate_on_success {};
 
-    rule<class TEqualsSentence, EqualsSentence> const equals_sentence =
-                                   "equals_sentence";
-    auto const equals_sentence_def = ('(' >> lit("="))
-                                 > term
-                                 > term
-                                 > ')';
-    BOOST_SPIRIT_DEFINE(equals_sentence);
-    struct TEqualsSentence : x3::annotate_on_success {};
-
-    rule<class TNotEqualsSentence, NotEqualsSentence> const not_equals_sentence =
-                                   "not_equals_sentence";
-    auto const not_equals_sentence_def = ('('
-                               >> lit("not"))
-                               > equals_sentence
-                               > ')';
-    BOOST_SPIRIT_DEFINE(not_equals_sentence);
-    struct TNotEqualsSentence: x3::annotate_on_success {};
 
     rule<class TConstraint, Constraint> const constraint = "constraint";
     auto const constraint_def = nil | not_equals_sentence | equals_sentence;
@@ -364,8 +430,8 @@ namespace parser {
     struct TConstraints : x3::annotate_on_success {};
 
     rule<class TTaskNetwork, TaskNetwork> const task_network = "task_network";
-    auto const task_network_def = -method_subtasks 
-                               >> -task_network_orderings 
+    auto const task_network_def = -method_subtasks
+                               >> -task_network_orderings
                                >> -(lit(":constraints") > constraints);
     BOOST_SPIRIT_DEFINE(task_network);
     struct TTaskNetwork: x3::annotate_on_success {};
@@ -383,12 +449,16 @@ namespace parser {
 
 
     // Primitive actions
+
+    // Note: There is a typo in section 4 of the HDDL paper
+    // https://arxiv.org/pdf/1911.05499.pdf - in the specification of actions,
+    // it should be ':effect' instead of ':effects' (line 44 of their listing).
     rule<class TAction, Action> const action = "action";
     auto const action_def = ('(' >> lit(":action"))
                                > name
-                               > parameters 
+                               > parameters
                                >> -precondition
-                               >> -effect
+                               >> -(lit(":effect") >> effect)
                                > ')';
     BOOST_SPIRIT_DEFINE(action);
     struct TAction: x3::annotate_on_success {};
@@ -401,7 +471,7 @@ namespace parser {
                                > requirements
                                >> -types
                                >> -constants
-                               >> -predicates 
+                               >> -predicates
                                >> *abstract_task
                                >> *method
                                >> *action
@@ -413,24 +483,42 @@ namespace parser {
     // Problem definition
     rule<class TObjects, TypedList<Name>> const objects = "objects";
     auto const objects_def = ('(' >> lit(":objects"))
-                               > typed_list_names 
+                               > typed_list_names
                                > ')';
     BOOST_SPIRIT_DEFINE(objects);
     struct TObjects: x3::annotate_on_success {};
 
-    rule<class TInit, Literal<Term>> const init = "init";
+    // <p-init> ::= (:init <init-el>*)
+    // <init-el> ::= <literal (name)>
+    rule<class TInit, Init> const init = "init";
     auto const init_def = ('(' >> lit(":init"))
-                               > literal_terms 
-                               > ')';
+                               >> *literal_names
+                               >> ')';
     BOOST_SPIRIT_DEFINE(init);
     struct TInit: x3::annotate_on_success {};
 
     rule<class TGoal, Sentence> const goal = "goal";
     auto const goal_def = ('(' >> lit(":goal"))
-                               > sentence 
+                               > sentence
                                > ')';
     BOOST_SPIRIT_DEFINE(goal);
     struct TGoal: x3::annotate_on_success {};
+
+    // Problem class. For the first version of HDDL, only :htn is allowed.
+    // Later versions might allow different classes to denote problems with
+    // task insertion, etc.
+    struct problem_class_ : x3::symbols<std::string> {
+        problem_class_() {
+            add
+                (":htn" , ":htn")
+            ;
+        }
+    } problem_class;
+
+    rule<class TProblemHTN, ProblemHTN> problem_htn = "problem_htn";
+    auto const problem_htn_def = ('('  >> problem_class) > -parameters > task_network > ')';
+    BOOST_SPIRIT_DEFINE(problem_htn);
+    struct TProblemHTN: x3::annotate_on_success {};
 
     rule<class TProblem, Problem> const problem = "problem";
     auto const problem_def = ('(' >> lit("define"))
@@ -438,8 +526,9 @@ namespace parser {
                                > ('(' >> lit(":domain")) > name > ')'
                                >> -requirements
                                >> -objects
+                               >> -problem_htn
                                > init
-                               > goal
+                               >> -goal
                                > ')';
     BOOST_SPIRIT_DEFINE(problem);
     struct TProblem: x3::annotate_on_success {};
@@ -447,28 +536,8 @@ namespace parser {
 
 } // namespace parser
 
-parser::constant_type constant() { return parser::constant; }
-parser::variable_type variable() { return parser::variable; }
-parser::primitive_type_type primitive_type() { return parser::primitive_type; }
-parser::either_type_type either_type() { return parser::either_type; }
 parser::type_type type() { return parser::type; }
-
-parser::typed_list_names_type typed_list_names() {
-    return parser::typed_list_names;
-}
-parser::typed_list_variables_type typed_list_variables() {
-    return parser::typed_list_variables;
-}
-parser::atomic_formula_skeleton_type atomic_formula_skeleton() {
-    return parser::atomic_formula_skeleton;
-}
-parser::atomic_formula_terms_type atomic_formula_terms() {
-    return parser::atomic_formula_terms;
-}
 parser::literal_terms_type literal_terms() { return parser::literal_terms; }
-
 parser::sentence_type sentence() { return parser::sentence; }
-parser::requirements_type requirements() { return parser::requirements; }
 parser::domain_type domain() { return parser::domain; }
 parser::problem_type problem() { return parser::problem; }
-parser::action_type action() { return parser::action; }
