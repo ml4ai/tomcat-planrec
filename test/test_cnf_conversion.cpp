@@ -174,5 +174,8 @@ BOOST_AUTO_TEST_CASE(test_custom_map) {
     auto v = Variable{"var"};
     mymap[v] =  Symbol{"sym"};
     BOOST_TEST(mymap.contains(v));
+    BOOST_TEST(mymap[v].name == "sym");
+    BOOST_TEST(mymap.at(v).name == "sym");
+    BOOST_TEST(boost::apply_visitor(GetArgType(), (Term)v) == "Variable");
 }
 

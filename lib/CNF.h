@@ -187,7 +187,7 @@ namespace ast {
     struct SubstVisitor : public boost::static_visitor<Sentence>, public boost::static_visitor<Term>{
         std::unordered_map<Variable, Symbol, Hash<Variable>> theta;
 
-        Term operator()(Variable s) const {
+        Term operator()(Variable& s) const {
             if (this->theta.contains(s)) {
 //                return Symbol{this->theta.at(s).name};
                 return Variable{this->theta.at(s).name};
@@ -197,15 +197,15 @@ namespace ast {
 //            return s.name;
         }
 
-        Term operator()(Constant s) const {
+        Term operator()(Constant& s) const {
             return s;
         }
 
-        Term operator()(fol::Function s) const {
+        Term operator()(fol::Function& s) const {
             return s;
         }
 
-        Sentence operator()(Literal<Term> s) const {
+        Sentence operator()(Literal<Term>& s) const {
             if (!s.args.empty()) {
                 for (int i=0; i <s.args.size(); i++) {
                     if (visit<GetArgType>((Term)s.args[i]) == "Variable"){
@@ -217,7 +217,7 @@ namespace ast {
             return s;
         }
 
-        Sentence operator()(QuantifiedSentence s) const {
+        Sentence operator()(QuantifiedSentence& s) const {
             auto quantifiedAfterSubs =
                     boost::apply_visitor(*this, (Sentence)s.sentence);
 
@@ -251,141 +251,140 @@ namespace ast {
             return rs;
         }
 
-        template <class T> Sentence operator()(T s) const { return s; }
+        template <class T> Sentence operator()(T& s) const { return s; }
     };
 
-    //    struct StandardizeQuantiferVariables
-    //        : public boost::static_visitor<Sentence> {
-    //        StandardizeApartIndexical quantifiedIndexical;
-    //        int i = quantifiedIndexical.getNextIndex();
-    //
-    //        Sentence operator()(Nil s, vector<Variable> arg) const { return s;
-    //        } Sentence operator()(Literal<Term> s, vector<Variable> arg) const
-    //        {
-    //            return s;
-    //        }
-    //        Sentence operator()(ConnectedSentence s, vector<Variable> arg)
-    //        const {
-    //            auto s1 =
-    //            visit<StandardizeQuantiferVariables(),
-    //                                           (Sentence)s.sentences[0]);
-    //            auto s2 =
-    //            visit<StandardizeQuantiferVariables(),
-    //                                           (Sentence)s.sentences[1]);
-    //            ConnectedSentence rs;
-    //            rs.connector = s.connector;
-    //            rs.sentences.push_back(s1);
-    //            rs.sentences.push_back(s2);
-    //            return rs;
-    //        }
-    //        Sentence operator()(NotSentence s, vector<Variable> arg) const {
-    //            NotSentence rs;
-    //            rs.sentence =
-    //            visit<StandardizeQuantiferVariables(),
-    //                                               (Sentence)s.sentence);
-    //            return rs;
-    //        }
-    //
-    //        Sentence operator()(ImplySentence s, vector<Variable> arg) const {
-    //            auto s1 =
-    //            visit<StandardizeQuantiferVariables(),
-    //                                           (Sentence)s.sentence1);
-    //            auto s2 =
-    //            visit<StandardizeQuantiferVariables(),
-    //                                           (Sentence)s.sentence2);
-    //            ImplySentence rs;
-    //            rs.sentence1 = s1;
-    //            rs.sentence2 = s2;
-    //            return rs;
-    //        }
-    //        // can't be constant
-    //        Sentence operator()(ExistsSentence s, vector<Variable> arg) {
-    //            vector<Variable> seenSoFar = arg;
-    //            std::unordered_map<Variable, Symbol> localSubst;
-    //            std::vector<Variable> replVariables;
-    //            for (auto v : s.variables.implicitly_typed_list.value()) {
-    //                if (vector_contains_variable(seenSoFar, v)) {
-    //                    Variable sV;
-    //                    sV.name = this->quantifiedIndexical.getPrefix() +
-    //                              std::to_string(
-    //                                  this->quantifiedIndexical.getNextIndex());
-    //                    localSubst.insert({v, sV});
-    //                    // Replacement variables should contain new name for
-    //                    // variable
-    //                    replVariables.push_back(sV);
-    //                }
-    //                else {
-    //                    // Not already replaced, this name is good
-    //                    replVariables.push_back(v);
-    //                }
-    //            }
-    //            // Apply the local subst
-    //            auto subst = visit<
-    //                SubstVisitor(), s.sentence, localSubst);
-    //            //            Sentence subst = substVisitor.subst(localSubst,
-    //            // sentence.getQuantified());
-    //
-    //            // Ensure all my existing and replaced variable
-    //            // names are tracked
-    //            for (const auto & replVariable : replVariables){
-    //                seenSoFar.push_back(replVariable);
-    //            }
-    //
-    //            auto sQuantified = visit<
-    //                StandardizeQuantiferVariables(), localSubst, subst);
-    //
-    //            ExistsSentence rs;
-    //            for (const auto & replVariable : replVariables){
-    //                rs.variables.implicitly_typed_list.value().push_back(replVariable);
-    //            }
-    //            rs.sentence = sQuantified;
-    //
-    //            return rs;
-    //        }
-    //        Sentence operator()(ForallSentence s, vector<Variable> arg) {
-    //            vector<Variable> seenSoFar = arg;
-    //            std::unordered_map<Variable, Symbol> localSubst;
-    //            std::vector<Variable> replVariables;
-    //            for (auto v : s.variables.implicitly_typed_list.value()) {
-    //                if (vector_contains_variable(seenSoFar, v)) {
-    //                    Variable sV;
-    //                    sV.name = this->quantifiedIndexical.getPrefix() +
-    //                              std::to_string(
-    //                                  this->quantifiedIndexical.getNextIndex());
-    //                    localSubst.insert({v, sV});
-    //                    // Replacement variables should contain new name for
-    //                    // variable
-    //                    replVariables.push_back(sV);
-    //                }
-    //                else {
-    //                    // Not already replaced, this name is good
-    //                    replVariables.push_back(v);
-    //                }
-    //            }
-    //            // Apply the local subst
-    //            auto subst = visit<
-    //                SubstVisitor(), localSubst, (Sentence)s.sentence);
-    //            //            Sentence subst = substVisitor.subst(localSubst,
-    //            // sentence.getQuantified());
-    //
-    //            // Ensure all my existing and replaced variable
-    //            // names are tracked
-    //            for (const auto & replVariable : replVariables){
-    //                seenSoFar.push_back(replVariable);
-    //            }
-    //
-    //            auto sQuantified = visit<
-    //                StandardizeQuantiferVariables(), localSubst, subst);
-    //
-    //            ForallSentence rs;
-    //            for (const auto & replVariable : replVariables){
-    //                rs.variables.implicitly_typed_list.value().push_back(replVariable);
-    //            }
-    //            rs.sentence = sQuantified;
-    //
-    //            return rs;
-    //        }
-    //    };
+    struct StandardizeQuantiferVariables
+        : public boost::static_visitor<Sentence> {
+        StandardizeApartIndexical quantifiedIndexical;
+        SubstVisitor substVisitor;
+        vector<Variable> seenSoFar = arg;
+        explicit StandardizeQuantiferVariables(SubstVisitor substVisitor) {
+            this.substVisitor = substVisitor;
+        }
+//        int i = quantifiedIndexical.getNextIndex();
+
+        Sentence operator()(Nil s) const { return s;
+        } Sentence operator()(Literal<Term> s) const
+        {
+            return s;
+        }
+        Sentence operator()(ConnectedSentence s)
+        const {
+            auto s1 =
+            visit<StandardizeQuantiferVariables>((Sentence)s.sentences[0]);
+            auto s2 =
+            visit<StandardizeQuantiferVariables>((Sentence)s.sentences[1]);
+            ConnectedSentence rs;
+            rs.connector = s.connector;
+            rs.sentences.push_back(s1);
+            rs.sentences.push_back(s2);
+            return rs;
+        }
+        Sentence operator()(NotSentence s) const {
+            NotSentence rs;
+            rs.sentence =
+            visit<StandardizeQuantiferVariables>((Sentence)s.sentence);
+            return rs;
+        }
+
+        Sentence operator()(ImplySentence s) const {
+            auto s1 =
+            visit<StandardizeQuantiferVariables>((Sentence)s.sentence1);
+            auto s2 =
+            visit<StandardizeQuantiferVariables>((Sentence)s.sentence2);
+            ImplySentence rs;
+            rs.sentence1 = s1;
+            rs.sentence2 = s2;
+            return rs;
+        }
+        // can't be constant
+        Sentence operator()(ExistsSentence s) {
+            std::unordered_map<Variable, Symbol, Hash<Variable>> localSubst;
+            std::vector<Variable> replVariables;
+            for (auto v : s.variables.implicitly_typed_list.value()) {
+                if (vector_contains_variable(this->seenSoFar, v)) {
+                    Variable sV;
+                    sV.name = this->quantifiedIndexical.getPrefix() +
+                              std::to_string(
+                                  this->quantifiedIndexical.getNextIndex());
+                    localSubst.insert({v, sV});
+                    // Replacement variables should contain new name for
+                    // variable
+                    replVariables.push_back(sV);
+                }
+                else {
+                    // Not already replaced, this name is good
+                    replVariables.push_back(v);
+                }
+            }
+            // Apply the local subst
+            auto subst = visit<
+                SubstVisitor(), s.sentence, localSubst);
+            //            Sentence subst = substVisitor.subst(localSubst,
+            // sentence.getQuantified());
+
+            // Ensure all my existing and replaced variable
+            // names are tracked
+            for (const auto & replVariable : replVariables){
+                seenSoFar.push_back(replVariable);
+            }
+
+            auto sQuantified = visit<
+                StandardizeQuantiferVariables(), localSubst, subst);
+
+            ExistsSentence rs;
+            for (const auto & replVariable : replVariables){
+                rs.variables.implicitly_typed_list.value().push_back(replVariable);
+            }
+            rs.sentence = sQuantified;
+
+            return rs;
+        }
+        Sentence operator()(ForallSentence s, vector<Variable> arg) {
+            vector<Variable> seenSoFar = arg;
+            std::unordered_map<Variable, Symbol> localSubst;
+            std::vector<Variable> replVariables;
+            for (auto v : s.variables.implicitly_typed_list.value()) {
+                if (vector_contains_variable(seenSoFar, v)) {
+                    Variable sV;
+                    sV.name = this->quantifiedIndexical.getPrefix() +
+                              std::to_string(
+                                  this->quantifiedIndexical.getNextIndex());
+                    localSubst.insert({v, sV});
+                    // Replacement variables should contain new name for
+                    // variable
+                    replVariables.push_back(sV);
+                }
+                else {
+                    // Not already replaced, this name is good
+                    replVariables.push_back(v);
+                }
+            }
+            // Apply the local subst
+            auto subst = visit<
+                SubstVisitor(), localSubst, (Sentence)s.sentence);
+            //            Sentence subst = substVisitor.subst(localSubst,
+            // sentence.getQuantified());
+
+            // Ensure all my existing and replaced variable
+            // names are tracked
+            for (const auto & replVariable : replVariables){
+                seenSoFar.push_back(replVariable);
+            }
+
+            auto sQuantified = visit<
+                StandardizeQuantiferVariables(), localSubst, subst);
+
+            ForallSentence rs;
+            for (const auto & replVariable : replVariables){
+                rs.variables.implicitly_typed_list.value().push_back(replVariable);
+            }
+            rs.sentence = sQuantified;
+
+            return rs;
+        }
+    };
 
     struct RemoveQuantifiers : public boost::static_visitor<Sentence> {
         Sentence operator()(Nil s) const { return s; }
