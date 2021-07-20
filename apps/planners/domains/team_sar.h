@@ -6,11 +6,11 @@
 
 // aux functions
 std::string 
-sample_loc(std::vector<std::string> region,
+sample_loc(std::vector<std::string> rooms,
            std::unordered_map<std::string, int> visited,
            int seed) {
   std::vector<double> w;
-  for (auto a : region) {
+  for (auto a : rooms) {
     if (visited.find(a) == visited.end()) {
       w.push_back(1.0);
     }
@@ -21,7 +21,7 @@ sample_loc(std::vector<std::string> region,
   std::mt19937 gen(seed);
   std::discrete_distribution<int> dist (w.begin(),w.end());
   int s = dist(gen);
-  return region[s];
+  return rooms[s];
 }
 
 std::unordered_map<std::string,std::vector<std::string>>
@@ -58,10 +58,10 @@ get_loc_seq(nlohmann::json j,
 }
 
 std::string 
-sample_loc(std::vector<std::string> region,
+sample_loc(std::vector<std::string> rooms,
            std::unordered_map<std::string, int> visited) {
   std::vector<double> w;
-  for (auto a : region) {
+  for (auto a : rooms) {
     if (visited.find(a) == visited.end()) {
       w.push_back(1.0);
     }
@@ -73,8 +73,9 @@ sample_loc(std::vector<std::string> region,
   std::mt19937 gen(rd());
   std::discrete_distribution<int> dist (w.begin(),w.end());
   int s = dist(gen);
-  return region[s];
+  return rooms[s];
 }
+
 // operators
 template <class State> std::optional<State> search(State state, Args args) {
   auto agent = args["agent"];
@@ -85,41 +86,23 @@ template <class State> std::optional<State> search(State state, Args args) {
 
   if (state.agent_loc[agent] == area && end <= 900) {
     
-    state.write_time[agent] = end;
-    state.write_times_searched[agent] = end;
-
-    state.read_role[agent] = std::max(state.read_role[agent],end);
-    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
-    state.read_time[agent] = std::max(state.read_time[agent],end);
-    state.read_c_triage_total = std::max(state.read_c_triage_total,end);
-
     if (state.c_triage_total != state.c_max) {
-      state.read_c_vic_loc[area] = std::max(state.read_c_vic_loc[area],end);
       for (auto c : state.c_vic_loc[area]) {
-        state.read_c_seen[agent] = std::max(state.read_c_seen[agent],end);
-        state.read_obs[c] = std::max(state.read_obs[c],end);
         if (!in(c,state.c_seen[agent]) && !state.obs[c]) {
           state.c_seen[agent].push_back(c);
           state.time[agent] = end;
 
           state.times_searched[agent]++;
-
-          state.write_c_seen[agent] = end;
           return state;
         }
       }
     }
 
 
-    state.read_r_triage_total = std::max(state.read_r_triage_total,end);
     if (state.r_triage_total != state.r_max) { 
-      state.read_r_vic_loc[area] = std::max(state.read_r_vic_loc[area],end);
       for (auto r : state.r_vic_loc[area]) {
-        state.read_r_seen[agent] = std::max(state.read_r_seen[agent],end);
-        state.read_obs[r] = std::max(state.read_obs[r],end);
         if (!in(r,state.r_seen[agent]) && !state.obs[r]) {
           state.r_seen[agent].push_back(r);
-          state.write_r_seen[agent] = end;
           break;
         }
       }
@@ -148,23 +131,11 @@ template <class State> std::optional<State> triageReg(State state, Args args) {
   if (state.role[agent] == "medic" && state.agent_loc[agent] == area && 
       !state.r_seen[agent].empty() && end <= 900) {
 
-    state.read_role[agent] = std::max(state.read_role[agent],end);
-    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
-    state.read_time[agent] = std::max(state.read_time[agent],end);
-
-    state.write_r_vic_loc[area] = end;
-    state.write_r_triage_total = end;
-    state.write_time[agent] = end;
-
-    state.read_r_vic_loc[area] = std::max(state.read_r_vic_loc[area],end);
-    state.read_r_triage_total = std::max(state.read_r_triage_total,end)
-    
+   
     std::string r = state.r_seen[agent].back();
     std::erase(state.r_vic_loc[area], r);
     for (auto a : state.agents) {
       std::erase(state.r_seen[a],r);
-      state.read_r_seen[a] = std::max(state.read_r_seen[a],end);
-      state.write_r_seen[a] = end;
     }
     state.r_triage_total = state.r_triage_total + 1; 
     state.time[agent] = end;
@@ -180,107 +151,43 @@ template <class State> double triageReg(State pre_state,State post_state, Args a
   return 1;
 }
 
-template <class State> std::optional<State> wakeCrit(State state, Args args) {
-  auto agent = args["agent"];
-  auto area = args["area"];
-  auto start = std::stoi(args["start"],nullptr);
-  auto duration = std::stoi(args["duration"],nullptr);
-  int end = start + duration;
-
-  int a_count = 0;
-  bool have_medic = false;
-  int help_count = 0;
-  for (auto a : state.agents) {
-    state.read_agent_loc[a] = std::max(state.read_agent_loc[a],end);
-    if (state.agent_loc[a] == area) {
-      a_count++;
-      state.read_role[a] = std::max(state.read_role[a],end); 
-      if (state.role[a] == "medic") {
-        have_medic = true;
-      }
-      state.read_help_wake[a] = std::max(state.read_help_wake[a],end);
-      if (state.help_wake[a]) {
-        help_count++;
-      }
-    }
-  }
-
-  if (state.agent_loc[agent] == area && !state.c_seen[agent].empty() && 
-      a_count >= 3 && have_medic && end <= 900) {
-    
-    state.read_c_seen[agent] = std::max(state.read_c_seen[agent],end);
-    state.read_time[agent] = std::max(state.read_time[agent],end);
-
-    state.write_time[agent] = end;
-
-    if (state.role[agent] != "medic") {
-      state.write_help_wake[agent] = end;
-      state.help_wake[agent] = true;
-      state.time[agent] = end;;
-      return state;
-    }
-
-    if (help_count >= 2) {
-      for (auto a : state.agents) {
-        state.write_help_wake[a] = end;
-        state.help_wake[a] = false;
-      } 
-      
-      std::string c = state.c_seen[agent].back();
-      state.read_c_awake[c] = std::max(state.read_c_awake[c],end);
-      state.write_c_awake[c] = end;
-      state.c_awake[c] = true;
-      state.time[agent] = end;
-      return state;
-    }
-    return std::nullopt;
-  }
-  else {
-    return std::nullopt;
-  }
-}
-
-template <class State> double wakeCrit(State pre_state,State post_state, Args args) {
-  return 1;
-}
-
 template <class State> std::optional<State> triageCrit(State state, Args args) {
-  auto agent = args["agent"];
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
   auto area = args["area"];
+  auto duration1 = std::stoi(args["duration1"],nullptr);
+  auto duration2 = std::stoi(args["duration2"],nullptr);
+  auto duration3 = std::stoi(args["duration3"],nullptr);
   auto start = std::stoi(args["start"],nullptr);
-  auto duration = std::stoi(args["duration"],nullptr);
-  int end = start + duration;
-
-  std::string vic_awake = "NONE";
-  for (auto c: state.c_seen[agent]) {
-    state.read_c_awake[c] = std::max(state.read_c_awake[c],end);
-    if (state.c_awake[c]) {
-      vic_awake = c;
-      break;
+  int end = start + 15;
+  
+  std::string medic = "NONE";
+  auto max_time = state.time[agent1];
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" && !state.c_seen[a].empty()) {
+      medic = a;
     }
-  } 
+    if (state.time[a] > max_time) {
+      max_time = state.time[a];
+    } 
+  }
 
-  if (state.role[agent] == "medic" && vic_awake != "NONE" && 
-      state.agent_loc[agent] == area && end <= 900) {
 
-    state.read_role[agent] = std::max(state.read_role[agent],end);
-    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
-    state.read_time[agent] = std::max(state.read_time[agent],end);
-    state.read_c_vic_loc[area] = std::max(state.read_c_vic_loc[area],end);
-    state.read_c_triage_total = std::max(state.read_c_triage_total,end);
-
-    state.write_c_vic_loc[area] = end;
-    state.write_c_triage_total = end;
-    state.write_time[agent] = end;
+  if (medic != "NONE" && state.agent_loc[medic] == state.agent_loc[agent1] &&
+      state.agent_loc[medic] == state.agent_loc[agent2] &&
+      state.agent_loc[medic] == state.agent_loc[agent3] &&
+      end <= 900) {
     
-    std::erase(state.c_vic_loc[area], vic_awake);
+    std::string c = state.c_seen[medic].back();
+    std::erase(state.c_vic_loc[area], c);
+    state.time[agent1] = max_time + duration1;
+    state.time[agent2] = max_time + duration2;
+    state.time[agent3] = max_time + duration3;
     for (auto a : state.agents) {
-      std::erase(state.c_seen[a],vic_awake);
-      state.read_c_seen[a] = std::max(state.read_c_seen[a],end);
-      state.write_c_seen[a] = end;
+      std::erase(state.c_seen[a],c);
     }
     state.c_triage_total = state.c_triage_total + 1; 
-    state.time[agent] = end;
 
     return state;
   }
@@ -301,22 +208,7 @@ template <class State> std::optional<State> move(State state, Args args) {
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
 
-  if (state.agent_loc[agent] == c_area && end <= 900 && hall_blockage[c_area][n_area] == 0) {
-
-    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
-    state.read_time[agent] = std::max(state.read_time[agent],end);
-    state.read_hall_blockage[c_area][n_area] = std::max(state.read_hall_blockage[c_area][n_area],end);
-    state.read_c_seen[agent] = std::max(state.read_c_seen[agent],end);
-    state.read_r_seen[agent] = std::max(state.read_r_seen[agent],end);
-    state.read_visited[agent] = std::max(state.read_visited,end);
-    state.read_times_searched[agent] = std::max(state.read_times_searched[agent],end);
-
-    state.write_agent_loc[agent] = end;
-    state.write_c_seen[agent] = end;
-    state.write_r_seen[agent] = end;
-    state.write_visited[agent] = end;
-    state.write_time[agent] = end;
-    state.write_times_searched[agent] = end;
+  if (state.agent_loc[agent] == c_area && end <= 900 && state.hall_blockage[c_area][n_area] == 0) {
 
     state.agent_loc[agent] = n_area;
     state.c_seen[agent].clear();
@@ -334,7 +226,9 @@ template <class State> std::optional<State> move(State state, Args args) {
 
     state.times_searched[agent] = 0;
 
-
+    if (!state.loc_tracker[agent].empty()) {
+      state.loc_tracker[agent].pop_back();
+    }
     return state;
   }
   else {
@@ -354,17 +248,8 @@ template <class State> std::optional<State> clear_hall_block(State state, Args a
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
 
-  if (state.hall_blockage[c_area][n_area] > 0 && state.agent_loc[agent] = c_area && 
+  if (state.hall_blockage[c_area][n_area] > 0 && state.agent_loc[agent] == c_area && 
       state.role[agent] == "engineer" && end <= 900) {
-    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
-    state.read_hall_blockage[c_area][n_area] = std::max(state.read_hall_blockage[c_area][n_area],end);
-    state.read_hall_blockage[n_area][c_area] = std::max(state.read_hall_blockage[n_area][c_area],end);
-    state.read_role[agent] = std::max(state.read_role[agent],end);
-    state.read_time[agent] = std::max(state.read_time[agent],end);
-
-    state.write_hall_blockage[c_area][n_area] = end;
-    state.write_hall_blockage[n_area][c_area] = end;
-    state.write_time[agent] = end;
 
     state.hall_blockage[c_area][n_area]--;
     state.hall_blockage[n_area][c_area]--;
@@ -383,58 +268,43 @@ template <class State> double clear_hall_block(State pre_state, State post_state
 
 template <class State> std::optional<State> clear_room_block(State state, Args args) {
   auto agent = args["agent"];
-  auto c_area = args["c_area"];
+  auto area = args["area"];
   auto start = std::stoi(args["start"],nullptr);
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
-
-  if (state.room_blockage[c_area] > 0 && state.agent_loc[agent] = c_area && 
+  if (state.room_blocks[area] > 0 && state.agent_loc[agent] == area && 
       state.role[agent] == "engineer" && end <= 900) {
-    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
-    state.read_room_blockage[c_area] = std::max(state.read_room_blockage[c_area],end);
-    state.read_role[agent] = std::max(state.read_role[agent],end);
-    state.read_time[agent] = std::max(state.read_time[agent],end);
 
-    state.write_room_blockage[c_area] = end;
-    state.write_time[agent] = end;
-
-    state.read_c_vic_loc[c_area] = std::max(state.read_c_vic_loc[c_area],end);
-
-    if (state.c_vic_loc[c_area] != 0) {
+    if (!state.c_vic_loc[area].empty()) {
       int c_obs = 0;
       std::string c_vic;
-      for (auto c: state.c_vic_loc[c_area]) {
-        state.read_obs[c] = std::max(state.read_obs[c],end);
+      for (auto c: state.c_vic_loc[area]) {
         if (state.obs[c]) {
           c_obs++;
           c_vic = c;
         }
       }
-      if (room_blockage[c_area] == c_obs) {
-        state.write_obs[c_vic] = end;
+      if (state.room_blocks[area] == c_obs) {
         state.obs[c_vic] = false;
       }
     }
     else {
-      state.read_r_vic_loc[c_area] = std::max(state.read_r_vic_loc[c_area],end);
-      if (state.r_vic_loc[c_area] != 0) {
+      if (!state.r_vic_loc[area].empty()) {
         int r_obs = 0;
         std::string r_vic;
-        for (auto r: state.r_vic_loc[c_area]) {
-          state.read_obs[r] = std::max(state.read_obs[r],end);
+        for (auto r: state.r_vic_loc[area]) {
           if (state.obs[r]) {
             r_obs++;
             r_vic = r;
           }
         }
-        if (room_blockage[c_area] == r_obs) {
-          state.write_obs[r_vic] = end;
+        if (state.room_blocks[area] == r_obs) {
           state.obs[r_vic] = false;
         }
       }
     }
 
-    state.room_blockage[c_area]--;
+    state.room_blocks[area]--;
     state.time[agent] = end;
 
     return state;
@@ -456,25 +326,14 @@ template <class State> std::optional<State> pickup_vic(State state, Args args) {
   int end = start + duration;
 
   if (state.agent_loc[agent] == area && state.role[agent] == "searcher" &&
-      state.holding[agent] == "NONE" && state.r_seen[agent].size() > 0 &&
+      state.holding[agent] == "NONE" && !state.r_seen[agent].empty() &&
       end <= 900) {
     
-    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
-    state.read_role[agent] = std::max(state.read_role[agent],end);
-    state.read_holding[agent] = std::max(state.read_holding[agent],end);
-    state.read_time[agent] = std::max(state.read_time[agent],end);
-
-    state.write_holding[agent] = end;
-    state.write_r_vic_loc[area] = end;
-    state.write_time[agent] = end;
-
     std::string r_vic = state.r_seen[agent].back();
     state.holding[agent] = r_vic;
     std::erase(state.r_vic_loc[area],r_vic);
     for (auto a : state.agents) {
       std::erase(state.r_seen[a],r_vic);
-      state.read_r_seen[a] = std::max(state.read_r_seen[a],end);
-      state.write_r_seen[a] = end;
     }
 
     state.time[agent] = end;
@@ -499,21 +358,10 @@ template <class State> std::optional<State> put_down_vic(State state, Args args)
   if (state.agent_loc[agent] == area && state.role[agent] == "searcher" &&
       state.holding[agent] != "NONE" && end <= 900) {
     
-    state.read_agent_loc[agent] = std::max(state.read_agent_loc[agent],end);
-    state.read_role[agent] = std::max(state.read_role[agent],end);
-    state.read_holding[agent] = std::max(state.read_holding[agent],end);
-    state.read_time[agent] = std::max(state.read_time[agent],end);
-
-    state.write_holding[agent] = end;
-    state.write_r_vic_loc[area] = end;
-    state.write_time[agent] = end;
-
     std::string r_vic = state.holding[agent];
     state.holding[agent] = "NONE";
     state.r_vic_loc[area].push_back(r_vic);
     state.r_seen[agent].push_back(r_vic);
-    state.read_r_seen[agent] = std::max(state.read_r_seen[a],end);
-    state.write_r_seen[agent] = end;
 
     state.time[agent] = end;
     return state;
@@ -534,15 +382,9 @@ template <class State> std::optional<State> change_to_medic(State state, Args ar
   int end = start + duration;
   
   if (state.role[agent] != "medic" && end <= 900 && state.holding[agent] == "NONE") {
-   state.read_role[agent] = std::max(state.read_role[agent],end);
-   state.read_time[agent] = std::max(state.read_time[agent],end);
-   state.read_holding[agent] = std::max(state.read_holding[agent],end);
-
-   state.write_role[agent] = end;
-   state.write_time[agent] = end;
-   state.write_holding[agent] = end;
-   
+  
    state.role[agent] = "medic";
+   state.time[agent] = end;
    return state;
   }
   else {
@@ -561,15 +403,9 @@ template <class State> std::optional<State> change_to_engineer(State state, Args
   int end = start + duration;
   
   if (state.role[agent] != "engineer" && end <= 900 && state.holding[agent] == "NONE") {
-   state.read_role[agent] = std::max(state.read_role[agent],end);
-   state.read_time[agent] = std::max(state.read_time[agent],end);
-   state.read_holding[agent] = std::max(state.read_holding[agent],end);
-
-   state.write_role[agent] = end;
-   state.write_time[agent] = end;
-   state.write_holding[agent] = end;
-   
+  
    state.role[agent] = "engineer";
+   state.time[agent] = end;
    return state;
   }
   else {
@@ -588,15 +424,9 @@ template <class State> std::optional<State> change_to_searcher(State state, Args
   int end = start + duration;
   
   if (state.role[agent] != "searcher" && end <= 900 && state.holding[agent] == "NONE") {
-   state.read_role[agent] = std::max(state.read_role[agent],end);
-   state.read_time[agent] = std::max(state.read_time[agent],end);
-   state.read_holding[agent] = std::max(state.read_holding[agent],end);
-
-   state.write_role[agent] = end;
-   state.write_time[agent] = end;
-   state.write_holding[agent] = end;
-   
+  
    state.role[agent] = "searcher";
+   state.time[agent] = end;
    return state;
   }
   else {
@@ -607,6 +437,21 @@ template <class State> std::optional<State> change_to_searcher(State state, Args
 template <class State> double change_to_searcher(State pre_state, State post_state, Args args) {
     return 1;
 }
+
+template <class State> std::optional<State> do_nothing(State state, Args args) {
+  auto agent = args["agent"];
+  auto start = std::stoi(args["start"],nullptr);
+  auto duration = std::stoi(args["duration"],nullptr);
+  int end = start + duration;
+  
+ state.time[agent] = end;
+  return state;
+}
+
+template <class State> double do_nothing(State pre_state, State post_state, Args args) {
+    return 1;
+}
+
 template <class State> std::optional<State> exit(State state, Args args) {
     return state;
 }
@@ -616,1075 +461,842 @@ template <class State> double exit(State pre_state, State post_state, Args args)
 }
 
 // Methods
-
-template <class State> pTasks SAR_O(State state, Args args) {
-  auto agent = args["agent"];
-  return {0.5,
-    {Task("SAR_O", Args({{"agent",agent}}))}};
+template <class State> pTasks pick_initial_roles(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  return {1.0,
+    {Task("Change_role", Args({{"agent",agent1}})),
+     Task("Change_role", Args({{"agent",agent2}})),
+     Task("Change_role", Args({{"agent",agent3}})),
+     Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}})),
+     Task("!exit", Args({{"agent",agent1}})),
+     Task("!exit", Args({{"agent",agent2}})),
+     Task("!exit", Args({{"agent",agent3}}))}};
 }
 
-template <class State> pTasks sweep_left_O(State state, Args args) {
-  auto agent = args["agent"];
-  return {0.25,
-    {Task("sweep_left_O",Args({{"agent",agent}}))}};
+template <class State> pTasks assign_tasks(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  auto min_agent = agent1;
+  auto min_time = state.time[agent1];
+  for (auto a : state.agents) {
+    if (state.time[a] < min_time) {
+      min_agent = a;
+      min_time = state.time[a];
+    }
+  }
+  bool need_to_triage = false;
+  if (state.role[min_agent] == "medic" && !state.c_seen[min_agent].empty() &&
+      state.agent_loc[min_agent] == state.agent_loc[agent1] &&
+      state.agent_loc[min_agent] == state.agent_loc[agent2] &&
+      state.agent_loc[min_agent] == state.agent_loc[agent3]) {
+     need_to_triage = true;
+  }
+
+  if (state.time[min_agent] < 900 && (!need_to_triage || state.time[agent1] > 885 ||
+        state.time[agent2] > 885 || state.time[agent3] > 885)) {
+    return {1.0,
+          {Task("Do_task", Args({{"agent",min_agent}})),
+           Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}))}};
+  }
+  return {0,{}};
 }
 
-template <class State> pTasks sweep_right_O(State state, Args args) {
-  auto agent = args["agent"];
-  return {0.25,
-    {Task("sweep_right_O",Args({{"agent",agent}}))}};
+template <class State> pTasks triage_crit_vic(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  auto min_agent = agent1;
+  auto min_time = state.time[agent1];
+  for (auto a : state.agents) {
+    if (state.time[a] < min_time) {
+      min_agent = a;
+      min_time = state.time[a];
+    }
+  }
+  bool need_to_triage = false;
+  if (state.role[min_agent] == "medic" && !state.c_seen[min_agent].empty() &&
+      state.agent_loc[min_agent] == state.agent_loc[agent1] &&
+      state.agent_loc[min_agent] == state.agent_loc[agent2] &&
+      state.agent_loc[min_agent] == state.agent_loc[agent3]) {
+     need_to_triage = true;
+  }
+
+  if (need_to_triage && state.time[agent1] <= 885 && 
+      state.time[agent2] <= 885 && state.time[agent3] <= 885) {
+
+    std::string start;
+    std::string duration1;
+    std::string duration2;
+    std::string duration3;
+
+    if (agent1 == min_agent) {
+      duration1 = std::to_string(15);
+      duration2 = std::to_string(5);
+      duration3 = std::to_string(5);
+    }
+
+    if (agent2 == min_agent) {
+      duration2 = std::to_string(15);
+      duration1 = std::to_string(5);
+      duration3 = std::to_string(5);
+    }
+
+    if (agent3 == min_agent) {
+      duration3 = std::to_string(15);
+      duration2 = std::to_string(5);
+      duration1 = std::to_string(5);
+    }
+
+
+    int start_num = std::max({state.time[agent1],state.time[agent2],state.time[agent3]});
+
+    start = std::to_string(start_num);
+    return {1.0,
+          {Task("!triageCrit", Args({{"agent1",agent1},
+                                     {"agent2",agent2},
+                                     {"agent3",agent3},
+                                     {"area",state.agent_loc[min_agent]},
+                                     {"start",start},
+                                     {"duration1",duration1},
+                                     {"duration2",duration2},
+                                     {"duration3",duration3}})),
+           Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}))}};
+  }
+  return {0,{}};
 }
 
-template <class State> pTasks zigzag_left_O(State state, Args args) {
-  auto agent = args["agent"];
-  return {0.25,
-    {Task("zigzag_left_O",Args({{"agent",agent}}))}};
+template <class State> pTasks out_of_time(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  auto min_agent = agent1;
+  auto min_time = state.time[agent1];
+  for (auto a : state.agents) {
+    if (state.time[a] < min_time) {
+      min_agent = a;
+      min_time = state.time[a];
+    }
+  }
+  bool need_to_triage = false;
+  if (state.role[min_agent] == "medic" && !state.c_seen[min_agent].empty() &&
+      state.agent_loc[min_agent] == state.agent_loc[agent1] &&
+      state.agent_loc[min_agent] == state.agent_loc[agent2] &&
+      state.agent_loc[min_agent] == state.agent_loc[agent3]) {
+     need_to_triage = true;
+  }
+
+  if (state.time[min_agent] >= 900 || (need_to_triage && (state.time[agent1] > 885 ||
+        state.time[agent2] > 885 || state.time[agent3] > 885))) {
+    return {1.0,{}};
+  }
+  return {0,{}};
 }
 
-template <class State> pTasks zigzag_right_O(State state, Args args) {
+template <class State> pTasks choose_medic(State state, Args args) {
   auto agent = args["agent"];
-  return {0.25,
-    {Task("zigzag_right_O",Args({{"agent",agent}}))}};
-}
 
-template <class State> pTasks explore_left_to_right_O(State state, Args args) {
-  auto agent = args["agent"];
-  return {1, 
-    {Task("explore_left_region_O",Args({{"agent",agent}})),
-     Task("explore_mid_region_O",Args({{"agent",agent}})),
-     Task("explore_right_region_O",Args({{"agent",agent}})),
-     Task("!exit",Args({}))}}; 
-}
+  if (state.role[agent] != "medic" && state.holding[agent] == "NONE") {
+  
+    std::string duration;
+    std::string start;
 
-template <class State> pTasks explore_right_to_left_O(State state, Args args) {
-  auto agent = args["agent"];
-  return {1, 
-    {Task("explore_right_region_O",Args({{"agent",agent}})),
-     Task("explore_mid_region_O",Args({{"agent",agent}})),
-     Task("explore_left_region_O",Args({{"agent",agent}})),
-     Task("!exit",Args({}))}}; 
-}
-
-template <class State> pTasks explore_mid_left_right_O(State state, Args args) {
-  auto agent = args["agent"];
-  return {1, 
-    {Task("explore_mid_region_O",Args({{"agent",agent}})),
-     Task("explore_left_region_O",Args({{"agent",agent}})),
-     Task("explore_right_region_O",Args({{"agent",agent}})),
-     Task("!exit",Args({}))}}; 
-}
-
-template <class State> pTasks explore_mid_right_left_O(State state, Args args) {
-  auto agent = args["agent"];
-  return {1, 
-    {Task("explore_mid_region_O",Args({{"agent",agent}})),
-     Task("explore_right_region_O",Args({{"agent",agent}})),
-     Task("explore_left_region_O",Args({{"agent",agent}})),
-     Task("!exit",Args({}))}}; 
-}
-
-template <class State> pTasks search_left_O(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.left_region));
-  if (state.time <= 590 && !need_to_move) {
-    double prob;
-    if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
-      prob = 0;
+    if (state.agent_loc[agent] == "entrance") {
+      duration = std::to_string(5);
     }
     else {
-      prob = (1 - 0.10*state.times_searched);
+      duration = std::to_string(30);
+    }
+
+    start = std::to_string(state.time[agent]);
+
+    return {1.0/3,
+      {Task("!change_to_medic", Args({{"agent", agent},
+                                     {"start",start},
+                                     {"duration",duration}}))}};
+  }
+  return {0,{}};
+
+}
+
+template <class State> pTasks choose_engineer(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (state.role[agent] != "engineer" && state.holding[agent] == "NONE") {
+  
+    std::string duration;
+    std::string start;
+
+    if (state.agent_loc[agent] == "entrance") {
+      duration = std::to_string(5);
+    }
+    else {
+      duration = std::to_string(30);
+    }
+
+    start = std::to_string(state.time[agent]);
+
+    return {1.0/3,
+      {Task("!change_to_engineer", Args({{"agent", agent},
+                                     {"start",start},
+                                     {"duration",duration}}))}};
+  }
+  return {0,{}};
+
+}
+
+template <class State> pTasks choose_searcher(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (state.role[agent] != "searcher" && state.holding[agent] == "NONE") {
+  
+    std::string duration;
+    std::string start;
+
+    if (state.agent_loc[agent] == "entrance") {
+      duration = std::to_string(5);
+    }
+    else {
+      duration = std::to_string(30);
+    }
+
+    start = std::to_string(state.time[agent]);
+
+    return {1.0/3,
+      {Task("!change_to_searcher", Args({{"agent", agent},
+                                     {"start",start},
+                                     {"duration",duration}}))}};
+  }
+  return {0,{}};
+
+}
+
+template <class State> pTasks medic_task(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (state.role[agent] == "medic") {
+    return {1.0,
+      {Task("Do_medic_task", Args({{"agent", agent}}))}};
+  }
+  return {0,{}};
+
+}
+
+template <class State> pTasks searcher_task(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (state.role[agent] == "searcher") {
+    return {1.0,
+      {Task("Do_searcher_task", Args({{"agent", agent}}))}};
+  }
+  return {0,{}};
+
+}
+
+template <class State> pTasks engineer_task(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (state.role[agent] == "engineer") {
+    return {1.0,
+      {Task("Do_engineer_task", Args({{"agent", agent}}))}};
+  }
+  return {0,{}};
+
+}
+
+template <class State> pTasks search_medic(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "medic" && state.agent_loc[agent] != "entrance" &&
+      state.r_seen[agent].empty() && state.time[agent] <= 890) {
+    double prob;
+    prob = (0.95 - 0.10*state.times_searched[agent]);
+    if (prob < 0) {
+      prob = 0;
+    }
+
+    std::string duration;
+    std::string start;
+
+    duration = std::to_string(10);
+
+    start = std::to_string(state.time[agent]);
+
+    return {prob,
+      {Task("!search",Args({{"agent",agent},
+                            {"area",state.agent_loc[agent]},
+                            {"start",start},
+                            {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks triage_medic(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "medic" && !state.r_seen[agent].empty() &&
+      state.time[agent] <= 893) {
+
+    std::string duration;
+    std::string start;
+
+    duration = std::to_string(7);
+
+    start = std::to_string(state.time[agent]);
+
+    return {1,
+      {Task("!triageReg",Args({{"agent",agent},
+                            {"area",state.agent_loc[agent]},
+                            {"start",start},
+                            {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks move_medic(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "medic" && state.r_seen[agent].empty() &&
+      state.time[agent] <= 890) {
+    double prob;
+    if (state.agent_loc[agent] == "entrance") {
+      prob = 0.95;
+    }
+    else {
+      prob = (0.0 + 0.10*state.times_searched[agent]);
+      if (prob > 0.95) {
+        prob = 0.95;
+      }
+    }
+
+    std::string n_area = state.agent_loc[agent];
+    if (state.loc_tracker[agent].empty()) {
+      int stopper = 0;
+      while (n_area == state.agent_loc[agent] ||
+            state.hall_blockage[state.agent_loc[agent]][n_area] > 0) {
+        n_area = sample_loc(state.rooms,state.visited[agent],state.seed);
+        state.seed++;
+        stopper++;
+        if (stopper > (state.rooms.size()*2)) {
+          return {0,{}};
+        } 
+      }
+    }
+    else {
+      n_area = state.loc_tracker[agent].back();
+    }
+
+    std::string duration;
+    std::string start;
+
+    duration = std::to_string(10);
+
+    start = std::to_string(state.time[agent]);
+
+    return {prob,
+      {Task("!move",Args({{"agent",agent},
+                            {"c_area",state.agent_loc[agent]},
+                            {"n_area",n_area},
+                            {"start",start},
+                            {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks change_medic(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "medic" && state.r_seen[agent].empty() &&
+      (state.time[agent] <= 870 || (state.agent_loc[agent] == "entrance" && 
+                                    state.time[agent] <= 895))) {
+
+    return {0.05,
+      {Task("Change_role",Args({{"agent",agent}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks do_nothing_medic(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "medic" && ((state.r_seen[agent].empty() &&
+      state.time[agent] > 890) || (!state.r_seen[agent].empty() && state.time[agent] > 893))) {
+
+    std::string start = std::to_string(state.time[agent]);
+    std::string duration = std::to_string(900-state.time[agent]);
+
+    return {1,
+      {Task("!do_nothing",Args({{"agent",agent},
+                                {"start",start},
+                                {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks clear_room_blocks_engineer(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "engineer" && state.room_blocks[state.agent_loc[agent]] > 0 &&
+      state.time[agent] <= 895) {
+    double prob = 0.0 + 0.10*state.room_blocks[state.agent_loc[agent]];
+    if (prob > 0.95) {
+      prob = 0.95;
+    }
+    return {prob,
+      {Task("Break_room_blocks",Args({{"agent",agent},
+                            {"area",state.agent_loc[agent]}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks break_a_room_block(State state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+  if (state.role[agent] == "engineer" && state.room_blocks[area] > 0 &&
+      state.time[agent] <= 895) {
+    double prob;
+    if (state.room_blocks[area] == 1 || (state.time[agent] + 5) > 895) {
+      prob = 1;
+    }
+    else {
+      prob = 0.5;
+    }
+
+    std::string duration;
+    std::string start;
+
+    duration = std::to_string(5);
+
+    start = std::to_string(state.time[agent]);
+
+    return {prob,
+      {Task("!clear_room_block",Args({{"agent",agent},
+                            {"area",area},
+                            {"start",start},
+                            {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks break_some_room_blocks(State state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+  if (state.role[agent] == "engineer" && state.room_blocks[area] > 1 &&
+      state.time[agent] <= 890) {
+
+    std::string duration;
+    std::string start;
+
+    duration = std::to_string(5);
+
+
+    start = std::to_string(state.time[agent]);
+
+    return {0.5,
+      {Task("!clear_room_block",Args({{"agent",agent},
+                            {"area",area},
+                            {"start",start},
+                            {"duration",duration}})),
+       Task("Break_room_blocks",Args({{"agent",agent},
+                                      {"area",area}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks move_engineer(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "engineer" && state.time[agent] <= 885) {
+    double prob;
+    if (state.agent_loc[agent] == "entrance") {
+      prob = 0.95;
+    }
+    else {
+      prob = (0.95 - 0.10*state.room_blocks[state.agent_loc[agent]]);
       if (prob < 0) {
         prob = 0;
       }
     }
-    return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_left_region_O",Args({{"agent",agent}}))}};
-  }
-  else {
-    return {0,{}};
-  }
-}
 
-template <class State> pTasks triageGreen_left_O(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.left_region));
-  if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    double prob; 
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0.5;
-    }
-    else {
-      prob = 1;
-    }
-    return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_left_region_O",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageYellow_left_O(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.left_region));
-  if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
-    double prob;
-    if (state.g_seen[agent]) {
-      prob = 0.5;
-    }
-    else {
-      prob = 1;
-    }
-    return {prob, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_left_region_O",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks move_left_O(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time <= 590) {
-    std::string n_area = state.loc[agent];
-    if (state.loc_tracker["left"].empty()) {
-      while (n_area == state.loc[agent]) {
-        n_area = sample_loc(state.left_region,state.visited[agent],state.seed);
+    std::string n_area = state.agent_loc[agent];
+    if (state.loc_tracker[agent].empty()) {
+      while (n_area == state.agent_loc[agent]) {
+        n_area = sample_loc(state.rooms,state.visited[agent],state.seed);
         state.seed++;
       }
     }
     else {
-      n_area = state.loc_tracker["left"].back();
+      n_area = state.loc_tracker[agent].back();
     }
 
-    bool need_to_move = (state.loc[agent] == "entrance" || 
-                         !in(state.loc[agent], state.left_region));
-    if (need_to_move) {
-      return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-        Task("explore_left_region_O",Args({{"agent",agent}}))}}; 
+    return {prob,
+      {Task("Try_to_move",Args({{"agent",agent},
+                            {"c_area",state.agent_loc[agent]},
+                            {"n_area",n_area}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks just_move_engineer(State state, Args args) {
+  auto agent = args["agent"];
+  auto c_area = args["c_area"];
+  auto n_area = args["n_area"];
+  if (state.role[agent] == "engineer" && state.time[agent] <= 885 &&
+      state.hall_blockage[c_area][n_area] == 0) {
+
+    std::string duration;
+    std::string start;
+
+    duration = std::to_string(15);
+
+    start = std::to_string(state.time[agent]);
+
+    return {0.99,
+      {Task("!move",Args({{"agent",agent},
+                            {"c_area",c_area},
+                            {"n_area",n_area},
+                            {"start",start},
+                            {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks clear_hall_engineer(State state, Args args) {
+  auto agent = args["agent"];
+  auto c_area = args["c_area"];
+  auto n_area = args["n_area"];
+  if (state.role[agent] == "engineer" && state.time[agent] <= 895 &&
+      state.hall_blockage[c_area][n_area] > 0) {
+
+    std::string duration;
+    std::string start;
+
+    duration = std::to_string(5);
+
+    start = std::to_string(state.time[agent]);
+
+    return {0.99,
+      {Task("!clear_hall_block",Args({{"agent",agent},
+                            {"c_area",c_area},
+                            {"n_area",n_area},
+                            {"start",start},
+                            {"duration",duration}})),
+       Task("Try_to_move",Args({{"agent",agent},
+                                {"c_area",c_area},
+                                {"n_area",n_area}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks fail_to_move_engineer(State state, Args args) {
+  auto agent = args["agent"];
+  auto c_area = args["c_area"];
+  auto n_area = args["n_area"];
+  if (state.role[agent] == "engineer" && state.time[agent] > 895) {
+    return {1,{}};
+  }  
+  return {0.01,{}};
+}
+
+template <class State> pTasks change_engineer(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "engineer" && (state.time[agent] <= 870 ||
+      (state.agent_loc[agent] == "entrance" && state.time[agent] <= 895))) {
+
+    return {0.05,
+      {Task("Change_role",Args({{"agent",agent}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks do_nothing_engineer(State state, Args args) {
+  auto agent = args["agent"];
+  if (state.role[agent] == "engineer" && ((state.room_blocks[state.agent_loc[agent]] == 0 &&
+      state.time[agent] > 885) || (state.room_blocks[state.agent_loc[agent]] > 0 && state.time[agent] > 895))) {
+
+    std::string start = std::to_string(state.time[agent]);
+    std::string duration = std::to_string(900-state.time[agent]);
+
+    return {1,
+      {Task("!do_nothing",Args({{"agent",agent},
+                                {"start",start},
+                                {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks search_searcher(State state, Args args) {
+  auto agent = args["agent"];
+  bool medic_here = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" && 
+        state.agent_loc[a] == state.agent_loc[agent]) {
+      medic_here = true;
     }
+  }
+  if (state.role[agent] == "searcher" && state.agent_loc[agent] != "entrance" &&
+      (state.r_seen[agent].empty() || medic_here) && state.time[agent] <= 895) {
+    double prob;
+    prob = (0.95 - 0.10*state.times_searched[agent]);
+    if (prob < 0) {
+      prob = 0;
+    }
+
+    std::string duration;
+    std::string start;
+
+    duration = std::to_string(5);
+
+    start = std::to_string(state.time[agent]);
+
+    return {prob,
+      {Task("!search",Args({{"agent",agent},
+                            {"area",state.agent_loc[agent]},
+                            {"start",start},
+                            {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks move_victim_searcher(State state, Args args) {
+  auto agent = args["agent"];
+  bool medic_here = false;
+  std::string n_area = state.agent_loc[agent];
+  if (state.loc_tracker[agent].empty()) {
+    int stopper = 0;
+    while (n_area == state.agent_loc[agent] ||
+          state.hall_blockage[state.agent_loc[agent]][n_area] > 0) {
+      n_area = sample_loc(state.rooms,state.visited[agent],state.seed);
+      state.seed++;
+      stopper++;
+      if (stopper > (state.rooms.size()*2)) {
+        return {0,{}};
+      } 
+    }
+  }
+  else {
+    n_area = state.loc_tracker[agent].back();
+  }
+
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic") {
+      if (state.hall_blockage[state.agent_loc[agent]][state.agent_loc[a]] == 0) {
+        n_area = state.agent_loc[a];
+      }
+      if (state.agent_loc[a] == state.agent_loc[agent]) {
+        medic_here = true;
+      }
+    }
+  }
+
+  if (state.role[agent] == "searcher" && !state.r_seen[agent].empty() &&
+      !medic_here && state.time[agent] <= 887) {
+
+    std::string duration_pickup;
+    std::string start_pickup;
+
+    duration_pickup = std::to_string(7);
+
+    start_pickup = std::to_string(state.time[agent]);
+    
+    std::string duration_move;
+    std::string start_move;
+
+    duration_move = std::to_string(5);
+
+    start_move = std::to_string(state.time[agent] + 7);
+
+    std::string duration_putdown;
+    std::string start_putdown;
+
+    duration_putdown = std::to_string(1);
+
+    start_putdown = std::to_string(state.time[agent] + 12);
+
+    return {1,
+      {Task("!pickup_vic",Args({{"agent",agent},
+                            {"area",state.agent_loc[agent]},
+                            {"start",start_pickup},
+                            {"duration",duration_pickup}})),
+       Task("!move",Args({{"agent",agent},
+                          {"c_area",state.agent_loc[agent]},
+                          {"n_area",n_area},
+                          {"start",start_move},
+                          {"duration",duration_move}})),
+       Task("!put_down_vic",Args({{"agent",agent},
+                                 {"area",n_area},
+                                 {"start",start_putdown},
+                                 {"duration",duration_putdown}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks move_searcher(State state, Args args) {
+  auto agent = args["agent"];
+  bool medic_here = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" &&
+        state.agent_loc[a] == state.agent_loc[agent]) {
+      medic_here = true;
+    }
+  }
+  if (state.role[agent] == "searcher" && (state.r_seen[agent].empty() || medic_here) &&
+      state.time[agent] <= 895) {
+    double prob;
+    if (state.agent_loc[agent] == "entrance") {
+      prob = 0.95;
+    }
+    else {
+      prob = (0.0 + 0.10*state.times_searched[agent]);
+      if (prob > 0.95) {
+        prob = 0.95;
+      }
+    }
+
+    std::string n_area = state.agent_loc[agent];
+    if (state.loc_tracker[agent].empty()) {
+      int stopper = 0;
+      while (n_area == state.agent_loc[agent] ||
+            state.hall_blockage[state.agent_loc[agent]][n_area] > 0) {
+        n_area = sample_loc(state.rooms,state.visited[agent],state.seed);
+        state.seed++;
+        stopper++;
+        if (stopper > (state.rooms.size()*2)) {
+          return {0,{}};
+        } 
+      }
+    }
+    else {
+      n_area = state.loc_tracker[agent].back();
+    }
+
+    std::string duration;
+    std::string start;
+
+    duration = std::to_string(5);
+
+    start = std::to_string(state.time[agent]);
+
+    return {prob,
+      {Task("!move",Args({{"agent",agent},
+                            {"c_area",state.agent_loc[agent]},
+                            {"n_area",n_area},
+                            {"start",start},
+                            {"duration",duration}}))}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks change_searcher(State state, Args args) {
+  auto agent = args["agent"];
+  bool medic_here = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" &&
+        state.agent_loc[a] == state.agent_loc[agent]) {
+      medic_here = true;
+    }
+  }
  
-    double prob;
-    if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
-        prob = 0;
-    }
-    else {
-        prob = (0.0 + 0.10*state.times_searched);
-        if (prob > 1) {
-          prob = 1.0;
-        }
-    }
-    if (state.left_explored) {
-      prob /= 2;
-    }
-    return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-      Task("explore_left_region_O",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
+  if (state.role[agent] == "searcher" && (state.r_seen[agent].empty() || medic_here) &&
+      (state.time[agent] <= 870 || (state.agent_loc[agent] == "entrance" && 
+                                    state.time[agent] <= 895))) {
+
+    return {0.05,
+      {Task("Change_role",Args({{"agent",agent}}))}};
+  }  
+  return {0,{}};
 }
 
-template <class State> pTasks leave_left_O(State state, Args args) {
+template <class State> pTasks do_nothing_searcher(State state, Args args) {
   auto agent = args["agent"];
-  if (state.time > 590) {
-    return {1,{}};
+  bool medic_here = false;
+  for (auto a : state.agents) {
+    if (state.role[a] == "medic" &&
+        state.agent_loc[a] == state.agent_loc[agent]) {
+      medic_here = true;
+    }
   }
+ 
+  if (state.role[agent] == "searcher" && (((state.r_seen[agent].empty() || medic_here) &&
+      state.time[agent] > 895) || (!state.r_seen[agent].empty() && 
+        !medic_here && state.time[agent] > 887))) {
 
-  if (state.left_explored) {
-    double prob;
-    if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
-      prob = 0;
-    }
-    else {
-      prob = (0.0 + 0.10*state.times_searched)/2;
-      if (prob > 0.5) {
-        prob = 0.5;
-      }
-    }
-    return {prob,{}}; 
-  }
-  else {
-    return {0,{}};
-  }
+    std::string start = std::to_string(state.time[agent]);
+    std::string duration = std::to_string(900-state.time[agent]);
+
+    return {1,
+      {Task("!do_nothing",Args({{"agent",agent},
+                                {"start",start},
+                                {"duration",duration}}))}};
+  }  
+  return {0,{}};
 }
 
-template <class State> pTasks search_right_O(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.right_region));
-  if (state.time <= 590 && !need_to_move) {
-    double prob;
-    if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
-      prob = 0;
-    }
-    else {
-      prob = (1.0 - 0.10*state.times_searched);
-    }
-    return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_right_region_O",Args({{"agent",agent}}))}};
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageGreen_right_O(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.right_region));
-  if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    double prob; 
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0.5;
-    }
-    else {
-      prob = 1;
-    }
-    return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_right_region_O",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageYellow_right_O(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.right_region));
-  if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
-    double prob;
-    if (state.g_seen[agent]) {
-      prob = 0.5;
-    }
-    else {
-      prob = 1;
-    }
-    return {prob, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_right_region_O",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks move_right_O(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time <= 590) {
-    std::string n_area = state.loc[agent];
-    if (state.loc_tracker["right"].empty()) {
-      while (n_area == state.loc[agent]) {
-        n_area = sample_loc(state.right_region,state.visited[agent],state.seed);
-        state.seed++;
-      }
-    }
-    else {
-      n_area = state.loc_tracker["right"].back();
-    }
-    bool need_to_move = (state.loc[agent] == "entrance" || 
-                         !in(state.loc[agent], state.right_region));
-    if (need_to_move) {
-      return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-        Task("explore_right_region_O",Args({{"agent",agent}}))}}; 
-    }
-
-    double prob;
-    if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
-        prob = 0;
-    }
-    else {
-        prob = (0.0 + 0.10*state.times_searched);
-        if (prob > 1) {
-          prob = 1.0;
-        }
-    }
-    if (state.left_explored) {
-      prob /= 2;
-    }
-
-    return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-      Task("explore_right_region_O",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks leave_right_O(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time > 590) {
-    return {1,{}};
-  }
-
-  if (state.right_explored) {
-    double prob;
-    if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
-      prob = 0;
-    }
-    else {
-      prob = (0.0 + 0.10*state.times_searched)/2;
-      if (prob > 0.5) {
-        prob = 0.5;
-      }
-    }
-    return {prob,{}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks search_mid_O(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.mid_region));
-  if (state.time <= 590 && !need_to_move) {
-    double prob;
-    if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
-      prob = 0;
-    }
-    else {
-      prob = (1.0 - 0.10*state.times_searched);
-      if (prob < 0) {
-        prob = 0;
-      }
-    }
-    return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_mid_region_O",Args({{"agent",agent}}))}};
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageGreen_mid_O(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.mid_region));
-  if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    double prob; 
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0.5;
-    }
-    else {
-      prob = 1;
-    }
-    return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_mid_region_O",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageYellow_mid_O(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.mid_region));
-  if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
-    double prob;
-    if (state.g_seen[agent]) {
-      prob = 0.5;
-    }
-    else {
-      prob = 1;
-    }
-    return {prob, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_mid_region_O",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks move_mid_O(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time <= 590) {
-    std::string n_area = state.loc[agent];
-    if (state.loc_tracker["mid"].empty()) {
-      while (n_area == state.loc[agent]) {
-        n_area = sample_loc(state.mid_region,state.visited[agent],state.seed);
-        state.seed++;
-      }
-    }
-    else {
-      n_area = state.loc_tracker["mid"].back();
-    }
-
-    bool need_to_move = (state.loc[agent] == "entrance" || 
-                         !in(state.loc[agent], state.mid_region));
-    if (need_to_move) {
-      return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-        Task("explore_mid_region_O",Args({{"agent",agent}}))}}; 
-    }
-
-    double prob;
-    if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
-        prob = 0;
-    }
-    else {
-        prob = (0.0 + 0.10*state.times_searched);
-        if (prob > 1) {
-          prob = 1.0;
-        }
-    }
-    if (state.mid_explored) {
-      prob /= 2;
-    }
-
-    return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-      Task("explore_mid_region_O",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks leave_mid_O(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time > 590) {
-    return {1,{}};
-  }
-
-  if (state.mid_explored) {
-    double prob;
-    if (state.g_seen[agent] || (state.y_seen[agent] && state.time <= 405)) {
-      prob = 0;
-    }
-    else {
-      prob = (0.0 + 0.10*state.times_searched)/2;
-      if (prob > 0.5) {
-        prob = 0.5;
-      }
-    }
-    return {prob,{}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-
-template <class State> pTasks SAR_YF(State state, Args args) {
-  auto agent = args["agent"];
-  return {0.5,
-    {Task("SAR_YF", Args({{"agent",agent}}))}};
-}
-
-template <class State> pTasks sweep_left_YF(State state, Args args) {
-  auto agent = args["agent"];
-  return {0.25,
-    {Task("sweep_left_YF",Args({{"agent",agent}}))}};
-}
-
-template <class State> pTasks sweep_right_YF(State state, Args args) {
-  auto agent = args["agent"];
-  return {0.25,
-    {Task("sweep_right_YF",Args({{"agent",agent}}))}};
-}
-
-template <class State> pTasks zigzag_left_YF(State state, Args args) {
-  auto agent = args["agent"];
-  return {0.25,
-    {Task("zigzag_left_YF",Args({{"agent",agent}}))}};
-}
-
-template <class State> pTasks zigzag_right_YF(State state, Args args) {
-  auto agent = args["agent"];
-  return {0.25,
-    {Task("zigzag_right_YF",Args({{"agent",agent}}))}};
-}
-
-template <class State> pTasks explore_left_to_right_YF(State state, Args args) {
-  auto agent = args["agent"];
-  return {1, 
-    {Task("explore_left_region_YF",Args({{"agent",agent}})),
-     Task("explore_mid_region_YF",Args({{"agent",agent}})),
-     Task("explore_right_region_YF",Args({{"agent",agent}})),
-     Task("!exit",Args({}))}}; 
-}
-
-template <class State> pTasks explore_right_to_left_YF(State state, Args args) {
-  auto agent = args["agent"];
-  return {1, 
-    {Task("explore_right_region_YF",Args({{"agent",agent}})),
-     Task("explore_mid_region_YF",Args({{"agent",agent}})),
-     Task("explore_left_region_YF",Args({{"agent",agent}})),
-     Task("!exit",Args({}))}}; 
-}
-
-template <class State> pTasks explore_mid_left_right_YF(State state, Args args) {
-  auto agent = args["agent"];
-  return {1, 
-    {Task("explore_mid_region_YF",Args({{"agent",agent}})),
-     Task("explore_left_region_YF",Args({{"agent",agent}})),
-     Task("explore_right_region_YF",Args({{"agent",agent}})),
-     Task("!exit",Args({}))}}; 
-}
-
-template <class State> pTasks explore_mid_right_left_YF(State state, Args args) {
-  auto agent = args["agent"];
-  return {1, 
-    {Task("explore_mid_region_YF",Args({{"agent",agent}})),
-     Task("explore_right_region_YF",Args({{"agent",agent}})),
-     Task("explore_left_region_YF",Args({{"agent",agent}})),
-     Task("!exit",Args({}))}}; 
-}
-
-template <class State> pTasks search_left_YF(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.left_region));
-  if (state.time <= 590 && !need_to_move) {
-    double prob;
-    if (state.y_seen[agent] && state.time <= 405) {
-        prob = 0;
-    }
-    else {
-      if (state.time > 405 && state.g_seen[agent]) {
-        prob = 0;
-      }
-      else {
-          prob = (1.0 - 0.10*state.times_searched);
-          if (prob < 0) {
-            prob = 0;
-          }
-      }
-    }
-    return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_left_region_YF",Args({{"agent",agent}}))}};
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageGreen_left_YF(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.left_region));
-  if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    double prob; 
-    if (state.time > 405) {
-      prob = 1;
-    }
-    else {
-      prob = 0;
-    }
-    return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_left_region_YF",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageYellow_left_YF(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.left_region));
-  if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
-    return {1, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_left_region_YF",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks move_left_YF(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time <= 590) {
-    std::string n_area = state.loc[agent];
-    if (state.loc_tracker["left"].empty()) {
-      while (n_area == state.loc[agent]) {
-        n_area = sample_loc(state.left_region,state.visited[agent],state.seed);
-        state.seed++;
-      }
-    }
-    else {
-      n_area = state.loc_tracker["left"].back();
-    }
-
-    bool need_to_move = (state.loc[agent] == "entrance" || 
-                         !in(state.loc[agent], state.left_region));
-    if (need_to_move) {
-      return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-        Task("explore_left_region_YF",Args({{"agent",agent}}))}}; 
-    }
-
-    double prob;
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0;
-    }
-    else {
-      if (state.time > 405 && state.g_seen[agent]) {
-        prob = 0;
-      }
-      else {
-        prob = (0.0 + 0.10*state.times_searched);
-        if (prob > 1) {
-          prob = 1.0;
-        }
-      }
-    }
-
-    if (state.left_explored) {
-      prob /= 2;
-    }
-
-    return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-      Task("explore_left_region_YF",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks leave_left_YF(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time > 590) {
-    return {1,{}};
-  }
-
-  if (state.left_explored) {
-    double prob;
-    if (state.y_seen[agent] && state.time <= 405) {
-        prob = 0;
-    }
-    else {
-      if (state.time > 405 && state.g_seen[agent]) {
-        prob = 0;
-      }
-      else {
-        prob = (0.0 + 0.10*state.times_searched)/2;
-        if (prob > 0.5) {
-          prob = 0.5;
-        }
-      }
-    }
-    return {prob,{}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks search_right_YF(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.right_region));
-  if (state.time <= 590 && !need_to_move) {
-    double prob;
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0;
-    }
-    else {
-      if (state.time > 405 && state.g_seen[agent]) {
-        prob = 0;
-      }
-      else {
-        prob = (1.0 - 0.10*state.times_searched);
-        if (prob < 0) {
-          prob = 0;
-        }
-      }
-    }
-    return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_right_region_YF",Args({{"agent",agent}}))}};
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageGreen_right_YF(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.right_region));
-  if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    double prob; 
-    if (state.time > 405) {
-      prob = 1;
-    }
-    else {
-      prob = 0;
-    }
-    return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_right_region_YF",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageYellow_right_YF(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.right_region));
-  if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
-    return {1, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_right_region_YF",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks move_right_YF(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time <= 590) {
-    std::string n_area = state.loc[agent];
-    if (state.loc_tracker["right"].empty()) {
-      while (n_area == state.loc[agent]) {
-        n_area = sample_loc(state.right_region,state.visited[agent],state.seed);
-        state.seed++;
-      }
-    }
-    else {
-      n_area = state.loc_tracker["right"].back();
-    }
-
-    bool need_to_move = (state.loc[agent] == "entrance" || 
-                         !in(state.loc[agent], state.right_region));
-    if (need_to_move) {
-      return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-        Task("explore_right_region_YF",Args({{"agent",agent}}))}}; 
-    }
-
-    double prob;
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0;
-    }
-    else {
-      if (state.time > 405 && state.g_seen[agent]) {
-        prob = 0;
-      }
-      else {
-        prob = (0.0 + 0.10*state.times_searched);
-        if (prob > 1) {
-          prob = 1.0;
-        }
-      }
-    }
-
-    if (state.right_explored) {
-      prob /= 2;
-    }
-
-    return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-      Task("explore_right_region_YF",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks leave_right_YF(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time > 590) {
-    return {1,{}};
-  }
-
-  if (state.right_explored) {
-    double prob;
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0;
-    }
-    else {
-      if (state.time > 405 && state.g_seen[agent]) {
-        prob = 0;
-      }
-      else {
-        prob = (0.0 + 0.10*state.times_searched)/2;
-        if (prob > 0.5) {
-          prob = 0.5;
-        }
-      }
-    }
-    return {prob,{}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-
-template <class State> pTasks search_mid_YF(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.mid_region));
-  if (state.time <= 590 && !need_to_move) {
-    double prob;
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0;
-    }
-    else {
-      if (state.time > 405 && state.g_seen[agent]) {
-        prob = 0;
-      }
-      else {
-        prob = (1.0 - 0.10*state.times_searched);
-        if (prob < 0) {
-          prob = 0;
-        }
-      }
-    }
-    return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_mid_region_YF",Args({{"agent",agent}}))}};
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageGreen_mid_YF(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.mid_region));
-  if (state.time <= 590 && state.g_seen[agent] && !need_to_move) {
-    double prob; 
-    if (state.time > 405) {
-      prob = 1;
-    }
-    else {
-      prob = 0;
-    }
-    return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_mid_region_YF",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks triageYellow_mid_YF(State state, Args args) {
-  auto agent = args["agent"];
-  bool need_to_move = (state.loc[agent] == "entrance" || 
-                       !in(state.loc[agent], state.mid_region));
-  if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
-    return {1, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}})),
-      Task("explore_mid_region_YF",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks move_mid_YF(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time <= 590) {
-    std::string n_area = state.loc[agent];
-    if (state.loc_tracker["mid"].empty()) {
-      while (n_area == state.loc[agent]) {
-        n_area = sample_loc(state.mid_region,state.visited[agent],state.seed);
-        state.seed++;
-      }
-    }
-    else {
-      n_area = state.loc_tracker["mid"].back();
-    }
-
-    bool need_to_move = (state.loc[agent] == "entrance" || 
-                         !in(state.loc[agent], state.mid_region));
-    if (need_to_move) {
-      return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-        Task("explore_mid_region_YF",Args({{"agent",agent}}))}}; 
-    }
-
-    double prob;
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0;
-    }
-    else {
-      if (state.time > 405 && state.g_seen[agent]) {
-        prob = 0;
-      }
-      else {
-        prob = (0.0 + 0.10*state.times_searched);
-        if (prob > 1) {
-          prob = 1.0;
-        }
-      }
-    }
-
-    if (state.mid_explored) {
-      prob /= 2;
-    }
-
-    return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}})),
-      Task("explore_mid_region_YF",Args({{"agent",agent}}))}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-template <class State> pTasks leave_mid_YF(State state, Args args) {
-  auto agent = args["agent"];
-  if (state.time > 590) {
-    return {1,{}};
-  }
-
-  if (state.mid_explored) {
-    double prob;
-    if (state.y_seen[agent] && state.time <= 405) {
-      prob = 0;
-    }
-    else {
-      if (state.time > 405 && state.g_seen[agent]) {
-        prob = 0;
-      }
-      else {
-        prob = (0.0 + 0.10*state.times_searched)/2;
-        if (prob > 0.5) {
-          prob = 0.5;
-        }
-      }
-    }
-    return {prob,{}}; 
-  }
-  else {
-    return {0,{}};
-  }
-}
-
-class SARState {
+class TeamSARState {
   public:
     std::vector<std::string> agents;
 
+    std::vector<std::string> rooms;
+
     std::unordered_map<std::string, std::string> role;
-    std::unordered_map<std::string, int> read_role;
-    std::unordered_map<std::string, int> write_role;
 
     std::unordered_map<std::string, std::string> agent_loc;
-    std::unordered_map<std::string, int> read_agent_loc;
-    std::unordered_map<std::string, int> write_agent_loc;
 
     std::unordered_map<std::string, std::vector<std::string>> c_vic_loc;
-    std::unordered_map<std::string, int> read_c_vic_loc;
-    std::unordered_map<std::string, int> write_c_vic_loc;
 
     std::unordered_map<std::string, std::vector<std::string>> r_vic_loc;
-    std::unordered_map<std::string, int> read_r_vic_loc;
-    std::unordered_map<std::string, int> write_r_vic_loc;
 
     std::unordered_map<std::string, bool> obs;
-    std::unordered_map<std::string, int> read_obs;
-    std::unordered_map<std::string, int> write_obs;
-
-    std::unordered_map<std::string, bool> c_awake;
-    std::unordered_map<std::string, int> read_c_awake;
-    std::unordered_map<std::string, int> write_c_awake;
 
     std::unordered_map<std::string, std::unordered_map<std::string,int>> hall_blockage;
-    std::unordered_map<std::string, std::unordered_map<std::string,int>> read_hall_blockage;
-    std::unordered_map<std::string, std::unordered_map<std::string,int>> write_hall_blockage;
 
     std::unordered_map<std::string, int> room_blocks;
-    std::unordered_map<std::string, int> read_room_blocks;
-    std::unordered_map<std::string, int> write_room_blocks;
-
-    std::unordered_map<std::string, bool> help_wake;
-    std::unordered_map<std::string, int> read_help_wake;
-    std::unordered_map<std::string, int> write_help_wake;
 
     std::unordered_map<std::string,std::string> holding; 
-    std::unordered_map<std::string,int> read_holding;
-    std::unordered_map<std::string,int> write_holding;
 
     int c_triage_total;
-    int read_c_triage_total;
-    int write_c_triage_total;
 
     int r_triage_total;
-    int read_r_triage_total;
-    int write_r_triage_total;
 
     int c_max;
     int r_max;
 
     std::unordered_map<std::string, std::vector<std::string>> c_seen;
-    std::unordered_map<std::string, int> read_c_seen;
-    std::unordered_map<std::string, int> write_c_seen;
 
     std::unordered_map<std::string, std::vector<std::string>> r_seen;
-    std::unordered_map<std::string, int> read_r_seen;
-    std::unordered_map<std::string, int> write_r_seen;
 
     std::unordered_map<std::string, int> time;
-    std::unordered_map<std::string, int> read_time;
-    std::unordered_map<std::string, int> write_time;
 
     std::unordered_map<std::string, int> times_searched;
-    std::unordered_map<std::string, int> read_times_searched;
-    std::unordered_map<std::string, int> write_times_searched;
 
     std::unordered_map<std::string, std::unordered_map<std::string, int>> visited; 
-    std::unordered_map<std::string, std::unordered_map<std::string, int>> read_visited;
-    std::unordered_map<std::string, std::unordered_map<std::string, int>> write_visited;
     
     // Not part of the state representation!
     std::unordered_map<std::string, std::vector<std::string>> loc_tracker;
     int seed = 100;
 
     nlohmann::json to_json() {
-      return nlohmann::json{{"loc", this->loc},
-               {"y_vic",this->y_vic},
-               {"g_vic",this->g_vic},
-               {"y_total",this->y_total},
-               {"g_total",this->g_total},
-               {"y_seen",this->y_seen},
-               {"g_seen",this->g_seen},
-               {"left_region",this->left_region},
-               {"right_region",this->right_region},
-               {"mid_region",this->mid_region},
-               {"left_explored",this->left_explored},
-               {"right_explored",this->right_explored},
-               {"mid_explored",this->mid_explored},
+      return nlohmann::json{{"agents", this->agents},
+               {"rooms",this->rooms},
+               {"role",this->role},
+               {"agent_loc",this->agent_loc},
+               {"c_vic_loc",this->c_vic_loc},
+               {"r_vic_loc",this->r_vic_loc},
+               {"obs",this->obs},
+               {"hall_blockage",this->hall_blockage},
+               {"room_blocks",this->room_blocks},
+               {"holding",this->holding},
+               {"c_triage_total",this->c_triage_total},
+               {"r_triage_total",this->r_triage_total},
+               {"c_max", this->c_max},
+               {"r_max",this->r_max},
+               {"c_seen",this->c_seen},
+               {"r_max",this->r_seen},
                {"time",this->time},
-               {"times_searched", this->times_searched},
-               {"visited",this->visited},
-               {"y_max",this->y_max},
-               {"g_max",this->g_max}};
+               {"times_searched",this->times_searched},
+               {"visited",this->visited}};
     }
 };
 
-class SARSelector {
+class TeamSARSelector {
   public:
     double mean = 0;
     int sims = 0;
@@ -1693,96 +1305,86 @@ class SARSelector {
       return this->mean + ((c*r_l)/r_t)*sqrt(log(pSims)/this->sims);
     }
 
-    double rewardFunc(SARState s) {
-      return (50.00*s.y_total + 10.00*s.g_total)/(50.00*s.y_max + 10.00*s.g_max);
+    double rewardFunc(TeamSARState s) {
+      return (50.00*s.c_triage_total + 10.00*s.r_triage_total)/(50.00*s.c_max + 10.00*s.r_max);
     }
 
 };
 
-class SARDomain {
+class TeamSARDomain {
   public:
-    Operators<SARState> operators = 
-      Operators<SARState>({{"!search",search},
-                           {"!triageGreen",triageGreen},
-                           {"!triageYellow",triageYellow},
+    Operators<TeamSARState> operators = 
+      Operators<TeamSARState>({{"!search",search},
+                           {"!triageReg",triageReg},
+                           {"!triageCrit",triageCrit},
+                           {"!clear_hall_block",clear_hall_block},
+                           {"!clear_room_block",clear_room_block},
+                           {"!pickup_vic",pickup_vic},
+                           {"!put_down_vic",put_down_vic},
+                           {"!change_to_medic",change_to_medic},
+                           {"!change_to_engineer",change_to_engineer},
+                           {"!change_to_searcher",change_to_searcher},
                            {"!move",move},
+                           {"!do_nothing",do_nothing},
                            {"!exit",exit}});
 
-    pOperators<SARState> poperators = 
-      pOperators<SARState>({{"!search",search},
-                           {"!triageGreen",triageGreen},
-                           {"!triageYellow",triageYellow},
+    pOperators<TeamSARState> poperators = 
+      pOperators<TeamSARState>({{"!search",search},
+                           {"!triageReg",triageReg},
+                           {"!triageCrit",triageCrit},
+                           {"!clear_hall_block",clear_hall_block},
+                           {"!clear_room_block",clear_room_block},
+                           {"!pickup_vic",pickup_vic},
+                           {"!put_down_vic",put_down_vic},
+                           {"!change_to_medic",change_to_medic},
+                           {"!change_to_engineer",change_to_engineer},
+                           {"!change_to_searcher",change_to_searcher},
                            {"!move",move},
+                           {"!do_nothing",do_nothing},
                            {"!exit",exit}});
 
 
-    Methods<SARState> methods =
-      Methods<SARState>({{"SAR",
-                          {SAR_O,SAR_YF}},
-                         {"SAR_O",
-                          {sweep_left_O,
-                           sweep_right_O,
-                           zigzag_left_O,
-                           zigzag_right_O}},
-                         {"sweep_left_O",
-                          {explore_right_to_left_O}},
-                         {"sweep_right_O",
-                          {explore_left_to_right_O}},
-                         {"zigzag_left_O",
-                          {explore_mid_left_right_O}},
-                         {"zigzag_right_O",
-                          {explore_mid_right_left_O}},
-                         {"explore_left_region_O",
-                          {search_left_O,
-                           triageYellow_left_O,
-                           triageGreen_left_O,
-                           move_left_O,
-                           leave_left_O}},
-                         {"explore_right_region_O",
-                          {search_right_O,
-                           triageYellow_right_O,
-                           triageGreen_right_O,
-                           move_right_O,
-                           leave_right_O}},
-                         {"explore_mid_region_O",
-                          {search_mid_O,
-                           triageYellow_mid_O,
-                           triageGreen_mid_O,
-                           move_mid_O,
-                           leave_mid_O}},
-                         {"SAR_YF",
-                          {sweep_left_YF,
-                           sweep_right_YF,
-                           zigzag_left_YF,
-                           zigzag_right_YF}},
-                         {"sweep_left_YF",
-                          {explore_right_to_left_YF}},
-                         {"sweep_right_YF",
-                          {explore_left_to_right_YF}},
-                         {"zigzag_left_YF",
-                          {explore_mid_left_right_YF}},
-                         {"zigzag_right_YF",
-                          {explore_mid_right_left_YF}},
-                         {"explore_left_region_YF",
-                          {search_left_YF,
-                           triageYellow_left_YF,
-                           triageGreen_left_YF,
-                           move_left_YF,
-                           leave_left_YF}},
-                         {"explore_right_region_YF",
-                          {search_right_YF,
-                           triageYellow_right_YF,
-                           triageGreen_right_YF,
-                           move_right_YF,
-                           leave_right_YF}},
-                         {"explore_mid_region_YF",
-                          {search_mid_YF,
-                           triageYellow_mid_YF,
-                           triageGreen_mid_YF,
-                           move_mid_YF,
-                           leave_mid_YF}}});
+    Methods<TeamSARState> methods =
+      Methods<TeamSARState>({{"SAR",
+                          {pick_initial_roles}},
+                         {"Change_role",
+                          {choose_medic,
+                           choose_engineer,
+                           choose_searcher}},
+                         {"Explore",
+                          {assign_tasks,
+                           triage_crit_vic,
+                           out_of_time}},
+                         {"Do_task",
+                          {medic_task,
+                           searcher_task,
+                           engineer_task}},
+                         {"Do_medic_task",
+                          {search_medic,
+                           triage_medic,
+                           move_medic,
+                           change_medic,
+                           do_nothing_medic}},
+                         {"Do_engineer_task",
+                          {clear_room_blocks_engineer,
+                           move_engineer,
+                           change_engineer,
+                           do_nothing_engineer}},
+                         {"Do_searcher_task",
+                          {search_searcher,
+                           move_victim_searcher,
+                           move_searcher,
+                           change_searcher,
+                           do_nothing_searcher}},
+                         {"Break_room_blocks",
+                          {break_a_room_block,
+                           break_some_room_blocks}},
+                         {"Try_to_move",
+                          {just_move_engineer,
+                           clear_hall_engineer,
+                           fail_to_move_engineer}}});
 
-    SARDomain() {
+    TeamSARDomain() {
       std::cout << "Operators: ";
       print(this->operators);
 
