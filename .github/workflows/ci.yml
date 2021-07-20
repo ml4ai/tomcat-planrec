@@ -22,7 +22,7 @@ jobs:
     - name: Install Boost
       uses: MarkusJx/install-boost@v1.0.1
       with:
-        boost_version 1.76.0
+        boost_version: 1.76.0
     - name: Continuous Integration
       run: |
         sudo apt-get install nlohmann-json3-dev libgraphviz-dev
