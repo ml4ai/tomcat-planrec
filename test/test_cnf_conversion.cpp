@@ -174,5 +174,16 @@ BOOST_AUTO_TEST_CASE(test_custom_map) {
     auto v = Variable{"var"};
     mymap[v] =  Symbol{"sym"};
     BOOST_TEST(mymap.contains(v));
+    std::vector<Variable> myvec;
+    auto v1 = Variable{"var1"};
+    auto v2 = Variable{"var2"};
+    myvec.push_back(v);
+    myvec.push_back(v1);
+//    mymap[v] =  Symbol{"sym"};
+
+    auto tmp = std::find(myvec.begin(), myvec.end(), v) != myvec.end();
+//    BOOST_TEST(std::find(myvec.begin(), myvec.end(), v) != myvec.end());
+    BOOST_TEST(vector_contains_variable(myvec, v));
+    BOOST_TEST(vector_contains_variable(myvec, v2) == false);
 }
 
