@@ -339,7 +339,6 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
                "rock"); // default type = object
 
     // Test initial state
-    BOOST_TEST(boost::get<Literal<Term>>(prob.init).predicate == "on-site");
-    BOOST_TEST(name(boost::get<Literal<Term>>(prob.init).args[0]) == "adobe");
-    BOOST_TEST(name(boost::get<Literal<Term>>(prob.init).args[1]) == "factory");
+    BOOST_TEST(boost::get<Init>(prob.init)[0].predicate == "on-site");
+    BOOST_TEST(equals(boost::get<Init>(prob.init)[0].args,{"adobe", "factory"}));
 }

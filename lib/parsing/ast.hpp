@@ -91,16 +91,16 @@ namespace ast {
                        boost::recursive_wrapper<QuantifiedSentence>,
                        EqualsSentence>;
 
-    struct ConnectedSentence : x3::position_tagged {
+    struct ConnectedSentence {
         std::string connector;
         std::vector<Sentence> sentences;
     };
 
-    struct NotSentence : x3::position_tagged {
+    struct NotSentence {
         Sentence sentence;
     };
 
-    struct ImplySentence : x3::position_tagged {
+    struct ImplySentence {
         Sentence sentence1;
         Sentence sentence2;
     };
@@ -194,17 +194,17 @@ namespace ast {
     using Effect =
         boost::variant<Nil, boost::recursive_wrapper<AndCEffect>, CEffect>;
 
-    struct WhenCEffect {
+    struct WhenCEffect : x3::position_tagged {
         Sentence gd;
         CondEffect cond_effect;
     };
 
-    struct ForallCEffect {
+    struct ForallCEffect : x3::position_tagged {
         std::vector<Variable> variables;
         Effect effect;
     };
 
-    struct AndCEffect {
+    struct AndCEffect : x3::position_tagged {
         std::vector<CEffect> c_effects;
     };
 
