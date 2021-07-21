@@ -13,8 +13,14 @@
 using namespace fol;
 using namespace std;
 
-using Input = boost::
-    variant<Term, Predicate, Variable, Constant, vector<Term>, Literal<Term>>;
+using Input = boost::variant<Term,
+                             Predicate,
+                             Variable,
+                             Constant,
+                             Function,
+                             vector<Term>,
+                             Literal<Term>>;
+
 using Substitution = std::unordered_map<Variable, Input, Hash<Variable>>;
 
 struct EqualityChecker : public boost::static_visitor<bool> {
@@ -59,12 +65,9 @@ std::optional<Substitution>
 unify(Input x, Input y, std::optional<Substitution> theta) {
     using boost::get;
     if (theta == nullopt) {
-        BOOST_LOG_TRIVIAL(debug) << "Theta = failure, returning failure";
         return nullopt;
     }
     if (boost::apply_visitor(EqualityChecker(), x, y)) {
-        BOOST_LOG_TRIVIAL(debug)
-            << "Equality checker detected x == y, returning theta";
         return theta;
     }
     else if (x.type() == typeid(Variable)) {
@@ -81,6 +84,13 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
                      y_lit.args,
                      unify(x_lit.predicate, y_lit.predicate, theta));
     }
+    else if (x.type() == typeid(Function) && y.type() == typeid(Function)) {
+        auto x_func = get<Function>(x);
+        auto y_func = get<Function>(y);
+        return unify(
+            x_func.args, y_func.args, unify(x_func.name, y_func.name, theta));
+    }
+
     else if (x.type() == typeid(vector<Term>) &&
              y.type() == typeid(vector<Term>)) {
         auto x_vec = get<vector<Term>>(x);

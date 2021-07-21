@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     BOOST_TEST(!subst);
 
     subst = unify(v1, c1);
-    BOOST_TEST(subst.value().contains(v1));
+    BOOST_TEST(get<Constant>(subst.value()[v1]) == c1);
 
     /* --------- List of Test cases for unification -----------
     Variables: v1, v2
@@ -74,8 +74,8 @@ BOOST_AUTO_TEST_CASE(test_unification) {
 
     //// sample predicates for testing unification
 
-    //// T(V1) unified with T(C2)
-    //// first literal declaration, T(v1)
+    // T(V1) unified with T(C2)
+    // first literal declaration, T(v1)
     //v1.name = "v1";
     //T1 = v1;
     //P1 = "P1";
