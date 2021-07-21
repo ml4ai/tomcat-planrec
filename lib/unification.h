@@ -10,9 +10,18 @@
 
 using namespace fol;
 using namespace std;
-using Substitution = std::unordered_map<std::string, Term>;
+
+// Custom hash
+template <class T> struct Hash {
+    std::size_t operator()(T const& x) const noexcept {
+        return std::hash<std::string>{}(x.name);
+    }
+};
 
 using Input = boost::variant<Variable, Constant, vector<Term>, Literal<Term>>;
+using Substitution = std::optional<std::unordered_map<Variable, Input, Hash<Variable>>>;
+
+
 
 struct EqualityChecker : public boost::static_visitor<bool> {
     template<class T, class U>
@@ -43,15 +52,22 @@ struct EqualityChecker : public boost::static_visitor<bool> {
     }
 };
 
+Substitution unify_var(Variable, Input, Substitution);
+
 Substitution unify(Input x, Input y, Substitution theta) {
+    if (!theta) {
+        return nullopt;
+    }
     if (boost::apply_visitor(EqualityChecker(), x, y)) {
         return theta;
     }
     else if (x.type() == typeid(Variable)) {
-        return unify_var(x, y, theta);
+        return unify_var(boost::get<Variable>(x), y, theta);
     }
 }
 
 Substitution unify_var(Variable var, Input x, Substitution theta) {
-
+    if (theta.value().contains(var)) {
+        return unify(theta.value()[var], x, theta);
+    }
 }

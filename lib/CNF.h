@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Hash.h"
 #include "Clause.h"
 #include "boost/variant.hpp"
 #include "fol/Function.h"
@@ -10,6 +11,14 @@
 #include <unordered_map>
 #include <utility>
 #include <boost/throw_exception.hpp>
+#include<string>
+
+// Custom hash
+template <class T> struct Hash {
+    std::size_t operator()(T const& x) const noexcept {
+        return std::hash<std::string>{}(x.name);
+    }
+};
 
 namespace ast {
     bool vector_contains_variable(std::vector<Variable> v, Variable x) {
@@ -20,12 +29,6 @@ namespace ast {
         }
         return false;
     }
-    // Custom hash
-    template <class T> struct Hash {
-        std::size_t operator()(T const& x) const noexcept {
-            return std::hash<std::string>{}(x.name);
-        }
-    };
 
     bool map_contains_variable(std::unordered_map<Variable, Symbol> m,
                                Variable x) {
