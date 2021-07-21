@@ -138,3 +138,6 @@ cmake-build-debug
 # ignore .idea and .project
 .idea
 .project
+
+# ignore datafiles
+*.metadata
