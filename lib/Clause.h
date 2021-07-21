@@ -77,9 +77,15 @@ struct Clause {
 
         // now we remove any duplicates by converting to a set and then back (assuming the resolvant isn't empty) and create our resolvant clause
         if(resolvant_lits.size()>0) {
-            set<ast::Literal<Term>> s(resolvant_lits.begin(), resolvant_lits.end());
-            resolvant_lits.assign(s.begin(), s.end());
-
+            for (int i=0; i < resolvant_lits.size(); i++) {
+                for (int j=0; j < resolvant_lits.size(); j++) {
+                    if (i!=j) {
+                        if (resolvant_lits.at(i)==resolvant_lits.at(j)) {
+                            resolvant_lits.erase(resolvant_lits.begin()+j);
+                        }
+                    }
+                }
+            }
             // now to construct the resolvant clause
             resolvant.literals.insert(resolvant.literals.end(), resolvant_lits.begin(), resolvant_lits.end());
         }

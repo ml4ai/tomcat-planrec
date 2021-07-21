@@ -47,22 +47,18 @@ bool isDefiniteClause(Clause c) {
 
 void tell(KnowledgeBase& kb, ast::Sentence sentence) {
     // need to add CNF converter to run on the sentence first
-    ast::Sentence CNF_s;
-    CNF_s = ast::to_CNF(sentence);
-    kb.sentences.push_back(CNF_s); // store original CNF converted sentence
-    // does this lambda over the clauses in the sentence?
-    visit(overloaded{
-              [&](Literal<Term> literal) {
-                  kb.facts.push_back(literal);
-              },
-              [&](Clause clause) {
-                    kb.clauses.push_back(clause); // no definites for resolution inference
-                  //for (auto literal : clause.literals) {
-                      //kb.clauses.push_back(Clause{{literal}});
-                  //}
-              },
-          },
-          CNF_s);
+    ast::CNF cnf_tell = ast::construct(sentence);
+
+    kb.sentences.push_back(sentence); // store original sentence
+
+    for (Clause c : cnf_tell.conjunctionOfClauses) {
+        kb.clauses.push_back(c);
+    }
+}; 
+
+void tell(KnowledgeBase& kb, Literal<Term> lit_in) {
+    // add literal to knowledge base as a fact
+    kb.facts.push_back(lit_in);
 };
 
 // This is part of my permutation algorithm for permuting the literals to get CNF from DNF
@@ -106,6 +102,7 @@ ast::CNF not_CNF(ast::CNF cnf) {
     ast::CNF temp1 = ast::construct(for_cnf);
     ast::CNF temp2 = ast::construct(for_cnf);
     ast::CNF output = ast::construct(for_cnf);
+    ast::CNF temp3({start}); // 
     output.conjunctionOfClauses.push_back(start);
     for (Clause c : cnf.conjunctionOfClauses) {
         for(Clause c1 : output.conjunctionOfClauses) {
@@ -124,7 +121,7 @@ ast::CNF not_CNF(ast::CNF cnf) {
 // Have an overloaded ask, one that takes a parsed sentence and one that takes CNF sentence
 bool ask(KnowledgeBase& kb, ast::Sentence query) {
     // convert the input query into CNF form
-    ast::CNF cnf_query = ast::construct(query);
+    ast::CNF cnf_query = ast::construct(query); // does this convert it to a CNF too?
     // now we not the input, note this causes an expoential increase in the sentence size, do I need a sentence to make CNF's?
     ast::Sentence for_cnf;
     ast::CNF query_clauses = ast::construct(for_cnf);
@@ -180,16 +177,20 @@ bool ask(KnowledgeBase& kb, ast::CNF query) {
 
 // unless we restrict ourselves to horn clauses the inputs to the ask_vars will have to be a literal and it will just be unified against the facts
 // of the kb. AIMA p.301 for detials.
+
+// really need to test this function
 sub_list ask_vars(KnowledgeBase& kb, ast::Literal<Term> query) {    
     sub_list sub;
+    sub_list temp;
     for(Literal lit : kb.facts) {
-        sub_list temp;
+        // sub_list temp;
+        temp = sub_list();
         temp = unify(lit, query, temp);
         if(!holds_alternative<string>(temp)){
             get<sub_list_type>(sub).insert(get<sub_list_type>(temp).begin(), get<sub_list_type>(temp).end());
             get<sub_list_type>(temp).clear();
         }
-        delete temp; // This isn't working
+        // delete temp; // This isn't working
     }
     return sub;
 }
