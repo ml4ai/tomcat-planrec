@@ -35,10 +35,10 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     auto c2 = Constant{"c2"};
     auto v1 = Variable{"v1"};
 
-    auto subst = unify(c1, c2, Substitution());
+    auto subst = unify(c1, c2);
     BOOST_TEST(!subst);
 
-    subst = unify(v1, c1, Substitution());
+    subst = unify(v1, c1);
     BOOST_TEST(subst.value().contains(v1));
 
     /* --------- List of Test cases for unification -----------

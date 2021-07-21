@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Hash.h"
+#include <boost/log/trivial.hpp>
 #include <boost/variant.hpp>
 #include <fol/Constant.h>
 #include <fol/Literal.h>
@@ -14,8 +15,7 @@ using namespace std;
 
 using Input = boost::
     variant<Term, Predicate, Variable, Constant, vector<Term>, Literal<Term>>;
-using Substitution =
-    std::optional<std::unordered_map<Variable, Input, Hash<Variable>>>;
+using Substitution = std::unordered_map<Variable, Input, Hash<Variable>>;
 
 struct EqualityChecker : public boost::static_visitor<bool> {
     template <class T, class U> bool operator()(const T&, const U&) const {
@@ -52,14 +52,19 @@ struct EqualityChecker : public boost::static_visitor<bool> {
     }
 };
 
-Substitution unify_var(Variable, Input, Substitution);
+std::optional<Substitution>
+    unify_var(Variable, Input, std::optional<Substitution>);
 
-Substitution unify(Input x, Input y, Substitution theta) {
+std::optional<Substitution>
+unify(Input x, Input y, std::optional<Substitution> theta) {
     using boost::get;
-    if (!theta) {
+    if (theta == nullopt) {
+        BOOST_LOG_TRIVIAL(debug) << "Theta = failure, returning failure";
         return nullopt;
     }
     if (boost::apply_visitor(EqualityChecker(), x, y)) {
+        BOOST_LOG_TRIVIAL(debug)
+            << "Equality checker detected x == y, returning theta";
         return theta;
     }
     else if (x.type() == typeid(Variable)) {
@@ -96,7 +101,12 @@ Substitution unify(Input x, Input y, Substitution theta) {
     }
 }
 
-Substitution unify_var(Variable var, Input x, Substitution theta) {
+std::optional<Substitution> unify(Input x, Input y) {
+    return unify(x, y, Substitution());
+}
+
+std::optional<Substitution>
+unify_var(Variable var, Input x, std::optional<Substitution> theta) {
     if (theta.value().contains(var)) {
         auto val = theta.value()[var];
         return unify(val, x, theta);
