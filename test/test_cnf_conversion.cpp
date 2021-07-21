@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(d5.predicate == "a");
     auto d6 = get<Literal<Term>>(d4.sentences[1]);
     BOOST_TEST(d6.predicate == "b");
-    auto d7 = construct(d2);
+    auto d7 = to_CNF(d1);
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].predicate == "a");
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].is_negative == false);
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[1].predicate == "b");
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(e5.predicate == "a");
     auto e6 = get<Literal<Term>>(get<NotSentence>(e4.sentences[1]).sentence);
     BOOST_TEST(e6.predicate == "c");
-    auto e7 = construct(e2);
+    auto e7 = to_CNF(e1);
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].predicate == "a");
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].is_negative == false);
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[1].predicate == "c");
