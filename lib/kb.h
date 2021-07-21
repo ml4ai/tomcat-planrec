@@ -47,7 +47,7 @@ bool isDefiniteClause(Clause c) {
 
 void tell(KnowledgeBase& kb, ast::Sentence sentence) {
     // need to add CNF converter to run on the sentence first
-    ast::CNF cnf_tell = ast::construct(sentence);
+    ast::CNF cnf_tell = ast::to_CNF(sentence);
 
     kb.sentences.push_back(sentence); // store original sentence
 
@@ -121,11 +121,9 @@ ast::CNF not_CNF(ast::CNF cnf) {
 // Have an overloaded ask, one that takes a parsed sentence and one that takes CNF sentence
 bool ask(KnowledgeBase& kb, ast::Sentence query) {
     // convert the input query into CNF form
-    ast::CNF cnf_query = ast::construct(query); // does this convert it to a CNF too?
+    ast::CNF cnf_query = ast::to_CNF(query); // does this convert it to a CNF too?
     // now we not the input, note this causes an expoential increase in the sentence size, do I need a sentence to make CNF's?
-    ast::Sentence for_cnf;
-    ast::CNF query_clauses = ast::construct(for_cnf);
-    query_clauses = not_CNF(cnf_query);
+    ast::CNF query_clauses = not_CNF(cnf_query);
     // now to start the resolution inference algorithm, this is just checking clauses
     // only need one clause to return empty because then the whole sentence is false, if want to check each clause, ask for each clause
     for (Clause c_kb : kb.clauses) {
@@ -148,9 +146,7 @@ bool ask(KnowledgeBase& kb, ast::Sentence query) {
  // overloaded option for CNF input instead of parsed sentence
 bool ask(KnowledgeBase& kb, ast::CNF query) {
     // convert the input query into CNF form
-    ast::Sentence for_cnf;
-    ast::CNF query_clauses = ast::construct(for_cnf);
-    query_clauses = not_CNF(query);
+    ast::CNF query_clauses = not_CNF(query);
     // now to start the resolution inference algorithm, this is just checking clauses
     // only need one clause to return empty because then the whole sentence is false, if want to check each clause, ask for each clause
     for (Clause c_kb : kb.clauses) {
@@ -161,6 +157,7 @@ bool ask(KnowledgeBase& kb, ast::CNF query) {
         }
     }
     // now we check against the facts of kb incase the clauses didn't resolve it
+    // should we run the resolvant clause of the last operation against the facts or just the input clause?
     Clause kb_facts;
     kb_facts.literals.insert(kb_facts.literals.end(), kb.facts.begin(), kb.facts.end());
     for (Clause c_q : query_clauses.conjunctionOfClauses) {
