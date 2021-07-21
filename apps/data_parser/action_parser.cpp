@@ -3,11 +3,12 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 using namespace std;
 using json = nlohmann::json;
 
-std::pair<int,int> extractIntegerWords(string str)
+int missionTime2secElapsed(std::string str)
 {
     stringstream ss;    
   
@@ -41,12 +42,13 @@ std::pair<int,int> extractIntegerWords(string str)
         /* To save from space at the end of string */
         temp = "";
     }
-    return std::make_pair(a,b);
+    return (900 - (a*60 + b));
 }
 
 json process_move_act(json& g) {
   json k;
   std::string move_act = "(!move,";
+  move_act += g["data"]["playername"].get<std::string>();
   std::string exited;
   if (g["data"]["exited_locations"].size() == 2) {
     exited = g["data"]["exited_locations"][1]["id"].get<std::string>();
@@ -54,6 +56,9 @@ json process_move_act(json& g) {
   else {
     exited = g["data"]["exited_locations"][0]["id"].get<std::string>();
   }
+  move_act += ",";
+  move_act += exited;
+  move_act += ",";
   if (g["data"].contains("locations")) {
     if (g["data"]["locations"].size() == 2) {
       move_act += g["data"]["locations"][1]["id"].get<std::string>();
@@ -70,18 +75,11 @@ json process_move_act(json& g) {
       move_act += g["data"]["connections"][0]["connected_locations"][0].get<std::string>();
     }
   }
-  move_act += ",";
-  move_act += exited;
-  move_act += ",";
-  move_act += g["data"]["playername"].get<std::string>();
 
   move_act += ",";
-
   std::string mission_time = g["data"]["mission_timer"].get<std::string>();
           
-  auto min_sec = extractIntegerWords(mission_time);
-
-  int time = 900 - (min_sec.first*60 + min_sec.second);
+  int time = missionTime2secElapsed(mission_time);
 
   move_act += std::to_string(time);
 
@@ -93,6 +91,31 @@ json process_move_act(json& g) {
 
   k["task"] = move_act;
   return k;
+}
+
+json process_change_role_act(json& g) {
+  json k;
+  std::string act = "(!change_to_";
+
+  act += g["data"]["new_role"].get<std::string>();
+  act += ",";
+
+  act += g["data"]["playername"].get<std::string>();
+  act += ",";
+
+  std::string mission_time = g["data"]["mission_timer"].get<std::string>();
+          
+  int time = missionTime2secElapsed(mission_time);
+
+  act += std::to_string(time);
+
+
+  act += ",";
+  act += "0,";
+  k["task"] = act;
+
+  return k;
+
 }
 
 int main() {
@@ -108,6 +131,9 @@ int main() {
           g["data"].contains("exited_locations")) {
          j.push_back(process_move_act(g));
       }
+      if (g["msg"]["sub_type"] == "Event:RoleSelected") {
+        j.push_back(process_change_role_act(g));
+      } 
     }
   }
 
