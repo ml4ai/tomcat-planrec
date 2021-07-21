@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../util.h"
+#include "typedefs.h"
 #include "Node.h"
 #include "Tree.h"
 #include "printing.h"
