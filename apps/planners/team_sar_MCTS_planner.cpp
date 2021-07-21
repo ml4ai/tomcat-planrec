@@ -26,9 +26,12 @@ int main(int argc, char* argv[]) {
     }
 
     auto state1 = TeamSARState();
-    state1.agents.push_back("A1");
-    state1.agents.push_back("A2");
-    state1.agents.push_back("A3");
+    std::string agent1 = "A1";
+    std::string agent2 = "A2";
+    std::string agent3 = "A3";
+    state1.agents.push_back(agent1);
+    state1.agents.push_back(agent2);
+    state1.agents.push_back(agent3);
 
     std::string area1 = "R1";
     std::string area2 = "R2";
@@ -290,7 +293,7 @@ int main(int argc, char* argv[]) {
     auto selector = TeamSARSelector();
 
     Tasks tasks = {
-        {Task("SAR", Args({{"agent1", "A1"},{"agent2", "A2"},{"agent3","A3"}}))}};
+        {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}))}};
     auto pt = cpphopMCTS(state1, tasks, domain, selector,N,e);
 
     json j = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_trace_tree.json");
