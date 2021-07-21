@@ -20,7 +20,7 @@ bool in(Element element, std::vector<Element> v) {
     return std::count(v.begin(),v.end(), element);
 }
 
-//select_randomly taken from 
+//select_randomly taken from
 //https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
 template<typename Iter, typename RandomGenerator>
 Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
@@ -84,6 +84,11 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
 template <class T>
 bool equals(T x, T y) {
     return x.name == y.name;
+}
+
+template<class T>
+bool equals(std::vector<T> x, std::vector<T> y) {
+    return x == y;
 }
 
 // Generic equals function for symbols that are not of the same type

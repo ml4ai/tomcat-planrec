@@ -90,27 +90,8 @@ namespace parser {
 
 } // namespace parser
 
-parser::constant_type constant();
-parser::variable_type variable();
-parser::primitive_type_type primitive_type();
-parser::either_type_type either_type();
 parser::type_type type();
-
-parser::explicitly_typed_list_names_type explicitly_typed_list_names();
-parser::implicitly_typed_list_names_type implicitly_typed_list_names();
-parser::typed_list_names_type typed_list_names();
-
-parser::explicitly_typed_list_variables_type explicitly_typed_list_variables();
-parser::implicitly_typed_list_variables_type implicitly_typed_list_variables();
-parser::typed_list_variables_type typed_list_variables();
-
-parser::atomic_formula_skeleton_type atomic_formula_skeleton();
-parser::atomic_formula_terms_type atomic_formula_terms();
 parser::literal_terms_type literal_terms();
-
 parser::sentence_type sentence();
-parser::requirements_type requirements();
-
 parser::domain_type domain();
 parser::problem_type problem();
-parser::action_type action();

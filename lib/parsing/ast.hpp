@@ -9,11 +9,14 @@
 #include <boost/fusion/include/io.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
+#include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/variant/recursive_wrapper.hpp>
 #include <iostream>
 #include <string>
 #include <tuple>
 #include <unordered_set>
+
+// TODO Enforce optionality wherever appropriate, based on EBNF specification.
 
 namespace ast {
     using Name = std::string;
@@ -30,7 +33,12 @@ namespace ast {
 
     using EitherType = std::unordered_set<PrimitiveType>;
 
-    using Type = boost::variant<PrimitiveType, EitherType>;
+    // Whenever we don't have recursive variants, we use x3::variant instead of
+    // boost::variant, so we get a distinct type.
+    struct Type : x3::variant<PrimitiveType, EitherType> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
 
     template <class T> using ImplicitlyTypedList = std::vector<T>;
 
@@ -63,7 +71,16 @@ namespace ast {
     struct NotSentence;
     struct ImplySentence;
     struct QuantifiedSentence;
-    struct EqualsSentence;
+
+    struct EqualsSentence {
+        Term lhs;
+        Term rhs;
+    };
+
+    struct NotEqualsSentence : x3::position_tagged {
+        Term lhs;
+        Term rhs;
+    };
 
     using Sentence =
         boost::variant<Nil,
@@ -71,7 +88,8 @@ namespace ast {
                        boost::recursive_wrapper<ConnectedSentence>,
                        boost::recursive_wrapper<NotSentence>,
                        boost::recursive_wrapper<ImplySentence>,
-                       boost::recursive_wrapper<QuantifiedSentence>>;
+                       boost::recursive_wrapper<QuantifiedSentence>,
+                       EqualsSentence>;
 
     struct ConnectedSentence {
         std::string connector;
@@ -93,19 +111,15 @@ namespace ast {
         Sentence sentence;
     };
 
-    struct EqualsSentence : x3::position_tagged {
-        Term lhs;
-        Term rhs;
+    struct Constraint : x3::variant<Nil, EqualsSentence, NotEqualsSentence> {
+        using base_type::base_type;
+        using base_type::operator=;
     };
 
-    struct NotEqualsSentence : x3::position_tagged {
-        Term lhs;
-        Term rhs;
+    struct Constraints : x3::variant<Nil, Constraint, std::vector<Constraint>> {
+        using base_type::base_type;
+        using base_type::operator=;
     };
-
-    using Constraint = boost::variant<Nil, EqualsSentence, NotEqualsSentence>;
-    using Constraints =
-        boost::variant<Nil, Constraint, std::vector<Constraint>>;
 
     // Abstract Tasks
     struct Task : x3::position_tagged {
@@ -124,15 +138,25 @@ namespace ast {
         MTask subtask;
     };
 
-    using SubTask = boost::variant<MTask, SubTaskWithId>;
-    using SubTasks = boost::variant<Nil, SubTask, std::vector<SubTask>>;
+    struct SubTask : x3::variant<MTask, SubTaskWithId> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
+
+    struct SubTasks : x3::variant<Nil, SubTask, std::vector<SubTask>> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
 
     struct Ordering : x3::position_tagged {
         Name first;
         Name second;
     };
 
-    using Orderings = boost::variant<Nil, Ordering, std::vector<Ordering>>;
+    struct Orderings : x3::variant<Nil, Ordering, std::vector<Ordering>> {
+        using base_type::base_type;
+        using base_type::operator=;
+    };
 
     struct MethodSubTasks : x3::position_tagged {
         std::string ordering_kw;
@@ -155,12 +179,41 @@ namespace ast {
         TaskNetwork task_network;
     };
 
+    // Conditional effects
+    using PEffect = Literal<Term>;
+    using CondEffect = boost::variant<PEffect, std::vector<PEffect>>;
+
+    struct WhenCEffect;
+    struct ForallCEffect;
+    struct AndCEffect;
+
+    using CEffect = boost::variant<boost::recursive_wrapper<ForallCEffect>,
+                                   boost::recursive_wrapper<WhenCEffect>,
+                                   PEffect>;
+
+    using Effect =
+        boost::variant<Nil, boost::recursive_wrapper<AndCEffect>, CEffect>;
+
+    struct WhenCEffect : x3::position_tagged {
+        Sentence gd;
+        CondEffect cond_effect;
+    };
+
+    struct ForallCEffect : x3::position_tagged {
+        std::vector<Variable> variables;
+        Effect effect;
+    };
+
+    struct AndCEffect : x3::position_tagged {
+        std::vector<CEffect> c_effects;
+    };
+
     // Primitive Actions
     struct Action : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
         Sentence precondition;
-        Sentence effect;
+        Effect effect;
     };
 
     struct Domain : x3::position_tagged {
@@ -174,12 +227,21 @@ namespace ast {
         std::vector<Action> actions;
     };
 
+    struct ProblemHTN : x3::position_tagged {
+        std::string problem_class;
+        TypedList<Variable> parameters;
+        TaskNetwork task_network;
+    };
+
+    using Init = std::vector<Literal<Name>>;
+
     struct Problem : x3::position_tagged {
         Name name;
         Name domain_name;
         std::vector<std::string> requirements;
         TypedList<Name> objects;
-        Literal<Term> init;
+        ProblemHTN problem_htn;
+        Init init;
         Sentence goal;
     };
 

@@ -21,9 +21,13 @@ jobs:
     - uses: actions/checkout@v2
     - name: Continuous Integration
       run: |
-        sudo apt-get install libboost-all-dev nlohmann-json3-dev libgraphviz-dev
+        # We download Boost 1.76 separately since apt does not have the minimum
+        # version of Boost we require (as of July 20, 2021).
+        wget -q https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2 
+        tar -xjf boost_1_76_0.tar.bz2 
+        sudo apt-get install -y nlohmann-json3-dev graphviz libgraphviz-dev
         mkdir build
         cd build
-        cmake .. 
+        cmake .. -DBOOST_ROOT=$(pwd)/../boost_1_76_0
         make -j
         make test

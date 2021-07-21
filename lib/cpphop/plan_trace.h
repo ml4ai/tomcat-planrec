@@ -15,7 +15,7 @@ struct json_node {
 
 //All of these are specifically made for MCTS algorithm
 template<class State, class Selector> 
-json_node gptt(Tree<State,Selector> t, int v) {
+json_node gptt(Tree<State,Selector>& t, int v) {
   nlohmann::json j;
   
   if (t[v].successors.empty()) {
@@ -61,7 +61,7 @@ json_node gptt(Tree<State,Selector> t, int v) {
 
 template <class State, class Selector>
 nlohmann::json
-generate_plan_trace_tree(Tree<State, Selector> t,
+generate_plan_trace_tree(Tree<State, Selector>& t,
                          int v,
                          bool gen_file = false,
                          std::string outfile = "plan_trace_tree.json") {
@@ -75,7 +75,7 @@ generate_plan_trace_tree(Tree<State, Selector> t,
 }
 
 template<class State, class Selector>
-nlohmann::json gpt(Tree<State,Selector> t, int v, nlohmann::json j) {
+nlohmann::json gpt(Tree<State,Selector>& t, int v, nlohmann::json j) {
   int w = t[v].successors.back();
   if (t[w].tasks.size() < t[v].tasks.size()) {
     nlohmann::json g;
@@ -96,7 +96,7 @@ nlohmann::json gpt(Tree<State,Selector> t, int v, nlohmann::json j) {
 }
 
 template <class State, class Selector>
-nlohmann::json generate_plan_trace(Tree<State, Selector> t,
+nlohmann::json generate_plan_trace(Tree<State, Selector>& t,
                                    int v,
                                    bool gen_file = false,
                                    std::string outfile = "plan_trace.json") {
