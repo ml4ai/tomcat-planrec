@@ -306,7 +306,7 @@ namespace ast {
             return rs;
         }
         // can't be constant
-        Sentence operator()(QuantifiedSentence s) const {
+        Sentence operator()(QuantifiedSentence& s) const {
             std::unordered_map<Variable, Symbol, Hash<Variable>> localSubst;
             std::vector<Variable> replVariables;
 
