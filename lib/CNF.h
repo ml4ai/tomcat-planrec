@@ -9,6 +9,7 @@
 #include <typeinfo>
 #include <unordered_map>
 #include <utility>
+#include <boost/throw_exception.hpp>
 
 namespace ast {
     bool vector_contains_variable(std::vector<Variable> v, Variable x) {
@@ -61,6 +62,9 @@ namespace ast {
         }
         std::string operator()(QuantifiedSentence s) const {
             return "QuantifiedSentence";
+        }
+        std::string operator()(EqualsSentence s) const {
+            return "EqualsSentence";
         }
     };
 
@@ -120,6 +124,9 @@ namespace ast {
                                   visit<ImplicationsOut>((Sentence)s.sentence)};
             return rs;
         }
+        Sentence operator()(EqualsSentence s) const {
+            BOOST_THROW_EXCEPTION(std::runtime_error("EqualsSentence handling not yet implemented!"));
+        }
 
         template <class T> Sentence operator()(T s) const { return s; }
     };
@@ -175,6 +182,7 @@ namespace ast {
                                       s.variables,
                                       visit<NegationsIn>((Sentence)s.sentence)};
         }
+
         template <class T> Sentence operator()(T s) const { return s; }
     };
 
@@ -249,6 +257,9 @@ namespace ast {
             rs.sentence = quantifiedAfterSubs;
 
             return rs;
+        }
+        Sentence operator()(EqualsSentence s) const {
+            BOOST_THROW_EXCEPTION(std::runtime_error("EqualsSentence handling not yet implemented!"));
         }
 
         template <class T> Sentence operator()(T s) const { return s; }
@@ -394,6 +405,7 @@ namespace ast {
         Sentence operator()(NotSentence s) const { return s; }
         Sentence operator()(ImplySentence s) const { return s; }
         Sentence operator()(QuantifiedSentence s) const { return s; }
+        Sentence operator()(EqualsSentence s) const { return s; }
     };
 
     struct DistributeOrOverAnd : public boost::static_visitor<Sentence> {
@@ -495,6 +507,11 @@ namespace ast {
             BOOST_THROW_EXCEPTION(std::runtime_error(
                 "All quantified sentences should already have been removed."));
         }
+        void operator()(EqualsSentence& s) {
+            BOOST_THROW_EXCEPTION(std::runtime_error(
+                "EqualsSentence handling not yet implemented!"));
+        }
+
     };
 
     CNF construct(Sentence orDistributedOverAnd) {

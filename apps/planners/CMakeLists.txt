@@ -6,7 +6,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 #This adds debugger symbols for lldb during compilation when uncommented. 
 #set(CMAKE_CXX_FLAGS "-glldb")
 
-find_package(Boost COMPONENTS graph REQUIRED)
+find_package(Boost REQUIRED)
 find_package(Graphviz)
 find_package(nlohmann_json REQUIRED)
 
