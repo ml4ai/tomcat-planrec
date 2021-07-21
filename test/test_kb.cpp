@@ -57,12 +57,12 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     BOOST_TEST(get<Constant>(test_kb.facts.at(0).args.at(0)).name==get<Constant>(lit1.args.at(0)).name);
 
     // now let's test adding a sentence to the knowledge base (this will implicitly test the cnf conversion too)
-    auto e1 = parse<Sentence>("(or (and (P A) (P B)) (not (P C)))", sentence()); // This should output (P(A) or not P(C)) & (P(B) or not P(C)) in CNF I think
+    auto e1 = parse<Sentence>("(or (and (A) (B)) (not (C)))", sentence()); // This should output (P(A) or not P(C)) & (P(B) or not P(C)) in CNF I think
     tell(test_kb, e1);
 
     // checked the clause convsertions at https://www.erpelstolz.at/gateway/formular-uk-zentral.html
     BOOST_TEST(test_kb.clauses.size()==2); // should have 2 clauses after converstion to CNF I think
-    BOOST_TEST(test_kb.clauses.at(0).literals.size()==1); // this clause should be 2 literals, so something in the convertion I think went wrong.
+    BOOST_TEST(test_kb.clauses.at(0).literals.size()==2); // this clause should be 2 literals, so something in the convertion I think went wrong.
     BOOST_TEST(test_kb.clauses.at(1).literals.size()==2); // this clause has 2 literals
 
     // Smokescreen test
