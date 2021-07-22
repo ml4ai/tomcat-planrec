@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     C.name = "C";
     D.name = "D";
     E.name = "E";
-    lit1.predicate="P";
+    lit1.predicate="H";
     lit1.args.push_back(A);
     lit2.predicate="P";
     lit2.args.push_back(B);

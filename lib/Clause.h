@@ -3,6 +3,7 @@
 #include <vector>
 #include "unification.h"
 #include "parsing/ast.hpp"
+#include <iostream>
 
 struct Clause {
     std::vector<ast::Literal<ast::Term>> literals;
@@ -15,7 +16,6 @@ struct Clause {
         lits neg_lits_rhs;
         lits pos_lits_lhs;
         lits neg_lits_lhs;
-
         // create the list of positive and negative literals for each clause
         for (ast::Literal<ast::Term> l1 : rhs.literals ) {
             if(l1.is_negative) {
@@ -82,6 +82,9 @@ struct Clause {
                     if (i!=j) {
                         if (resolvant_lits.at(i)==resolvant_lits.at(j)) {
                             resolvant_lits.erase(resolvant_lits.begin()+j);
+                            i=0;
+                            j=0;
+                            break; // makes the duplicate removal rerun with the new sizes, so we don;t index out of bounds
                         }
                     }
                 }
@@ -89,7 +92,6 @@ struct Clause {
             // now to construct the resolvant clause
             resolvant.literals.insert(resolvant.literals.end(), resolvant_lits.begin(), resolvant_lits.end());
         }
-
         return resolvant;
     }
 };
