@@ -43,17 +43,6 @@ using Input = boost::variant<Variable,
 
 using Substitution = std::unordered_map<Variable, Input, Hash<Variable>>;
 
-struct EqualityChecker : public boost::static_visitor<bool> {
-    template <typename T, typename U>
-    bool operator()(const T& lhs, const U& rhs) const {
-        return false;
-    }
-
-    template <typename T> bool operator()(const T& lhs, const T& rhs) const {
-        return lhs == rhs;
-    }
-};
-
 struct GetType : public boost::static_visitor<std::string> {
     std::string operator()(const Variable& x) const { return "Variable"; }
     std::string operator()(const Constant& x) const { return "Constant"; }
@@ -69,33 +58,64 @@ struct GetType : public boost::static_visitor<std::string> {
     }
 };
 
-template<class T>
-std::string type(T x) {
-    return boost::apply_visitor(GetType(), x); 
+template <class T> std::string type(T x) {
+    return boost::apply_visitor(GetType(), x);
 }
+
+struct EqualityChecker : public boost::static_visitor<bool> {
+    template <typename T, typename U>
+    bool operator()(const T& lhs, const U& rhs) const {
+        return false;
+    }
+    template <typename T> bool operator()(const T& lhs, const T& rhs) const {
+        return lhs == rhs;
+    }
+    //bool operator()(const Term& lhs, const Term& rhs) const {
+        //return boost::apply_visitor(EqualityChecker(), lhs, rhs);
+    //}
+};
+
 std::optional<Substitution>
 unify_var(Variable v, Input i, std::optional<Substitution>& s);
 
 std::optional<Substitution>
+unify(Input x, Input y, std::optional<Substitution> theta);
+
+struct TermUnifier : public boost::static_visitor<> {
+    std::optional<Substitution> theta;
+
+    TermUnifier(std::optional<Substitution> theta) : theta(theta) {}
+
+    template<class T, class U>
+    void operator()(const T& lhs, const U& rhs) {
+        this->theta = unify(lhs, rhs, this->theta);
+    }
+};
+
+std::optional<Substitution>
 unify(Input x, Input y, std::optional<Substitution> theta) {
     using boost::get;
-    std::cout << "x: " << x << " type: " << type(x) << std::endl;
-    std::cout << "y: " << y << " type: " << type(y) << std::endl;
+    //std::cout << "x: " << x << " type: " << type(x) << std::endl;
+    //std::cout << "y: " << y << " type: " << type(y) << std::endl;
 
     if (theta == nullopt) {
-        BOOST_LOG_TRIVIAL(debug) << "θ = failure";
         return nullopt;
     }
     else if (boost::apply_visitor(EqualityChecker(), x, y)) {
         return theta;
     }
+    else if (type(x) == type(y) && type(x) =="Term") {
+        auto visitor = TermUnifier(theta);
+        boost::apply_visitor(visitor, get<Term>(x), get<Term>(y));
+        return visitor.theta;
+    }
     else if (type(x) == "Variable") {
-        BOOST_LOG_TRIVIAL(debug) << "x is a variable";
         return unify_var(get<Variable>(x), y, theta);
     }
-    else if (type(y)== "Variable") {
+    else if (type(y) == "Variable") {
         return unify_var(get<Variable>(y), x, theta);
     }
+
     else if (x.type() == typeid(Literal<Term>) &&
              y.type() == typeid(Literal<Term>)) {
         auto x_lit = get<Literal<Term>>(x);
@@ -116,8 +136,6 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
         auto x_vec = get<vector<Term>>(x);
         auto y_vec = get<vector<Term>>(y);
 
-        BOOST_LOG_TRIVIAL(debug) << "x_vec: " << x_vec;
-        BOOST_LOG_TRIVIAL(debug) << "y_vec: " << y_vec;
         // If the size of the vectors is not the same, return failure.
         if (x_vec.size() != y_vec.size()) {
             return std::nullopt;
@@ -129,8 +147,6 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
         else {
             auto x_rest = vector<Term>();
             auto y_rest = vector<Term>();
-            BOOST_LOG_TRIVIAL(debug) << "x_rest: " << x_rest;
-            BOOST_LOG_TRIVIAL(debug) << "y_rest: " << y_rest;
             for (int i = 1; i < x_vec.size(); i++) {
                 x_rest.push_back(x_vec.at(i));
             }
@@ -142,8 +158,6 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
         }
     }
     else {
-        BOOST_LOG_TRIVIAL(debug)
-            << "None of the unification conditions were met, returning failure";
         return nullopt;
     }
 }
@@ -165,7 +179,6 @@ unify_var(Variable var, Input x, std::optional<Substitution>& theta) {
         return unify(var, val, theta);
     }
     else {
-        BOOST_LOG_TRIVIAL(debug) << "Adding key " << var.name << " to θ";
         theta.value().insert_or_assign(var, x);
         return theta;
     }

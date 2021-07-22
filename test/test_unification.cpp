@@ -45,24 +45,21 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     auto v2 = Variable{"v2"};
 
     // Test unifying constants
-    //auto subst = unify(c1, c2);
-    //BOOST_TEST(!subst);
+    auto subst = unify(c1, c2);
+    BOOST_TEST(!subst);
 
     // Test unifying a variable and a constant
-    auto subst = unify(v1, c2);
+    subst = unify(v1, c2);
     BOOST_TEST(get<Constant>(subst.value().at(v1)) == c2);
 
     // Test unifying variables
-    //subst = unify(v1, v2);
+    subst = unify(v1, v2);
     //BOOST_TEST(get<Variable>(subst.value().at(v1)) == v2);
 
     auto lit1 = parse<Literal<Term>>("(knows a ?x)", literal_terms());
     auto lit2 = parse<Literal<Term>>("(knows a b)", literal_terms());
 
-    cout << "FLAG" << endl;
     subst = unify(lit1, lit2);
-    //boost::apply_visitor(TypePrinter(), subst.value()[Variable{"y"}]);
-    //BOOST_LOG_TRIVIAL(debug) << "varname" << get<Variable>(subst.value()[Variable{"y"}]).name;
     BOOST_TEST(boost::apply_visitor(EqualityChecker(), subst.value().at(Variable{"x"}), (Input)Constant{"b"}));
     
     /* --------- List of Test cases for unification -----------
