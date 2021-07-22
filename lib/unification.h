@@ -14,25 +14,6 @@
 using namespace fol;
 using namespace std;
 
-template <typename T> constexpr auto type_name() noexcept {
-    std::string_view name = "Error: unsupported compiler", prefix, suffix;
-#ifdef __clang__
-    name = __PRETTY_FUNCTION__;
-    prefix = "auto type_name() [T = ";
-    suffix = "]";
-#elif defined(__GNUC__)
-    name = __PRETTY_FUNCTION__;
-    prefix = "constexpr auto type_name() [with T = ";
-    suffix = "]";
-#elif defined(_MSC_VER)
-    name = __FUNCSIG__;
-    prefix = "auto __cdecl type_name<";
-    suffix = ">(void) noexcept";
-#endif
-    name.remove_prefix(prefix.size());
-    name.remove_suffix(suffix.size());
-    return name;
-}
 using Input = boost::variant<Variable,
                              Constant,
                              Function,
@@ -47,7 +28,6 @@ struct GetType : public boost::static_visitor<std::string> {
     std::string operator()(const Variable& x) const { return "Variable"; }
     std::string operator()(const Constant& x) const { return "Constant"; }
     std::string operator()(const Function& x) const { return "Function"; }
-
     std::string operator()(const Term& x) const { return "Term"; }
     std::string operator()(const Predicate& x) const { return "Predicate"; }
     std::string operator()(const vector<Term>& x) const {
@@ -70,8 +50,8 @@ struct EqualityChecker : public boost::static_visitor<bool> {
     template <typename T> bool operator()(const T& lhs, const T& rhs) const {
         return lhs == rhs;
     }
-    //bool operator()(const Term& lhs, const Term& rhs) const {
-        //return boost::apply_visitor(EqualityChecker(), lhs, rhs);
+    // bool operator()(const Term& lhs, const Term& rhs) const {
+    // return boost::apply_visitor(EqualityChecker(), lhs, rhs);
     //}
 };
 
@@ -86,8 +66,7 @@ struct TermUnifier : public boost::static_visitor<> {
 
     TermUnifier(std::optional<Substitution> theta) : theta(theta) {}
 
-    template<class T, class U>
-    void operator()(const T& lhs, const U& rhs) {
+    template <class T, class U> void operator()(const T& lhs, const U& rhs) {
         this->theta = unify(lhs, rhs, this->theta);
     }
 };
@@ -95,8 +74,8 @@ struct TermUnifier : public boost::static_visitor<> {
 std::optional<Substitution>
 unify(Input x, Input y, std::optional<Substitution> theta) {
     using boost::get;
-    //std::cout << "x: " << x << " type: " << type(x) << std::endl;
-    //std::cout << "y: " << y << " type: " << type(y) << std::endl;
+    // std::cout << "x: " << x << " type: " << type(x) << std::endl;
+    // std::cout << "y: " << y << " type: " << type(y) << std::endl;
 
     if (theta == nullopt) {
         return nullopt;
@@ -104,7 +83,7 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
     else if (boost::apply_visitor(EqualityChecker(), x, y)) {
         return theta;
     }
-    else if (type(x) == type(y) && type(x) =="Term") {
+    else if (type(x) == type(y) && type(x) == "Term") {
         auto visitor = TermUnifier(theta);
         boost::apply_visitor(visitor, get<Term>(x), get<Term>(y));
         return visitor.theta;
