@@ -24,6 +24,10 @@ std::string name(Term term) {
     return boost::apply_visitor([](const auto& t) { return t.name; }, term);
 }
 
+template <class T> bool equals(std::vector<T> x, std::vector<T> y) {
+    return x == y;
+}
+
 // String variable that we will use to store inputs (make sure the tests in
 // this module are not run in parallel!)
 string storage;
@@ -291,7 +295,8 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(effect1_af.predicate == "tAt");
     BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "loc1");
 
-    auto effect1_af2_literal = boost::get<Literal<Term>>(effect1_s.c_effects[1]);
+    auto effect1_af2_literal =
+        boost::get<Literal<Term>>(effect1_s.c_effects[1]);
     BOOST_TEST(effect1_af2_literal.predicate == "tAt");
     BOOST_TEST(name(effect1_af2_literal.args[0]) == "loc2");
 }
@@ -328,7 +333,8 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     // Test objects
     BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 2);
 
-    BOOST_TEST(equals(prob.objects.explicitly_typed_lists[0].entries, {"factory", "house"}));
+    BOOST_TEST(equals(prob.objects.explicitly_typed_lists[0].entries,
+                      {"factory", "house"}));
     BOOST_TEST(boost::get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[0].type) == "site");
     BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
@@ -340,5 +346,6 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
 
     // Test initial state
     BOOST_TEST(boost::get<Init>(prob.init)[0].predicate == "on-site");
-    BOOST_TEST(equals(boost::get<Init>(prob.init)[0].args,{"adobe", "factory"}));
+    BOOST_TEST(
+        equals(boost::get<Init>(prob.init)[0].args, {"adobe", "factory"}));
 }

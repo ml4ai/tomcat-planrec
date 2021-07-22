@@ -147,32 +147,8 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
     }
 }
 
-//struct OccurChecker : public boost::static_visitor<bool> {
-    //Substitution theta;
-    //Variable var;
-
-    //OccurChecker(Substitution theta, Variable var) : theta(theta), var(var) {}
-
-    //bool operator()(Variable x) {
-        //return visit<EqualityChecker>(static_cast<Input>(this->var), x);
-    //}
-    //bool operator()(Function x) {
-        //for (Term term : tail(x)) {
-            //if (boost::apply_visitor(OccurChecker(this->theta, this->var), x)) {
-                //return true;
-            //}
-        //}
-    //}
-    //bool operator()(Literal<Term> x) {
-        //for (Term term : tail(x)) {
-            //if (boost::apply_visitor(OccurChecker(this->theta, this->var), x)) {
-                //return true;
-            //}
-        //}
-    //}
-//};
-
 bool occur_check(Substitution theta, Variable var, Input x) {
+    // TODO - Implement this!
     if (visit<EqualityChecker>(static_cast<Input>(var), x)) {
         return true;
     }
@@ -214,9 +190,12 @@ unify_var(Variable var, Input x, std::optional<Substitution>& theta) {
         auto val = theta.value().at(x_var);
         return unify(var, val, theta);
     }
+    // NOTE occur check function has not been implemented fully! 
+    else if (occur_check(theta.value(), var, x)){
+        return nullopt;
+    }
     else {
         theta.value().insert_or_assign(var, x);
         return theta;
     }
-    // TODO implement occur check
 }

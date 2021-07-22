@@ -14,13 +14,6 @@
 #include <boost/throw_exception.hpp>
 #include<string>
 
-// Custom hash
-template <class T> struct Hash {
-    std::size_t operator()(T const& x) const noexcept {
-        return std::hash<std::string>{}(x.name);
-    }
-};
-
 namespace ast {
     bool vector_contains_variable(std::vector<Variable> v, Variable x) {
         for (auto& i : v) {
