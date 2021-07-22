@@ -414,7 +414,7 @@ template <class State> std::optional<State> change_to_Hazardous_Material_Special
   }
 }
 
-template <class State> double change_to_(State pre_state, State post_state, Args args) {
+template <class State> double change_to_Hazardous_Material_Specialist(State pre_state, State post_state, Args args) {
     return 1;
 }
 
