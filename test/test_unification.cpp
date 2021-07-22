@@ -53,7 +53,8 @@ BOOST_AUTO_TEST_CASE(test_unification) {
 
     // Test unifying variables
     subst = unify(v1, v2);
-    // BOOST_TEST(get<Variable>(subst.value().at(v1)) == v2);
+    BOOST_TEST(apply_visitor(EqualityChecker(), subst.value().at(v1), static_cast<Input>(v2)));
+    //BOOST_TEST(get<Variable>(subst.value().at(v1)) == v2);
 
     auto lit1 = parse<Literal<Term>>("(Knows John ?x)", literal_terms());
 
@@ -75,6 +76,12 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     auto lit4 = parse<Literal<Term>>("(Knows ?x Elizabeth)", literal_terms());
     subst = unify(lit1, lit4);
     BOOST_TEST(!subst);
+
+    // Test occur check
+    BOOST_TEST(occur_check(Substitution(), v1, v1));
+    BOOST_TEST(!occur_check(Substitution(), v1, v2));
+    BOOST_TEST(occur_check(Substitution(), Variable{"x"}, lit4));
+
 
     /* --------- List of Test cases for unification -----------
     Variables: v1, v2
@@ -130,13 +137,13 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     // get<Constant>(get<sub_list_type>(answer)["v1"]).name);
 
     //// lets now up the number of arguments, first an extra constant that is
-    ///already unified
+    /// already unified
     // C3.name = "C3";
     // T3 = C3;
     // L1.args.push_back(T3);
     // L2.args.push_back(T3);
     //// clear previous substitution list, answer is the same, no need to clear
-    ///it
+    /// it
     // get<sub_list_type>(test).clear();
     //// test unification of T(v1, C3) and T(C2, C3), v1->C2
     // test = unify(L1, L2, test);
@@ -159,7 +166,7 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     // get<Constant>(get<sub_list_type>(answer)["v2"]).name);
 
     //// Next let's test if there is a variable in the other literals if the
-    ///substitution works
+    /// substitution works
 
     // L1.args.clear();
     // L1.args.push_back(T2);
@@ -206,7 +213,7 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     // get<Function>(get<sub_list_type>(answer)["v1"]).name);
 
     //// last test is a 2 predcicate deep literal with multiple arguments and
-    ///multiple variables
+    /// multiple variables
 
     // F3.name = "E1";
     // F3.args.push_back(T5);
@@ -215,9 +222,9 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     // F4.args.push_back(T6);
     // T8 = F4;
     //// should have a form like this: T( E1(F1(v1)), C3) and T( E1(F1(C2)),
-    ///v2), this should give v1->C2 and v2->C3 (no need to change answer again)
+    /// v2), this should give v1->C2 and v2->C3 (no need to change answer again)
     //// fails the test if the nested predicate is first, implies bug in
-    ///recursion.
+    /// recursion.
     // L1.args.clear();
     // L1.args.push_back(T7);
     // L1.args.push_back(T3);
@@ -237,7 +244,7 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     // get<Constant>(get<sub_list_type>(answer)["v2"]).name);
 
     //// now to run some tests using the PDDl parser to show how it works and
-    ///then test it out on our algorithm
+    /// then test it out on our algorithm
     // auto s1 = parse<Sentence>("(predicate con_1 ?var_1)", sentence());
     // Literal<Term> lit1 = get<Literal<Term>>(s1);
     // BOOST_TEST(lit1.predicate == "predicate");

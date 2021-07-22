@@ -50,6 +50,9 @@ struct EqualityChecker : public boost::static_visitor<bool> {
     template <typename T> bool operator()(const T& lhs, const T& rhs) const {
         return lhs == rhs;
     }
+    template <class T> bool operator()(const Input& lhs, const T& rhs) const {
+        return apply_visitor(*this, lhs, static_cast<Input>(rhs));
+    }
 };
 
 std::optional<Substitution>
@@ -136,6 +139,17 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
     else {
         return nullopt;
     }
+}
+
+bool occur_check(Substitution theta, Variable var, Input x) {
+    if (boost::apply_visitor(EqualityChecker(), static_cast<Input>(var), x)) {
+        return true;
+    }
+    else if (x.type() == typeid(Variable) &&
+             theta.contains(get<Variable>(x))) {
+        return occur_check(theta, var, theta.at(get<Variable>(x)));
+    }
+    return false;
 }
 
 std::optional<Substitution> unify(Input x, Input y) {
