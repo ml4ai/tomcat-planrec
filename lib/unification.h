@@ -50,9 +50,6 @@ struct EqualityChecker : public boost::static_visitor<bool> {
     template <typename T> bool operator()(const T& lhs, const T& rhs) const {
         return lhs == rhs;
     }
-    // bool operator()(const Term& lhs, const Term& rhs) const {
-    // return boost::apply_visitor(EqualityChecker(), lhs, rhs);
-    //}
 };
 
 std::optional<Substitution>
