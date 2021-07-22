@@ -111,7 +111,7 @@ json process_change_role_act(json& g) {
 
 
   act += ",";
-  act += "0,";
+  act += "0,)";
   k["task"] = act;
 
   return k;
