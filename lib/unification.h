@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Hash.h"
+#include "util/boost_variant_helpers.h"
 #include <boost/log/trivial.hpp>
 #include <boost/variant.hpp>
 #include <fol/Constant.h>
@@ -13,6 +14,22 @@
 
 using namespace fol;
 using namespace std;
+
+string head(Literal<Term> x) { return x.predicate; }
+
+string head(Function x) { return x.name; }
+
+template <class T> T head(vector<T> vec) { return vec.at(0); }
+
+template <class T> vector<Term> tail(T expr) { return expr.args; }
+
+template <class T> vector<T> tail(vector<T> vec) {
+    vector<T> rest = {};
+    for (int i = 1; i < vec.size(); i++) {
+        rest.push_back(vec.at(i));
+    }
+    return rest;
+}
 
 using Input = boost::variant<Variable,
                              Constant,
@@ -37,10 +54,6 @@ struct GetType : public boost::static_visitor<std::string> {
         return "Literal<Term>";
     }
 };
-
-template <class T> std::string type(T x) {
-    return boost::apply_visitor(GetType(), x);
-}
 
 struct EqualityChecker : public boost::static_visitor<bool> {
     template <typename T, typename U>
@@ -71,43 +84,43 @@ struct TermUnifier : public boost::static_visitor<> {
     }
 };
 
+template <class T, class U> auto unify_compound_expr(T x, T y, U theta) {
+    return unify(tail(x), tail(y), unify(head(x), head(y), theta));
+}
+
 std::optional<Substitution>
 unify(Input x, Input y, std::optional<Substitution> theta) {
     using boost::get;
-    // std::cout << "x: " << x << " type: " << type(x) << std::endl;
-    // std::cout << "y: " << y << " type: " << type(y) << std::endl;
 
     if (theta == nullopt) {
         return nullopt;
     }
-    else if (boost::apply_visitor(EqualityChecker(), x, y)) {
+    else if (visit<EqualityChecker>(x, y)) {
         return theta;
     }
-    else if (type(x) == type(y) && type(x) == "Term") {
+    else if (visit<GetType>(x) == visit<GetType>(y) &&
+             visit<GetType>(x) == "Term") {
         auto visitor = TermUnifier(theta);
         boost::apply_visitor(visitor, get<Term>(x), get<Term>(y));
         return visitor.theta;
     }
-    else if (type(x) == "Variable") {
+    else if (visit<GetType>(x) == "Variable") {
         return unify_var(get<Variable>(x), y, theta);
     }
-    else if (type(y) == "Variable") {
+    else if (visit<GetType>(y) == "Variable") {
         return unify_var(get<Variable>(y), x, theta);
     }
 
     else if (x.type() == typeid(Literal<Term>) &&
              y.type() == typeid(Literal<Term>)) {
-        auto x_lit = get<Literal<Term>>(x);
-        auto y_lit = get<Literal<Term>>(y);
-        return unify(x_lit.args,
-                     y_lit.args,
-                     unify(x_lit.predicate, y_lit.predicate, theta));
+        auto x_expr = get<Literal<Term>>(x);
+        auto y_expr = get<Literal<Term>>(y);
+        return unify_compound_expr(x_expr, y_expr, theta);
     }
     else if (x.type() == typeid(Function) && y.type() == typeid(Function)) {
-        auto x_func = get<Function>(x);
-        auto y_func = get<Function>(y);
-        return unify(
-            x_func.args, y_func.args, unify(x_func.name, y_func.name, theta));
+        auto x_expr = get<Function>(x);
+        auto y_expr = get<Function>(y);
+        return unify_compound_expr(x_expr, y_expr, theta);
     }
 
     else if (x.type() == typeid(vector<Term>) &&
@@ -121,19 +134,12 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
         }
 
         if (x_vec.size() == 1) {
-            return unify(x_vec.at(0), y_vec.at(0), theta);
+            return unify(head(x_vec), head(y_vec), theta);
         }
         else {
-            auto x_rest = vector<Term>();
-            auto y_rest = vector<Term>();
-            for (int i = 1; i < x_vec.size(); i++) {
-                x_rest.push_back(x_vec.at(i));
-            }
-            for (int i = 1; i < y_vec.size(); i++) {
-                y_rest.push_back(y_vec.at(i));
-            }
-            return unify(
-                x_rest, y_rest, unify(x_vec.at(0), y_vec.at(0), theta));
+            return unify(tail(x_vec),
+                         tail(y_vec),
+                         unify(head(x_vec), head(y_vec), theta));
         }
     }
     else {
@@ -141,15 +147,55 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
     }
 }
 
+//struct OccurChecker : public boost::static_visitor<bool> {
+    //Substitution theta;
+    //Variable var;
+
+    //OccurChecker(Substitution theta, Variable var) : theta(theta), var(var) {}
+
+    //bool operator()(Variable x) {
+        //return visit<EqualityChecker>(static_cast<Input>(this->var), x);
+    //}
+    //bool operator()(Function x) {
+        //for (Term term : tail(x)) {
+            //if (boost::apply_visitor(OccurChecker(this->theta, this->var), x)) {
+                //return true;
+            //}
+        //}
+    //}
+    //bool operator()(Literal<Term> x) {
+        //for (Term term : tail(x)) {
+            //if (boost::apply_visitor(OccurChecker(this->theta, this->var), x)) {
+                //return true;
+            //}
+        //}
+    //}
+//};
+
 bool occur_check(Substitution theta, Variable var, Input x) {
-    if (boost::apply_visitor(EqualityChecker(), static_cast<Input>(var), x)) {
+    if (visit<EqualityChecker>(static_cast<Input>(var), x)) {
         return true;
     }
-    else if (x.type() == typeid(Variable) &&
-             theta.contains(get<Variable>(x))) {
+    else if (x.type() == typeid(Variable) && theta.contains(get<Variable>(x))) {
         return occur_check(theta, var, theta.at(get<Variable>(x)));
     }
-    return false;
+    else if (x.type() == typeid(Function)) {
+        for (Term term : get<Function>(x).args) {
+            if (occur_check(theta, var, term)) {
+                return true;
+            }
+        }
+    }
+    else if (x.type() == typeid(Literal<Term>)) {
+        for (Term term : get<Literal<Term>>(x).args) {
+            if (occur_check(theta, var, term)) {
+                return true;
+            }
+        }
+    }
+    else {
+        return false;
+    }
 }
 
 std::optional<Substitution> unify(Input x, Input y) {

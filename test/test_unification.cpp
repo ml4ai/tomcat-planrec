@@ -28,11 +28,7 @@ namespace x3 = boost::spirit::x3;
 using namespace std;
 using namespace fol;
 using namespace ast;
-using boost::apply_visitor;
 using boost::get;
-//
-// Generic equals function for symbols
-bool equals(Input x, Input y) { return apply_visitor(EqualityChecker(), x, y); }
 
 BOOST_AUTO_TEST_CASE(test_unification) {
     // Constants
@@ -53,25 +49,23 @@ BOOST_AUTO_TEST_CASE(test_unification) {
 
     // Test unifying variables
     subst = unify(v1, v2);
-    BOOST_TEST(apply_visitor(EqualityChecker(), subst.value().at(v1), static_cast<Input>(v2)));
-    //BOOST_TEST(get<Variable>(subst.value().at(v1)) == v2);
+    BOOST_TEST(
+        visit<EqualityChecker>(subst.value().at(v1), static_cast<Input>(v2)));
+    // BOOST_TEST(get<Variable>(subst.value().at(v1)) == v2);
 
     auto lit1 = parse<Literal<Term>>("(Knows John ?x)", literal_terms());
 
     auto lit2 = parse<Literal<Term>>("(Knows John Jane)", literal_terms());
     subst = unify(lit1, lit2);
-    BOOST_TEST(apply_visitor(EqualityChecker(),
-                             subst.value().at(Variable{"x"}),
-                             static_cast<Input>(Constant{"Jane"})));
+    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"x"}),
+                                      static_cast<Input>(Constant{"Jane"})));
 
     auto lit3 = parse<Literal<Term>>("(Knows ?y Bill)", literal_terms());
     subst = unify(lit1, lit3);
-    BOOST_TEST(apply_visitor(EqualityChecker(),
-                             subst.value().at(Variable{"x"}),
-                             static_cast<Input>(Constant{"Bill"})));
-    BOOST_TEST(apply_visitor(EqualityChecker(),
-                             subst.value().at(Variable{"y"}),
-                             static_cast<Input>(Constant{"John"})));
+    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"x"}),
+                                      static_cast<Input>(Constant{"Bill"})));
+    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"y"}),
+                                      static_cast<Input>(Constant{"John"})));
 
     auto lit4 = parse<Literal<Term>>("(Knows ?x Elizabeth)", literal_terms());
     subst = unify(lit1, lit4);
@@ -81,7 +75,6 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     BOOST_TEST(occur_check(Substitution(), v1, v1));
     BOOST_TEST(!occur_check(Substitution(), v1, v2));
     BOOST_TEST(occur_check(Substitution(), Variable{"x"}, lit4));
-
 
     /* --------- List of Test cases for unification -----------
     Variables: v1, v2

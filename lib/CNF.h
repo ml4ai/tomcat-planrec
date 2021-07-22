@@ -4,6 +4,7 @@
 #include "Clause.h"
 #include "boost/variant.hpp"
 #include "fol/Function.h"
+#include "util/boost_variant_helpers.h"
 #include "parsing/ast.hpp"
 #include <iostream>
 #include <map>
@@ -40,9 +41,6 @@ namespace ast {
         return false;
     }
 
-    template <class Visitor, class T> auto visit(T x) {
-        return boost::apply_visitor(Visitor(), x);
-    }
 
     template <class Visitor>
     std::vector<Sentence> visit(std::vector<Sentence> sentences) {
