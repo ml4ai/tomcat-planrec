@@ -29,18 +29,42 @@ using namespace std;
 using namespace fol;
 using namespace ast;
 using boost::get;
+//
+// Generic equals function for symbols
+bool equals(Input x, Input y) {
+    return boost::apply_visitor(EqualityChecker(), x, y);
+}
 
 BOOST_AUTO_TEST_CASE(test_unification) {
+    // Constants
     auto c1 = Constant{"c1"};
     auto c2 = Constant{"c2"};
+
+    // Variables
     auto v1 = Variable{"v1"};
+    auto v2 = Variable{"v2"};
 
-    auto subst = unify(c1, c2);
-    BOOST_TEST(!subst);
+    // Test unifying constants
+    //auto subst = unify(c1, c2);
+    //BOOST_TEST(!subst);
 
-    subst = unify(v1, c1);
-    BOOST_TEST(get<Constant>(subst.value()[v1]) == c1);
+    // Test unifying a variable and a constant
+    auto subst = unify(v1, c2);
+    BOOST_TEST(get<Constant>(subst.value().at(v1)) == c2);
 
+    // Test unifying variables
+    //subst = unify(v1, v2);
+    //BOOST_TEST(get<Variable>(subst.value().at(v1)) == v2);
+
+    auto lit1 = parse<Literal<Term>>("(knows a ?x)", literal_terms());
+    auto lit2 = parse<Literal<Term>>("(knows a b)", literal_terms());
+
+    cout << "FLAG" << endl;
+    subst = unify(lit1, lit2);
+    //boost::apply_visitor(TypePrinter(), subst.value()[Variable{"y"}]);
+    //BOOST_LOG_TRIVIAL(debug) << "varname" << get<Variable>(subst.value()[Variable{"y"}]).name;
+    BOOST_TEST(boost::apply_visitor(EqualityChecker(), subst.value().at(Variable{"x"}), (Input)Constant{"b"}));
+    
     /* --------- List of Test cases for unification -----------
     Variables: v1, v2
     Constants: C2, C3
@@ -60,9 +84,7 @@ BOOST_AUTO_TEST_CASE(test_unification) {
         9.3 different nested predicates
     */
 
-    // BOOST_TEST(true);
     // setup some definitions
-    //typedef unordered_map<string, Term> sub_list_type;
     //Literal<Term> L1, L2;
     //Term T1, T2, T3, T4, T5, T6, T7, T8;
     //Constant C1, C2, C3;
@@ -228,6 +250,5 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     
     //test2 = unify(lit1, lit4, test2);
     //BOOST_TEST(get<string>(test2) == get<string>(answer_s2));
-    BOOST_TEST(true);
 
 }
