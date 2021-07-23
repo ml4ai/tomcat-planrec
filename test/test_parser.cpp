@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(test_fol_sentence_parsing) {
                               sentence());
     auto fs = boost::get<QuantifiedSentence>(s5);
     BOOST_TEST(fs.quantifier == "forall");
-    BOOST_TEST(fs.variables.implicitly_typed_list.value()[0].name ==
+    BOOST_TEST(fs.variables.implicitly_typed_list[0].name ==
                "variable");
 
     auto af_5 = boost::get<Literal<Term>>(fs.sentence);
@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(test_fol_sentence_parsing) {
                               sentence());
     auto es = boost::get<QuantifiedSentence>(s6);
     BOOST_TEST(es.quantifier == "exists");
-    BOOST_TEST(es.variables.implicitly_typed_list.value()[0].name ==
+    BOOST_TEST(es.variables.implicitly_typed_list[0].name ==
                "variable");
 
     auto af6 = boost::get<Literal<Term>>(es.sentence);
@@ -144,10 +144,10 @@ BOOST_AUTO_TEST_CASE(test_fol_sentence_parsing) {
     auto cs = boost::get<ImplySentence>(s7);
     auto fs1 = boost::get<QuantifiedSentence>(cs.sentence1);
     BOOST_TEST(fs1.quantifier == "forall");
-    BOOST_TEST(fs1.variables.implicitly_typed_list.value()[0].name == "x");
+    BOOST_TEST(fs1.variables.implicitly_typed_list[0].name == "x");
     auto fs2 = boost::get<QuantifiedSentence>(cs.sentence2);
     BOOST_TEST(fs2.quantifier == "exists");
-    BOOST_TEST(fs2.variables.implicitly_typed_list.value()[0].name == "y");
+    BOOST_TEST(fs2.variables.implicitly_typed_list[0].name == "y");
 }
 
 BOOST_AUTO_TEST_CASE(test_domain_parsing) {
@@ -335,7 +335,7 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
 
     BOOST_TEST(boost::get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[1].type) == "material");
-    BOOST_TEST(prob.objects.implicitly_typed_list.value()[0] ==
+    BOOST_TEST(prob.objects.implicitly_typed_list[0] ==
                "rock"); // default type = object
 
     // Test initial state
