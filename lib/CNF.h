@@ -22,16 +22,6 @@ namespace ast {
         }
     };
 
-    bool map_contains_variable(std::unordered_map<Variable, Symbol> m,
-                               Variable x) {
-        for (const auto& [key, value] : m) {
-            if (key == x) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     template <class Visitor, class T> auto visit(T x) {
         return boost::apply_visitor(Visitor(), x);
     }
