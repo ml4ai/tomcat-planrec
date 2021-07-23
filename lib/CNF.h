@@ -168,21 +168,20 @@ namespace ast {
 
     struct StandardizeApartIndexical {
         int index = 0;
+
       public:
         std::string getPrefix() { return "q"; }
         int getNextIndex() { return this->index++; }
     };
 
-    using Term =
-    boost::variant<Constant, Variable, boost::recursive_wrapper<fol::Function>>;
-
     struct SubstVisitor : public boost::static_visitor<Sentence>,
                           public boost::static_visitor<Term> {
         std::unordered_map<Variable, Symbol, Hash<Variable>> theta;
 
-        SubstVisitor(){}
+        SubstVisitor() {}
 
-        SubstVisitor(std::unordered_map<Variable, Symbol, Hash<Variable>> theta){
+        SubstVisitor(
+            std::unordered_map<Variable, Symbol, Hash<Variable>> theta) {
             this->theta = theta;
         }
 
@@ -252,7 +251,8 @@ namespace ast {
         template <class T> Sentence operator()(T s) const { return s; }
     };
 
-    struct StandardizeQuantiferVariables : public boost::static_visitor<Sentence> {
+    struct StandardizeQuantiferVariables
+        : public boost::static_visitor<Sentence> {
         StandardizeApartIndexical quantifiedIndexical;
         StandardizeApartIndexical* p_quantifiedIndexical = &quantifiedIndexical;
         SubstVisitor substVisitor;
@@ -272,7 +272,8 @@ namespace ast {
             rs.sentences.push_back(s2);
             return rs;
         }
-        Sentence operator()(NotSentence s) const { NotSentence rs;
+        Sentence operator()(NotSentence s) const {
+            NotSentence rs;
             rs.sentence = boost::apply_visitor(*this, (Sentence)s.sentence);
             return rs;
         }
@@ -303,7 +304,8 @@ namespace ast {
             }
 
             SubstVisitor svis = SubstVisitor(localSubst);
-            auto subst = boost::apply_visitor((SubstVisitor)svis, (Sentence)s.sentence);
+            auto subst =
+                boost::apply_visitor((SubstVisitor)svis, (Sentence)s.sentence);
 
             for (const auto& replVariable : replVariables) {
                 this->p_seenSoFar->push_back(replVariable);
@@ -313,8 +315,7 @@ namespace ast {
             QuantifiedSentence rs;
             rs.quantifier = s.quantifier;
             for (const auto& replVariable : replVariables) {
-                rs.variables.implicitly_typed_list.push_back(
-                    replVariable);
+                rs.variables.implicitly_typed_list.push_back(replVariable);
             }
             rs.sentence = sQuantified;
             return rs;
