@@ -49,7 +49,7 @@ namespace ast {
 
     template <class T> struct TypedList {
         std::vector<ExplicitlyTypedList<T>> explicitly_typed_lists;
-        std::optional<ImplicitlyTypedList<T>> implicitly_typed_list;
+        ImplicitlyTypedList<T> implicitly_typed_list = {};
     };
 
     struct AtomicFormulaSkeleton : x3::position_tagged {
