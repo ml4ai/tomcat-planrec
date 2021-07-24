@@ -10,11 +10,6 @@
 using namespace std;
 using json = nlohmann::json;
 
-struct j_loc {
-  json j;
-  std::string loc;
-};
-
 int missionTime2secElapsed(std::string str)
 {
     stringstream ss;    
@@ -52,60 +47,35 @@ int missionTime2secElapsed(std::string str)
     return (900 - (a*60 + b));
 }
 
-j_loc process_move_act(json& g) {
+json process_move_act(json& g, std::string c_loc) {
   json k;
-  std::string current_loc;
-  std::string move_act = "(!move,";
-  move_act += g["data"]["playername"].get<std::string>();
-  std::string exited;
-  if (g["data"]["exited_locations"].size() == 2) {
-    exited = g["data"]["exited_locations"][1]["id"].get<std::string>();
-  }
-  else {
-    exited = g["data"]["exited_locations"][0]["id"].get<std::string>();
-  }
-  move_act += ",";
-  move_act += exited;
-  move_act += ",";
-  if (g["data"].contains("locations")) {
-    if (g["data"]["locations"].size() == 2) {
-      current_loc = g["data"]["locations"][1]["id"].get<std::string>();
-      move_act += current_loc;
-    }
-    else {
-      current_loc = g["data"]["locations"][0]["id"].get<std::string>();
-      move_act += current_loc;
-    }
-  }
-  else {
-    if (g["data"]["connections"][0]["connected_locations"][0] == exited) {
-      current_loc = g["data"]["connections"][0]["connected_locations"][1].get<std::string>();
-      move_act += current_loc;
-    }
-    else {
-      current_loc = g["data"]["connections"][0]["connected_locations"][0].get<std::string>();
-      move_act += current_loc;
-    }
-  }
+  
+  std::string act = "(!move,";
 
-  move_act += ",";
+  act += g["data"]["playername"].get<std::string>();
+
+  act += ",";
+
+  act += c_loc;
+
+  act += ",";
+
+  act += g["data"]["locations"][0]["id"].get<std::string>();
+
+  act += ",";
+
   std::string mission_time = g["data"]["mission_timer"].get<std::string>();
           
   int time = missionTime2secElapsed(mission_time);
 
-  move_act += std::to_string(time);
+  act += std::to_string(time);
 
-  move_act += ",";
+  act += ",";
 
-  move_act += "0";
+  act += "0,)";
 
-  move_act += ",)";
-
-  k["task"] = move_act;
-  j_loc n;
-  n.j = k;
-  n.loc = current_loc;
-  return n;
+  k["task"] = act;
+  return k;
 }
 
 json process_change_role_act(json& g) {
@@ -165,8 +135,7 @@ json process_triageReg_act(json& g, int start, std::unordered_map<std::string,st
 
 json process_triageCrit_act(json& g, 
                             int start, 
-                            std::unordered_map<std::string,std::string>& loc,
-                            std::vector<std::string>& agents) {
+                            std::unordered_map<std::string,std::string>& loc) {
   json k;
   std::string act = "(!triageCrit,";
 
@@ -174,13 +143,6 @@ json process_triageCrit_act(json& g,
   act += player;
 
   act += ",";
-
-  for (auto a : agents) {
-    if (a != player) {
-      act += a;
-      act += ",";
-    }
-  }
 
   act += loc[player];
 
@@ -201,6 +163,126 @@ json process_triageCrit_act(json& g,
   k["task"] = act;
 
   return k;
+}
+
+json process_wakeCrit_act(json& g, 
+                          std::vector<std::string>& agents, 
+                          std::unordered_map<std::string,std::string>& c_loc) {
+  json k;
+  std::string act = "(!wakeCrit,";
+
+  for (auto a : agents) {
+    act += a;
+    act += ",";
+  }
+
+  act += c_loc[agents[0]];
+
+  act += ",";
+
+  std::string mission_time = g["data"]["mission_timer"].get<std::string>();
+
+  int start = missionTime2secElapsed(mission_time);
+
+  act += std::to_string(start);
+
+  act += ",";
+
+  act += "0,)";
+
+  k["task"] = act;
+
+  return k;
+}
+
+json process_pickUpVic_act(json& g, std::unordered_map<std::string,std::string>& c_loc) {
+  json k;
+  std::string act = "(!pickup_vic,";
+
+  std::string player = g["data"]["playername"].get<std::string>();
+
+  act += player;
+
+  act += ",";
+
+  act += c_loc[player];
+
+  act += ",";
+
+  std::string mission_time = g["data"]["mission_timer"].get<std::string>();
+
+  int start = missionTime2secElapsed(mission_time);
+
+  act += std::to_string(start);
+
+  act += ",";
+
+  act += "0,)";
+
+  k["task"] = act;
+
+  return k;
+
+}
+
+json process_putDownVic_act(json& g, std::unordered_map<std::string,std::string>& c_loc) {
+  json k;
+  std::string act = "(!put_down_vic,";
+
+  std::string player = g["data"]["playername"].get<std::string>();
+
+  act += player;
+
+  act += ",";
+
+  act += c_loc[player];
+
+  act += ",";
+
+  std::string mission_time = g["data"]["mission_timer"].get<std::string>();
+
+  int start = missionTime2secElapsed(mission_time);
+
+  act += std::to_string(start);
+
+  act += ",";
+
+  act += "0,)";
+
+  k["task"] = act;
+
+  return k;
+
+}
+
+json process_breakBlock_act(json& g, std::unordered_map<std::string,std::string>& c_loc) {
+  json k;
+  std::string act = "(!break_block,";
+
+  std::string player = g["data"]["playername"].get<std::string>();
+
+  act += player;
+
+  act += ",";
+
+  act += c_loc[player];
+
+  act += ",";
+
+  std::string mission_time = g["data"]["mission_timer"].get<std::string>();
+
+  int start = missionTime2secElapsed(mission_time);
+
+  act += std::to_string(start);
+
+  act += ",";
+
+  act += "0,)";
+
+  k["task"] = act;
+
+  return k;
+
 }
 
 int main() {
@@ -226,11 +308,47 @@ int main() {
     }
     if (g["data"]["mission_timer"] != "Mission Timer not initialized.") {
       if (g["msg"]["sub_type"] == "Event:location" && 
-          g["data"].contains("exited_locations")) {
-         j_loc n = process_move_act(g);
-         c_loc[g["data"]["playername"].get<std::string>()] = n.loc;
-         j.push_back(n.j);
+          g["data"].contains("locations") &&
+          g["data"]["playername"] == agents[0]) {
+        if (c_loc[agents[0]] == "NONE") {
+          c_loc[agents[0]] = g["data"]["locations"][0]["id"].get<std::string>();  
+        }
+        else {
+          if (g["data"]["locations"][0]["id"] != c_loc[agents[0]]) {
+            j.push_back(process_move_act(g,c_loc[agents[0]]));
+            c_loc[agents[0]] = g["data"]["locations"][0]["id"];
+          }
+        }
       }
+
+      if (g["msg"]["sub_type"] == "Event:location" && 
+          g["data"].contains("locations") &&
+          g["data"]["playername"] == agents[1]) {
+        if (c_loc[agents[1]] == "NONE") {
+          c_loc[agents[1]] = g["data"]["locations"][0]["id"].get<std::string>();  
+        }
+        else {
+          if (g["data"]["locations"][0]["id"] != c_loc[agents[1]]) {
+            j.push_back(process_move_act(g,c_loc[agents[1]]));
+            c_loc[agents[1]] = g["data"]["locations"][0]["id"];
+          }
+        }
+      }
+
+      if (g["msg"]["sub_type"] == "Event:location" && 
+          g["data"].contains("locations") &&
+          g["data"]["playername"] == agents[2]) {
+        if (c_loc[agents[2]] == "NONE") {
+          c_loc[agents[2]] = g["data"]["locations"][0]["id"].get<std::string>();  
+        }
+        else {
+          if (g["data"]["locations"][0]["id"] != c_loc[agents[2]]) {
+            j.push_back(process_move_act(g,c_loc[agents[2]]));
+            c_loc[agents[2]] = g["data"]["locations"][0]["id"];
+          }
+        }
+      }
+ 
       if (g["msg"]["sub_type"] == "Event:RoleSelected") {
         j.push_back(process_change_role_act(g));
       }
@@ -289,7 +407,7 @@ int main() {
         }
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
-            j.push_back(process_triageCrit_act(g,critTriageTime[agents[0]],c_loc,agents));
+            j.push_back(process_triageCrit_act(g,critTriageTime[agents[0]],c_loc));
           }
           critTriageTime[agents[0]] = 0;
         }
@@ -304,7 +422,7 @@ int main() {
         }
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
-            j.push_back(process_triageCrit_act(g,critTriageTime[agents[1]],c_loc,agents));
+            j.push_back(process_triageCrit_act(g,critTriageTime[agents[1]],c_loc));
           }
           critTriageTime[agents[1]] = 0;
         }
@@ -319,13 +437,30 @@ int main() {
         }
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
-            j.push_back(process_triageCrit_act(g,critTriageTime[agents[2]],c_loc,agents));
+            j.push_back(process_triageCrit_act(g,critTriageTime[agents[2]],c_loc));
           }
           critTriageTime[agents[2]] = 0;
         }
       }
 
+      if (g["msg"]["sub_type"] == "Event:ProximityBlockInteraction" &&
+           g["data"]["players_in_range"] == 3 &&
+           g["data"]["action_type"] == "ENTERED_RANGE") {
+        j.push_back(process_wakeCrit_act(g,agents,c_loc));
+      }  
 
+      if (g["msg"]["sub_type"] == "Event:VictimPickedUp") {
+        j.push_back(process_pickUpVic_act(g,c_loc));
+      }
+
+      if (g["msg"]["sub_type"] == "Event:VictimPlaced") {
+        j.push_back(process_putDownVic_act(g,c_loc));
+      }
+
+      if (g["msg"]["sub_type"] == "Event:RubbleDestroyed") {
+        j.push_back(process_breakBlock_act(g,c_loc));
+      }
+ 
     }
   }
 
