@@ -1,6 +1,5 @@
 #define BOOST_TEST_MODULE TestUnification
 
-#include "Visitor.h"
 #include "boost/test/included/unit_test.hpp"
 #include "boost/variant.hpp"
 #include "fol/Constant.h"
@@ -70,12 +69,10 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     BOOST_TEST(!subst);
 
     // Test occur check
-    BOOST_TEST(occur_check(Substitution(), v1, v1));
-    BOOST_TEST(!occur_check(Substitution(), v1, v2));
+    BOOST_TEST(occur_check(v1, v1));
+    BOOST_TEST(!occur_check(v1, v2));
+    BOOST_TEST(occur_check(Variable{"x"}, lit4));
 
-    // FIXME - finish implementing occur check function and then the commented
-    // test below should pass.
-    //BOOST_TEST(occur_check(Substitution(), Variable{"x"}, lit4));
 
     /* --------- List of Test cases for unification -----------
     Variables: v1, v2

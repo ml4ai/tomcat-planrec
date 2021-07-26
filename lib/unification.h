@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GetTermType.h"
 #include "Hash.h"
 #include "util/boost_variant_helpers.h"
 #include <boost/log/trivial.hpp>
@@ -133,45 +134,67 @@ unify(Input x, Input y, std::optional<Substitution> theta) {
             return std::nullopt;
         }
 
-        if (x_vec.size() == 1) {
-            return unify(head(x_vec), head(y_vec), theta);
-        }
-        else {
-            return unify(tail(x_vec),
-                         tail(y_vec),
-                         unify(head(x_vec), head(y_vec), theta));
-        }
+        return (x_vec.size() == 1) ? unify(head(x_vec), head(y_vec), theta)
+                                   : unify_compound_expr(x_vec, y_vec, theta);
     }
     else {
         return nullopt;
     }
 }
 
-bool occur_check(Substitution theta, Variable var, Input x) {
-    // TODO - Implement this!
-    if (visit<EqualityChecker>(static_cast<Input>(var), x)) {
-        return true;
-    }
-    else if (x.type() == typeid(Variable) && theta.contains(get<Variable>(x))) {
-        return occur_check(theta, var, theta.at(get<Variable>(x)));
-    }
-    else if (x.type() == typeid(Function)) {
-        for (Term term : get<Function>(x).args) {
-            if (occur_check(theta, var, term)) {
-                return true;
-            }
+struct OccurChecker : public boost::static_visitor<bool> {
+    Substitution theta;
+    Variable var;
+
+    OccurChecker(Substitution theta, Variable var) : theta(theta), var(var) {}
+
+    bool operator()(const Variable x) const {
+        if (var == x) {
+            return true;
+        }
+        else if ((this->theta).contains(x)) {
+            return boost::apply_visitor(*this, theta.at(x));
+        }
+        else {
+            return false;
         }
     }
-    else if (x.type() == typeid(Literal<Term>)) {
-        for (Term term : get<Literal<Term>>(x).args) {
-            if (occur_check(theta, var, term)) {
-                return true;
-            }
+    bool operator()(const Constant x) const { return false; }
+    bool operator()(const Function x) const {
+        return std::any_of(
+            x.args.cbegin(), x.args.cend(), [&](const auto& term) {
+                return boost::apply_visitor(*this, term);
+            });
+    }
+    bool operator()(const Term x) const {
+        if (visit<GetTermType>(x) == "Variable") {
+            return boost::apply_visitor(*this, (Input)get<Variable>(x));
+        }
+        else if (visit<GetTermType>(x) == "Constant") {
+            return boost::apply_visitor(*this, (Input)get<Constant>(x));
+        }
+        else {
+            return boost::apply_visitor(*this, (Input)get<Function>(x));
         }
     }
-    else {
-        return false;
+    bool operator()(const Literal<Term> x) const {
+        return std::any_of(
+            x.args.cbegin(), x.args.cend(), [&](const auto& term) {
+                return boost::apply_visitor(*this, term);
+            });
     }
+    // Catchall - we don't do occur checks for vector<Term>, or Predicate
+    bool operator()(const vector<Term> x) const { return false; }
+    bool operator()(const Predicate x) const { return false; }
+};
+
+template <class T> bool occur_check(Variable var, T x, Substitution theta) {
+    return boost::apply_visitor(OccurChecker(theta, var),
+                                static_cast<Input>(x));
+}
+
+bool occur_check(Variable var, Input x) {
+    return occur_check(var, x, Substitution());
 }
 
 std::optional<Substitution> unify(Input x, Input y) {
@@ -190,8 +213,8 @@ unify_var(Variable var, Input x, std::optional<Substitution>& theta) {
         auto val = theta.value().at(x_var);
         return unify(var, val, theta);
     }
-    // NOTE occur check function has not been implemented fully! 
-    else if (occur_check(theta.value(), var, x)){
+    // NOTE occur check function has not been implemented fully!
+    else if (occur_check(var, x, theta.value())) {
         return nullopt;
     }
     else {
