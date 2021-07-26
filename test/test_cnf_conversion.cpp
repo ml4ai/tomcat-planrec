@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(d5.predicate == "a");
     auto d6 = get<Literal<Term>>(d4.sentences[1]);
     BOOST_TEST(d6.predicate == "b");
-    auto d7 = construct(d2);
+    auto d7 = to_CNF(d1);
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].predicate == "a");
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].is_negative == false);
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[1].predicate == "b");
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(e5.predicate == "a");
     auto e6 = get<Literal<Term>>(get<NotSentence>(e4.sentences[1]).sentence);
     BOOST_TEST(e6.predicate == "c");
-    auto e7 = construct(e2);
+    auto e7 = to_CNF(e1);
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].predicate == "a");
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].is_negative == false);
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[1].predicate == "c");
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto i1 = parse<Sentence>("(not (exists (?y) (and (not (A ?y)) (L ?x ?y))))");
     auto i2 = boost::apply_visitor(NegationsIn(), i1);
     auto i3 = get<QuantifiedSentence>(i2);
-    BOOST_TEST(i3.variables.implicitly_typed_list.value()[0].name == "y");
+    BOOST_TEST(i3.variables.implicitly_typed_list[0].name == "y");
     auto i4 = get<ConnectedSentence>(i3.sentence);
     BOOST_TEST(i4.connector == "or");
     auto i5 = get<Literal<Term>>(i4.sentences[0]);
@@ -149,4 +149,51 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto i6 = get<NotSentence>(i4.sentences[1]);
     auto i7 = get<Literal<Term>>(i6.sentence);
     BOOST_TEST(i7.predicate == "L");
+
+    // (or (exists (?x) (Q ?x ? z)) (forall (?x) (P ?x ?y))) => (or (exists
+    // (?x) (Q ?x ? z)) (forall (?q0) (P ?x ?y)))
+    auto j1 = parse<Sentence>("(or (exists (?x) (Q ?x ? z)) (forall (?x) (P ?x ?y)))");
+    auto j2 = boost::apply_visitor(StandardizeQuantiferVariables(), (Sentence)j1);
+    auto j3 = get<ConnectedSentence>(j2);
+    auto j4 = get<QuantifiedSentence>(j3.sentences[0]);
+    BOOST_TEST(j4.quantifier == "exists");
+    BOOST_TEST(j4.variables.implicitly_typed_list[0].name == "x");
+    auto j5 = get<QuantifiedSentence>(j3.sentences[1]);
+    BOOST_TEST(j5.quantifier == "forall");
+    BOOST_TEST(j5.variables.implicitly_typed_list[0].name == "q0");
+
+    //  (or (exists (?w) (forall (?z) (Q ?w ? z))) (exists (?w) (exists (?z) (Q ?w ? z)))) =>
+    //  (or (exists (?w) (forall (?z) (Q ?w ? z))) (exists (?q0) (exists (?q1) (Q ?w ? z))))
+    auto k1 = parse<Sentence>("(or (exists (?w) (forall (?z) (Q ?w ? z))) (exists (?w) (exists (?z) (Q ?w ? z))))");
+    auto k2 = boost::apply_visitor(StandardizeQuantiferVariables(), (Sentence)k1);
+    auto k3 = get<ConnectedSentence>(k2);
+    auto k4 = get<QuantifiedSentence>(k3.sentences[0]);
+    BOOST_TEST(k4.quantifier == "exists");
+    BOOST_TEST(k4.variables.implicitly_typed_list[0].name == "w");
+    auto k5 = get<QuantifiedSentence>(k4.sentence);
+    BOOST_TEST(k5.quantifier == "forall");
+    BOOST_TEST(k5.variables.implicitly_typed_list[0].name == "z");
+
+    auto k6 = get<QuantifiedSentence>(k3.sentences[1]);
+    BOOST_TEST(k6.quantifier == "exists");
+    BOOST_TEST(k6.variables.implicitly_typed_list[0].name == "q0");
+    auto k7 = get<QuantifiedSentence>(k6.sentence);
+    BOOST_TEST(k7.quantifier == "exists");
+    BOOST_TEST(k7.variables.implicitly_typed_list[0].name == "q1");
+}
+
+BOOST_AUTO_TEST_CASE(test_custom_map) {
+    std::unordered_map<Variable, Symbol, Hash<Variable>> mymap;
+    auto v = Variable{"var"};
+    mymap[v] =  Symbol{"sym"};
+    BOOST_TEST(mymap.contains(v));
+    std::vector<Variable> myvec;
+    auto v1 = Variable{"var1"};
+    auto v2 = Variable{"var2"};
+    myvec.push_back(v);
+    myvec.push_back(v1);
+
+    auto tmp = std::find(myvec.begin(), myvec.end(), v) != myvec.end();
+    BOOST_TEST(vector_contains_variable(myvec, v));
+    BOOST_TEST(vector_contains_variable(myvec, v2) == false);
 }
