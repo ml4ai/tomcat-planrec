@@ -73,11 +73,17 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     BOOST_TEST(!occur_check(v1, v2));
     BOOST_TEST(occur_check(Variable{"x"}, lit4));
 
+    auto mother = Function{"Mother", {Variable{"y"}}};
+
+    subst = unify(lit1, Literal<Term>{"Knows", {Variable{"y"}, mother}});
+    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"x"}),
+                                      static_cast<Input>(mother)));
+    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"y"}),
+                                      static_cast<Input>(Constant{"John"})));
+
+
 
     /* --------- List of Test cases for unification -----------
-    Variables: v1, v2
-    Constants: C2, C3
-    Predicates: T(), F1(), E1()
 
     1. T(v1) and T(C2)
     2. T(v1, C3) and T(C2, C3)
@@ -94,18 +100,6 @@ BOOST_AUTO_TEST_CASE(test_unification) {
         9.2 No variable is given
         9.3 different nested predicates
     */
-
-    // setup some definitions
-    // Literal<Term> L1, L2;
-    // Term T1, T2, T3, T4, T5, T6, T7, T8;
-    // Constant C1, C2, C3;
-    // Variable v1, v2;
-    // Function F1, F2, F3, F4;
-    // Predicate P1, P2;
-    // sub_list test;
-    // sub_list answer;
-
-    //// sample predicates for testing unification
 
     // T(V1) unified with T(C2)
     // first literal declaration, T(v1)
