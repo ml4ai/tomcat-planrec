@@ -50,21 +50,18 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     subst = unify(v1, v2);
     BOOST_TEST(get<Variable>(subst.value().at(v1)) == v2);
 
-    auto lit1 = parse<Literal<Term>>("(Knows John ?x)", literal_terms());
+    auto lit1 = parse<Literal<Term>>("(Knows John ?x)");
 
-    auto lit2 = parse<Literal<Term>>("(Knows John Jane)", literal_terms());
+    auto lit2 = parse<Literal<Term>>("(Knows John Jane)");
     subst = unify(lit1, lit2);
-    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"x"}),
-                                      static_cast<Input>(Constant{"Jane"})));
+    BOOST_TEST(check_substitution_contains(subst, Variable{"x"}, Constant{"Jane"}));
 
-    auto lit3 = parse<Literal<Term>>("(Knows ?y Bill)", literal_terms());
+    auto lit3 = parse<Literal<Term>>("(Knows ?y Bill)");
     subst = unify(lit1, lit3);
-    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"x"}),
-                                      static_cast<Input>(Constant{"Bill"})));
-    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"y"}),
-                                      static_cast<Input>(Constant{"John"})));
+    BOOST_TEST(check_substitution_contains(subst, Variable{"x"}, Constant{"Bill"}));
+    BOOST_TEST(check_substitution_contains(subst, Variable{"y"}, Constant{"John"}));
 
-    auto lit4 = parse<Literal<Term>>("(Knows ?x Elizabeth)", literal_terms());
+    auto lit4 = parse<Literal<Term>>("(Knows ?x Elizabeth)");
     subst = unify(lit1, lit4);
     BOOST_TEST(!subst);
 
@@ -76,10 +73,8 @@ BOOST_AUTO_TEST_CASE(test_unification) {
     auto mother = Function{"Mother", {Variable{"y"}}};
 
     subst = unify(lit1, Literal<Term>{"Knows", {Variable{"y"}, mother}});
-    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"x"}),
-                                      static_cast<Input>(mother)));
-    BOOST_TEST(visit<EqualityChecker>(subst.value().at(Variable{"y"}),
-                                      static_cast<Input>(Constant{"John"})));
+    BOOST_TEST(check_substitution_contains(subst, Variable{"x"}, mother));
+    BOOST_TEST(check_substitution_contains(subst, Variable{"y"}, Constant{"John"}));
 
 
 

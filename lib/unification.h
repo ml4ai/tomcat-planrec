@@ -69,6 +69,12 @@ struct EqualityChecker : public boost::static_visitor<bool> {
     }
 };
 
+bool check_substitution_contains(std::optional<Substitution> theta,
+                                 Variable v,
+                                 Input x) {
+    return visit<EqualityChecker>(theta.value().at(v), static_cast<Input>(x));
+}
+
 std::optional<Substitution>
 unify_var(Variable v, Input i, std::optional<Substitution>& s);
 

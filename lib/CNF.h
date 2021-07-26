@@ -1,18 +1,18 @@
 #pragma once
 
-#include "Hash.h"
 #include "Clause.h"
+#include "Hash.h"
 #include "boost/variant.hpp"
 #include "fol/Function.h"
-#include "util/boost_variant_helpers.h"
 #include "parsing/ast.hpp"
+#include "util/boost_variant_helpers.h"
+#include <boost/throw_exception.hpp>
 #include <iostream>
 #include <map>
+#include <string>
 #include <typeinfo>
 #include <unordered_map>
 #include <utility>
-#include <boost/throw_exception.hpp>
-#include<string>
 
 namespace ast {
     bool vector_contains_variable(std::vector<Variable> v, Variable x) {
@@ -23,17 +23,6 @@ namespace ast {
         }
         return false;
     }
-
-    bool map_contains_variable(std::unordered_map<Variable, Symbol> m,
-                               Variable x) {
-        for (const auto& [key, value] : m) {
-            if (key == x) {
-                return true;
-            }
-        }
-        return false;
-    }
-
 
     template <class Visitor>
     std::vector<Sentence> visit(std::vector<Sentence> sentences) {
@@ -64,15 +53,9 @@ namespace ast {
 
     using args = boost::variant<fol::Constant, fol::Variable, fol::Function>;
     struct GetArgType : public boost::static_visitor<std::string> {
-        std::string operator()(fol::Constant s) const {
-            return "Constant";
-        }
-        std::string operator()(fol::Variable s) const {
-            return "Variable";
-        }
-        std::string operator()(fol::Function s) const {
-            return "Function";
-        }
+        std::string operator()(fol::Constant s) const { return "Constant"; }
+        std::string operator()(fol::Variable s) const { return "Variable"; }
+        std::string operator()(fol::Function s) const { return "Function"; }
     };
 
     struct GeneratePairSentence : public boost::static_visitor<Sentence> {
@@ -119,7 +102,8 @@ namespace ast {
             return rs;
         }
         Sentence operator()(EqualsSentence s) const {
-            BOOST_THROW_EXCEPTION(std::runtime_error("EqualsSentence handling not yet implemented!"));
+            BOOST_THROW_EXCEPTION(std::runtime_error(
+                "EqualsSentence handling not yet implemented!"));
         }
 
         template <class T> Sentence operator()(T s) const { return s; }
@@ -186,46 +170,46 @@ namespace ast {
         int getNextIndex() { return this->index++; }
     };
 
-    struct SubstVisitor : public boost::static_visitor<Sentence>, public boost::static_visitor<Term>{
+    struct SubstVisitor : public boost::static_visitor<Sentence>,
+                          public boost::static_visitor<Term> {
         std::unordered_map<Variable, Symbol, Hash<Variable>> theta;
 
         Term operator()(Variable s) const {
             if (this->theta.contains(s)) {
-//                return Symbol{this->theta.at(s).name};
+                //                return Symbol{this->theta.at(s).name};
                 return Variable{this->theta.at(s).name};
-//                return this->theta.at(s).name;
+                //                return this->theta.at(s).name;
             }
             return Variable{s.name};
-//            return s.name;
+            //            return s.name;
         }
 
-        Term operator()(Constant s) const {
-            return s;
-        }
+        Term operator()(Constant s) const { return s; }
 
-        Term operator()(fol::Function s) const {
-            return s;
-        }
+        Term operator()(fol::Function s) const { return s; }
 
         Sentence operator()(Literal<Term> s) const {
             if (!s.args.empty()) {
-                for (int i=0; i <s.args.size(); i++) {
-                    if (visit<GetArgType>((Term)s.args[i]) == "Variable"){
-                        get<Variable>(s.args[i]).name = get<Variable>(boost::apply_visitor(*this, s.args[i])).name;
+                for (int i = 0; i < s.args.size(); i++) {
+                    if (visit<GetArgType>((Term)s.args[i]) == "Variable") {
+                        get<Variable>(s.args[i]).name =
+                            get<Variable>(
+                                boost::apply_visitor(*this, s.args[i]))
+                                .name;
                     }
                 }
             }
-//            return visit(*this, s);
+            //            return visit(*this, s);
             return s;
         }
 
         Sentence operator()(QuantifiedSentence s) const {
             auto quantifiedAfterSubs =
-                    boost::apply_visitor(*this, (Sentence)s.sentence);
+                boost::apply_visitor(*this, (Sentence)s.sentence);
 
             std::vector<Variable> variables;
             for (auto v : s.variables.implicitly_typed_list.value()) {
-                if (this->theta.contains(v)){
+                if (this->theta.contains(v)) {
                     Symbol st = this->theta.at(v);
                     if (typeid(st) == typeid(Variable)) {
                         Variable rs;
@@ -245,7 +229,7 @@ namespace ast {
 
             QuantifiedSentence rs;
             rs.quantifier = s.quantifier;
-            for (const auto & variable : variables){
+            for (const auto& variable : variables) {
                 rs.variables.implicitly_typed_list.value().push_back(variable);
             }
             rs.sentence = quantifiedAfterSubs;
@@ -253,7 +237,8 @@ namespace ast {
             return rs;
         }
         Sentence operator()(EqualsSentence s) const {
-            BOOST_THROW_EXCEPTION(std::runtime_error("EqualsSentence handling not yet implemented!"));
+            BOOST_THROW_EXCEPTION(std::runtime_error(
+                "EqualsSentence handling not yet implemented!"));
         }
 
         template <class T> Sentence operator()(T s) const { return s; }
@@ -505,7 +490,6 @@ namespace ast {
             BOOST_THROW_EXCEPTION(std::runtime_error(
                 "EqualsSentence handling not yet implemented!"));
         }
-
     };
 
     CNF construct(Sentence orDistributedOverAnd) {
