@@ -26,7 +26,7 @@ install_boost_from_source() {
         exit 1
     fi
     pushd boost_1_"${boost_minor_version}"_0
-    if ! ./bootstrap.sh --with-libraries log; then
+    if ! ./bootstrap.sh --with-libraries=log; then
         echo "./bootstrap.sh step failed. Exiting now."
         exit 1
     fi
