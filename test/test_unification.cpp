@@ -85,10 +85,6 @@ BOOST_AUTO_TEST_CASE(test_unification) {
 
     /* --------- List of Test cases for unification -----------
 
-    1. T(v1) and T(C2)
-    2. T(v1, C3) and T(C2, C3)
-    3. T(v1, v2) and T(C2, C3)
-    4. T(C2, C3) and T(v1, C3)
     5. T(F1(v1)) and T(F1(C2))
     6. T(v1) and T(F1(C2)) -------> Here is a reason to make the sub_list a
     string -> term mapping since the arguements are lost here.
