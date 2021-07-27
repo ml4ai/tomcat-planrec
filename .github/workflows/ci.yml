@@ -23,11 +23,10 @@ jobs:
       run: |
         # We download Boost 1.76 separately since apt does not have the minimum
         # version of Boost we require (as of July 20, 2021).
-        wget -q https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2 
-        tar -xjf boost_1_76_0.tar.bz2 
+        ./scripts/install_boost_from_source
         sudo apt-get install -y nlohmann-json3-dev graphviz libgraphviz-dev
         mkdir build
         cd build
-        cmake .. -DBOOST_ROOT=$(pwd)/../boost_1_76_0
+        cmake ..
         make -j
         make test

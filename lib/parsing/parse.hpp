@@ -1,5 +1,6 @@
 #pragma once
 
+#include "api.hpp"
 #include "config.hpp"
 #include "error_handler.hpp"
 #include <boost/throw_exception.hpp>
@@ -7,7 +8,31 @@
 #include <iostream>
 #include <string>
 
-template <class T, class U> T parse(std::string storage, U parser) {
+
+template<class T>
+auto get_parser() {
+    if constexpr(std::is_same<T, ast::Literal<ast::Term>>::value) {
+        return literal_terms();
+    }
+    else if constexpr(std::is_same<T, ast::Domain>::value) {
+        return domain();
+    }
+    else if constexpr(std::is_same<T, ast::Problem>::value) {
+        return problem();
+    }
+    else if constexpr(std::is_same<T, ast::Type>::value) {
+        return type();
+    }
+    else if constexpr(std::is_same<T, ast::Sentence>::value) {
+        return sentence();
+    }
+    else {
+        BOOST_THROW_EXCEPTION(std::runtime_error("Parser not implemented for this type!"));
+    }
+}
+
+template <class T> T parse(std::string storage) {
+    auto parser = get_parser<T>();
     using parser::error_handler_tag;
     namespace x3 = boost::spirit::x3;
     std::string::const_iterator iter = storage.begin();
@@ -28,3 +53,5 @@ template <class T, class U> T parse(std::string storage, U parser) {
     }
     return object;
 }
+
+
