@@ -1,7 +1,8 @@
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../apps/cmake")
 
-find_package(Boost REQUIRED)
+add_definitions(-DBOOST_LOG_DYN_LINK)
+find_package(Boost COMPONENTS log REQUIRED)
 find_package(Graphviz)
 find_package(nlohmann_json REQUIRED)
 
@@ -17,7 +18,7 @@ target_include_directories(test_kb PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # Test unification
 add_executable(test_unification test_unification.cpp)
-target_link_libraries(test_unification tomcat)
+target_link_libraries(test_unification tomcat Boost::log)
 target_include_directories(test_unification PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # Test cnf_conversion
