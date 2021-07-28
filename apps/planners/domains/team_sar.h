@@ -1276,6 +1276,8 @@ template <class State> pTasks change_Search_Specialist(State state, Args args) {
 
 class TeamSARState {
   public:
+
+    // *** Static ***
     std::vector<std::string> agents;
 
     std::vector<std::string> zones;
@@ -1288,11 +1290,21 @@ class TeamSARState {
 
     std::string change_zone;
 
+    // ******
+
+    //*** agents ***
+
     std::unordered_map<std::string, std::string> role;
 
     std::unordered_map<std::string, std::string> agent_loc;
 
-    std::unordered_map<std::string,bool> holding; 
+    std::unordered_map<std::string,bool> holding;
+
+    std::unordered_map<std::string, int> time;
+
+    // ******
+
+    //*** areas ***
 
     std::unordered_map<std::string,int> blocks_broken;
 
@@ -1300,16 +1312,21 @@ class TeamSARState {
 
     std::unordered_map<std::string,bool> c_triaged_here;
 
+    std::unordered_map<std::string, bool> c_awake;
+
+    // ******
+
+    // *** score ***
+
     int c_triage_total;
     int r_triage_total;
 
     int c_max;
     int r_max;
 
-    std::unordered_map<std::string, bool> c_awake;
+    // ******
 
-    std::unordered_map<std::string, int> time;
-
+    // (agent,area)
     std::unordered_map<std::string, std::unordered_map<std::string, int>> visited; 
     
     // Not part of the state representation!
