@@ -1,12 +1,15 @@
 #pragma once
 
 #include "Clause.h"
+#include "Hash.h"
 #include "boost/variant.hpp"
 #include "fol/Function.h"
 #include "parsing/ast.hpp"
+#include "util/boost_variant_helpers.h"
 #include <boost/throw_exception.hpp>
 #include <iostream>
 #include <map>
+#include <string>
 #include <typeinfo>
 #include <unordered_map>
 #include <utility>
@@ -14,16 +17,6 @@
 namespace ast {
     bool vector_contains_variable(std::vector<Variable> v, Variable x) {
         return std::find(v.begin(), v.end(), x) != v.end();
-    }
-    // Custom hash
-    template <class T> struct Hash {
-        std::size_t operator()(T const& x) const noexcept {
-            return std::hash<std::string>{}(x.name);
-        }
-    };
-
-    template <class Visitor, class T> auto visit(T x) {
-        return boost::apply_visitor(Visitor(), x);
     }
 
     template <class Visitor>
