@@ -158,146 +158,107 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     // only, and may not make logical sense.
 
     storage = R"(
-    (define (domain transport)
-  (:requirements :negative-preconditions :hierarchy :typing)
-  (:types
-        location target locatable - object
-        vehicle package - locatable
-        capacity-number - object
-  )
-  (:constants surprise - package)
 
-  (:predicates
-     (road ?l1 ?l2 - location)
-     (at ?x - locatable ?v - location)
-     (in ?x - package ?v - vehicle)
-     (capacity ?v - vehicle ?s1 - capacity-number)
-     (capacity-predecessor ?s1 ?s2 - capacity-number)
-  )
+  (define (domain domain-htn)
+	(:requirements :negative-preconditions :typing :hierarchy)
+	(:types
+		package - locatable
+		capacity_number - object
+		location - object
+		target - object
+		vehicle - locatable
+		locatable - object
+	)
 
-  ;; Abstract Tasks
-  (:task deliver :parameters (?p - package ?l - location))
-  (:task get-to :parameters (?v - vehicle ?l - location))
-  (:task load :parameters (?v - vehicle ?l - location ?p - package))
-  (:task unload :parameters (?v - vehicle ?l - location ?p - package))
+    (:constants surprise - package)
+	
+    (:predicates
+		(road ?arg0 - location ?arg1 - location)
+		(at ?arg0 - locatable ?arg1 - location)
+		(in ?arg0 - package ?arg1 ?arg2 - vehicle)
+		(capacity ?arg0 - vehicle ?arg1 - capacity_number)
+		(capacity_predecessor ?arg0 - capacity_number ?arg1 - capacity_number)
+	)
 
-  ;; Methods used to decompose tasks
-  (:method m-deliver
-    :parameters (?p - package ?l1 ?l2 - location ?v - vehicle)
-    :task (deliver ?p ?l2)
-     :ordered-subtasks (and
-      (get-to ?v ?l1)
-      (load ?v ?l1 ?p)
-      (get-to ?v ?l2)
-      (unload ?v ?l2 ?p))
-  )
+	(:task deliver
+		:parameters (?p - package ?l - location)
+	)
 
-  (:method m-unload
-    :parameters (?v - vehicle ?l - location ?p - package ?s1 ?s2 - capacity-number)
-    :task (unload ?v ?l ?p)
-    :subtasks (drop ?v ?l ?p ?s1 ?s2)
-  )
+	(:task get_to
+		:parameters (?v - vehicle ?l - location)
+	)
 
-  (:method m-load
-    :parameters (?v - vehicle ?l - location ?p - package ?s1 ?s2 - capacity-number)
-    :task (load  ?v ?l ?p)
-    :subtasks (pick-up ?v ?l ?p ?s1 ?s2)
-  )
+	(:method m_deliver_ordering_0
+		:parameters (?loc1 - location ?loc1 - location ?p - package ?v - vehicle)
+		:task (deliver ?p ?loc2)
+        :precondition (or
+          (at ?l)
+          (at ?s)
+          )
+		:subtasks (and
+		 (task0 (get_to ?v ?loc1))
+		 (task1 (load ?v ?loc1 ?p))
+		 (task2 (get_to ?v ?loc2))
+		 (task3 (unload ?v ?loc1 ?p))
+		)
+		:ordering (and
+			( task0 < task1)
+			( < task1 task2)
+;			( task2 < task3)
+		)
+	)
 
-  (:method m-drive-to
-    :parameters (?v - vehicle ?l1 ?l2 - location)
-    :task (get-to ?v ?l2)
-    :subtasks (and
-        (drive ?v ?l1 ?l2))
-  )
+	(:method m_unload_ordering_0
+		:parameters (?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number ?v - vehicle)
+		:task (unload ?v ?l ?p)
+		:subtasks (and
+		 (task0 (drop ?v ?l ?p ?s1 ?s2))
+		)
+	)
 
-  (:method m-drive-to-via
-    :parameters (?v - vehicle ?l2 ?l3 - location)
-    :task (get-to  ?v ?l3)
-    :ordered-subtasks (and
-        (get-to ?v ?l2)
-        (drive ?v ?l2 ?l3))
-  )
 
-  (:method m-i-am-there
-    :parameters (?v - vehicle ?l - location)
-    :task (get-to  ?v ?l)
-    :subtasks (and
-        (noop ?v ?l))
-  )
+	(:action pick_up
+		:parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
+		:precondition
+			(and
+				(at ?v ?l)
+				(at ?p ?l)
+				(capacity_predecessor ?s1 ?s2)
+				(capacity ?v ?s2)
+			)
+		:effect
+			(and
+				(not (at ?p ?l))
+				(in ?p ?v)
+				(capacity ?v ?s1)
+				(not (capacity ?v ?s2))
+			)
+	)
 
-  (:action drive
-    :parameters (?v - vehicle ?l1 ?l2 - location)
-    :precondition (and
-        (at ?v ?l1)
-        (road ?l1 ?l2))
-    :effect (and
-        (not (at ?v ?l1))
-        (at ?v ?l2))
-  )
-
-  (:action noop
-    :parameters (?v - vehicle ?l2 - location)
-    :precondition (at ?v ?l2)
-    :effect ()
-  )
-
- (:action pick-up
-    :parameters (?v - vehicle ?l - location ?p - package ?s1 ?s2 - capacity-number)
-    :precondition (and
-        (at ?v ?l)
-        (at ?p ?l)
-        (capacity-predecessor ?s1 ?s2)
-        (capacity ?v ?s2)
-      )
-    :effect (and
-        (not (at ?p ?l))
-        (in ?p ?v)
-        (capacity ?v ?s1)
-        (not (capacity ?v ?s2))
-      )
-  )
-
-  (:action drop
-    :parameters (?v - vehicle ?l - location ?p - package ?s1 ?s2 - capacity-number)
-    :precondition (and
-        (at ?v ?l)
-        (in ?p ?v)
-        (capacity-predecessor ?s1 ?s2)
-        (capacity ?v ?s1)
-      )
-    :effect (and
-        (not (in ?p ?v))
-        (at ?p ?l)
-        (capacity ?v ?s2)
-        (not (capacity ?v ?s1))
-      )
-  )
-
+	(:action drop
+		:parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
+		:precondition
+			(and
+				(at ?v ?l)
+				(in ?p ?v)
+				(capacity_predecessor ?s1 ?s2)
+				(capacity ?v ?s1)
+			)
+		:effect
+			(and
+				(not (in ?p ?v))
+				(at ?p ?l)
+				(capacity ?v ?s2)
+				(not (capacity ?v ?s1))
+			)
+	)
 )
+
     )";
 
     //Begin original test domain
+    //Delete as necessary...
     /*
-        (define
-            (domain transport)
-            (:requirements :strips :typing)
-            (:types site package - object
-                    house factory - site
-                    box letter - package)
-            (:constants surprise - package)
-
-            (:predicates
-                (in-transit ?loc1 ?loc2 - site)
-                (at ?box - package ?house - site)
-                (tAt ?l))
-
-            ;; Abstract tasks
-            (:task deliver
-             :parameters (?p - package ?s - site))
-
-            (:task get-to
-             :parameters (?s - site))
 
             ;; Methods
             (:method m-deliver
@@ -326,16 +287,16 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
                          (not (tAt ?loc2)))
               ); end action drive
           );end define domain
-*/
+      */
 //end of original test domain
 
     auto dom = parse<Domain>(storage);
 
     // Test Domain Name:
-    BOOST_TEST(dom.name == "transport");
+    BOOST_TEST(dom.name == "domain-htn");
 
     // Test requirements
-    BOOST_TEST(equals(dom.requirements, {"negative-preconditions", "hierarchy", "typing"}));
+    BOOST_TEST(equals(dom.requirements, {"negative-preconditions", "typing", "hierarchy"}));
 
 
     // Test constants
@@ -344,20 +305,18 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(boost::get<PrimitiveType>(
                    dom.constants.explicitly_typed_lists[0].type) == "package");
     
-/* TO DO AND UPDATE:
- *
- *
-
     // Test parsing of predicates
-    BOOST_TEST(dom.predicates.size() == 3);
-    BOOST_TEST(dom.predicates[0].predicate == "in-transit");
-    BOOST_TEST(
-        dom.predicates[0].variables.explicitly_typed_lists[0].entries[0].name ==
-        "loc1");
+    BOOST_TEST(dom.predicates.size() == 5);
+    BOOST_TEST(dom.predicates[2].predicate == "in");
+    BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[1].entries[0].name ==
+        "arg1");
+    BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[1].entries[1].name ==
+        "arg2");
     BOOST_TEST(
         boost::get<PrimitiveType>(
-            dom.predicates[0].variables.explicitly_typed_lists[0].type) ==
-        "site");
+            dom.predicates[2].variables.explicitly_typed_lists[1].type) ==
+        "vehicle");
+
 
     // Test parsing of abstract tasks
     BOOST_TEST(dom.tasks[0].name == "deliver");
@@ -365,15 +324,16 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(boost::get<PrimitiveType>(
                    taskpara1.explicitly_typed_lists[0].type) == "package");
 
+ 
+
     // Test methods and their components (totally-ordered):
     // Test methods name:
-    BOOST_TEST(dom.methods[0].name == "m-deliver");
+    BOOST_TEST(dom.methods[0].name == "m_deliver_ordering_0");
 
     // Test Methods Parameters:
     BOOST_TEST(boost::get<PrimitiveType>(
-                   dom.methods[0].parameters.explicitly_typed_lists[0].type) ==
+                   dom.methods[0].parameters.explicitly_typed_lists[2].type) ==
                "package");
-
     // Test method's task to be broken down. In the abstract task, 'task' is
     // defined similar to an action. Here, it is defined as <Literal<Term>>
     auto methodtask = dom.methods[0].task;
@@ -385,9 +345,10 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto methodprec_s = boost::get<ConnectedSentence>(methodprec_f);
     auto methodprec1_os = boost::get<Literal<Term>>(methodprec_s.sentences[0]);
     auto methodprec2_os = boost::get<Literal<Term>>(methodprec_s.sentences[1]);
-    BOOST_TEST(methodprec1_os.predicate == "tAt");
+    BOOST_TEST(methodprec1_os.predicate == "at");
     BOOST_TEST(name(methodprec2_os.args[0]) == "s");
 
+/* TODO
     // Test parsing method optional ordered-subtasks (totally-ordered methods)
     auto osubtask_s = boost::get<MTask>(boost::get<vector<SubTask>>(
         dom.methods[0].task_network.subtasks.value().subtasks)[2]);

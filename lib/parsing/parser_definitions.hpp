@@ -387,7 +387,12 @@ namespace parser {
     struct TSubTasks: x3::annotate_on_success {};
 
     rule<class TOrdering, Ordering> const ordering = "ordering";
-    auto const ordering_def = '(' >> name >> '<' >> name >> ')';
+    //When testing from gki.informatik.uni-freiburg.de, it should be this form:
+    auto const ordering_def1 = '(' >> lit("<") >> name >> name >> ')'; //make sure to use lit("")
+    //According to HDDL EBNF Definition, it is the following:
+    auto const ordering_def2 = '(' >> name >> '<' >> name >> ')'; 
+    auto const ordering_def = ordering_def1 | ordering_def2;
+
     BOOST_SPIRIT_DEFINE(ordering);
     struct TOrdering: x3::annotate_on_success {};
 
@@ -397,7 +402,7 @@ namespace parser {
     struct TOrderings: x3::annotate_on_success {};
 
     rule<class TTaskNetworkOrderings, Orderings> const task_network_orderings = "task_network_orderings";
-    auto const task_network_orderings_def = lit(":ordering") > orderings;
+    auto const task_network_orderings_def = lit(":ordering") >> orderings;
     BOOST_SPIRIT_DEFINE(task_network_orderings);
     struct TTaskNetworkOrderings: x3::annotate_on_success {};
 
