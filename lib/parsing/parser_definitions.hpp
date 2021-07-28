@@ -387,11 +387,7 @@ namespace parser {
     struct TSubTasks: x3::annotate_on_success {};
 
     rule<class TOrdering, Ordering> const ordering = "ordering";
-    //When testing from gki.informatik.uni-freiburg.de, it should be this form:
-    auto const ordering_def1 = '(' >> lit("<") >> name >> name >> ')'; //make sure to use lit("")
-    //According to HDDL EBNF Definition, it is the following:
-    auto const ordering_def2 = '(' >> name >> '<' >> name >> ')'; 
-    auto const ordering_def = ordering_def1 | ordering_def2;
+    auto const ordering_def = '(' >> lit("<") >> name >> name >> ')'; //make sure to use lit("")
 
     BOOST_SPIRIT_DEFINE(ordering);
     struct TOrdering: x3::annotate_on_success {};

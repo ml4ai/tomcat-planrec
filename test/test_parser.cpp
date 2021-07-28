@@ -202,9 +202,8 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 		 (task3 (unload ?v ?loc1 ?p))
 		)
 		:ordering (and
-			( task0 < task1)
+			( < task0 task1)
 			( < task1 task2)
-;			( task2 < task3)
 		)
 	)
 
@@ -348,8 +347,9 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(methodprec1_os.predicate == "at");
     BOOST_TEST(name(methodprec2_os.args[0]) == "s");
 
-/* TODO
     // Test parsing method optional ordered-subtasks (totally-ordered methods)
+
+/* TODO
     auto osubtask_s = boost::get<MTask>(boost::get<vector<SubTask>>(
         dom.methods[0].task_network.subtasks.value().subtasks)[2]);
     BOOST_TEST(osubtask_s.name == "get-to");
