@@ -12,7 +12,7 @@ struct Action {
   std::string area;
   std::string start;
   std::string duration;
-}
+};
 
 
 // aux functions
@@ -32,7 +32,7 @@ sample_loc(std::vector<std::string> zones,
   std::mt19937 gen(seed);
   std::discrete_distribution<int> dist (w.begin(),w.end());
   int s = dist(gen);
-  return rooms[s];
+  return zones[s];
 }
 
 std::unordered_map<std::string,std::vector<std::string>>
@@ -84,7 +84,7 @@ sample_loc(std::vector<std::string> zones,
   std::mt19937 gen(rd());
   std::discrete_distribution<int> dist (w.begin(),w.end());
   int s = dist(gen);
-  return rooms[s];
+  return zones[s];
 }
 
 bool sample_vic_seen(double p) {
@@ -207,8 +207,6 @@ template <class State> std::optional<State> move(State state, Args args) {
       state.seed++;
     }
     state.time[agent] = end;
-
-    state.times_searched[agent] = 0;
 
     if (!state.loc_tracker[agent].empty()) {
       state.loc_tracker[agent].pop_back();
@@ -433,7 +431,7 @@ template <class State> pTasks assign_tasks(State state, Args args) {
       if (state.role[a] == "Medical_Specialist") {
         have_Medical_Specialist = true;
       }
-      if (state.agent_loc[a] != c_area) {
+      if (state.agent_loc[a] != c_vic_area) {
         can_wake_here = false;
       } 
     }
@@ -496,7 +494,7 @@ template <class State> pTasks wake_crit_vic(State state, Args args) {
       if (state.role[a] == "Medical_Specialist") {
         have_Medical_Specialist = true;
       }
-      if (state.agent_loc[a] != c_area) {
+      if (state.agent_loc[a] != c_vic_area) {
         can_wake_here = false;
       } 
     }
@@ -729,7 +727,7 @@ template <class State> pTasks triageCrit_Medical_Specialist(State state, Args ar
       state.c_triage_total < state.c_max) {
     double prob;
     if (in(state.agent_loc[agent],state.rooms)) {
-      if (state.r_triage_total < r_max) {
+      if (state.r_triage_total < state.r_max) {
         prob = (1.0/3) - 0.01;
       }
       else {
@@ -811,8 +809,8 @@ template <class State> pTasks move_Medical_Specialist(State state, Args args) {
 
     std::string n_area = state.agent_loc[agent];
     if (state.loc_tracker[agent].empty()) {
-      while (n_area == state.agent_loc[agent])
-        n_area = sample_loc(state.rooms,state.visited[agent],state.seed);
+      while (n_area == state.agent_loc[agent]) {
+        n_area = sample_loc(state.zones,state.visited[agent],state.seed);
         state.seed++;
       }
     }
@@ -872,7 +870,7 @@ template <class State> pTasks triageArea(State state, Args args) {
   if (state.role[agent] == "Medical_Specialist" && state.time[agent] < 900 &&
       state.r_triage_total < state.r_max) {
     double prob;
-    if (r_triaged_here[state.agent_loc]) {
+    if (state.r_triaged_here[area]) {
       prob = 13.0/24;
     }
     else {
@@ -895,7 +893,7 @@ template <class State> pTasks doneTriaging(State state, Args args) {
 
   if (state.role[agent] == "Medical_Specialist") {
     double prob;
-    if (r_triaged_here[state.agent_loc]) {
+    if (state.r_triaged_here[area]) {
       prob = 11.0/24;
     }
     else {
@@ -921,7 +919,7 @@ template <class State> pTasks clear_blocks_Hazardous_Material_Specialist(State s
   }
 
   if (state.role[agent] == "Hazardous_Material_Specialist" && 
-      state.time[agent] < 900 && !in(state.agent_loc[agent],state.no_victim_zones) {
+      state.time[agent] < 900 && !in(state.agent_loc[agent],state.no_victim_zones)) {
     return {18.0/66,
       {Task("Clear_area",Args({{"area",state.agent_loc[agent]},
                                       {"agent",agent}}))}};
@@ -1023,7 +1021,7 @@ template <class State> pTasks move_Hazardous_Material_Specialist(State state, Ar
     std::string n_area = state.agent_loc[agent];
     if (state.loc_tracker[agent].empty()) {
       while (n_area == state.agent_loc[agent]) {
-        n_area = sample_loc(state.rooms,state.visited[agent],state.seed);
+        n_area = sample_loc(state.zones,state.visited[agent],state.seed);
         state.seed++;
       }
     }
@@ -1136,7 +1134,7 @@ template <class State> pTasks move_victim(State state, Args args) {
     std::string n_area = state.agent_loc[agent];
     if (state.loc_tracker[agent].empty()) {
       while (n_area == state.agent_loc[agent]) {
-        n_area = sample_loc(state.rooms,state.visited[agent],state.seed);
+        n_area = sample_loc(state.zones,state.visited[agent],state.seed);
         state.seed++;
       }
     }
@@ -1225,7 +1223,7 @@ template <class State> pTasks move_Search_Specialist(State state, Args args) {
       }
     }
     else {
-      if (state.r_triage_total < r_max) {
+      if (state.r_triage_total < state.r_max) {
         prob = 155.0/161;
       }
       else {
@@ -1236,7 +1234,7 @@ template <class State> pTasks move_Search_Specialist(State state, Args args) {
     std::string n_area = state.agent_loc[agent];
     if (state.loc_tracker[agent].empty()) {
       while (n_area == state.agent_loc[agent]) {
-        n_area = sample_loc(state.rooms,state.visited[agent],state.seed);
+        n_area = sample_loc(state.zones,state.visited[agent],state.seed);
         state.seed++;
       }
     }
@@ -1375,8 +1373,7 @@ class TeamSARSelector {
 class TeamSARDomain {
   public:
     Operators<TeamSARState> operators = 
-      Operators<TeamSARState>({{"!search",search},
-                           {"!triageReg",triageReg},
+      Operators<TeamSARState>({{"!triageReg",triageReg},
                            {"!triageCrit",triageCrit},
                            {"!break_block",break_block},
                            {"!pickup_vic",pickup_vic},
@@ -1388,8 +1385,7 @@ class TeamSARDomain {
                            {"!exit",exit}});
 
     pOperators<TeamSARState> poperators = 
-      pOperators<TeamSARState>({{"!search",search},
-                           {"!triageReg",triageReg},
+      pOperators<TeamSARState>({{"!triageReg",triageReg},
                            {"!triageCrit",triageCrit},
                            {"!break_block",break_block},
                            {"!pickup_vic",pickup_vic},

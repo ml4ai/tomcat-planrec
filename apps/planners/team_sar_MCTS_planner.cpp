@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     std::string area12 = "MR12";
 
     state1.zones.push_back("CZ");
-    state1.zones.push_back("NV")
+    state1.zones.push_back("NV");
     state1.zones.push_back(area1);
     state1.zones.push_back(area2);
     state1.zones.push_back(area3);
