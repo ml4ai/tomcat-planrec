@@ -12,6 +12,7 @@
 #include <tuple>
 #include <variant>
 #include <vector>
+#include "unification.h"
 
 
 using namespace std;
@@ -22,12 +23,9 @@ struct KnowledgeBase {
     vector<ast::Sentence> sentences; // this should be changed to the data type of CNF sentences 
     vector<Clause> clauses;
     vector<Clause> definite_clauses;
-    // should the facts be indexed/mapped?
     vector<Literal<Term>> facts;
-
 };
 
-// should this be a method in the KB or of the clause struct?
 // this method returns whether clause is definite or not, namely, if there is only exactly one positive literal.
 bool isDefiniteClause(Clause c) {
     Literal<Term> lit;
@@ -46,7 +44,7 @@ bool isDefiniteClause(Clause c) {
 }
 
 void tell(KnowledgeBase& kb, ast::Sentence sentence) {
-    // need to add CNF converter to run on the sentence first
+    // CNF converter to run on the sentence first
     ast::CNF cnf_tell = ast::to_CNF(sentence);
 
     kb.sentences.push_back(sentence); // store original sentence
@@ -62,7 +60,6 @@ void tell(KnowledgeBase& kb, Literal<Term> lit_in) {
 };
 
 // This is part of my permutation algorithm for permuting the literals to get CNF from DNF
-// check this out again
 // c1 should get appended by each literal in c2, making c2.literals.size() number of output clauses
 // example: c1: [a, b] | c2: [d,e] then output: [[a,d],[a,e], [b,d], [b,e]]
 ast::CNF permute_step(Clause c1, Clause c2) {
@@ -83,13 +80,13 @@ ast::CNF permute_step(Clause c1, Clause c2) {
 // this method not's a CNF sentence
 ast::CNF not_CNF(ast::CNF cnf) {
     // after not'ing the cnf we get a disjunction of conjuctions since all the or's go to and's and vice versa. All the literals are not'd too
-    for (Clause c : cnf.conjunctionOfClauses) {
-        for (Literal<Term> lit : c.literals) {
-            if (lit.is_negative == false) {
-                lit.is_negative = true;
+    for (int j=0; j < cnf.conjunctionOfClauses.size(); j++) {
+        for (int i=0; i < cnf.conjunctionOfClauses.at(j).literals.size(); i++) {
+            if (cnf.conjunctionOfClauses.at(j).literals.at(i).is_negative == false) {
+                cnf.conjunctionOfClauses.at(j).literals.at(i).is_negative = true;
             }
             else {
-                lit.is_negative = false;
+                cnf.conjunctionOfClauses.at(j).literals.at(i).is_negative = false;
             }
         }
     }
@@ -97,11 +94,10 @@ ast::CNF not_CNF(ast::CNF cnf) {
 
     // the application of the distribution rule over the disjunctions and conjuctions now results in taking one literal from each "conjuctive-clause"
     // in the dnf sentence and making a clause out of it, and then permuting through all options conjucting each clause, which is a cnf sentence at the end
-    // Clause start;
     ast::Sentence for_cnf;
     ast::CNF temp1 = ast::construct(for_cnf);
     temp1.conjunctionOfClauses.clear();
-    ast::CNF temp2 = ast::construct(for_cnf); // these are adding clauses, this is the problem
+    ast::CNF temp2 = ast::construct(for_cnf); // these are adding empty clauses, need to clear them 
     temp2.conjunctionOfClauses.clear();
     ast::CNF output = ast::construct(for_cnf);
     for (Clause c : cnf.conjunctionOfClauses) {
@@ -124,35 +120,78 @@ bool ask(KnowledgeBase& kb, ast::Sentence query) {
     ast::CNF cnf_query = ast::to_CNF(query); // does this convert it to a CNF too?
     // now we not the input, note this causes an expoential increase in the sentence size, do I need a sentence to make CNF's?
     ast::CNF query_clauses = not_CNF(cnf_query);
-    // now to start the resolution inference algorithm, this is just checking clauses
-    // only need one clause to return empty because then the whole sentence is false, if want to check each clause, ask for each clause
-
-    // first we reduce the query clauses against the facts of the knowledge base
-    /* Clause kb_facts;
+    
+    // we compile a large list of all clauses in KB, including one clause of 
+    typedef vector<Clause> clause_vector;
+    clause_vector clause_vec;
+    clause_vector temp_vec;
+    clause_vector fact_vec;
+    Clause kb_facts, temp, resolvant;
+    // Each fact is a seperate clause
     for(Literal<Term> l1 : kb.facts) {
         kb_facts.literals.push_back(l1);
-        for (Clause c_q : query_clauses.conjunctionOfClauses) {
-            cout << "Resolvant size: " << (kb_facts==c_q).literals.size() << "\n"; // this the source of the error, might be failing since input predicates are unary
-            if((kb_facts==c_q).literals.size() == 0) { // if we ever get a resolvant that is in contradiction with our kb, the resolution is true
-                return true;
-            }
-            if ((kb_facts==c_q).literals.size() < c_q.literals.size()) { // if the resolvant is smaller than the query, meaning a fact canceled a lit
-            // then we replace the old query clause with the resolvant
-                c_q.literals.clear();
-                c_q.literals.insert(c_q.literals.end(), (kb_facts==c_q).literals.begin(), (kb_facts==c_q).literals.end());
-            }
-        }
-        kb_facts.literals.clear(); // clear for the next literal iteration
-    } */
-    // now we resolve against the "rules" aka clauses of the KB
-    for (Clause c_kb : kb.clauses) {
-        for (Clause c_q : query_clauses.conjunctionOfClauses) {
-            if((c_kb==c_q).literals.size() == 0) { // if we ever get a resolvant that is in contradiction with our kb, the resolution is true
-                return true;
-            }
-        }
+        fact_vec.push_back(kb_facts);
+        kb_facts.literals.clear();
     }
-    return false;
+    clause_vec.insert(clause_vec.end(), fact_vec.begin(), fact_vec.end());
+    // adding the clauses of the query
+    for (Clause c_q : query_clauses.conjunctionOfClauses) {
+        clause_vec.push_back(c_q);
+    }
+    // adding the rule clauses of the KB
+    for (Clause c_kb : kb.clauses) {
+        clause_vec.push_back(c_kb);
+    }
+
+    bool cond=false;
+    bool found=false;
+    // now to run the resolution 
+    while (cond == false) {
+        for (int i=0; i < clause_vec.size(); i++) {
+            for (int j=0; j < clause_vec.size(); j++) {
+                if (i!=j) {
+                    resolvant = clause_vec.at(i)==clause_vec.at(j);
+                    if (resolvant.literals.size() == 0) {
+                        return true;
+                        cond = true;
+                    }
+                    else { 
+                        for (Clause c_o : clause_vec) {
+                            bool vec_eq=false;
+                            int found_count=0;
+                            if (resolvant.literals.size() == c_o.literals.size()) {
+                                for (int l=0; l < resolvant.literals.size(); l++) {
+                                    for (int ll=0; ll < resolvant.literals.size(); ll++){
+                                        if (resolvant.literals.at(l)==c_o.literals.at(ll)) {
+                                            found_count = found_count + 1;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (found_count == resolvant.literals.size()) {
+                                    vec_eq=true;
+                                }
+                            }
+                            if (vec_eq==true) {
+                                found = true; // check if resolvant is a new clause
+                            }
+                        }
+                        if (found == false) { // if new, add it to list
+                            temp_vec.push_back(resolvant);
+                        }
+                        found = false; // reset found condition
+                    }
+                }
+            }
+        }
+        // resolution fail condition is no new resolutions are produced, thus KB is self consistant 
+        if (temp_vec.size() == 0) { // This should be the case that all resolvants have been added and no new ones are created
+            return false;
+            cond = true;
+        }
+        clause_vec.insert(clause_vec.end(), temp_vec.begin(), temp_vec.end());
+        temp_vec.clear();
+    }
 }
  // overloaded option for CNF input instead of parsed sentence
 bool ask(KnowledgeBase& kb, ast::CNF query) {
@@ -161,34 +200,77 @@ bool ask(KnowledgeBase& kb, ast::CNF query) {
     // now to start the resolution inference algorithm, this is just checking clauses
     // only need one clause to return empty because then the whole sentence is false, if want to check each clause, ask for each clause
 
-    // first we reduce the query clauses against the facts of the knowledge base
-    Clause kb_facts;
-    Clause temp_resolve;
+    // we compile a large list of all clauses in KB, including one clause of 
+    typedef vector<Clause> clause_vector;
+    clause_vector clause_vec;
+    clause_vector temp_vec;
+    clause_vector fact_vec;
+    Clause kb_facts, temp, resolvant;
+    // Each fact is a seperate clause
     for(Literal<Term> l1 : kb.facts) {
         kb_facts.literals.push_back(l1);
-        for (Clause c_q : query_clauses.conjunctionOfClauses) {
-            temp_resolve.literals.insert(temp_resolve.literals.end(), (kb_facts==c_q).literals.begin(), (kb_facts==c_q).literals.end());
-            if(temp_resolve.literals.size() == 0) { // if we ever get a resolvant that is in contradiction with our kb, the resolution is true
-            return true;
-            }
-            if (temp_resolve.literals.size() < c_q.literals.size()) { // if the resolvant is smaller than the query, meaning a fact canceled a lit
-            // then we replace the old query clause with the resolvant
-                c_q.literals.clear();
-                c_q.literals.insert(c_q.literals.end(), temp_resolve.literals.begin(), temp_resolve.literals.end());
-            }
-            temp_resolve.literals.clear(); // clear the temp resolution for next loop iteration
-        }
-        kb_facts.literals.clear(); // clear for the next literal iteration
+        fact_vec.push_back(kb_facts);
+        kb_facts.literals.clear();
     }
-    // now we resolve against the "rules" aka clauses of the KB
+    clause_vec.insert(clause_vec.end(), fact_vec.begin(), fact_vec.end());
+    // adding the clauses of the query
+    for (Clause c_q : query_clauses.conjunctionOfClauses) {
+        clause_vec.push_back(c_q);
+    }
+    // adding the rule clauses of the KB
     for (Clause c_kb : kb.clauses) {
-        for (Clause c_q : query_clauses.conjunctionOfClauses) {
-            if((c_kb==c_q).literals.size() == 0) { // if we ever get a resolvant that is in contradiction with our kb, the resolution is true
-                return true;
+        clause_vec.push_back(c_kb);
+    }
+
+    bool cond=false;
+    bool found=false;
+    // now to run the resolution 
+    while (cond == false) {
+        for (int i=0; i < clause_vec.size(); i++) {
+            for (int j=0; j < clause_vec.size(); j++) {
+                if (i!=j) {
+                    resolvant = clause_vec.at(i)==clause_vec.at(j);
+                    if (resolvant.literals.size() == 0) {
+                        return true;
+                        cond = true;
+                    }
+                    else { 
+                        for (Clause c_o : clause_vec) {
+                            bool vec_eq=false;
+                            int found_count=0;
+                            if (resolvant.literals.size() == c_o.literals.size()) {
+                                for (int l=0; l < resolvant.literals.size(); l++) {
+                                    for (int ll=0; ll < resolvant.literals.size(); ll++){
+                                        if (resolvant.literals.at(l)==c_o.literals.at(ll)) {
+                                            found_count = found_count + 1;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (found_count == resolvant.literals.size()) {
+                                    vec_eq=true;
+                                }
+                            }
+                            if (vec_eq==true) {
+                                found = true; // check if resolvant is a new clause
+                            }
+                        }
+                        if (found == false) { // if new, add it to list
+                            temp_vec.push_back(resolvant);
+                        }
+                        found = false; // reset found condition
+                    }
+                }
             }
         }
+        // resolution fail condition is no new resolutions are produced, thus KB is self consistant 
+        if (temp_vec.size() == 0) { // This should be the case that all resolvants have been added and no new ones are created
+            return false;
+            cond = true;
+        }
+        clause_vec.insert(clause_vec.end(), temp_vec.begin(), temp_vec.end());
+        temp_vec.clear();
     }
-    return false;
 }
 
 // now for the ask_vars method, which will return a substitution list for a variable in the query, if resolute 
@@ -198,19 +280,13 @@ bool ask(KnowledgeBase& kb, ast::CNF query) {
 // unless we restrict ourselves to horn clauses the inputs to the ask_vars will have to be a literal and it will just be unified against the facts
 // of the kb. AIMA p.301 for detials.
 
-// really need to test this function
-sub_list ask_vars(KnowledgeBase& kb, ast::Literal<Term> query) {    
-    sub_list sub;
-    sub_list temp;
+// UNDER CONSTRUCTION
+
+// This will return a vector of substitutions all of which are allowed for the given input
+/* ask_vars(KnowledgeBase& kb, Literal<Term> query) {
+    // sub_optional sub;
     for(Literal lit : kb.facts) {
-        // sub_list temp;
-        temp = sub_list();
-        temp = unify(lit, query, temp);
-        if(!holds_alternative<string>(temp)){
-            get<sub_list_type>(sub).insert(get<sub_list_type>(temp).begin(), get<sub_list_type>(temp).end());
-            get<sub_list_type>(temp).clear();
-        }
-        // delete temp; // This isn't working
+        auto sub = unify(lit, query);
     }
     return sub;
-}
+} */

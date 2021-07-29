@@ -10,9 +10,12 @@
 #include "parsing/parse.hpp"
 #include "parsing/ast_adapted.hpp"
 #include "parsing/api.hpp"
-//#include "fol/Variable.h"
-//#include "Literal.h"
+#include "util.h"
+#include "fol/Variable.h"
+#include "fol/Literal.h"
+#include "fol/Constant.h"
 
+using boost::unit_test::framework::master_test_suite;
 using namespace std;
 using namespace ast;
 using namespace fol;
@@ -58,13 +61,13 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     test_c2.literals.push_back(lit1);
 
     // first test adding facts to kb
-    tell(test_kb, lit1);
+    auto litp = parse<Literal<Term>>("(K)");
+    tell(test_kb, litp);
 
-    BOOST_TEST(test_kb.facts.at(0).predicate==lit1.predicate);
-    BOOST_TEST(get<Constant>(test_kb.facts.at(0).args.at(0)).name==get<Constant>(lit1.args.at(0)).name);
+    BOOST_TEST(test_kb.facts.at(0).predicate==litp.predicate);
 
     // now let's test adding a sentence to the knowledge base (this will implicitly test the cnf conversion too)
-    auto e1 = parse<Sentence>("(or (and (A) (B)) (not (C)))", sentence()); // This should output (A or not C) & (B or not C) in CNF I think
+    auto e1 = parse<Sentence>("(or (and (A) (B)) (not (C)))"); // This should output (A or not C) & (B or not C) in CNF I think
     tell(test_kb, e1);
 
     // checked the clause convsertions at https://www.erpelstolz.at/gateway/formular-uk-zentral.html
@@ -76,12 +79,12 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     BOOST_TEST(ask(test_kb, e1));
 
     // in this version of ask, if a sentence can not be provn true it is returned false, even if the resolution could be unknown. 
-    auto e2 = parse<Sentence>("(and (A) (D))", sentence()); 
+    auto e2 = parse<Sentence>("(and (A) (D))"); 
 
     BOOST_TEST(!ask(test_kb, e2)); // This should return false since D is not defined in the KB
 
     // Let's now test an individual clause that is true, instead of the whole sentence
-    auto e3 = parse<Sentence>("(and (A) (not (C)))", sentence()); 
+    auto e3 = parse<Sentence>("(and (A) (not (C)))"); 
 
     BOOST_TEST(ask(test_kb, e3));
 
@@ -91,11 +94,15 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     BOOST_TEST((test_c1==test_c2).literals.size() == 1);
 
 
-    // lastly let's do a quick check for ask_vars(), the below tells should make it so we have 3 different possible substitutions for variable v.
+    // lastly let's do a quick check for ask_vars(), the below tells should make it so we have 2 different possible substitutions for variable v.
     tell(test_kb, lit3);
     tell(test_kb, lit4);
 
-    // BOOST_TEST(get<Constant>(get<sub_list_type>(ask_vars(test_kb, lit6))["v"]).name == "A"); // first sub
+    // UNDER CONSTRUCTION
+
+    /* auto sub = ask_vars(test_kb, lit6);
+    BOOST_TEST(check_substitution_contains(sub, Variable{"v"}, Constant{"C"})); // first sub
+    BOOST_TEST(check_substitution_contains(sub, Variable{"v"}, Constant{"D"})); // second sub */
 
     // Smokescreen test
     BOOST_TEST(true);

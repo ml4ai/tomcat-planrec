@@ -39,11 +39,11 @@ struct Clause {
         lits resolvant_lits;
 
         // this loop will first try and resolve the rhs_pos with the lhs_neg and then the rhs_neg with the lhs_pos
-        for (int i=0; i<2; i++) {
+        for (int k=0; k<2; k++) {
             t_pos_lits.clear();
             t_neg_lits.clear();
 
-            if (i==0) {
+            if (k==0) {
                 t_pos_lits.insert(t_pos_lits.end(), pos_lits_rhs.begin(), pos_lits_rhs.end());
                 t_neg_lits.insert(t_neg_lits.end(), neg_lits_lhs.begin(), neg_lits_lhs.end());
             }
@@ -51,32 +51,36 @@ struct Clause {
                 t_pos_lits.insert(t_pos_lits.end(), pos_lits_lhs.begin(), pos_lits_lhs.end());
                 t_neg_lits.insert(t_neg_lits.end(), neg_lits_rhs.begin(), neg_lits_rhs.end());                
             }
-            for(ast::Literal<ast::Term> litp : t_pos_lits) {
-                bool found=false;
-                for(ast::Literal litn : t_neg_lits) {
-                    if(litp == litn) {
-                        found = true;
+            if (t_pos_lits.size() > 0) {
+                for(ast::Literal<ast::Term> litp : t_pos_lits) {
+                    bool found=false;
+                    for(ast::Literal litn : t_neg_lits) {
+                        if((litp==litn)==true) {
+                            found = true;
+                        }
                     }
-                }
-                if(found == false) {
-                    resolvant_lits.push_back(litp); // if there was no matching negative literal to cancel the positive add it to list
+                    if(found == false) {
+                        resolvant_lits.push_back(litp); // if there was no matching negative literal to cancel the positive add it to list
+                    }
                 }
             }
-            for(ast::Literal<ast::Term> litn : t_neg_lits) {
-                bool found=false;
-                for(ast::Literal litp : t_pos_lits) {
-                    if(litp == litn) {
-                        found = true;
+            if (t_neg_lits.size() > 0) {
+                for(ast::Literal<ast::Term> litn : t_neg_lits) {
+                    bool found=false;
+                    for(ast::Literal litp : t_pos_lits) {
+                        if((litp==litn)==true) {
+                            found = true;
+                        }
                     }
-                }
-                if(found == false) {
-                    resolvant_lits.push_back(litn); // if there was no matching positive literal to cancel the negative add it to list
+                    if(found == false) {
+                        resolvant_lits.push_back(litn); // if there was no matching positive literal to cancel the negative add it to list
+                    }
                 }
             }
         }
 
         // now we remove any duplicates by converting to a set and then back (assuming the resolvant isn't empty) and create our resolvant clause
-        if(resolvant_lits.size()>0) {
+        if(resolvant_lits.size()>1) {
             for (int i=0; i < resolvant_lits.size(); i++) {
                 for (int j=0; j < resolvant_lits.size(); j++) {
                     if (i!=j) {
@@ -89,9 +93,10 @@ struct Clause {
                     }
                 }
             }
-            // now to construct the resolvant clause
-            resolvant.literals.insert(resolvant.literals.end(), resolvant_lits.begin(), resolvant_lits.end());
         }
+        // now to construct the resolvant clause
+        resolvant.literals.insert(resolvant.literals.end(), resolvant_lits.begin(), resolvant_lits.end());
+        
         return resolvant;
     }
 };
