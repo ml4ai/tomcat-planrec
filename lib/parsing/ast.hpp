@@ -130,11 +130,15 @@ namespace ast {
     };
 
     // Task that a method decomposes
+    // MTask is subtask without an ID. EBNF Definiton:
+        // <subtask-def> ::= (<task-symbol> <term>*)
     struct MTask : x3::position_tagged {
         Name name;
         std::vector<Term> parameters;
     };
   
+    // SubTaskWithId EBNF Definition:
+        // <subtask-def> ::= (<subtask-id> (<task-symbol> <term>*))
     struct SubTaskWithId : x3::position_tagged {
         Name id;
         MTask subtask;
@@ -151,17 +155,20 @@ namespace ast {
 
     // SubTasks EBNF Definition:
         // <subtask-defs> ::= () | <subtask-def> | (and <subtask-def>+)
-    
     struct SubTasks : x3::variant<Nil, SubTask, std::vector<SubTask>> {
         using base_type::base_type;
         using base_type::operator=;
     };
 
+    // Ordering EBNF Definition:
+        // <ordering_def> ::= (<subtask-id> "<" <subtask-id>)
     struct Ordering : x3::position_tagged {
         Name first;
         Name second;
     };
 
+    // Orderings EBNF Definition:
+        // <ordering-defs> ::= () | <ordering-def> | (and <ordering-def>+)
     struct Orderings : x3::variant<Nil, Ordering, std::vector<Ordering>> {
         using base_type::base_type;
         using base_type::operator=;
@@ -178,7 +185,6 @@ namespace ast {
         //    [:[ordered-][sub]tasks <subtask-defs>]
         //    [:order[ing] <ordering-defs>]
         //    [:constraints <constraint-defs>]
-
     struct TaskNetwork : x3::position_tagged {
         std::optional<MethodSubTasks> subtasks;
         std::optional<Orderings> orderings;
@@ -192,7 +198,6 @@ namespace ast {
         //     (<task-symbol> <term>*)
         //     [:precondition <gd>]
         //     <tasknetwork-def>)
-    
     struct Method : x3::position_tagged {
         Name name;                     
         TypedList<Variable> parameters; 

@@ -208,6 +208,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 		:ordering (and
 			( < task0 task1)
 			( < task1 task2)
+			( < task2 task3)
 		)
 	)
 
@@ -241,24 +242,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 
     )";
 
-    //Begin original test domain
-    //Delete as necessary...
-    /*
-            ;; Actions
-            (:action drive
-              :parameters
-                    (?box1 ?box2 - package
-                     ?loc1 ?loc2 - site)
-              :precondition
-                    (and (tAt ?loc1)
-                         (in-transit ?loc1 ?loc2))
-              :effect
-                    (and (tAt ?loc1)
-                         (not (tAt ?loc2)))
-              ); end action drive
-          );end define domain
-      */
-//end of original test domain
+
 
     auto dom = parse<Domain>(storage);
 
@@ -315,38 +299,38 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(name(methodprec2_os.args[0]) == "s");
 
     // Test Parsing Method's SubTasks:
-
     std::vector<ast::SubTask> subtask_v = boost::get<vector<SubTask>>(
         dom.methods[0].task_network.subtasks.value().subtasks);
     SubTask subtask_s = subtask_v[2];
     SubTaskWithId subtask_id = boost::get<SubTaskWithId>(subtask_s);
     BOOST_TEST(subtask_id.id == "task2");
     BOOST_TEST(subtask_id.subtask.name == "get_to");
-
     std::vector<ast::Term> subtask_p = subtask_id.subtask.parameters;
     BOOST_TEST(name(subtask_p[1]) == "loc2");
-
    
     // Test Parsing Method's Ordering:
+    vector<ast::Ordering> ordering_v = boost::get<vector<Ordering>>(
+        dom.methods[0].task_network.orderings.value());
+    Ordering ordering_s = ordering_v[2];
+    BOOST_TEST(ordering_s.second == "task3");
 
+    std::cout << "Type Detection: " << typeid(ordering_s).name() << std::endl;
 
-    std::cout << "Type Detection: " << typeid(subtask_p).name() << std::endl;
-
-/* TODO
     // Test parsing of domain actions and their components:
     // Test parsing action names
     auto actname1 = dom.actions[0].name;
-    BOOST_TEST(actname1 == "drive");
+    BOOST_TEST(actname1 == "pick_up");
 
     // Test parsing action parameters
     auto actpara1 = dom.actions[0].parameters;
     BOOST_TEST(boost::get<PrimitiveType>(
-                   actpara1.explicitly_typed_lists[0].type) == "package");
+                   actpara1.explicitly_typed_lists[0].type) == "vehicle");
     BOOST_TEST(boost::get<PrimitiveType>(
-                   actpara1.explicitly_typed_lists[1].type) == "site");
-    BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "box1");
-    BOOST_TEST(actpara1.explicitly_typed_lists[1].entries[0].name == "loc1");
+                   actpara1.explicitly_typed_lists[2].type) == "package");
+    BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "v");
+    BOOST_TEST(actpara1.explicitly_typed_lists[2].entries[0].name == "p");
 
+/* TODO
     // Test parsing action precondition
     auto actprec1_f = dom.actions[0].precondition;
     auto actprec1_s = boost::get<ConnectedSentence>(actprec1_f);
