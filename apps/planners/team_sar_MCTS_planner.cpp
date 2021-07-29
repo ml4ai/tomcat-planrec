@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     state1.agents.push_back(agent3);
 
     state1.change_zone = "CZ";
-    state1.no_victim_zones.push_back("CZ");
+    state1.no_victim_zones.push_back(state1.change_zone);
     state1.no_victim_zones.push_back("NV");
     std::string area1 = "R1";
     std::string area2 = "R2";
@@ -73,9 +73,9 @@ int main(int argc, char* argv[]) {
     for (auto a : state1.agents) {
       state1.role[a] = "NONE";
 
-      state1.agent_loc[a] = "CZ";
+      state1.agent_loc[a] = state1.change_zone;
 
-      state1.holding[a] = "NONE";
+      state1.holding[a] = false;
 
       state1.time[a] = 0;
 
@@ -108,6 +108,8 @@ int main(int argc, char* argv[]) {
 
     state1.c_max = 3;
     state1.r_max = 24;
+
+    state1.action_tracker = {};
 
     auto domain = TeamSARDomain();
 
