@@ -160,6 +160,10 @@ template <class State> std::optional<State> wakeCrit(State state, Args args) {
   return std::nullopt;
 }
 
+template <class State> double wakeCrit(State pre_state,State post_state, Args args) {
+  return 1;
+}
+
 template <class State> std::optional<State> triageCrit(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
@@ -367,9 +371,8 @@ template <class State> double change_to_Search_Specialist(State pre_state, State
 }
 
 template <class State> std::optional<State> exit(State state, Args args) {
-    for (auto a: state.agents) {
-      state.time[a] = 900;
-    }
+    auto agent = args["agent"];
+    state.time[agent] = 900;
     if (!state.action_tracker.empty()) {
       state.action_tracker.pop_back();
     }
@@ -457,7 +460,7 @@ template <class State> pTasks wake_crit_vic(State state, Args args) {
   auto agent3 = args["agent3"];
 
   auto min_agent = agent1;
-  std::string duration = "0";
+  std::string duration = "1";
   int start_num = std::max({state.time[agent1],state.time[agent2],state.time[agent3]});
   std::string start = std::to_string(start_num);
   if (state.action_tracker.empty()) {
@@ -479,7 +482,7 @@ template <class State> pTasks wake_crit_vic(State state, Args args) {
     start = act.start;
   }
 
-  if (state.time[min_agent] < 900) {
+  if (state.time[min_agent] < 900 && !in(state.agent_loc[min_agent],state.no_victim_zones)) {
     std::string c_vic_area = state.agent_loc[agent1];
     bool in_room = in(c_vic_area,state.rooms);
     if ((!in_room && 
@@ -563,7 +566,7 @@ template <class State> pTasks choose_Medical_Specialist(State state, Args args) 
     start = act.start;
   }
   else {
-    duration = "0";
+    duration = "1";
     start = std::to_string(state.time[agent]);
   }
 
@@ -591,7 +594,7 @@ template <class State> pTasks choose_Hazardous_Material_Specialist(State state, 
     start = act.start;
   }
   else {
-    duration = "0";
+    duration = "1";
     start = std::to_string(state.time[agent]);
   }
 
@@ -619,7 +622,7 @@ template <class State> pTasks choose_Search_Specialist(State state, Args args) {
     start = act.start;
   }
   else {
-    duration = "0";
+    duration = "1";
     start = std::to_string(state.time[agent]);
   }
 
@@ -942,7 +945,7 @@ template <class State> pTasks clearArea(State state, Args args) {
     start = act.start;
   }
   else {
-    duration = "0";
+    duration = "1";
     start = std::to_string(state.time[agent]);
   }
 
@@ -1093,7 +1096,7 @@ template <class State> pTasks pickup_victim(State state, Args args) {
     start = act.start;
   }
   else {
-    duration = "0";
+    duration = "1";
     start = std::to_string(state.time[agent]);
   }
 
@@ -1167,7 +1170,7 @@ template <class State> pTasks putdown_victim(State state, Args args) {
     start = act.start;
   }
   else {
-    duration = "0";
+    duration = "1";
     start = std::to_string(state.time[agent]);
   }
 
@@ -1375,6 +1378,7 @@ class TeamSARDomain {
     Operators<TeamSARState> operators = 
       Operators<TeamSARState>({{"!triageReg",triageReg},
                            {"!triageCrit",triageCrit},
+                           {"!wakeCrit",wakeCrit},
                            {"!break_block",break_block},
                            {"!pickup_vic",pickup_vic},
                            {"!put_down_vic",put_down_vic},
@@ -1387,6 +1391,7 @@ class TeamSARDomain {
     pOperators<TeamSARState> poperators = 
       pOperators<TeamSARState>({{"!triageReg",triageReg},
                            {"!triageCrit",triageCrit},
+                           {"!wakeCrit",wakeCrit},
                            {"!break_block",break_block},
                            {"!pickup_vic",pickup_vic},
                            {"!put_down_vic",put_down_vic},
