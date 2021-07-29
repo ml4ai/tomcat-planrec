@@ -18,6 +18,8 @@
 
 // TODO Enforce optionality wherever appropriate, based on EBNF specification.
 
+// TODO Add EBNF formal definitions to each definition in this file
+
 namespace ast {
     using Name = std::string;
     namespace x3 = boost::spirit::x3;
@@ -132,17 +134,24 @@ namespace ast {
         Name name;
         std::vector<Term> parameters;
     };
-
+  
     struct SubTaskWithId : x3::position_tagged {
         Name id;
         MTask subtask;
     };
 
+    // SubTask EBNF Definition:
+        // <subtask-def> ::= (<task-symbol> <term>*)
+        //                 | (<subtask-id> (<task-symbol> <term>*))
+    
     struct SubTask : x3::variant<MTask, SubTaskWithId> {
         using base_type::base_type;
         using base_type::operator=;
     };
 
+    // SubTasks EBNF Definition:
+        // <subtask-defs> ::= () | <subtask-def> | (and <subtask-def>+)
+    
     struct SubTasks : x3::variant<Nil, SubTask, std::vector<SubTask>> {
         using base_type::base_type;
         using base_type::operator=;
@@ -163,21 +172,34 @@ namespace ast {
         SubTasks subtasks;
     };
 
+
+    // TaskNetwork EBNF Definition:
+        // <tasknetwork-def> ::=
+        //    [:[ordered-][sub]tasks <subtask-defs>]
+        //    [:order[ing] <ordering-defs>]
+        //    [:constraints <constraint-defs>]
+
     struct TaskNetwork : x3::position_tagged {
         std::optional<MethodSubTasks> subtasks;
         std::optional<Orderings> orderings;
         std::optional<Constraints> constraints;
     };
 
-    // Totally-ordered methods use the keyword 'ordered-subtasks'
-    // Partially-ordered methods use the keyword 'subtasks'
+    // Method EBNF Definition:
+        // (<method-def> ::= 
+        //     method <name>
+        //     (<typed list (variable)>)
+        //     (<task-symbol> <term>*)
+        //     [:precondition <gd>]
+        //     <tasknetwork-def>)
+    
     struct Method : x3::position_tagged {
-        Name name;
-        TypedList<Variable> parameters;
-        MTask task;
-        Sentence precondition; // optional
-        TaskNetwork task_network;
-    };
+        Name name;                     
+        TypedList<Variable> parameters; 
+        MTask task;                    
+        Sentence precondition;        
+        TaskNetwork task_network;    
+    };                                  
 
     // Conditional effects
     using PEffect = Literal<Term>;

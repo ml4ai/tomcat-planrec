@@ -314,38 +314,23 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(methodprec1_os.predicate == "at");
     BOOST_TEST(name(methodprec2_os.args[0]) == "s");
 
-    // Test parsing methods  
-    // Test subtask id:  (task2 (get_to ?v ?loc2)
-    /*This works:
-    auto subtask_f = boost::get<SubTaskWithId>(boost::get<vector<SubTask>>(
-        dom.methods[0].task_network.subtasks.value().subtasks)[2]);
-    BOOST_TEST(subtask_f.id == "task2");
-   */
+    // Test Parsing Method's SubTasks:
 
-    // This works too:
-    auto subtask_s = boost::get<vector<SubTask>>(
-        dom.methods[0].task_network.subtasks.value().subtasks)[2];
-    
-    auto subtask_id = boost::get<SubTaskWithId>(subtask_s);
+    std::vector<ast::SubTask> subtask_v = boost::get<vector<SubTask>>(
+        dom.methods[0].task_network.subtasks.value().subtasks);
+    SubTask subtask_s = subtask_v[2];
+    SubTaskWithId subtask_id = boost::get<SubTaskWithId>(subtask_s);
     BOOST_TEST(subtask_id.id == "task2");
-    
+    BOOST_TEST(subtask_id.subtask.name == "get_to");
+
+    std::vector<ast::Term> subtask_p = subtask_id.subtask.parameters;
+    BOOST_TEST(name(subtask_p[1]) == "loc2");
+
+   
+    // Test Parsing Method's Ordering:
 
 
-    // Trying:
-    //auto subtask_name = boost::get<MTask>(subtask_s).name;// This works too
-    auto subtask_name = boost::get<MTask>(subtask_s).name;// This works too
-
-    //NO: BOOST_TEST(subtask_name == "get_to");          // fails test
-    //NO: BOOST_TEST(subtask_name == "get_to v loc2");   // fails test
-    //NO: BOOST_TEST(subtask_name == "get_to ?v ?loc2"); // fails test
-    
-
-    //No!!  auto subtask_st = boost::get<MTask>(subtask_s.name);//No name in ast::SubTask
-    //KEEP: auto subtask_st = boost::get<MTask>(subtask_s);//works and passes
-    //KEEP:  BOOST_TEST(subtask_st.name == "get_to");//builds but doesn't pass
-    //
-
-
+    std::cout << "Type Detection: " << typeid(subtask_p).name() << std::endl;
 
 /* TODO
     // Test parsing of domain actions and their components:
