@@ -257,8 +257,7 @@ simulation(State state,
           }
           std::string message = task_id;
           message += " preconditions failed during simulation!";
-          throw std::logic_error(
-              message);
+          throw std::logic_error(message);
       }
 
       if (in(task_id, domain.methods)) {
