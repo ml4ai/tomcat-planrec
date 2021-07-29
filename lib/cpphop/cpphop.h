@@ -272,7 +272,10 @@ simulation(State state,
           }
           seed++;
           if (c.empty()) {
-            throw std::logic_error("No valid task during simulation!");
+            std::string message = "No valid method for ";
+            message += task_id;
+            message += " during simulation!";
+            throw std::logic_error(message);
           }
           pTasks r = *select_randomly(c.begin(), c.end(), seed);
           seed++;
@@ -284,7 +287,10 @@ simulation(State state,
           }
           continue;
       }   
-      throw std::logic_error("Invalid task during simulation!");
+      std::string message = "No valid method for ";
+      message += task_id;
+      message += " during simulation!";
+      throw std::logic_error(message);
     }
     return likelihood;
 }
