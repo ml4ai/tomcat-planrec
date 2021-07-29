@@ -149,8 +149,16 @@ template <class State> std::optional<State> wakeCrit(State state, Args args) {
     state.time[a] = end;
   }
 
+  bool c_awake;
+  if(state.c_awake.find(area) == state.c_awake.end()) {
+    c_awake = false;
+  }
+  else {
+    c_awake = state.c_awake[area];
+  }
+
   if (all_here && have_Medical_Specialist && 
-      state.c_triage_total < state.c_max && !state.c_awake[area]) {
+      state.c_triage_total < state.c_max && !c_awake) {
     state.c_awake[area] = true;
     if (!state.action_tracker.empty()) {
       state.action_tracker.pop_back();
@@ -170,8 +178,17 @@ template <class State> std::optional<State> triageCrit(State state, Args args) {
   auto start = std::stoi(args["start"],nullptr);
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
+
+  bool c_awake;
+  if(state.c_awake.find(area) == state.c_awake.end()) {
+    c_awake = false;
+  }
+  else {
+    c_awake = state.c_awake[area];
+  }
+
   if (state.role[agent] == "Medical_Specialist" && state.agent_loc[agent] == area && 
-      state.c_triage_total < state.c_max && state.c_awake[area]) {
+      state.c_triage_total < state.c_max && c_awake) {
 
     state.c_triage_total = state.c_triage_total + 1; 
     state.c_triaged_here[area] = true;
@@ -236,7 +253,12 @@ template <class State> std::optional<State> break_block(State state, Args args) 
   int end = start + duration;
   if (state.agent_loc[agent] == area && state.role[agent] == "Hazardous_Material_Specialist") {
 
-    state.blocks_broken[area]++;
+    if (state.blocks_broken.find(area) == state.blocks_broken.end()) {
+      state.blocks_broken[area] = 1;
+    }
+    else {
+      state.blocks_broken[area]++;
+    }
     state.time[agent] = end;
     if (!state.action_tracker.empty()) {
       state.action_tracker.pop_back();
@@ -421,10 +443,20 @@ template <class State> pTasks assign_tasks(State state, Args args) {
 
   if (state.time[min_agent] < 900) {
     std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+
     bool in_room = in(c_vic_area,state.rooms);
     if ((!in_room && 
         !in(c_vic_area,state.multi_room_zones)) ||
-        state.c_awake[c_vic_area] ||
+        c_awake ||
         state.c_triage_total >= state.c_max) {
       c_vic_area = "NONE";
     }
@@ -439,8 +471,17 @@ template <class State> pTasks assign_tasks(State state, Args args) {
       } 
     }
     double prob = 1;
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
     if (can_wake_here && have_Medical_Specialist) {
-      if (in_room && state.r_triaged_here[c_vic_area]) {
+      if (in_room && r_triaged_here) {
         prob = 0.99;
       }
       else {
@@ -484,10 +525,19 @@ template <class State> pTasks wake_crit_vic(State state, Args args) {
 
   if (state.time[min_agent] < 900 && !in(state.agent_loc[min_agent],state.no_victim_zones)) {
     std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
     bool in_room = in(c_vic_area,state.rooms);
     if ((!in_room && 
         !in(c_vic_area,state.multi_room_zones)) ||
-        state.c_awake[c_vic_area] ||
+        c_awake ||
         state.c_triage_total >= state.c_max) {
       c_vic_area = "NONE";
     }
@@ -502,8 +552,17 @@ template <class State> pTasks wake_crit_vic(State state, Args args) {
       } 
     }
     double prob = 0;
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
     if (can_wake_here && have_Medical_Specialist) {
-      if (in_room && state.r_triaged_here[c_vic_area]) {
+      if (in_room && r_triaged_here) {
         prob = 0.01;
       }
       else {
@@ -693,7 +752,16 @@ template <class State> pTasks triageReg_Medical_Specialist(State state, Args arg
       !in(state.agent_loc[agent],state.no_victim_zones) &&
       state.r_triage_total < state.r_max) {
     double prob;
-    if (in(state.agent_loc[agent],state.rooms) && state.c_awake[state.agent_loc[agent]]) {
+
+    bool c_awake;
+    if(state.c_awake.find(state.agent_loc[agent]) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[state.agent_loc[agent]];
+    }
+
+    if (in(state.agent_loc[agent],state.rooms) && c_awake) {
       prob = 0.01;
     }
     else {
@@ -724,9 +792,25 @@ template <class State> pTasks triageCrit_Medical_Specialist(State state, Args ar
     start = std::to_string(state.time[agent]);
   }
 
+  bool c_awake;
+  if(state.c_awake.find(state.agent_loc[agent]) == state.c_awake.end()) {
+    c_awake = false;
+  }
+  else {
+    c_awake = state.c_awake[state.agent_loc[agent]];
+  }
+
+  bool c_triaged_here;
+  if(state.c_triaged_here.find(state.agent_loc[agent]) == state.c_triaged_here.end()) {
+    c_triaged_here = false;
+  }
+  else {
+    c_triaged_here = state.c_triaged_here[state.agent_loc[agent]];
+  }
+
   if (state.role[agent] == "Medical_Specialist" && state.time[agent] < 900 &&
-      state.c_awake[state.agent_loc[agent]] && 
-      !state.c_triaged_here[state.agent_loc[agent]] &&
+      c_awake && 
+      !c_triaged_here &&
       state.c_triage_total < state.c_max) {
     double prob;
     if (in(state.agent_loc[agent],state.rooms)) {
@@ -778,8 +862,25 @@ template <class State> pTasks move_Medical_Specialist(State state, Args args) {
       }
     }
     else {
-      if (in(state.agent_loc[agent],state.rooms) && state.c_awake[state.agent_loc[agent]]) {
-        if (state.c_triaged_here[state.agent_loc[agent]]) {
+
+      bool c_awake;
+      if(state.c_awake.find(state.agent_loc[agent]) == state.c_awake.end()) {
+        c_awake = false;
+      }
+      else {
+        c_awake = state.c_awake[state.agent_loc[agent]];
+      }
+    
+      bool c_triaged_here;
+      if(state.c_triaged_here.find(state.agent_loc[agent]) == state.c_triaged_here.end()) {
+        c_triaged_here = false;
+      }
+      else {
+        c_triaged_here = state.c_triaged_here[state.agent_loc[agent]];
+      }
+
+      if (in(state.agent_loc[agent],state.rooms) && c_awake) {
+        if (c_triaged_here) {
           prob = 0.99;
           if (state.r_triage_total >= state.r_max) {
             prob = 1;
@@ -873,7 +974,16 @@ template <class State> pTasks triageArea(State state, Args args) {
   if (state.role[agent] == "Medical_Specialist" && state.time[agent] < 900 &&
       state.r_triage_total < state.r_max) {
     double prob;
-    if (state.r_triaged_here[area]) {
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[area];
+    }
+
+    if (r_triaged_here) {
       prob = 13.0/24;
     }
     else {
@@ -896,7 +1006,16 @@ template <class State> pTasks doneTriaging(State state, Args args) {
 
   if (state.role[agent] == "Medical_Specialist") {
     double prob;
-    if (state.r_triaged_here[area]) {
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[area];
+    }
+
+    if (r_triaged_here) {
       prob = 11.0/24;
     }
     else {
@@ -951,7 +1070,16 @@ template <class State> pTasks clearArea(State state, Args args) {
 
   if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] < 900) {
     double prob;
-    if (state.blocks_broken[area] > 0) {
+
+    bool blocks_broken;
+    if(state.blocks_broken.find(area) == state.blocks_broken.end()) {
+      blocks_broken = false;
+    }
+    else {
+      blocks_broken = state.blocks_broken[area];
+    }
+
+    if (blocks_broken > 0) {
       prob = 91.0/108;
     }
     else {
@@ -974,7 +1102,16 @@ template <class State> pTasks doneBreaking(State state, Args args) {
   auto area = args["area"];
   if (state.role[agent] == "Hazardous_Material_Specialist") {
     double prob;
-    if (state.blocks_broken[area] > 0) {
+
+    bool blocks_broken;
+    if(state.blocks_broken.find(area) == state.blocks_broken.end()) {
+      blocks_broken = false;
+    }
+    else {
+      blocks_broken = state.blocks_broken[area];
+    }
+
+    if (blocks_broken > 0) {
       prob = 17.0/108;
     }
     else {
