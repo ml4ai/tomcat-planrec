@@ -398,7 +398,7 @@ namespace parser {
     struct TOrderings: x3::annotate_on_success {};
 
     rule<class TTaskNetworkOrderings, Orderings> const task_network_orderings = "task_network_orderings";
-    auto const task_network_orderings_def = lit(":ordering") >> orderings;
+    auto const task_network_orderings_def = lit(":ordering") > orderings;
     BOOST_SPIRIT_DEFINE(task_network_orderings);
     struct TTaskNetworkOrderings: x3::annotate_on_success {};
 

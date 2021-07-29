@@ -188,19 +188,23 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 		:parameters (?v - vehicle ?l - location)
 	)
 
+
 	(:method m_deliver_ordering_0
 		:parameters (?loc1 - location ?loc1 - location ?p - package ?v - vehicle)
-		:task (deliver ?p ?loc2)
+		:task (deliver ?p ?loc2) 
+
         :precondition (or
           (at ?l)
           (at ?s)
           )
-		:subtasks (and
-		 (task0 (get_to ?v ?loc1))
-		 (task1 (load ?v ?loc1 ?p))
-		 (task2 (get_to ?v ?loc2))
-		 (task3 (unload ?v ?loc1 ?p))
-		)
+
+        :subtasks (and
+         (task0 (get_to ?v ?loc1))
+         (task1 (load ?v ?loc1 ?p))
+         (task2 (get_to ?v ?loc2))
+         (task3 (unload ?v ?loc1 ?p))
+         )
+
 		:ordering (and
 			( < task0 task1)
 			( < task1 task2)
@@ -232,25 +236,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 				(capacity ?v ?s1)
 				(not (capacity ?v ?s2))
 			)
-	)
-
-	(:action drop
-		:parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
-		:precondition
-			(and
-				(at ?v ?l)
-				(in ?p ?v)
-				(capacity_predecessor ?s1 ?s2)
-				(capacity ?v ?s1)
-			)
-		:effect
-			(and
-				(not (in ?p ?v))
-				(at ?p ?l)
-				(capacity ?v ?s2)
-				(not (capacity ?v ?s1))
-			)
-	)
+	); end action pick_up
 )
 
     )";
@@ -258,21 +244,6 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     //Begin original test domain
     //Delete as necessary...
     /*
-
-            ;; Methods
-            (:method m-deliver
-             :parameters (?p - package
-                          ?lp ?ld - site)
-             :task (deliver ?p ?ld)
-             :precondition (or (tAt ?l)
-                               (tAt ?s))
-
-             :ordered-subtasks
-                (and (get-to ?lp)
-                     (pick-up ?ld ?p)
-                     (get-to ?ld)
-                     (drop ?ld ?p)))
-
             ;; Actions
             (:action drive
               :parameters
@@ -297,7 +268,6 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     // Test requirements
     BOOST_TEST(equals(dom.requirements, {"negative-preconditions", "typing", "hierarchy"}));
 
-
     // Test constants
     BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
                "surprise");
@@ -316,14 +286,11 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
             dom.predicates[2].variables.explicitly_typed_lists[1].type) ==
         "vehicle");
 
-
     // Test parsing of abstract tasks
     BOOST_TEST(dom.tasks[0].name == "deliver");
     auto taskpara1 = dom.tasks[0].parameters;
     BOOST_TEST(boost::get<PrimitiveType>(
                    taskpara1.explicitly_typed_lists[0].type) == "package");
-
- 
 
     // Test methods and their components (totally-ordered):
     // Test methods name:
@@ -347,14 +314,40 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(methodprec1_os.predicate == "at");
     BOOST_TEST(name(methodprec2_os.args[0]) == "s");
 
-    // Test parsing method optional ordered-subtasks (totally-ordered methods)
+    // Test parsing methods  
+    // Test subtask id:  (task2 (get_to ?v ?loc2)
+    /*This works:
+    auto subtask_f = boost::get<SubTaskWithId>(boost::get<vector<SubTask>>(
+        dom.methods[0].task_network.subtasks.value().subtasks)[2]);
+    BOOST_TEST(subtask_f.id == "task2");
+   */
+
+    // This works too:
+    auto subtask_s = boost::get<vector<SubTask>>(
+        dom.methods[0].task_network.subtasks.value().subtasks)[2];
+    
+    auto subtask_id = boost::get<SubTaskWithId>(subtask_s);
+    BOOST_TEST(subtask_id.id == "task2");
+    
+
+
+    // Trying:
+    //auto subtask_name = boost::get<MTask>(subtask_s).name;// This works too
+    auto subtask_name = boost::get<MTask>(subtask_s).name;// This works too
+
+    //NO: BOOST_TEST(subtask_name == "get_to");          // fails test
+    //NO: BOOST_TEST(subtask_name == "get_to v loc2");   // fails test
+    //NO: BOOST_TEST(subtask_name == "get_to ?v ?loc2"); // fails test
+    
+
+    //No!!  auto subtask_st = boost::get<MTask>(subtask_s.name);//No name in ast::SubTask
+    //KEEP: auto subtask_st = boost::get<MTask>(subtask_s);//works and passes
+    //KEEP:  BOOST_TEST(subtask_st.name == "get_to");//builds but doesn't pass
+    //
+
+
 
 /* TODO
-    auto osubtask_s = boost::get<MTask>(boost::get<vector<SubTask>>(
-        dom.methods[0].task_network.subtasks.value().subtasks)[2]);
-    BOOST_TEST(osubtask_s.name == "get-to");
-    BOOST_TEST(name(osubtask_s.parameters[0]) == "ld");
-
     // Test parsing of domain actions and their components:
     // Test parsing action names
     auto actname1 = dom.actions[0].name;
