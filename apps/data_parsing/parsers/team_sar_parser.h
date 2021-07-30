@@ -13,8 +13,16 @@ using json = nlohmann::json;
 struct j_node {
   json j;
   TeamSARState new_s;
+  Action action;
   int endtime;
   int starttime;
+};
+
+struct parse_data {
+  json trace;
+  TeamSARState initial_state;
+  std::vector<Action> action_tracker;
+  std::unordered_map<std::string, std::vector<std::string>> loc_tracker;
 };
 
 int missionTime2secElapsed(std::string str)
@@ -117,6 +125,11 @@ j_node process_move_act(json& g, TeamSARState& state, TeamSARDomain& domain) {
   n.new_s = newstate;
   n.starttime = time;
   n.endtime = time;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = args["c_area"];
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
   return n;
 }
 
@@ -159,6 +172,11 @@ j_node process_change_role_act(json& g, TeamSARState& state, TeamSARDomain& doma
   n.new_s = newstate;
   n.starttime = time;
   n.endtime = time;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = state.change_zone;
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
   return n;
 }
 
@@ -211,6 +229,11 @@ j_node process_triageReg_act(json& g,
   n.new_s = newstate;
   n.starttime = start;
   n.endtime = end;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = args["area"];
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
   return n;
 }
 
@@ -263,6 +286,11 @@ j_node process_triageCrit_act(json& g,
   n.new_s = newstate;
   n.starttime = start;
   n.endtime = end;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = args["area"];
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
   return n;
 }
 
@@ -325,6 +353,11 @@ j_node process_wakeCrit_act(json& g,
   n.new_s = newstate;
   n.starttime = time;
   n.endtime = time;
+  n.action.action = action;
+  n.action.agent = "all";
+  n.action.area = args["area"];
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
   return n;
 }
 
@@ -374,6 +407,11 @@ j_node process_pickUpVic_act(json& g,
   n.new_s = newstate;
   n.starttime = time;
   n.endtime = time;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = args["area"];
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
   return n;
 }
 
@@ -423,6 +461,11 @@ j_node process_putDownVic_act(json& g,
   n.new_s = newstate;
   n.starttime = time;
   n.endtime = time;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = args["area"];
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
   return n;
 }
 
@@ -472,6 +515,11 @@ j_node process_breakBlock_act(json& g,
   n.new_s = newstate;
   n.starttime = time;
   n.endtime = time;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = args["area"];
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
   return n;
 }
 
@@ -537,12 +585,18 @@ j_node add_exit(std::string a, TeamSARState& state, TeamSARDomain& domain) {
   n.new_s = newstate;
   n.starttime = 900;
   n.endtime = 900;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = "NONE";
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
   return n;
 }
 
-json team_sar_parser(std::string infile,
+parse_data team_sar_parser(std::string infile,
                      TeamSARState state,
                      TeamSARDomain& domain,
+                     int trace_size = -1,
                      bool gen_file = false,
                      std::string outfile = "parsed_plan_trace.json") {
   std::string msg;
@@ -551,8 +605,13 @@ json team_sar_parser(std::string infile,
   json j;
   std::unordered_map<std::string,int> regTriageTime;
   std::unordered_map<std::string,int> critTriageTime;
+  parse_data p;
+  int i = 0;
 //  std::unordered_map<std::string,int> prev_act_endtime;
   while(getline(rfile,msg)) {
+    if (i == trace_size) {
+      break;
+    }
     json g;
     g = json::parse(msg);
 
@@ -570,6 +629,7 @@ json team_sar_parser(std::string infile,
 
 //        prev_act_endtime[a["playername"].get<std::string>()] = -1;
       }
+      p.initial_state = state;
     }
     if (g["data"]["mission_timer"] != "Mission Timer not initialized.") {
       if (g["msg"]["sub_type"] == "Event:location" && 
@@ -587,6 +647,9 @@ json team_sar_parser(std::string infile,
 //            }
           j.push_back(n.j);
           state = n.new_s;
+          p.loc_tracker[state.agents[0]].push_back(state.agent_loc[state.agents[0]]);
+          p.action_tracker.push_back(n.action); 
+          i++;
 //            prev_act_endtime[agents[0]] = n.endtime;
         }
       }
@@ -606,6 +669,9 @@ json team_sar_parser(std::string infile,
 //            }
           j.push_back(n.j);
           state = n.new_s;
+          p.loc_tracker[state.agents[1]].push_back(state.agent_loc[state.agents[1]]);
+          p.action_tracker.push_back(n.action);
+          i++;
 //            prev_act_endtime[agents[1]] = n.endtime;
           }
         }
@@ -625,6 +691,9 @@ json team_sar_parser(std::string infile,
 //            }
           j.push_back(n.j);
           state = n.new_s;
+          p.loc_tracker[state.agents[2]].push_back(state.agent_loc[state.agents[2]]);
+          p.action_tracker.push_back(n.action);
+          i++;
 //            prev_act_endtime[agents[2]] = n.endtime;
           }
         }
@@ -638,6 +707,8 @@ json team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        p.action_tracker.push_back(n.action);
+        i++;
 //        prev_act_endtime[p] = n.endtime;
       }
 
@@ -661,6 +732,8 @@ json team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            p.action_tracker.push_back(n.action);
+            i++;
 //            prev_act_endtime[agents[0]] = n.endtime;
           }
           regTriageTime[state.agents[0]] = 0;
@@ -687,6 +760,8 @@ json team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            p.action_tracker.push_back(n.action);
+            i++;
 //            prev_act_endtime[agents[1]] = n.endtime;
           }
           regTriageTime[state.agents[1]] = 0;
@@ -713,6 +788,8 @@ json team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            p.action_tracker.push_back(n.action);
+            i++;
 //            prev_act_endtime[agents[2]] = n.endtime;
           }
           regTriageTime[state.agents[2]] = 0;
@@ -739,6 +816,8 @@ json team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            p.action_tracker.push_back(n.action);
+            i++;
 //            prev_act_endtime[agents[0]] = n.endtime;
           }
           critTriageTime[state.agents[0]] = 0;
@@ -765,6 +844,8 @@ json team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            p.action_tracker.push_back(n.action);
+            i++;
 //            prev_act_endtime[agents[1]] = n.endtime;
           }
           critTriageTime[state.agents[1]] = 0;
@@ -791,6 +872,8 @@ json team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            p.action_tracker.push_back(n.action);
+            i++;
 //            prev_act_endtime[agents[2]] = n.endtime;
           }
           critTriageTime[state.agents[2]] = 0;
@@ -811,6 +894,8 @@ json team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        p.action_tracker.push_back(n.action);
+        i++;
       }  
 
       if (g["msg"]["sub_type"] == "Event:VictimPickedUp") {
@@ -822,6 +907,8 @@ json team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        p.action_tracker.push_back(n.action);
+        i++;
 //        prev_act_endtime[p] = n.endtime;
       }
 
@@ -834,6 +921,8 @@ json team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        p.action_tracker.push_back(n.action);
+        i++;
 //        prev_act_endtime[p] = n.endtime;
       }
 
@@ -846,22 +935,27 @@ json team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        p.action_tracker.push_back(n.action);
+        i++;
 //        prev_act_endtime[p] = n.endtime;
       }
     }
   }
-  for (auto a : state.agents) {
-    j_node n = add_exit(a,state,domain);
+  if (trace_size <= -1) {
+    for (auto a : state.agents) {
+      j_node n = add_exit(a,state,domain);
 
-    j.push_back(n.j);
-    state = n.new_s;
-  } 
-
+      j.push_back(n.j);
+      state = n.new_s;
+      p.action_tracker.push_back(n.action);
+    } 
+  }
+  p.trace = j;
   rfile.close();
   if (gen_file) {
     std::ofstream o(outfile);
     o << std::setw(4) << j << std::endl;
   }
 
-  return j;
+  return p;
 }
