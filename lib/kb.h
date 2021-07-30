@@ -14,7 +14,6 @@
 #include <vector>
 #include "unification.h"
 
-
 using namespace std;
 using namespace fol;
 
