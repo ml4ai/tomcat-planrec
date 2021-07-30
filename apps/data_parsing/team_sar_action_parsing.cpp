@@ -11,7 +11,14 @@ int main(int argc, char* argv[]) {
     N = -1;
   }
 
-  std::string infile = "../apps/data_parsing/study-2_2021.06_HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-2.metadata";
+  std::string infile;
+  if (argc > 2) {
+    infile = argv[2];
+  }
+  else {
+    std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-2.metadata";
+  }
+
   auto state1 = TeamSARState();
 
   state1.change_zone = "sga";
@@ -45,6 +52,7 @@ int main(int argc, char* argv[]) {
   state1.rooms.push_back("r110");
   state1.multi_room_zones.push_back("sdc");
   state1.rooms.push_back("so");
+  state1.rooms.push_back("srp");
   state1.rooms.push_back("sra");
   state1.rooms.push_back("srb");
   state1.rooms.push_back("src");
@@ -55,6 +63,17 @@ int main(int argc, char* argv[]) {
   state1.rooms.push_back("srh");
   state1.rooms.push_back("sri");
   state1.rooms.push_back("srj");
+  state1.rooms.push_back("srk");
+  state1.rooms.push_back("srl");
+  state1.rooms.push_back("srm");
+  state1.rooms.push_back("srn");
+  state1.rooms.push_back("sro");
+  state1.rooms.push_back("srq");
+  state1.rooms.push_back("srr");
+  state1.rooms.push_back("srs");
+  state1.rooms.push_back("srt");
+  state1.rooms.push_back("sru");
+  state1.rooms.push_back("srv");
   state1.rooms.push_back("tkt");
   state1.rooms.push_back("wb");
 
