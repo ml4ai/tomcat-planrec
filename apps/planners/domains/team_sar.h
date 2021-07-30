@@ -123,7 +123,6 @@ template <class State> std::optional<State> wakeCrit(State state, Args args) {
   else {
     c_awake = state.c_awake[area];
   }
-
   if (all_here && have_Medical_Specialist && 
       state.c_triage_total < state.c_max && !c_awake) {
     state.c_awake[area] = true;
@@ -218,6 +217,7 @@ template <class State> std::optional<State> break_block(State state, Args args) 
   auto start = std::stoi(args["start"],nullptr);
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
+
   if (state.agent_loc[agent] == area && state.role[agent] == "Hazardous_Material_Specialist") {
 
     if (state.blocks_broken.find(area) == state.blocks_broken.end()) {
