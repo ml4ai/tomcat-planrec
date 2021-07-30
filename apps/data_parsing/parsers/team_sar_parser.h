@@ -605,6 +605,7 @@ parse_data team_sar_parser(std::string infile,
   json j;
   std::unordered_map<std::string,int> regTriageTime;
   std::unordered_map<std::string,int> critTriageTime;
+  std::unordered_map<int,int> c_awake;
   parse_data p;
   int i = 0;
 //  std::unordered_map<std::string,int> prev_act_endtime;
@@ -629,8 +630,15 @@ parse_data team_sar_parser(std::string infile,
 
 //        prev_act_endtime[a["playername"].get<std::string>()] = -1;
       }
-      p.initial_state = state;
     }
+
+    if (g["data"]["mission_timer"] == "Mission Timer not initialized.") {
+      if (g["msg"]["sub_type"] == "Event:RoleSelected") {
+        state.role[g["data"]["playername"].get<std::string>()] = g["data"]["new_role"].get<std::string>();
+      }
+
+    }
+    p.initial_state = state;
     if (g["data"]["mission_timer"] != "Mission Timer not initialized.") {
       if (g["msg"]["sub_type"] == "Event:location" && 
           g["data"].contains("locations") &&
@@ -884,6 +892,7 @@ parse_data team_sar_parser(std::string infile,
            g["data"]["players_in_range"] == 3 &&
            g["data"]["action_type"] == "ENTERED_RANGE") {
         j_node n = process_wakeCrit_act(g,state,domain);
+        c_awake[g["data"]["victim_id"].get<int>()] = i;
 //        for (auto a : agents) {
 //          if (prev_act_endtime[a] != -1) {
 //            if (n.starttime > prev_act_endtime[a]) {
@@ -897,6 +906,15 @@ parse_data team_sar_parser(std::string infile,
         p.action_tracker.push_back(n.action);
         i++;
       }  
+
+      if (g["msg"]["sub_type"] == "Event:ProximityBlockInteraction" &&
+          g["data"]["action_type"] == "LEFT_RANGE") {
+        int vic = g["data"]["victim_id"].get<int>();
+        if (c_awake.find(vic) != c_awake.end()) {
+          state.c_awake[j[c_awake[vic]]["post-state"]["agent_loc"][state.agents[0]]] = false;
+          j.erase(c_awake[vic]);
+        }
+      }
 
       if (g["msg"]["sub_type"] == "Event:VictimPickedUp") {
         j_node n = process_pickUpVic_act(g,state,domain);
