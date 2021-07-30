@@ -35,39 +35,6 @@ sample_loc(std::vector<std::string> zones,
   return zones[s];
 }
 
-std::unordered_map<std::string,std::vector<std::string>>
-get_loc_seq(nlohmann::json j,
-            std::vector<std::string> left_r,
-            std::vector<std::string> right_r,
-            std::vector<std::string> mid_r) {
-  std::unordered_map<std::string,std::vector<std::string>> locs;
-  std::vector<std::string> left = {};
-  std::vector<std::string> right = {};
-  std::vector<std::string> mid = {};
-  for (auto& e : j) {
-    std::string str = e["task"];
-    if (str.substr(1,5) == "!move") {
-      std::string n_area = str.substr(7,str.find(",",7) - 7);
-      if (in(n_area,left_r)) {
-        left.push_back(n_area);
-      }
-      if (in(n_area,right_r)) {
-        right.push_back(n_area);
-      }
-      if (in(n_area,mid_r)) {
-        mid.push_back(n_area);
-      }
-    }
-  }
-  std::reverse(left.begin(),left.end());
-  std::reverse(right.begin(),right.end());
-  std::reverse(mid.begin(),mid.end());
-  locs["left"] = left;
-  locs["right"] = right;
-  locs["mid"] = mid;
-  return locs;
-}
-
 std::string 
 sample_loc(std::vector<std::string> zones,
            std::unordered_map<std::string, int> visited) {
