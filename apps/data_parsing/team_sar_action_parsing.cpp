@@ -2,7 +2,15 @@
 
 
 
-int main() {
+int main(int argc, char* argv[]) {
+  int N;
+  if (argc > 1) {
+    N = strtol(argv[1], nullptr, 0);
+  }
+  else {
+    N = -1;
+  }
+
   std::string infile = "../apps/data_parsing/study-2_2021.06_HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-2.metadata";
   auto state1 = TeamSARState();
 
@@ -61,6 +69,6 @@ int main() {
 
   auto domain = TeamSARDomain();
 
-  team_sar_parser(infile,state1, domain,true,"team_sar_ppt.json");
+  team_sar_parser(infile,state1, domain, N, true,"team_sar_ppt.json");
   return EXIT_SUCCESS;
 }
