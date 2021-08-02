@@ -11,11 +11,11 @@ using pTasks = std::pair<double, Tasks>;
 using Plans = std::vector<pTasks>;
 
 struct Task {
-  std::string name;
+  std::string task_id;
   Args args;
   std::vector<std::string> args_order;
-  Task(std::string n, Args a, std::vector<Std::string> a_o) {
-    name = n;
+  Task(std::string t_id, Args a, std::vector<Std::string> a_o) {
+    task_id = t_id;
     args = a;
     args_order = a_o;
   }
