@@ -314,8 +314,6 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     Ordering ordering_s = ordering_v[2];
     BOOST_TEST(ordering_s.second == "task3");
 
-    std::cout << "Type Detection: " << typeid(ordering_s).name() << std::endl;
-
     // Test parsing of domain actions and their components:
     // Test parsing action names
     auto actname1 = dom.actions[0].name;
@@ -330,28 +328,19 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "v");
     BOOST_TEST(actpara1.explicitly_typed_lists[2].entries[0].name == "p");
 
-/* TODO
     // Test parsing action precondition
     auto actprec1_f = dom.actions[0].precondition;
     auto actprec1_s = boost::get<ConnectedSentence>(actprec1_f);
     auto actprec1_os = boost::get<Literal<Term>>(actprec1_s.sentences[0]);
-    BOOST_TEST(actprec1_os.predicate == "tAt");
-    BOOST_TEST(boost::get<Variable>(actprec1_os.args[0]).name == "loc1");
+    BOOST_TEST(actprec1_os.predicate == "at");
+    BOOST_TEST(boost::get<Variable>(actprec1_os.args[0]).name == "v");
 
     // Test parsing action effect
     auto effect1_f = dom.actions[0].effect;
     auto effect1_s = boost::get<AndCEffect>(effect1_f);
     auto effect1_af = boost::get<Literal<Term>>(effect1_s.c_effects[0]);
-    BOOST_TEST(effect1_af.predicate == "tAt");
-    BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "loc1");
-
-    auto effect1_af2_literal =
-        boost::get<Literal<Term>>(effect1_s.c_effects[1]);
-    BOOST_TEST(effect1_af2_literal.predicate == "tAt");
-    BOOST_TEST(name(effect1_af2_literal.args[0]) == "loc2");
-
-*
-*/
+    BOOST_TEST(effect1_af.predicate == "at");
+    BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "p");
 
 }// end of testing the domain
 
@@ -361,46 +350,78 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     storage = R"(
         (define
             (problem adobe)
-            (:domain construction)
+            (:domain domain_htn)
             (:requirements :strips :typing)
-            (:objects
-                factory house - site
-                adobe - material
-                rock) ;testing implicitly-typed
-           (:init
-               (on-site adobe factory)
-               )
-          (:goal
-               (and (off-site adobe1 factory1)
-                    (on-site adobe2 house2)
-               ))
-        );end define
-    )";
+
+    	(:objects
+	    	package_0 - package
+		    package_1 - package
+		    capacity_0 - capacity_number
+		    capacity_1 - capacity_number
+		    city_loc_0 - location
+		    city_loc_1 - location
+		    city_loc_2 - location
+		    truck_0 - vehicle
+            location
+	    )
+;	(:htn
+;		:parameters ()
+;		:subtasks (and
+;		 (task0 (deliver package_0 city_loc_0))
+;		 (task1 (deliver package_1 city_loc_2))
+;		)
+;		:ordering (and
+;			(< task0 task1)
+;		)
+;	)
+	(:init
+		(capacity_predecessor capacity_0 capacity_1)
+		(road city_loc_0 city_loc_1)
+		(road city_loc_1 city_loc_0)
+		(road city_loc_1 city_loc_2)
+		(road city_loc_2 city_loc_1)
+		(at package_0 city_loc_1)
+		(at package_1 city_loc_1)
+		(at truck_0 city_loc_2)
+		(capacity truck_0 capacity_1)
+	)
+); end problem definition
+
+  ;;//OLD
+  ;old          (:objects
+ ;               factory house - site
+ ;               adobe - material
+ ;               rock) ;testing implicitly-typed
+ ;              )
+ ;         (:goal
+ ;              (and (off-site adobe1 factory1)
+ ;                   (on-site adobe2 house2)
+ ;              ))
+ ;       );end define
+ 
+ )";
 
     auto prob = parse<Problem>(storage);
 
     BOOST_TEST(prob.name == "adobe");
-    BOOST_TEST(prob.domain_name == "construction");
+    BOOST_TEST(prob.domain_name == "domain_htn");
 
     // Test requirements
     BOOST_TEST(equals(prob.requirements, {"strips", "typing"}));
 
-    // Test objects
-    BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 2);
-
-    BOOST_TEST(equals(prob.objects.explicitly_typed_lists[0].entries,
-                      {"factory", "house"}));
-    BOOST_TEST(boost::get<ast::PrimitiveType>(
-                   prob.objects.explicitly_typed_lists[0].type) == "site");
-    BOOST_TEST(prob.objects.explicitly_typed_lists[1].entries[0] == "adobe");
-
-    BOOST_TEST(boost::get<ast::PrimitiveType>(
-                   prob.objects.explicitly_typed_lists[1].type) == "material");
-    BOOST_TEST(prob.objects.implicitly_typed_list[0] ==
-               "rock"); // default type = object
 
     // Test initial state
-    BOOST_TEST(boost::get<Init>(prob.init)[0].predicate == "on-site");
+    BOOST_TEST(boost::get<Init>(prob.init)[7].predicate == "at");
     BOOST_TEST(
-        equals(boost::get<Init>(prob.init)[0].args, {"adobe", "factory"}));
+        equals(boost::get<Init>(prob.init)[7].args, {"truck_0", "city_loc_2"}));
+
+    // Test objects
+    BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 8);
+
+    BOOST_TEST(equals(prob.objects.explicitly_typed_lists[0].entries,
+                      {"package_0"}));
+    BOOST_TEST(boost::get<ast::PrimitiveType>(
+                   prob.objects.explicitly_typed_lists[0].type) == "package");
+    BOOST_TEST(prob.objects.implicitly_typed_list[0] ==
+               "location"); // default type = object
 }

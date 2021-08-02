@@ -254,6 +254,12 @@ namespace ast {
         std::vector<Action> actions;
     };
 
+    // EBNF Definition:
+        // <p-htn> ::= (<p-class>
+        //     [:parameters (<typed list (variable)>)]
+        //     <tasknetwork-def>)
+        
+        // <p-class> ::= :htn 
     struct ProblemHTN : x3::position_tagged {
         std::string problem_class;
         TypedList<Variable> parameters;
@@ -262,6 +268,15 @@ namespace ast {
 
     using Init = std::vector<Literal<Name>>;
 
+
+    // EBNF Definition:
+        // <problem> ::= (define (problem <name>)
+        //     (:domain <name>)
+        //     [<require-def>]
+        //     [<p-object-declaration>]
+        //     [<p-htn>]
+        //     <p-int>
+        //     [<p-goal>])
     struct Problem : x3::position_tagged {
         Name name;
         Name domain_name;
