@@ -6,10 +6,20 @@
 #include <vector>
 
 using Args = std::unordered_map<std::string, std::string>;
-using Task = std::pair<std::string, Args>;
 using Tasks = std::vector<Task>;
 using pTasks = std::pair<double, Tasks>;
 using Plans = std::vector<pTasks>;
+
+struct Task {
+  std::string name;
+  Args args;
+  std::vector<std::string> args_order;
+  Task(std::string n, Args a, std::vector<Std::string> a_o) {
+    name = n;
+    args = a;
+    args_order = a_o;
+  }
+};
 
 template <class State> using Operator = std::optional<State> (*)(State, Args);
 
