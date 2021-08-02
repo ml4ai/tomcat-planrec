@@ -607,6 +607,10 @@ parse_data team_sar_parser(std::string infile,
   std::unordered_map<std::string,int> critTriageTime;
   std::unordered_map<int,int> c_awake;
   parse_data p;
+  std::vector<Action> a_tracker;
+  std::vector<std::string> agent0_tracker;
+  std::vector<std::string> agent1_tracker;
+  std::vector<std::string> agent2_tracker;
   int i = 0;
 //  std::unordered_map<std::string,int> prev_act_endtime;
   while(getline(rfile,msg)) {
@@ -655,8 +659,8 @@ parse_data team_sar_parser(std::string infile,
 //            }
           j.push_back(n.j);
           state = n.new_s;
-          p.loc_tracker[state.agents[0]].push_back(state.agent_loc[state.agents[0]]);
-          p.action_tracker.push_back(n.action); 
+          agent0_tracker.push_back(state.agent_loc[state.agents[0]]);
+          a_tracker.push_back(n.action); 
           i++;
 //            prev_act_endtime[agents[0]] = n.endtime;
         }
@@ -677,8 +681,8 @@ parse_data team_sar_parser(std::string infile,
 //            }
           j.push_back(n.j);
           state = n.new_s;
-          p.loc_tracker[state.agents[1]].push_back(state.agent_loc[state.agents[1]]);
-          p.action_tracker.push_back(n.action);
+          agent1_tracker.push_back(state.agent_loc[state.agents[1]]);
+          a_tracker.push_back(n.action);
           i++;
 //            prev_act_endtime[agents[1]] = n.endtime;
           }
@@ -699,8 +703,8 @@ parse_data team_sar_parser(std::string infile,
 //            }
           j.push_back(n.j);
           state = n.new_s;
-          p.loc_tracker[state.agents[2]].push_back(state.agent_loc[state.agents[2]]);
-          p.action_tracker.push_back(n.action);
+          agent2_tracker.push_back(state.agent_loc[state.agents[2]]);
+          a_tracker.push_back(n.action);
           i++;
 //            prev_act_endtime[agents[2]] = n.endtime;
           }
@@ -715,7 +719,7 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
-        p.action_tracker.push_back(n.action);
+        a_tracker.push_back(n.action);
         i++;
 //        prev_act_endtime[p] = n.endtime;
       }
@@ -740,7 +744,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
-            p.action_tracker.push_back(n.action);
+            a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[0]] = n.endtime;
           }
@@ -768,7 +772,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
-            p.action_tracker.push_back(n.action);
+            a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[1]] = n.endtime;
           }
@@ -796,7 +800,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
-            p.action_tracker.push_back(n.action);
+            a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[2]] = n.endtime;
           }
@@ -824,7 +828,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
-            p.action_tracker.push_back(n.action);
+            a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[0]] = n.endtime;
           }
@@ -852,7 +856,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
-            p.action_tracker.push_back(n.action);
+            a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[1]] = n.endtime;
           }
@@ -880,7 +884,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
-            p.action_tracker.push_back(n.action);
+            a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[2]] = n.endtime;
           }
@@ -903,7 +907,7 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
-        p.action_tracker.push_back(n.action);
+        a_tracker.push_back(n.action);
         i++;
       }  
 
@@ -913,6 +917,8 @@ parse_data team_sar_parser(std::string infile,
         if (c_awake.find(vic) != c_awake.end()) {
           state.c_awake[j[c_awake[vic]]["post-state"]["agent_loc"][state.agents[0]]] = false;
           j.erase(c_awake[vic]);
+          a_tracker.erase(a_tracker.begin()+i);
+          i--;
         }
       }
 
@@ -925,7 +931,7 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
-        p.action_tracker.push_back(n.action);
+        a_tracker.push_back(n.action);
         i++;
 //        prev_act_endtime[p] = n.endtime;
       }
@@ -939,7 +945,7 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
-        p.action_tracker.push_back(n.action);
+        a_tracker.push_back(n.action);
         i++;
 //        prev_act_endtime[p] = n.endtime;
       }
@@ -953,7 +959,7 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
-        p.action_tracker.push_back(n.action);
+        a_tracker.push_back(n.action);
         i++;
 //        prev_act_endtime[p] = n.endtime;
       }
@@ -965,9 +971,17 @@ parse_data team_sar_parser(std::string infile,
 
       j.push_back(n.j);
       state = n.new_s;
-      p.action_tracker.push_back(n.action);
+      a_tracker.push_back(n.action);
     } 
   }
+  std::reverse(a_tracker.begin(),a_tracker.end());
+  std::reverse(agent0_tracker.begin(),agent0_tracker.end());
+  std::reverse(agent1_tracker.begin(),agent1_tracker.end());
+  std::reverse(agent2_tracker.begin(),agent2_tracker.end());
+  p.action_tracker = a_tracker;
+  p.loc_tracker[state.agents[0]] = agent0_tracker;
+  p.loc_tracker[state.agents[1]] = agent1_tracker;
+  p.loc_tracker[state.agents[2]] = agent2_tracker;
   p.trace = j;
   rfile.close();
   if (gen_file) {
