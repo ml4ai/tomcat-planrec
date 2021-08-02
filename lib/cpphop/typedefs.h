@@ -6,20 +6,22 @@
 #include <vector>
 
 using Args = std::unordered_map<std::string, std::string>;
-using Tasks = std::vector<Task>;
-using pTasks = std::pair<double, Tasks>;
-using Plans = std::vector<pTasks>;
 
 struct Task {
   std::string task_id;
   Args args;
   std::vector<std::string> args_order;
-  Task(std::string t_id, Args a, std::vector<Std::string> a_o) {
+  Task(std::string t_id, Args a, std::vector<std::string> a_o) {
     task_id = t_id;
     args = a;
     args_order = a_o;
   }
 };
+
+using Tasks = std::vector<Task>;
+using pTasks = std::pair<double, Tasks>;
+using Plans = std::vector<pTasks>;
+
 
 template <class State> using Operator = std::optional<State> (*)(State, Args);
 
