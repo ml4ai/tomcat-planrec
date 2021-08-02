@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
     auto selector = TeamSARSelector();
 
     Tasks tasks = {
-        {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}))}};
+        {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"})}};
     auto pt = cpphopMCTS(state1, tasks, domain, selector,N,e);
 
     json j = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_trace_tree.json");

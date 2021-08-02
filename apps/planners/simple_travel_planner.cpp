@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
     auto selector = TravelSelector();
 
     Tasks tasks = {
-        {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}))}};
+        {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}),{"a","x","y"})}};
     cpphopDFS(state1, tasks, domain, selector);
     return EXIT_SUCCESS;
 }
