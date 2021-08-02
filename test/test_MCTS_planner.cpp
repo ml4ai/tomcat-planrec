@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planner) {
     auto selector = SARSelector();
 
     Tasks tasks = {
-        {Task("sweep_left_YF", Args({{"agent", "me"}}))}};
+        {Task("sweep_left_YF", Args({{"agent", "me"}}),{"agent"})}};
     auto pt = cpphopMCTS(state1, tasks, domain, selector,2,0.4);
     json j = generate_plan_trace_tree(pt.first,pt.second);
     json g = generate_plan_trace(pt.first,pt.second);

@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planrec) {
 
     auto selector = SARSelector();
     Tasks tasks = {
-        {Task("SAR", Args({{"agent", "me"}}))}};
+        {Task("SAR", Args({{"agent", "me"}}),{"agent"})}};
 
     std::ifstream i("../../test/test_simple_sar_trace.json");
     json j;
