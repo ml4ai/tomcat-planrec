@@ -112,15 +112,14 @@ simulation_rec(json& trace,
 
     while (plan_trace.size() < trace.size()) {
       Task task = tasks.back();
-      auto [task_id, args] = task;
 
-      if (in(task_id, domain.operators)) {
-          Operator<State> op = domain.operators[task_id];
-          std::optional<State> newstate = op(state, args);
+      if (in(task.task_id, domain.operators)) {
+          Operator<State> op = domain.operators[task.task_id];
+          std::optional<State> newstate = op(state, task.args);
           if (newstate) {
-              pOperator<State> pop = domain.poperators[task_id];
+              pOperator<State> pop = domain.poperators[task.task_id];
               tasks.pop_back();
-              likelihood = likelihood*pop(state,newstate.value(),args);
+              likelihood = likelihood*pop(state,newstate.value(),task.args);
               json g;
               g["task"] = task2string(task);
               g["pre-state"] = state.to_json();
@@ -130,17 +129,17 @@ simulation_rec(json& trace,
               seed++;
               continue;
           }
-          std::string message = task_id;
+          std::string message = task.task_id;
           message += " preconditions failed during simulation!";
           throw std::logic_error(
               message);
       }
 
-      if (in(task_id, domain.methods)) {
-          auto relevant = domain.methods[task_id];
+      if (in(task.task_id, domain.methods)) {
+          auto relevant = domain.methods[task.task_id];
           std::vector<pTasks> c = {};
           for (auto method : relevant) {
-              pTasks subtasks = method(state, args);
+              pTasks subtasks = method(state, task.args);
               if (subtasks.first) {
                 c.push_back(subtasks);
               }
@@ -148,7 +147,7 @@ simulation_rec(json& trace,
           seed++;
           if (c.empty()) {
             std::string message = "No valid method for ";
-            message += task_id;
+            message += task.task_id;
             message += " during simulation!";
             throw std::logic_error(message);
           }
@@ -163,7 +162,7 @@ simulation_rec(json& trace,
           continue;
       }   
       std::string message = "No valid method for ";
-      message += task_id;
+      message += task.task_id;
       message += " during simulation!";
       throw std::logic_error(message);
     }
@@ -180,13 +179,12 @@ int expansion_rec(Tree<State, Selector>& t,
                   Selector selector,
                   int seed = 2021) {
     Task task = t[n].tasks.back();
-    auto [task_id, args] = task;
 
-    if (in(task_id, domain.operators)) {
-        Operator<State> op = domain.operators[task_id];
-        std::optional<State> newstate = op(t[n].state, args);
+    if (in(task.task_id, domain.operators)) {
+        Operator<State> op = domain.operators[task.task_id];
+        std::optional<State> newstate = op(t[n].state, task.args);
         if (newstate) {
-            pOperator<State> pop = domain.poperators[task_id];
+            pOperator<State> pop = domain.poperators[task.task_id];
             Node<State, Selector> v;
             v.state = newstate.value();
             v.tasks = t[n].tasks;
@@ -196,7 +194,7 @@ int expansion_rec(Tree<State, Selector>& t,
             v.plan.second.push_back(task);
             v.selector = selector;
             v.pred = n;
-            v.likelihood = t[n].likelihood*pop(t[n].state,v.state,args); 
+            v.likelihood = t[n].likelihood*pop(t[n].state,v.state,task.args); 
             v.plan_trace = t[n].plan_trace;
             json g;
             g["task"] = task2string(task);
@@ -210,11 +208,11 @@ int expansion_rec(Tree<State, Selector>& t,
         throw std::logic_error("Action Preconditions failed during expansion!");
     }
 
-    if (in(task_id, domain.methods)) {
-        auto relevant = domain.methods[task_id];
+    if (in(task.task_id, domain.methods)) {
+        auto relevant = domain.methods[task.task_id];
         std::vector<int> c = {};
         for (auto method : relevant) {
-            pTasks subtasks = method(t[n].state, args);
+            pTasks subtasks = method(t[n].state, task.args);
             if (subtasks.first) {
                 Node<State, Selector> v;
                 v.state = t[n].state;
