@@ -403,7 +403,7 @@ template <class State> pTasks assign_tasks(State state, Args args) {
   else {
     Action act = state.action_tracker.back();
     if (act.agent == "all" || act.action == "!exit") {
-      return {0,{},{}};
+      return {0,{}};
     }
     min_agent = act.agent;
   }
