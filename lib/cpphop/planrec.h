@@ -103,13 +103,13 @@ void backprop_rec(Tree<State, Selector>& t, int n, double r) {
 template <class State, class Domain>
 double
 simulation_rec(json& trace,
+           json plan_trace,
            State state,
            Tasks tasks,
            Domain& domain,
            double likelihood,
            int seed) {
 
-    json plan_trace;
     while (plan_trace.size() < trace.size()) {
       Task task = tasks.back();
       auto [task_id, args] = task;
@@ -147,7 +147,10 @@ simulation_rec(json& trace,
           }
           seed++;
           if (c.empty()) {
-            throw std::logic_error("No valid task during simulation!");
+            std::string message = "No valid method for ";
+            message += task_id;
+            message += " during simulation!";
+            throw std::logic_error(message);
           }
           pTasks r = *select_randomly(c.begin(), c.end(), seed);
           seed++;
@@ -159,7 +162,10 @@ simulation_rec(json& trace,
           }
           continue;
       }   
-      throw std::logic_error("Invalid task during simulation!");
+      std::string message = "No valid method for ";
+      message += task_id;
+      message += " during simulation!";
+      throw std::logic_error(message);
     }
     if (plan_trace == trace) {
       return likelihood;
@@ -299,14 +305,14 @@ seek_planrecMCTS(json& trace,
     }
     else {
       if (t[n].selector.sims == 0) {
-        double r = simulation_rec(trace,t[n].state, t[n].tasks, domain, t[n].likelihood,seed);
+        double r = simulation_rec(trace,t[n].plan_trace,t[n].state, t[n].tasks, domain, t[n].likelihood,seed);
         seed++;
         backprop_rec(t,n,r);
       }
       else {
         int n_p = expansion_rec(t,n,domain,selector,seed);
         seed++;
-        double r = simulation_rec(trace,t[n_p].state, t[n_p].tasks, domain, t[n_p].likelihood,seed);
+        double r = simulation_rec(trace,t[n_p].plan_trace,t[n_p].state, t[n_p].tasks, domain, t[n_p].likelihood,seed);
         seed++;
         backprop_rec(t,n_p,r);   
       }
