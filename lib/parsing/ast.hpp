@@ -18,7 +18,6 @@
 
 // TODO Enforce optionality wherever appropriate, based on EBNF specification.
 
-// TODO Add EBNF formal definitions to each definition in this file
 
 namespace ast {
     using Name = std::string;
@@ -49,20 +48,28 @@ namespace ast {
         Type type;
     };
 
+    // TypedList EBNF Definition:
+        // typed list (x)> ::= x+ - <type> [<typed list (x)>]
     template <class T> struct TypedList {
         std::vector<ExplicitlyTypedList<T>> explicitly_typed_lists;
         ImplicitlyTypedList<T> implicitly_typed_list = {};
     };
 
+    // AtomicFormulaSkeleton EBNF Definition:
+        // <atomic-formula-skeleton> ::= (<predicate> <typed list (variable)>)
+        // <predicate> ::= <name>
     struct AtomicFormulaSkeleton : x3::position_tagged {
         Predicate predicate;
         TypedList<Variable> variables;
     };
 
+    // Nil EBNF Definition: <gd> ::= ()
     struct Nil : x3::position_tagged {
         bool operator==(const Nil& nil) const;
     };
 
+    // AtomicFormula EBNF Definition: 
+        // <atomic formula(t)> ::= (<predicate> t*)
     template <class T> struct AtomicFormula {
         Predicate predicate;
         std::vector<T> args;
@@ -74,6 +81,7 @@ namespace ast {
     struct ImplySentence;
     struct QuantifiedSentence;
 
+    // EqualsSentence EBNF Definition:  <gd> ::= (= <term> <term>)
     struct EqualsSentence {
         Term lhs;
         Term rhs;
@@ -93,20 +101,32 @@ namespace ast {
                        boost::recursive_wrapper<QuantifiedSentence>,
                        EqualsSentence>;
 
+    // ConnectedSentence EBNF Definition: requires disjunctive-preconditions
+        // <gd> ::= (and <gd>*)
+        // <gd> ::= (or <gd>*)
     struct ConnectedSentence {
         std::string connector;
         std::vector<Sentence> sentences;
     };
 
+    // NotSentence EBNF Definition: requires disjunctive-preconditions
+        // <gd> ::= (not <gd>)
     struct NotSentence {
         Sentence sentence;
     };
 
+    // ImplySentence EBNF Definition: requires disjunctive-preconditions
+        // <gd> ::= (imply <gd> <gd>)
     struct ImplySentence {
         Sentence sentence1;
         Sentence sentence2;
     };
 
+    // QuantifiedSentence EBNF Definition of exists and forall; 
+    // exists requires existential-preconditions
+        // <gd> ::= (exists (<typed list (variable)>*) <gd>)
+    // forall requires universal-preconditions
+        // <gd> ::= (forall (<typed list (variable)>*) <gd>)
     struct QuantifiedSentence {
         std::string quantifier;
         TypedList<Variable> variables;
@@ -118,18 +138,25 @@ namespace ast {
         using base_type::operator=;
     };
 
+    // Constraints EBNF Definition:
+        // <constraint-defs> ::= ()
+        //    | <constraint-def>
+        //    | (= <term> <term>)
     struct Constraints : x3::variant<Nil, Constraint, std::vector<Constraint>> {
         using base_type::base_type;
         using base_type::operator=;
     };
 
-    // Abstract Tasks
+    // Abstract Tasks, decomposed by methods
+    // Task EBNF Definition:
+        // <task-def> ::= <task-symbol>
+        //     :parameters (<typed list (variable)>)
+        // <task-symbol> ::= <name>
     struct Task : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
     };
 
-    // Task that a method decomposes
     // MTask is subtask without an ID. EBNF Definiton:
         // <subtask-def> ::= (<task-symbol> <term>*)
     struct MTask : x3::position_tagged {
@@ -179,7 +206,6 @@ namespace ast {
         SubTasks subtasks;
     };
 
-
     // TaskNetwork EBNF Definition:
         // <tasknetwork-def> ::=
         //    [:[ordered-][sub]tasks <subtask-defs>]
@@ -218,24 +244,38 @@ namespace ast {
                                    boost::recursive_wrapper<WhenCEffect>,
                                    PEffect>;
 
+    // Effect EBNF Definition:
+        // <effect> ::= ()
+        //            | (and <c-effect>*)
+        //            | <c-effect>
     using Effect =
         boost::variant<Nil, boost::recursive_wrapper<AndCEffect>, CEffect>;
 
+    // WhenCEffect EBNF Definition: requires conditional-effects
+        // <c-effect> ::= (when <gd> <cond-effect>)
     struct WhenCEffect : x3::position_tagged {
         Sentence gd;
         CondEffect cond_effect;
     };
 
+    // ForallCEffect EBNF Definition: requires conditional-effects
+        // <c-effect> ::= (forall (<variable>*) <effect>) 
     struct ForallCEffect : x3::position_tagged {
         std::vector<Variable> variables;
         Effect effect;
     };
 
+    // AndCEffect EBNF Definition: <effect> ::= (and <c-effect>*)
     struct AndCEffect : x3::position_tagged {
         std::vector<CEffect> c_effects;
     };
 
     // Primitive Actions
+    // Action EBNF Definition:
+        // <action-def> ::= (:action 
+        //     <task-def>
+        //     [:precondition <gd>]
+        //     [:effects <effect>])
     struct Action : x3::position_tagged {
         Name name;
         TypedList<Variable> parameters;
@@ -243,6 +283,15 @@ namespace ast {
         Effect effect;
     };
 
+    // Domain EBNF Definition:
+        //  <domain> ::= (define (domain <name>)
+        //      [<require-def>]
+        //      [<types-def] ^(:typing)
+        //      [<constants-def>]
+        //      [<predicates-def>]
+        //      <comp-task-def>*
+        //      <method-def>*
+        //      <action-def>*)
     struct Domain : x3::position_tagged {
         Name name;
         std::vector<std::string> requirements;
@@ -254,7 +303,7 @@ namespace ast {
         std::vector<Action> actions;
     };
 
-    // EBNF Definition:
+    // ProblemHTN EBNF Definition:
         // <p-htn> ::= (<p-class>
         //     [:parameters (<typed list (variable)>)]
         //     <tasknetwork-def>)
@@ -268,8 +317,7 @@ namespace ast {
 
     using Init = std::vector<Literal<Name>>;
 
-
-    // EBNF Definition:
+    // Problem EBNF Definition:
         // <problem> ::= (define (problem <name>)
         //     (:domain <name>)
         //     [<require-def>]
