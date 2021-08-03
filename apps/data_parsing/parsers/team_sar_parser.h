@@ -612,6 +612,7 @@ parse_data team_sar_parser(std::string infile,
   std::vector<std::string> agent1_tracker;
   std::vector<std::string> agent2_tracker;
   int i = 0;
+  p.initial_state = state;
 //  std::unordered_map<std::string,int> prev_act_endtime;
   while(getline(rfile,msg)) {
     if (i == trace_size) {
@@ -632,6 +633,7 @@ parse_data team_sar_parser(std::string infile,
         state.visited[a["playername"].get<std::string>()][state.change_zone] = 1;
         state.role[a["playername"].get<std::string>()] = "NONE";
 
+        p.initial_state = state;
 //        prev_act_endtime[a["playername"].get<std::string>()] = -1;
       }
     }
@@ -639,10 +641,10 @@ parse_data team_sar_parser(std::string infile,
     if (g["data"]["mission_timer"] == "Mission Timer not initialized.") {
       if (g["msg"]["sub_type"] == "Event:RoleSelected") {
         state.role[g["data"]["playername"].get<std::string>()] = g["data"]["new_role"].get<std::string>();
+        p.initial_state = state;
       }
 
     }
-    p.initial_state = state;
     if (g["data"]["mission_timer"] != "Mission Timer not initialized.") {
       if (g["msg"]["sub_type"] == "Event:location" && 
           g["data"].contains("locations") &&
