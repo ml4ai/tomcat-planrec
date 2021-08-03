@@ -73,7 +73,7 @@ TeamSARState apply_operator(std::string action, TeamSARState& state, TeamSARDoma
   throw std::logic_error(message);
 }
 
-j_node process_move_act(json& g, TeamSARState& state, TeamSARDomain& domain) {
+j_node process_move_act(json& g, std::string player_key, TeamSARState& state, TeamSARDomain& domain) {
   
   std::string action = "!move";
 
@@ -85,7 +85,7 @@ j_node process_move_act(json& g, TeamSARState& state, TeamSARDomain& domain) {
 
   act += ",";
 
-  args["agent"] = g["data"]["playername"].get<std::string>();
+  args["agent"] = g["data"][player_key].get<std::string>();
 
   act += args["agent"];
 
@@ -133,7 +133,7 @@ j_node process_move_act(json& g, TeamSARState& state, TeamSARDomain& domain) {
   return n;
 }
 
-j_node process_change_role_act(json& g, TeamSARState& state, TeamSARDomain& domain) {
+j_node process_change_role_act(json& g, std::string player_key, TeamSARState& state, TeamSARDomain& domain) {
   std::string action = "!change_to_";
   Args args;
   std::string act = "(";
@@ -144,7 +144,7 @@ j_node process_change_role_act(json& g, TeamSARState& state, TeamSARDomain& doma
 
   act += ",";
 
-  args["agent"] = g["data"]["playername"].get<std::string>();
+  args["agent"] = g["data"][player_key].get<std::string>();
 
   act += args["agent"];
   
@@ -180,7 +180,8 @@ j_node process_change_role_act(json& g, TeamSARState& state, TeamSARDomain& doma
   return n;
 }
 
-j_node process_triageReg_act(json& g, 
+j_node process_triageReg_act(json& g,
+                             std::string player_key,
                              int start, 
                              TeamSARState& state, 
                              TeamSARDomain& domain) {
@@ -193,7 +194,7 @@ j_node process_triageReg_act(json& g,
 
   act += ",";
 
-  args["agent"] = g["data"]["playername"].get<std::string>();
+  args["agent"] = g["data"][player_key].get<std::string>();
 
   act += args["agent"];
 
@@ -237,7 +238,8 @@ j_node process_triageReg_act(json& g,
   return n;
 }
 
-j_node process_triageCrit_act(json& g, 
+j_node process_triageCrit_act(json& g,
+                              std::string player_key,
                               int start, 
                               TeamSARState& state,
                               TeamSARDomain& domain) {
@@ -250,7 +252,7 @@ j_node process_triageCrit_act(json& g,
 
   act += ",";
 
-  args["agent"] = g["data"]["playername"].get<std::string>();
+  args["agent"] = g["data"][player_key].get<std::string>();
 
   act += args["agent"];
 
@@ -295,9 +297,8 @@ j_node process_triageCrit_act(json& g,
 }
 
 j_node process_wakeCrit_act(json& g, 
-                          TeamSARState& state,
-                          TeamSARDomain& domain) {
-
+                            TeamSARState& state,
+                            TeamSARDomain& domain) {
   std::string action = "!wakeCrit";
   Args args;
 
@@ -362,6 +363,7 @@ j_node process_wakeCrit_act(json& g,
 }
 
 j_node process_pickUpVic_act(json& g, 
+                             std::string player_key,
                              TeamSARState& state,
                              TeamSARDomain& domain) {
   std::string action = "!pickup_vic";
@@ -373,7 +375,7 @@ j_node process_pickUpVic_act(json& g,
 
   act += ",";
 
-  args["agent"] = g["data"]["playername"].get<std::string>();
+  args["agent"] = g["data"][player_key].get<std::string>();
 
   act += args["agent"];
 
@@ -416,8 +418,9 @@ j_node process_pickUpVic_act(json& g,
 }
 
 j_node process_putDownVic_act(json& g, 
-                             TeamSARState& state,
-                             TeamSARDomain& domain) {
+                              std::string player_key,
+                              TeamSARState& state,
+                              TeamSARDomain& domain) {
   std::string action = "!put_down_vic";
   Args args;
 
@@ -427,7 +430,7 @@ j_node process_putDownVic_act(json& g,
 
   act += ",";
 
-  args["agent"] = g["data"]["playername"].get<std::string>();
+  args["agent"] = g["data"][player_key].get<std::string>();
 
   act += args["agent"];
 
@@ -470,8 +473,9 @@ j_node process_putDownVic_act(json& g,
 }
 
 j_node process_breakBlock_act(json& g, 
-                             TeamSARState& state,
-                             TeamSARDomain& domain) {
+                              std::string player_key,
+                              TeamSARState& state,
+                              TeamSARDomain& domain) {
   std::string action = "!break_block";
   Args args;
 
@@ -481,7 +485,7 @@ j_node process_breakBlock_act(json& g,
 
   act += ",";
 
-  args["agent"] = g["data"]["playername"].get<std::string>();
+  args["agent"] = g["data"][player_key].get<std::string>();
 
   act += args["agent"];
 
@@ -613,6 +617,7 @@ parse_data team_sar_parser(std::string infile,
   std::vector<std::string> agent2_tracker;
   int i = 0;
   p.initial_state = state;
+  std::string player_key = "playername";
 //  std::unordered_map<std::string,int> prev_act_endtime;
   while(getline(rfile,msg)) {
     if (i == trace_size) {
@@ -621,26 +626,28 @@ parse_data team_sar_parser(std::string infile,
     json g;
     g = json::parse(msg);
 
-    if (g["msg"]["sub_type"] == "start") {
+    if (g["topic"] == "trial" && g["msg"]["sub_type"] == "start") {
+      if (g["data"]["client_info"][0].find("playername") == g["data"]["client_info"][0].end()) {
+        player_key = "participant_id";
+      }
       for (auto a : g["data"]["client_info"]) {
-        state.agents.push_back(a["playername"].get<std::string>());
-        state.agent_loc[a["playername"].get<std::string>()] = state.change_zone;
-        regTriageTime[a["playername"].get<std::string>()] = 0;
-        critTriageTime[a["playername"].get<std::string>()] = 0;
-        state.holding[a["playername"].get<std::string>()] = false;
-        state.time[a["playername"].get<std::string>()] = 0;
-        state.loc_tracker[a["playername"].get<std::string>()] = {};
-        state.visited[a["playername"].get<std::string>()][state.change_zone] = 1;
-        state.role[a["playername"].get<std::string>()] = "NONE";
+        state.agents.push_back(a[player_key].get<std::string>());
+        state.agent_loc[a[player_key].get<std::string>()] = state.change_zone;
+        regTriageTime[a[player_key].get<std::string>()] = 0;
+        critTriageTime[a[player_key].get<std::string>()] = 0;
+        state.holding[a[player_key].get<std::string>()] = false;
+        state.time[a[player_key].get<std::string>()] = 0;
+        state.loc_tracker[a[player_key].get<std::string>()] = {};
+        state.visited[a[player_key].get<std::string>()][state.change_zone] = 1;
+        state.role[a[player_key].get<std::string>()] = "NONE";
 
         p.initial_state = state;
-//        prev_act_endtime[a["playername"].get<std::string>()] = -1;
+//        prev_act_endtime[a[player_key].get<std::string>()] = -1;
       }
     }
-
     if (g["data"]["mission_timer"] == "Mission Timer not initialized.") {
       if (g["msg"]["sub_type"] == "Event:RoleSelected") {
-        state.role[g["data"]["playername"].get<std::string>()] = g["data"]["new_role"].get<std::string>();
+        state.role[g["data"][player_key].get<std::string>()] = g["data"]["new_role"].get<std::string>();
         p.initial_state = state;
       }
 
@@ -648,9 +655,9 @@ parse_data team_sar_parser(std::string infile,
     if (g["data"]["mission_timer"] != "Mission Timer not initialized.") {
       if (g["msg"]["sub_type"] == "Event:location" && 
           g["data"].contains("locations") &&
-          g["data"]["playername"] == state.agents[0]) {
+          g["data"][player_key] == state.agents[0]) {
         if (g["data"]["locations"][0]["id"] != state.agent_loc[state.agents[0]]) {
-          j_node n = process_move_act(g,state,domain);
+          j_node n = process_move_act(g,player_key,state,domain);
 //            if (prev_act_endtime[agents[0]] != -1) {
 //              if (n.starttime > prev_act_endtime[agents[0]]) {
 //                j.push_back(add_search_act(agents[0],
@@ -670,9 +677,9 @@ parse_data team_sar_parser(std::string infile,
 
       if (g["msg"]["sub_type"] == "Event:location" && 
           g["data"].contains("locations") &&
-          g["data"]["playername"] == state.agents[1]) {
+          g["data"][player_key] == state.agents[1]) {
         if (g["data"]["locations"][0]["id"] != state.agent_loc[state.agents[1]]) {
-          j_node n = process_move_act(g,state,domain);
+          j_node n = process_move_act(g,player_key,state,domain);
 //            if (prev_act_endtime[agents[1]] != -1) {
 //              if (n.starttime > prev_act_endtime[agents[1]]) {
 //                j.push_back(add_search_act(agents[1],
@@ -692,9 +699,9 @@ parse_data team_sar_parser(std::string infile,
 
       if (g["msg"]["sub_type"] == "Event:location" && 
           g["data"].contains("locations") &&
-          g["data"]["playername"] == state.agents[2]) {
+          g["data"][player_key] == state.agents[2]) {
         if (g["data"]["locations"][0]["id"] != state.agent_loc[state.agents[2]]) {
-          j_node n = process_move_act(g,state,domain);
+          j_node n = process_move_act(g,player_key,state,domain);
 //            if (prev_act_endtime[agents[2]] != -1) {
 //              if (n.starttime > prev_act_endtime[agents[2]]) {
 //                j.push_back(add_search_act(agents[2],
@@ -713,7 +720,7 @@ parse_data team_sar_parser(std::string infile,
         }
  
       if (g["msg"]["sub_type"] == "Event:RoleSelected") {
-        j_node n = process_change_role_act(g,state,domain);
+        j_node n = process_change_role_act(g,player_key,state,domain);
 //        if (prev_act_endtime[p] != -1) {
 //          if (n.starttime > prev_act_endtime[p]) {
 //            j.push_back(add_search_act(p,c_loc[p],prev_act_endtime[p],n.starttime));
@@ -728,14 +735,14 @@ parse_data team_sar_parser(std::string infile,
 
       if (g["msg"]["sub_type"] == "Event:Triage" && 
           g["data"]["type"] == "REGULAR" &&
-          g["data"]["playername"] == state.agents[0]) {
+          g["data"][player_key] == state.agents[0]) {
         if (g["data"]["triage_state"] == "IN_PROGRESS") {
           std::string mission_time = g["data"]["mission_timer"].get<std::string>();
           regTriageTime[state.agents[0]] = missionTime2secElapsed(mission_time);
         }
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
-            j_node n = process_triageReg_act(g,regTriageTime[state.agents[0]],state,domain);
+            j_node n = process_triageReg_act(g,player_key,regTriageTime[state.agents[0]],state,domain);
 //            if (prev_act_endtime[agents[0]] != -1) {
 //              if (n.starttime > prev_act_endtime[agents[0]]) {
 //                j.push_back(add_search_act(agents[0],
@@ -756,14 +763,14 @@ parse_data team_sar_parser(std::string infile,
 
       if (g["msg"]["sub_type"] == "Event:Triage" && 
           g["data"]["type"] == "REGULAR" &&
-          g["data"]["playername"] == state.agents[1]) {
+          g["data"][player_key] == state.agents[1]) {
         if (g["data"]["triage_state"] == "IN_PROGRESS") {
           std::string mission_time = g["data"]["mission_timer"].get<std::string>();
           regTriageTime[state.agents[1]] = missionTime2secElapsed(mission_time);
         }
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
-            j_node n = process_triageReg_act(g,regTriageTime[state.agents[1]],state,domain);
+            j_node n = process_triageReg_act(g,player_key,regTriageTime[state.agents[1]],state,domain);
 //            if (prev_act_endtime[agents[1]] != -1) {
 //              if (n.starttime > prev_act_endtime[agents[1]]) {
 //                j.push_back(add_search_act(agents[1],
@@ -784,14 +791,14 @@ parse_data team_sar_parser(std::string infile,
 
       if (g["msg"]["sub_type"] == "Event:Triage" && 
           g["data"]["type"] == "REGULAR" &&
-          g["data"]["playername"] == state.agents[2]) {
+          g["data"][player_key] == state.agents[2]) {
         if (g["data"]["triage_state"] == "IN_PROGRESS") {
           std::string mission_time = g["data"]["mission_timer"].get<std::string>();
           regTriageTime[state.agents[2]] = missionTime2secElapsed(mission_time);
         }
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
-            j_node n = process_triageReg_act(g,regTriageTime[state.agents[2]],state,domain);
+            j_node n = process_triageReg_act(g,player_key,regTriageTime[state.agents[2]],state,domain);
 //            if (prev_act_endtime[agents[2]] != -1) {
 //              if (n.starttime > prev_act_endtime[agents[2]]) {
 //                j.push_back(add_search_act(agents[2],
@@ -812,14 +819,14 @@ parse_data team_sar_parser(std::string infile,
 
       if (g["msg"]["sub_type"] == "Event:Triage" && 
           g["data"]["type"] == "CRITICAL" &&
-          g["data"]["playername"] == state.agents[0]) {
+          g["data"][player_key] == state.agents[0]) {
         if (g["data"]["triage_state"] == "IN_PROGRESS") {
           std::string mission_time = g["data"]["mission_timer"].get<std::string>();
           critTriageTime[state.agents[0]] = missionTime2secElapsed(mission_time);
         }
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
-            j_node n = process_triageCrit_act(g,critTriageTime[state.agents[0]],state,domain);
+            j_node n = process_triageCrit_act(g,player_key,critTriageTime[state.agents[0]],state,domain);
 //            if (prev_act_endtime[agents[0]] != -1) {
 //              if (n.starttime > prev_act_endtime[agents[0]]) {
 //                j.push_back(add_search_act(agents[0],
@@ -840,14 +847,14 @@ parse_data team_sar_parser(std::string infile,
 
       if (g["msg"]["sub_type"] == "Event:Triage" && 
           g["data"]["type"] == "CRITICAL" &&
-          g["data"]["playername"] == state.agents[1]) {
+          g["data"][player_key] == state.agents[1]) {
         if (g["data"]["triage_state"] == "IN_PROGRESS") {
           std::string mission_time = g["data"]["mission_timer"].get<std::string>();
           critTriageTime[state.agents[1]] = missionTime2secElapsed(mission_time);
         }
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
-            j_node n = process_triageCrit_act(g,critTriageTime[state.agents[1]],state,domain);
+            j_node n = process_triageCrit_act(g,player_key,critTriageTime[state.agents[1]],state,domain);
 //            if (prev_act_endtime[agents[1]] != -1) {
 //              if (n.starttime > prev_act_endtime[agents[1]]) {
 //                j.push_back(add_search_act(agents[1],
@@ -868,14 +875,14 @@ parse_data team_sar_parser(std::string infile,
 
       if (g["msg"]["sub_type"] == "Event:Triage" && 
           g["data"]["type"] == "CRITICAL" &&
-          g["data"]["playername"] == state.agents[2]) {
+          g["data"][player_key] == state.agents[2]) {
         if (g["data"]["triage_state"] == "IN_PROGRESS") {
           std::string mission_time = g["data"]["mission_timer"].get<std::string>();
           critTriageTime[state.agents[2]] = missionTime2secElapsed(mission_time);
         }
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
-            j_node n = process_triageCrit_act(g,critTriageTime[state.agents[2]],state,domain);
+            j_node n = process_triageCrit_act(g,player_key,critTriageTime[state.agents[2]],state,domain);
 //            if (prev_act_endtime[agents[2]] != -1) {
 //              if (n.starttime > prev_act_endtime[agents[2]]) {
 //                j.push_back(add_search_act(agents[2],
@@ -925,7 +932,7 @@ parse_data team_sar_parser(std::string infile,
       }
 
       if (g["msg"]["sub_type"] == "Event:VictimPickedUp") {
-        j_node n = process_pickUpVic_act(g,state,domain);
+        j_node n = process_pickUpVic_act(g,player_key,state,domain);
 //        if (prev_act_endtime[p] != -1) {
 //          if (n.starttime > prev_act_endtime[p]) {
 //            j.push_back(add_search_act(p,c_loc[p],prev_act_endtime[p],n.starttime));
@@ -939,7 +946,7 @@ parse_data team_sar_parser(std::string infile,
       }
 
       if (g["msg"]["sub_type"] == "Event:VictimPlaced") {
-        j_node n = process_putDownVic_act(g,state,domain);
+        j_node n = process_putDownVic_act(g,player_key,state,domain);
 //        if (prev_act_endtime[p] != -1) {
 //          if (n.starttime > prev_act_endtime[p]) {
 //            j.push_back(add_search_act(p,c_loc[p],prev_act_endtime[p],n.starttime));
@@ -953,7 +960,7 @@ parse_data team_sar_parser(std::string infile,
       }
 
       if (g["msg"]["sub_type"] == "Event:RubbleDestroyed") {
-        j_node n = process_breakBlock_act(g,state,domain);
+        j_node n = process_breakBlock_act(g,player_key,state,domain);
 //        if (prev_act_endtime[p] != -1) {
 //          if (n.starttime > prev_act_endtime[p]) {
 //            j.push_back(add_search_act(p,c_loc[p],prev_act_endtime[p],n.starttime));
