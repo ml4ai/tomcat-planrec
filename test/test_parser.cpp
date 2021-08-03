@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 
 
 	(:method m_deliver_ordering_0
-		:parameters (?loc1 - location ?loc1 - location ?p - package ?v - vehicle)
+		:parameters (?loc1 - location ?loc2 - location ?p - package ?v - vehicle)
 		:task (deliver ?p ?loc2) 
 
         :precondition (or
@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     //  Test parsing of problem definition and its components
     storage = R"(
         (define
-            (problem adobe)
+            (problem delivery)
             (:domain domain_htn)
             (:requirements :strips :typing)
 
@@ -364,16 +364,17 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
 		    truck_0 - vehicle
             location
 	    )
-;	(:htn
-;		:parameters ()
-;		:subtasks (and
-;		 (task0 (deliver package_0 city_loc_0))
-;		 (task1 (deliver package_1 city_loc_2))
-;		)
-;		:ordering (and
-;			(< task0 task1)
-;		)
-;	)
+	(:htn
+		;:parameters ()
+		:parameters (?loc1 - location ?p - package ?v - vehicle)
+		:subtasks (and
+		 (task0 (deliver package_0 city_loc_0))
+		 (task1 (deliver package_1 city_loc_2))
+		)
+		:ordering (and
+			(< task0 task1)
+		)
+	)
 	(:init
 		(capacity_predecessor capacity_0 capacity_1)
 		(road city_loc_0 city_loc_1)
@@ -385,25 +386,17 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
 		(at truck_0 city_loc_2)
 		(capacity truck_0 capacity_1)
 	)
-); end problem definition
-
-  ;;//OLD
-  ;old          (:objects
- ;               factory house - site
- ;               adobe - material
- ;               rock) ;testing implicitly-typed
- ;              )
- ;         (:goal
- ;              (and (off-site adobe1 factory1)
- ;                   (on-site adobe2 house2)
- ;              ))
- ;       );end define
+          (:goal
+                (and (at package_1 city_loc_2)
+                     (at truck_1 city_loc_2)
+                ))
  
+); end problem definition
  )";
 
     auto prob = parse<Problem>(storage);
 
-    BOOST_TEST(prob.name == "adobe");
+    BOOST_TEST(prob.name == "delivery");
     BOOST_TEST(prob.domain_name == "domain_htn");
 
     // Test requirements
@@ -424,4 +417,26 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
                    prob.objects.explicitly_typed_lists[0].type) == "package");
     BOOST_TEST(prob.objects.implicitly_typed_list[0] ==
                "location"); // default type = object
+
+    // Test Problem HTN
+    ProblemHTN  htn_f = prob.problem_htn; 
+    BOOST_TEST(htn_f.problem_class == ":htn");
+    auto htn_para = htn_f.parameters;
+    BOOST_TEST(boost::get<PrimitiveType>(
+          htn_para.explicitly_typed_lists[0].type) == "location");
+
+    // Test Problem HTN Subtasks (brief test only)
+    std::vector<SubTask> htn_subtasks = boost::get<vector<SubTask>>(
+        htn_f.task_network.subtasks.value().subtasks); 
+    SubTask htn_subtask_0 = htn_subtasks[0];
+    SubTaskWithId htn_id = boost::get<SubTaskWithId>(htn_subtask_0);
+    std::vector<Term> htn_sub_para = htn_id.subtask.parameters;
+    BOOST_TEST(name(htn_sub_para[0]) == "package_0");
+
+    // Test Problem Goal
+    Sentence goal_f = prob.goal;
+    ConnectedSentence goal_s = boost::get<ConnectedSentence>(goal_f);
+    auto goal_1 = boost::get<Literal<Term>>(goal_s.sentences[0]);
+    BOOST_TEST(goal_1.predicate == "at");
+    BOOST_TEST(name(goal_1.args[1]) == "city_loc_2");
 }

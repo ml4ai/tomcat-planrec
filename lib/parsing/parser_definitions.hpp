@@ -517,7 +517,9 @@ namespace parser {
     } problem_class;
 
     rule<class TProblemHTN, ProblemHTN> problem_htn = "problem_htn";
-    auto const problem_htn_def = ('('  >> problem_class) > -parameters > task_network > ')';
+    auto const problem_htn_def = ('(' >> problem_class) 
+                               > -parameters 
+                               > task_network > ')';
     BOOST_SPIRIT_DEFINE(problem_htn);
     struct TProblemHTN: x3::annotate_on_success {};
 
