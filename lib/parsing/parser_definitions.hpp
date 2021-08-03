@@ -387,7 +387,8 @@ namespace parser {
     struct TSubTasks: x3::annotate_on_success {};
 
     rule<class TOrdering, Ordering> const ordering = "ordering";
-    auto const ordering_def = '(' >> name >> '<' >> name >> ')';
+    auto const ordering_def = '(' >> lit("<") >> name >> name >> ')'; //make sure to use lit("")
+
     BOOST_SPIRIT_DEFINE(ordering);
     struct TOrdering: x3::annotate_on_success {};
 
@@ -516,7 +517,9 @@ namespace parser {
     } problem_class;
 
     rule<class TProblemHTN, ProblemHTN> problem_htn = "problem_htn";
-    auto const problem_htn_def = ('('  >> problem_class) > -parameters > task_network > ')';
+    auto const problem_htn_def = ('(' >> problem_class) 
+                               > -parameters 
+                               > task_network > ')';
     BOOST_SPIRIT_DEFINE(problem_htn);
     struct TProblemHTN: x3::annotate_on_success {};
 
