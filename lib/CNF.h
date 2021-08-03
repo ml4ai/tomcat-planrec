@@ -161,7 +161,6 @@ namespace ast {
 
     struct StandardizeApartIndexical {
         int index = 0;
-
       public:
         std::string getPrefix() { return "q"; }
         int getNextIndex() { return this->index++; }

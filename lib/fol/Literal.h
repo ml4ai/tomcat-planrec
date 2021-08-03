@@ -3,6 +3,7 @@
 #include "Predicate.h"
 #include <vector>
 
+// update away from functions and to predicates
 namespace fol {
     template <class T> struct Literal {
         Predicate predicate;

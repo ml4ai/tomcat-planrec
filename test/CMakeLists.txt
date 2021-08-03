@@ -13,6 +13,7 @@ target_include_directories(test_parser PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # KB testing
 add_executable(test_kb test_kb.cpp)
+target_link_libraries(test_kb tomcat)
 target_include_directories(test_kb PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # Test unification
