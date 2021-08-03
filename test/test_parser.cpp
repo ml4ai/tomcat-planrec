@@ -155,7 +155,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     // Test parsing of domain definition and its components
     // Domain from https://gki.informatik.uni-freiburg.de/competition/competition_status.html
     // Additional elements added to this domain for parser testing purposes
-    // only, and may not make logical sense.
+    //     only, and may not make logical sense.
 
     storage = R"(
 
@@ -188,7 +188,6 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 		:parameters (?v - vehicle ?l - location)
 	)
 
-
 	(:method m_deliver_ordering_0
 		:parameters (?loc1 - location ?loc2 - location ?p - package ?v - vehicle)
 		:task (deliver ?p ?loc2) 
@@ -220,7 +219,6 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 		)
 	)
 
-
 	(:action pick_up
 		:parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
 		:precondition
@@ -238,10 +236,8 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 				(not (capacity ?v ?s2))
 			)
 	); end action pick_up
-)
-
+  ); end domain definition
     )";
-
 
 
     auto dom = parse<Domain>(storage);
@@ -282,8 +278,8 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 
     // Test Methods Parameters:
     BOOST_TEST(boost::get<PrimitiveType>(
-                   dom.methods[0].parameters.explicitly_typed_lists[2].type) ==
-               "package");
+       dom.methods[0].parameters.explicitly_typed_lists[2].type) == "package");
+
     // Test method's task to be broken down. In the abstract task, 'task' is
     // defined similar to an action. Here, it is defined as <Literal<Term>>
     auto methodtask = dom.methods[0].task;
@@ -341,28 +337,27 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto effect1_af = boost::get<Literal<Term>>(effect1_s.c_effects[0]);
     BOOST_TEST(effect1_af.predicate == "at");
     BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "p");
-
 }// end of testing the domain
 
 
 BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     //  Test parsing of problem definition and its components
     storage = R"(
-        (define
-            (problem delivery)
-            (:domain domain_htn)
-            (:requirements :strips :typing)
+    (define
+        (problem delivery)
+        (:domain domain_htn)
+        (:requirements :strips :typing)
 
-    	(:objects
-	    	package_0 - package
-		    package_1 - package
-		    capacity_0 - capacity_number
-		    capacity_1 - capacity_number
-		    city_loc_0 - location
-		    city_loc_1 - location
-		    city_loc_2 - location
-		    truck_0 - vehicle
-            location
+   	(:objects
+        package_0 - package
+	    package_1 - package
+	    capacity_0 - capacity_number
+	    capacity_1 - capacity_number
+	    city_loc_0 - location
+	    city_loc_1 - location
+	    city_loc_2 - location
+	    truck_0 - vehicle
+        location
 	    )
 	(:htn
 		;:parameters ()
@@ -386,12 +381,11 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
 		(at truck_0 city_loc_2)
 		(capacity truck_0 capacity_1)
 	)
-          (:goal
-                (and (at package_1 city_loc_2)
-                     (at truck_1 city_loc_2)
-                ))
- 
-); end problem definition
+    (:goal
+         (and (at package_1 city_loc_2)
+              (at truck_1 city_loc_2)
+    ))
+  ); end problem definition
  )";
 
     auto prob = parse<Problem>(storage);
@@ -401,7 +395,6 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
 
     // Test requirements
     BOOST_TEST(equals(prob.requirements, {"strips", "typing"}));
-
 
     // Test initial state
     BOOST_TEST(boost::get<Init>(prob.init)[7].predicate == "at");
