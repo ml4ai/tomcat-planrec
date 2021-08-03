@@ -1233,9 +1233,29 @@ template <class State> pTasks relocate_victim_Search_Specialist(State state, Arg
 
   if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
       !in(state.agent_loc[agent],state.no_victim_zones) &&
-      state.r_triage_total < state.r_max) {
+      state.r_triage_total < state.r_max && !state.holding[agent]) {
 
     return {6.0/161,
+      {Task("Relocate_vic",Args({{"agent",agent}}),{"agent"})}};
+  }  
+  return {0,{}};
+}
+
+template <class State> pTasks resume_relocate_victim_Search_Specialist(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (!state.action_tracker.empty()) {
+    Action act = state.action_tracker.back();
+    if (act.action != "!move" && act.action != "!put_down_vic") {
+      return {0,{}};
+    }
+  }
+
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
+      !in(state.agent_loc[agent],state.no_victim_zones) &&
+      state.holding[agent]) {
+
+    return {1.0,
       {Task("Relocate_vic",Args({{"agent",agent}}),{"agent"})}};
   }  
   return {0,{}};
@@ -1304,7 +1324,7 @@ template <class State> pTasks move_victim(State state, Args args) {
       n_area = state.loc_tracker[agent].back();
     }
 
-    return {6.0/12,
+    return {(6.0/12 - 0.005),
       {Task("!move",Args({{"duration",duration},
                           {"start",start},
                           {"n_area",n_area},
@@ -1336,13 +1356,25 @@ template <class State> pTasks putdown_victim(State state, Args args) {
   if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
       state.holding[agent]) {
 
-    return {6.0/12,
+    return {(6.0/12 - 0.005),
       {Task("!put_down_vic",Args({{"duration",duration},
                                 {"start",start},
                                 {"area",state.agent_loc[agent]},
                                 {"agent",agent}}),{"agent","area","start","duration"})}};
   }  
   return {0,{}};
+}
+
+template<class State> pTasks need_to_do_something_else(State state,Args args) {
+  auto agent = args["agent"];
+  if (!state.action_tracker.empty()) {
+    Action act = state.action_tracker.back();
+    if (act.action == "!put_down_vic" || act.action == "!move") {
+      return {0,{}};
+    }
+  }
+  return {0.01, {}};
+
 }
 
 template <class State> pTasks no_time_to_putdown(State state, Args args) {
@@ -1374,7 +1406,7 @@ template <class State> pTasks move_Search_Specialist(State state, Args args) {
     start = std::to_string(state.time[agent]);
   }
 
-  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900) {
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 && !state.holding[agent]) {
     double prob;
     if (in(state.agent_loc[agent],state.no_victim_zones)) {
       if (state.agent_loc[agent] == state.change_zone) {
@@ -1426,7 +1458,7 @@ template <class State> pTasks change_Search_Specialist(State state, Args args) {
  
   if (state.role[agent] == "Search_Specialist" && 
       state.agent_loc[agent] == state.change_zone &&
-      state.time[agent] < 900) {
+      state.time[agent] < 900 && !state.holding[agent]) {
 
     return {4.0/6,
       {Task("Change_role",Args({{"agent",agent}}),{"agent"})}};
@@ -1589,6 +1621,7 @@ class TeamSARDomain {
                            change_Hazardous_Material_Specialist}},
                          {"Do_Search_Specialist_task",
                           {relocate_victim_Search_Specialist,
+                           resume_relocate_victim_Search_Specialist,
                            move_Search_Specialist,
                            change_Search_Specialist}},
                          {"Triage_area",
@@ -1601,6 +1634,7 @@ class TeamSARDomain {
                           {pickup_victim,
                            move_victim,
                            putdown_victim,
+                           need_to_do_something_else,
                            no_time_to_putdown}}});
 
     TeamSARDomain() {
