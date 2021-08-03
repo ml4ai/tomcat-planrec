@@ -101,8 +101,7 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planrec) {
                                     state1.left_region,
                                     state1.right_region,
                                     state1.mid_region);
-    json g;
-    g = seek_planrecMCTS(trace,
+    auto pt = cpphopPlanrecMCTS(trace,
                      state1,
                      tasks,
                      domain,
@@ -110,6 +109,8 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planrec) {
                      90,
                      0.4,
                      2021);
+
+    json g = generate_plan_trace_tree(pt.first,pt.second);
     BOOST_TEST(true);
     // BOOST_TEST(g["task"] == "(SAR,me,)");
     // BOOST_TEST(g["children"].size() == 1);
