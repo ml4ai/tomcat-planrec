@@ -118,18 +118,15 @@ int main(int argc, char* argv[]) {
                          {"agent2", p.initial_state.agents[1]},
                          {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"})}};
 
-    json g;
-
-    g = seek_planrecMCTS(p.trace,
-                     p.initial_state,
-                     tasks,
-                     domain,
-                     selector,
-                     N,
-                     0.4,
-                     2021,
-                     true,
-                     "team_sar_pred_exp.json");
+    auto pt = cpphopPlanrecMCTS(p.trace,
+                          p.initial_state,
+                          tasks,
+                          domain,
+                          selector,
+                          N,
+                          0.4,
+                          2021);
+    json g = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_pred_exp.json");
     generate_graph_from_json(g, "team_sar_pred_exp_graph.png");
     return EXIT_SUCCESS;
 }
