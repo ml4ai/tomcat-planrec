@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
     infile = argv[2];
   }
   else {
-    infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-2.metadata";
+    infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   }
 
   auto state1 = TeamSARState();
