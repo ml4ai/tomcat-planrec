@@ -80,6 +80,11 @@ template <class State> std::optional<State> triageReg(State state, Args args) {
     state.r_triage_total = state.r_triage_total + 1; 
     state.r_triaged_here[area] = true;
     state.time[agent] = end;
+    if (state.dropped_off_here.find(area) != state.dropped_off_here.end()) {
+      if (state.dropped_off_here[area] > 0) {
+        state.dropped_off_here[area]--;
+      }
+    }
     if (!state.action_tracker.empty()) {
       state.action_tracker.pop_back();
     }
@@ -184,6 +189,9 @@ template <class State> std::optional<State> move(State state, Args args) {
   if (state.agent_loc[agent] == c_area) {
 
     state.agent_loc[agent] = n_area;
+
+    state.adjacent[c_area][n_area];
+    state.adjacent[n_area][c_area];
     
     if (state.visited[agent].find(n_area) == state.visited[agent].end()) {
       state.visited[agent][n_area] = 1;
@@ -251,6 +259,20 @@ template <class State> std::optional<State> pickup_vic(State state, Args args) {
       state.r_triage_total < state.r_max && !state.holding[agent]) {
     
     state.holding[agent] = true;
+    state.picked_up_from[agent] = area;
+    if (state.picked_up_here.find(area) == state.picked_up_here.end()) {
+      state.picked_up_here[area] = 1;
+    }
+    else {
+      state.picked_up_here[area]++;
+    }
+
+    if (state.dropped_off_here.find(area) != state.dropped_off_here.end()) {
+      if (state.dropped_off_here[area] > 0) {
+        state.dropped_off_here[area]--;
+      }
+    }
+
     state.time[agent] = end;
     if (!state.action_tracker.empty()) {
       state.action_tracker.pop_back();
@@ -276,6 +298,26 @@ template <class State> std::optional<State> put_down_vic(State state, Args args)
       state.holding[agent]) {
     
     state.holding[agent] = false;
+    if (state.vic_relocations[agent].find(state.picked_up_from[agent]) == state.vic_relocations[agent].end()) {
+      state.vic_relocations[agent][state.picked_up_from[agent]][area] = 1;
+    }
+    else {
+      if (state.vic_relocations[agent][state.picked_up_from[agent]].find(area) == state.vic_relocations[agent][state.picked_up_from[agent]].end()) {
+        state.vic_relocations[agent][state.picked_up_from[agent]][area] = 1;
+      }
+      else {
+        state.vic_relocations[agent][state.picked_up_from[agent]][area]++;
+      }
+    }
+
+    if (state.dropped_off_here.find(area) == state.dropped_off_here.end()) {
+      state.dropped_off_here[area] = 1;
+    }
+    else {
+      state.dropped_off_here[area]++;
+    }
+
+    state.picked_up_from[agent] = "NONE";
     state.time[agent] = end;
     if (!state.action_tracker.empty()) {
       state.action_tracker.pop_back();
@@ -290,6 +332,134 @@ template <class State> double put_down_vic(State pre_state, State post_state, Ar
     return 1;
 }
 
+template <class State> std::optional<State> mark_opening_1(State state, Args args) {
+  auto agent = args["agent"];
+  auto area_placed = args ["area_placed"];
+  auto area_marked = args["area_marked"];
+  auto start = std::stoi(args["start"],nullptr);
+  auto duration = std::stoi(args["duration"],nullptr);
+  int end = start + duration;
+  
+  if (state.agent_loc[agent] == area_placed && state.time[agent] < 900) {
+    state.marked_opening_1[agent][area_placed][area_marked] = true;
+    state.time[agent] = end;
+
+    return state;
+  } 
+  return std::nullopt; 
+
+}
+
+template <class State> double mark_opening_1(State pre_state, State post_state, Args args) {
+    return 1;
+}
+
+template <class State> std::optional<State> mark_opening_2(State state, Args args) {
+  auto agent = args["agent"];
+  auto area_placed = args ["area_placed"];
+  auto area_marked = args["area_marked"];
+  auto start = std::stoi(args["start"],nullptr);
+  auto duration = std::stoi(args["duration"],nullptr);
+  int end = start + duration;
+  
+  if (state.agent_loc[agent] == area_placed && state.time[agent] < 900) {
+    state.marked_opening_2[agent][area_placed][area_marked] = true;
+    state.time[agent] = end;
+
+    return state;
+  } 
+  return std::nullopt; 
+
+}
+
+template <class State> double mark_opening_2(State pre_state, State post_state, Args args) {
+    return 1;
+}
+
+template <class State> std::optional<State> mark_opening_3(State state, Args args) {
+  auto agent = args["agent"];
+  auto area_placed = args ["area_placed"];
+  auto area_marked = args["area_marked"];
+  auto start = std::stoi(args["start"],nullptr);
+  auto duration = std::stoi(args["duration"],nullptr);
+  int end = start + duration;
+  
+  if (state.agent_loc[agent] == area_placed && state.time[agent] < 900) {
+    state.marked_opening_3[agent][area_placed][area_marked] = true;
+    state.time[agent] = end;
+
+    return state;
+  } 
+  return std::nullopt; 
+
+}
+
+template <class State> double mark_opening_3(State pre_state, State post_state, Args args) {
+    return 1;
+}
+
+template <class State> std::optional<State> mark_area_1(State state, Args args) {
+  auto agent = args["agent"];
+  auto area_marked = args["area_marked"];
+  auto start = std::stoi(args["start"],nullptr);
+  auto duration = std::stoi(args["duration"],nullptr);
+  int end = start + duration;
+  
+  if (state.agent_loc[agent] == area_marked && state.time[agent] < 900) {
+    state.marked_area_1[agent][area_marked] = true;
+    state.time[agent] = end;
+
+    return state;
+  } 
+  return std::nullopt; 
+
+}
+
+template <class State> double mark_area_1(State pre_state, State post_state, Args args) {
+    return 1;
+}
+
+template <class State> std::optional<State> mark_area_2(State state, Args args) {
+  auto agent = args["agent"];
+  auto area_marked = args["area_marked"];
+  auto start = std::stoi(args["start"],nullptr);
+  auto duration = std::stoi(args["duration"],nullptr);
+  int end = start + duration;
+  
+  if (state.agent_loc[agent] == area_marked && state.time[agent] < 900) {
+    state.marked_area_2[agent][area_marked] = true;
+    state.time[agent] = end;
+
+    return state;
+  } 
+  return std::nullopt; 
+
+}
+
+template <class State> double mark_area_2(State pre_state, State post_state, Args args) {
+    return 1;
+}
+
+template <class State> std::optional<State> mark_area_3(State state, Args args) {
+  auto agent = args["agent"];
+  auto area_marked = args["area_marked"];
+  auto start = std::stoi(args["start"],nullptr);
+  auto duration = std::stoi(args["duration"],nullptr);
+  int end = start + duration;
+  
+  if (state.agent_loc[agent] == area_marked && state.time[agent] < 900) {
+    state.marked_area_3[agent][area_marked] = true;
+    state.time[agent] = end;
+
+    return state;
+  } 
+  return std::nullopt; 
+
+}
+
+template <class State> double mark_area_3(State pre_state, State post_state, Args args) {
+    return 1;
+}
 template <class State> std::optional<State> change_to_Medical_Specialist(State state, Args args) {
   auto agent = args["agent"];
   auto start = std::stoi(args["start"],nullptr);
@@ -1486,13 +1656,15 @@ class TeamSARState {
 
     //*** agents ***
 
-    std::unordered_map<std::string, std::string> role;
+    std::unordered_map<std::string,std::string> role;
 
-    std::unordered_map<std::string, std::string> agent_loc;
+    std::unordered_map<std::string,std::string> agent_loc;
 
     std::unordered_map<std::string,bool> holding;
 
-    std::unordered_map<std::string, int> time;
+    std::unordered_map<std::string,int> time;
+
+    std::unordered_map<std::string,std::string> picked_up_from;
 
     // ******
 
@@ -1504,7 +1676,11 @@ class TeamSARState {
 
     std::unordered_map<std::string,bool> c_triaged_here;
 
-    std::unordered_map<std::string, bool> c_awake;
+    std::unordered_map<std::string,bool> c_awake;
+
+    std::unordered_map<std::string,int> picked_up_here;
+
+    std::unordered_map<std::string,int> dropped_off_here;
 
     // ******
 
@@ -1518,9 +1694,37 @@ class TeamSARState {
 
     // ******
 
-    // (agent,area)
-    std::unordered_map<std::string, std::unordered_map<std::string, int>> visited; 
+    // *** (agent,area) ***
+    std::unordered_map<std::string,std::unordered_map<std::string, int>> visited; 
+
+    std::unordered_map<std::string,std::unordered_map<std::string, bool>> marked_area_1;
+
+    std::unordered_map<std::string,std::unordered_map<std::string, bool>> marked_area_2;
+
+    std::unordered_map<std::string,std::unordered_map<std::string, bool>> marked_area_3;
+ 
+    // ******
     
+    // *** (area_1,area_2) ***
+    std::unordered_map<std::string,std::unordered_map<std::string,bool>> adjacent; 
+
+    // ******
+
+    // *** (agent, area_picked_up, area_dropped_off) ***
+    std::unordered_map<std::string,std::unordered_map<std::string, std::unordered_map<std::string, int>>> vic_relocations;
+    
+    // ******
+
+    // *** (agent, area_placed, area_marked) ***
+    std::unordered_map<std::string,std::unordered_map<std::string, std::unordered_map<std::string, bool>>> marked_opening_1;
+
+    std::unordered_map<std::string,std::unordered_map<std::string, std::unordered_map<std::string, bool>>> marked_opening_2;
+
+    std::unordered_map<std::string,std::unordered_map<std::string, std::unordered_map<std::string, bool>>> marked_opening_3;
+
+    // ******
+
+   
     // Not part of the state representation!
     std::vector<Action> action_tracker;
     std::unordered_map<std::string, std::vector<std::string>> loc_tracker;
@@ -1545,7 +1749,13 @@ class TeamSARState {
                {"r_max",this->r_max},
                {"c_awake",this->c_awake},
                {"time",this->time},
-               {"visited",this->visited}};
+               {"visited",this->visited},
+               {"marked_area_1", this->marked_area_1},
+               {"marked_area_2", this->marked_area_2},
+               {"marked_area_3", this->marked_area_3},
+               {"marked_opening_1", this->marked_opening_1},
+               {"marked_opening_2", this->marked_opening_2},
+               {"marked_opening_3", this->marked_opening_3}};
     }
 };
 
@@ -1576,6 +1786,12 @@ class TeamSARDomain {
                            {"!change_to_Medical_Specialist",change_to_Medical_Specialist},
                            {"!change_to_Hazardous_Material_Specialist",change_to_Hazardous_Material_Specialist},
                            {"!change_to_Search_Specialist",change_to_Search_Specialist},
+                           {"!mark_opening_1",mark_opening_1},
+                           {"!mark_opening_2",mark_opening_2},
+                           {"!mark_opening_3",mark_opening_3},
+                           {"!mark_area_1",mark_area_1},
+                           {"!mark_area_2",mark_area_2},
+                           {"!mark_area_3",mark_area_3},
                            {"!move",move},
                            {"!exit",exit}});
 
@@ -1589,6 +1805,12 @@ class TeamSARDomain {
                            {"!change_to_Medical_Specialist",change_to_Medical_Specialist},
                            {"!change_to_Hazardous_Material_Specialist",change_to_Hazardous_Material_Specialist},
                            {"!change_to_Search_Specialist",change_to_Search_Specialist},
+                           {"!mark_opening_1",mark_opening_1},
+                           {"!mark_opening_2",mark_opening_2},
+                           {"!mark_opening_3",mark_opening_3},
+                           {"!mark_area_1",mark_area_1},
+                           {"!mark_area_2",mark_area_2},
+                           {"!mark_area_3",mark_area_3},
                            {"!move",move},
                            {"!exit",exit}});
 
