@@ -527,6 +527,147 @@ j_node process_breakBlock_act(json& g,
   return n;
 }
 
+j_node process_markOpening_act(json& g, 
+                              std::string player_key,
+                              std::string area_marked,
+                              TeamSARState& state,
+                              TeamSARDomain& domain) {
+  std::string action = "!mark_opening_";
+  if (g["data"]["type"] == "Marker Block 1") {
+    action += "1";
+  }
+
+  if (g["data"]["type"] == "Marker Block 2") {
+    action += "2";
+  }
+
+  if (g["data"]["type"] == "Marker Block 3") {
+    action += "3";
+  }
+
+  Args args;
+
+  std::string act = "(";
+
+  act += action;
+
+  act += ",";
+
+  args["agent"] = g["data"][player_key].get<std::string>();
+
+  act += args["agent"];
+
+  act += ",";
+
+  args["area_placed"] = state.agent_loc[args["agent"]];
+
+  act += args["area_placed"];
+
+  act += ",";
+
+  args["area_marked"] = area_marked;
+
+  act += args["area_marked"];
+
+  act += ",";
+
+  std::string mission_time = g["data"]["mission_timer"].get<std::string>();
+
+  int time = missionTime2secElapsed(mission_time);
+
+  args["start"] = std::to_string(time);
+
+  act += args["start"];
+
+  act += ",";
+
+  args["duration"] = "1";
+
+  act += "1,)";
+
+  j_node n;
+  n.j["pre-state"] = state.to_json();
+  n.j["task"] = act;
+  TeamSARState newstate = apply_operator(action,state,domain,args);
+  n.j["post-state"] = newstate.to_json();
+  n.new_s = newstate;
+  n.starttime = time;
+  n.endtime = time;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = args["area_placed"];
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
+  return n;
+}
+
+j_node process_markArea_act(json& g, 
+                            std::string player_key,
+                            TeamSARState& state,
+                            TeamSARDomain& domain) {
+  std::string action = "!mark_area_";
+  if (g["data"]["type"] == "Marker Block 1") {
+    action += "1";
+  }
+
+  if (g["data"]["type"] == "Marker Block 2") {
+    action += "2";
+  }
+
+  if (g["data"]["type"] == "Marker Block 3") {
+    action += "3";
+  }
+
+  Args args;
+
+  std::string act = "(";
+
+  act += action;
+
+  act += ",";
+
+  args["agent"] = g["data"][player_key].get<std::string>();
+
+  act += args["agent"];
+
+  act += ",";
+
+  args["area_marked"] = state.agent_loc[args["agent"]];
+
+  act += args["area_marked"];
+
+  act += ",";
+
+  std::string mission_time = g["data"]["mission_timer"].get<std::string>();
+
+  int time = missionTime2secElapsed(mission_time);
+
+  args["start"] = std::to_string(time);
+
+  act += args["start"];
+
+  act += ",";
+
+  args["duration"] = "1";
+
+  act += "1,)";
+
+  j_node n;
+  n.j["pre-state"] = state.to_json();
+  n.j["task"] = act;
+  TeamSARState newstate = apply_operator(action,state,domain,args);
+  n.j["post-state"] = newstate.to_json();
+  n.new_s = newstate;
+  n.starttime = time;
+  n.endtime = time;
+  n.action.action = action;
+  n.action.agent = args["agent"];
+  n.action.area = args["area_marked"];
+  n.action.start = args["start"];
+  n.action.duration = args["duration"];
+  return n;
+}
+
 json add_search_act(std::string agent, std::string area, int start, int end) {
   std::string act = "(!search,";
   
@@ -618,6 +759,7 @@ parse_data team_sar_parser(std::string infile,
   int i = 0;
   p.initial_state = state;
   std::string player_key = "playername";
+  std::unordered_map<std::string, Action> prevAct;
 //  std::unordered_map<std::string,int> prev_act_endtime;
   while(getline(rfile,msg)) {
     if (i == trace_size) {
@@ -669,6 +811,7 @@ parse_data team_sar_parser(std::string infile,
           j.push_back(n.j);
           state = n.new_s;
           agent0_tracker.push_back(state.agent_loc[state.agents[0]]);
+          prevAct[state.agents[0]] = n.action;
           a_tracker.push_back(n.action); 
           i++;
 //            prev_act_endtime[agents[0]] = n.endtime;
@@ -691,6 +834,7 @@ parse_data team_sar_parser(std::string infile,
           j.push_back(n.j);
           state = n.new_s;
           agent1_tracker.push_back(state.agent_loc[state.agents[1]]);
+          prevAct[state.agents[1]] = n.action;
           a_tracker.push_back(n.action);
           i++;
 //            prev_act_endtime[agents[1]] = n.endtime;
@@ -713,6 +857,7 @@ parse_data team_sar_parser(std::string infile,
           j.push_back(n.j);
           state = n.new_s;
           agent2_tracker.push_back(state.agent_loc[state.agents[2]]);
+          prevAct[state.agents[2]] = n.action;
           a_tracker.push_back(n.action);
           i++;
 //            prev_act_endtime[agents[2]] = n.endtime;
@@ -728,6 +873,7 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        prevAct[g["data"][player_key].get<std::string>()] = n.action;
         a_tracker.push_back(n.action);
         i++;
 //        prev_act_endtime[p] = n.endtime;
@@ -753,6 +899,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            prevAct[state.agents[0]] = n.action;
             a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[0]] = n.endtime;
@@ -781,6 +928,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            prevAct[state.agents[1]] = n.action;
             a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[1]] = n.endtime;
@@ -809,6 +957,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            prevAct[state.agents[2]] = n.action;
             a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[2]] = n.endtime;
@@ -837,6 +986,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            prevAct[state.agents[0]] = n.action;
             a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[0]] = n.endtime;
@@ -865,6 +1015,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            prevAct[state.agents[1]] = n.action;
             a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[1]] = n.endtime;
@@ -893,6 +1044,7 @@ parse_data team_sar_parser(std::string infile,
 //            }
             j.push_back(n.j);
             state = n.new_s;
+            prevAct[state.agents[2]] = n.action;
             a_tracker.push_back(n.action);
             i++;
 //            prev_act_endtime[agents[2]] = n.endtime;
@@ -916,6 +1068,9 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        for (auto a : state.agents) {
+          prevAct[a] = n.action;
+        }
         a_tracker.push_back(n.action);
         i++;
       }  
@@ -940,6 +1095,7 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        prevAct[g["data"][player_key].get<std::string>()] = n.action;
         a_tracker.push_back(n.action);
         i++;
 //        prev_act_endtime[p] = n.endtime;
@@ -954,6 +1110,7 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        prevAct[g["data"][player_key].get<std::string>()] = n.action;
         a_tracker.push_back(n.action);
         i++;
 //        prev_act_endtime[p] = n.endtime;
@@ -968,10 +1125,35 @@ parse_data team_sar_parser(std::string infile,
 //        }
         j.push_back(n.j);
         state = n.new_s;
+        prevAct[g["data"][player_key].get<std::string>()] = n.action;
         a_tracker.push_back(n.action);
         i++;
 //        prev_act_endtime[p] = n.endtime;
       }
+
+//      if (g["msg"]["sub_type"] == "Event:MarkerPlaced") {
+//        j_node n;
+//        if (prevAct.find(g["data"][player_key].get<std::string>()) != prevAct.end()) {
+//          Action act = prevAct[g["data"][player_key].get<std::string>()];
+//          std::string mission_time = g["data"]["mission_timer"].get<std::string>();
+//          int time = missionTime2secElapsed(mission_time);
+//          auto start = std::stoi(act.start,nullptr);
+//          if (act.action == "!move" && (time - start) <= 10) {
+//            n = process_markOpening_act(g,player_key,act.area,state,domain);
+//          }
+//          else {
+//            n = process_markArea_act(g,player_key,state,domain);
+//          }
+//        }
+//        else {
+//          n = process_markArea_act(g,player_key,state,domain);
+//        }
+//        j.push_back(n.j);
+//        state = n.new_s;
+//        prevAct[g["data"][player_key].get<std::string>()] = n.action;
+//        a_tracker.push_back(n.action);
+//        i++;
+//      }
     }
   }
   if (trace_size <= -1) {
