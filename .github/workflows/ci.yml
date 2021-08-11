@@ -27,6 +27,6 @@ jobs:
         sudo apt-get install -y nlohmann-json3-dev graphviz libgraphviz-dev
         mkdir build
         cd build
-        cmake .. -DCMAKE_PREFIX_PATH=boost_program_options
+        cmake .. 
         make -j
         make test
