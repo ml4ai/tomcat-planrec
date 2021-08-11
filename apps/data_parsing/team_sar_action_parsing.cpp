@@ -1,22 +1,56 @@
 #include "parsers/team_sar_parser.h"
-
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 
 int main(int argc, char* argv[]) {
-  int N;
-  if (argc > 1) {
-    N = strtol(argv[1], nullptr, 0);
-  }
-  else {
-    N = -1;
-  }
+  bool use_t = false; 
+  int N = -1;
+  int start = 0;
+  int end = 0;
+  std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
+  try {
+    po::options_description desc("Allowed options");
+    desc.add_options()
+      ("help,h", "produce help message")
+      ("trace_size,N", po::value<int>(), "Sets trace size of N from beginning")
+      ("trace_segment,T", po::value<std::vector<int> >()->multitoken(), "Sets trace segments size by mission times. Ignored if trace_size is set.")
+      ("file,f",po::value<std::string>(),"file to parse")
+    ;
 
-  std::string infile;
-  if (argc > 2) {
-    infile = argv[2];
+    po::variables_map vm;        
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("help")) {
+      std::cout << desc << std::endl;
+      return 0;
+    }
+
+    if (vm.count("trace_size")) {
+      N = vm["trace_size"].as<int>();
+    } else {
+      if (vm.count("trace_segment")) {
+        const std::vector<int>& s = vm["trace_segment"].as<std::vector<int>>(); 
+        use_t = true;
+        start = s[0];
+        end = s[1];
+        if (start >= end) {
+          std::cout << "Start time must be less than end time" << std::endl; 
+          return 0;
+        }
+      }
+    }
+    if (vm.count("file")) {
+      infile = vm["file"].as<std::string>();
+    }
   }
-  else {
-    infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
+  catch(std::exception& e) {
+    std::cerr << "error: " << e.what() << "\n";
+    return 1;
+  }
+  catch(...) {
+    std::cerr << "Exception of unknown type!\n";
   }
 
   auto state1 = TeamSARState();
@@ -87,7 +121,12 @@ int main(int argc, char* argv[]) {
   state1.action_tracker = {};
 
   auto domain = TeamSARDomain();
-
-  team_sar_parser(infile,state1, domain, N, true,"team_sar_ppt.json");
+  if (use_t) {
+    std::pair<int,int> T = std::make_pair(start,end);
+    team_sar_parser(infile,state1, domain, T, true,"team_sar_ppt.json");
+  }
+  else {
+    team_sar_parser(infile,state1, domain, N, true,"team_sar_ppt.json");
+  }
   return EXIT_SUCCESS;
 }
