@@ -30,7 +30,7 @@ install_boost_from_source() {
         echo "./bootstrap.sh step failed. Exiting now."
         exit 1
     fi
-    if ! sudo ./b2 install --with-program_options; then
+    if ! sudo ./b2 install --with-program_options --with-log; then
         echo "sudo ./b2 install step failed. Exiting now."
         exit 1
     fi
