@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <unordered_map>
 #include <vector>
-#include "../../planners/domains/team_sar.h"
+#include "../../planners/domains/vanilla_team_sar.h"
 
 using json = nlohmann::json;
 
