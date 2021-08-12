@@ -1,24 +1,28 @@
 #include <iostream>
 #include "typedefs.h"
 
+void print(Task task) {
+  std::cout << "(";
+  std::cout << task.task_id << ",";
+  for (auto a : task.args_order) {
+    std::cout << task.args[a] << ",";
+  }
+  std::cout << ")";
+}
+
 void print(Tasks tasks) {
     std::cout << "[";
     for (auto task : tasks) {
-        std::cout << "(";
-        std::cout << task.first << ",";
-        for (auto [k, v] : task.second) {
-            std::cout << v << ",";
-        }
-        std::cout << ")";
+      print(task);
     }
     std::cout << "]";
     std::cout << std::endl;
 }
 
 std::string task2string(Task task) {
-  std::string stask = "(" + task.first + ",";
-  for (auto [k, v] : task.second) {
-    stask += v + ",";
+  std::string stask = "(" + task.task_id + ",";
+  for (auto a : task.args_order) {
+    stask += task.args[a] + ",";
   }
   stask += ")";
 

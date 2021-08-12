@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
     auto selector = SARSelector();
     Tasks tasks = {
-        {Task("SAR", Args({{"agent", "me"}}))}};
+        {Task("SAR", Args({{"agent", "me"}}),{"agent"})}};
 
     std::ifstream i("simple_sar_trace.json");
     json j;
@@ -115,17 +115,16 @@ int main(int argc, char* argv[]) {
                                     state1.left_region,
                                     state1.right_region,
                                     state1.mid_region);
-    json g;
-    g = seek_planrecMCTS(trace,
+    auto pt = cpphopPlanrecMCTS(trace,
                      state1,
                      tasks,
                      domain,
                      selector,
                      N,
                      0.4,
-                     2021,
-                     true,
-                     "simple_sar_pred_exp.json");
+                     2021);
+
+    json g = generate_plan_trace_tree(pt.first,pt.second, true,"simple_sar_pred_exp.json");
 
     generate_graph_from_json(g, "simple_sar_pred_exp_graph.png");
 

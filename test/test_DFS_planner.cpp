@@ -16,18 +16,18 @@ BOOST_AUTO_TEST_CASE(test_DFS_planner) {
     auto selector = TravelSelector();
 
     Tasks tasks = {
-        {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}))}};
+        {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}),{"a","x","y"})}};
     auto plans = cpphopDFS(state1, tasks, domain, selector);
     BOOST_TEST(plans.size() == 2);
     
     std::string plan1task1 = task2string(plans[0].second[0]);
-    BOOST_TEST(plan1task1 == "(walk,park,home,me,)");
+    BOOST_TEST(plan1task1 == "(walk,me,home,park,)");
 
     std::string plan2task1 = task2string(plans[1].second[0]);
-    BOOST_TEST(plan2task1 == "(call_taxi,home,me,)");
+    BOOST_TEST(plan2task1 == "(call_taxi,me,home,)");
 
     std::string plan2task2 = task2string(plans[1].second[1]);
-    BOOST_TEST(plan2task2 == "(ride_taxi,park,home,me,)");
+    BOOST_TEST(plan2task2 == "(ride_taxi,me,home,park,)");
 
     std::string plan2task3 = task2string(plans[1].second[2]);
     BOOST_TEST(plan2task3 == "(pay_driver,me,)");
