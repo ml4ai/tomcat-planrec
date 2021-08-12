@@ -1,4 +1,4 @@
-#include "domains/team_sar.h"
+#include "domains/vanilla_team_sar.h"
 #include <math.h>
 #include <stdlib.h>
 #include "plan_trace.h"

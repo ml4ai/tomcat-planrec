@@ -1,5 +1,5 @@
 #include <nlohmann/json.hpp>
-#include "../data_parsing/parsers/team_sar_parser.h"
+#include "../data_parsing/parsers/vanilla_team_sar_parser.h"
 #include <math.h>
 #include <stdlib.h>
 #include "plan_trace.h"
