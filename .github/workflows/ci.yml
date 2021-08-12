@@ -24,7 +24,7 @@ jobs:
         # We download Boost 1.76 separately since apt does not have the minimum
         # version of Boost we require (as of July 20, 2021).
         ./scripts/install_boost_from_source
-        sudo apt-get install -y nlohmann-json3-dev graphviz libgraphviz-dev libboost-program-options
+        sudo apt-get install -y nlohmann-json3-dev graphviz libgraphviz-dev libboost-program-options-dev
         mkdir build
         cd build
         cmake .. 
