@@ -101,8 +101,6 @@ int main(int argc, char* argv[]) {
     state1.c_max = 5;
     state1.r_max = 50;
   
-    state1.action_tracker = {};
-  
     auto domain = TeamSARDomain();
   
     auto p = team_sar_parser(infile,state1, domain, s);

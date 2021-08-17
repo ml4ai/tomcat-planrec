@@ -81,6 +81,8 @@ int main(int argc, char* argv[]) {
 
       state1.loc_tracker[a] = {};
 
+      state1.action_tracker[a] = {};
+
       for (auto s : state1.zones) {
         if (s == "CZ") {
           state1.visited[a][s] = 1;
@@ -108,8 +110,6 @@ int main(int argc, char* argv[]) {
 
     state1.c_max = 3;
     state1.r_max = 24;
-
-    state1.action_tracker = {};
 
     auto domain = TeamSARDomain();
 

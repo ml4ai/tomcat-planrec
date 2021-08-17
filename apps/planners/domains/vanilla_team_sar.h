@@ -85,8 +85,8 @@ template <class State> std::optional<State> triageReg(State state, Args args) {
         state.dropped_off_here[area]--;
       }
     }
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
     return state;
 
@@ -131,8 +131,10 @@ template <class State> std::optional<State> wakeCrit(State state, Args args) {
   if (all_here && have_Medical_Specialist && 
       state.c_triage_total < state.c_max && !c_awake) {
     state.c_awake[area] = true;
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        state.action_tracker[a].pop_back();
+      }
     }
     return state;
   }
@@ -164,8 +166,8 @@ template <class State> std::optional<State> triageCrit(State state, Args args) {
     state.c_triage_total = state.c_triage_total + 1; 
     state.c_triaged_here[area] = true;
     state.time[agent] = end;
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
 
     return state;
@@ -206,8 +208,8 @@ template <class State> std::optional<State> move(State state, Args args) {
     if (!state.loc_tracker[agent].empty()) {
       state.loc_tracker[agent].pop_back();
     }
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
 
     return state;
@@ -235,8 +237,8 @@ template <class State> std::optional<State> break_block(State state, Args args) 
       state.blocks_broken[area]++;
     }
     state.time[agent] = end;
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
 
     return state;
@@ -274,8 +276,8 @@ template <class State> std::optional<State> pickup_vic(State state, Args args) {
     }
 
     state.time[agent] = end;
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
 
     return state;
@@ -319,8 +321,8 @@ template <class State> std::optional<State> put_down_vic(State state, Args args)
 
     state.picked_up_from[agent] = "NONE";
     state.time[agent] = end;
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
 
     return state;
@@ -470,8 +472,8 @@ template <class State> std::optional<State> change_to_Medical_Specialist(State s
   
     state.role[agent] = "Medical_Specialist";
     state.time[agent] = end;
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
 
     return state;
@@ -493,8 +495,8 @@ template <class State> std::optional<State> change_to_Hazardous_Material_Special
   
     state.role[agent] = "Hazardous_Material_Specialist";
     state.time[agent] = end;
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
 
     return state;
@@ -516,8 +518,8 @@ template <class State> std::optional<State> change_to_Search_Specialist(State st
   
     state.role[agent] = "Search_Specialist";
     state.time[agent] = end;
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
 
     return state;
@@ -532,8 +534,8 @@ template <class State> double change_to_Search_Specialist(State pre_state, State
 template <class State> std::optional<State> exit(State state, Args args) {
     auto agent = args["agent"];
     state.time[agent] = 900;
-    if (!state.action_tracker.empty()) {
-      state.action_tracker.pop_back();
+    if (!state.action_tracker[agent].empty()) {
+      state.action_tracker[agent].pop_back();
     }
 
     return state;
@@ -560,8 +562,14 @@ template <class State> pTasks assign_tasks(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
   auto min_agent = agent1;
-  if (state.action_tracker.empty()) {
+  if (act_agents.empty()) {
     auto min_time = state.time[agent1];
     for (auto a : state.agents) {
       if (state.time[a] < min_time) {
@@ -571,11 +579,18 @@ template <class State> pTasks assign_tasks(State state, Args args) {
     }
   }
   else {
-    Action act = state.action_tracker.back();
+    min_agent = act_agents.back();
+    auto min_time = state.time[min_agent];
+    for (auto a : act_agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+    Action act = state.action_tracker[min_agent].back();
     if (act.agent == "all" || act.action == "!exit") {
       return {0,{}};
     }
-    min_agent = act.agent;
   }
 
   if (state.time[min_agent] < 900) {
@@ -637,11 +652,18 @@ template <class State> pTasks wake_crit_vic(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
+  bool act_available = false;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_available = true;
+    }
+  }
+
   auto min_agent = agent1;
   std::string duration = "1";
   int start_num = std::max({state.time[agent1],state.time[agent2],state.time[agent3]});
   std::string start = std::to_string(start_num);
-  if (state.action_tracker.empty()) {
+  if (!act_available) {
     auto min_time = state.time[agent1];
     for (auto a : state.agents) {
       if (state.time[a] < min_time) {
@@ -651,11 +673,13 @@ template <class State> pTasks wake_crit_vic(State state, Args args) {
     }
   }
   else { 
-    Action act = state.action_tracker.back();
+    if (state.action_tracker[min_agent].empty()) {
+      return {0,{}};
+    }
+    Action act = state.action_tracker[min_agent].back();
     if (act.agent != "all") {
       return {0,{}};
     }
-    min_agent = act.agent;
     duration = act.duration;
     start = act.start;
   }
@@ -724,8 +748,15 @@ template <class State> pTasks out_of_time(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
+  bool act_available = false;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_available = true;
+    }
+  }
+
   auto min_agent = agent1;
-  if (state.action_tracker.empty()) {
+  if (!act_available) {
     auto min_time = state.time[agent1];
     for (auto a : state.agents) {
       if (state.time[a] < min_time) {
@@ -735,7 +766,10 @@ template <class State> pTasks out_of_time(State state, Args args) {
     }
   }
   else { 
-    Action act = state.action_tracker.back();
+    if (state.action_tracker[min_agent].empty()) {
+      return {0,{}};
+    }
+    Action act = state.action_tracker[min_agent].back();
     if (act.action == "!exit") {
       return {1,{}};
     }
@@ -753,8 +787,8 @@ template <class State> pTasks choose_Medical_Specialist(State state, Args args) 
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!change_to_Medical_Specialist") {
       return {0,{}};
     }
@@ -781,8 +815,8 @@ template <class State> pTasks choose_Hazardous_Material_Specialist(State state, 
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!change_to_Hazardous_Material_Specialist") {
       return {0,{}};
     }
@@ -809,8 +843,8 @@ template <class State> pTasks choose_Search_Specialist(State state, Args args) {
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!change_to_Search_Specialist") {
       return {0,{}};
     }
@@ -835,8 +869,8 @@ template <class State> pTasks choose_Search_Specialist(State state, Args args) {
 template <class State> pTasks no_class_change(State state,Args args) {
   auto agent = args["agent"];
 
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action.substr(0,11) != "!change_to_") {
       return {0,{}};
     }
@@ -855,8 +889,8 @@ template <class State> pTasks no_class_move(State state,Args args) {
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!move") {
       return {0,{}};
     }
@@ -934,8 +968,8 @@ template <class State> pTasks Hazardous_Material_Specialist_task(State state, Ar
 template <class State> pTasks triageReg_Medical_Specialist(State state, Args args) {
   auto agent = args["agent"];
 
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!triageReg") {
       return {0,{}};
     }
@@ -971,8 +1005,8 @@ template <class State> pTasks triageCrit_Medical_Specialist(State state, Args ar
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!triageCrit") {
       return {0,{}};
     }
@@ -1030,8 +1064,8 @@ template <class State> pTasks move_Medical_Specialist(State state, Args args) {
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!move") {
       return {0,{}};
     }
@@ -1127,8 +1161,8 @@ template <class State> pTasks move_Medical_Specialist(State state, Args args) {
 template <class State> pTasks change_Medical_Specialist(State state, Args args) {
   auto agent = args["agent"];
 
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action.substr(0,11) != "!change_to_") {
       return {0,{}};
     }
@@ -1150,8 +1184,8 @@ template <class State> pTasks triageArea(State state, Args args) {
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!triageReg") {
       return {0,{}};
     }
@@ -1225,8 +1259,8 @@ template <class State> pTasks doneTriaging(State state, Args args) {
 template <class State> pTasks clear_blocks_Hazardous_Material_Specialist(State state, Args args) {
   auto agent = args["agent"];
 
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!break_block") {
       return {0,{}};
     }
@@ -1247,8 +1281,8 @@ template <class State> pTasks clearArea(State state, Args args) {
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!break_block") {
       return {0,{}};
     }
@@ -1323,8 +1357,8 @@ template <class State> pTasks move_Hazardous_Material_Specialist(State state, Ar
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!move") {
       return {0,{}};
     }
@@ -1374,8 +1408,8 @@ template <class State> pTasks move_Hazardous_Material_Specialist(State state, Ar
 template <class State> pTasks change_Hazardous_Material_Specialist(State state, Args args) {
   auto agent = args["agent"];
 
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action.substr(0,11) != "!change_to_") {
       return {0,{}};
     }
@@ -1394,8 +1428,8 @@ template <class State> pTasks change_Hazardous_Material_Specialist(State state, 
 template <class State> pTasks relocate_victim_Search_Specialist(State state, Args args) {
   auto agent = args["agent"];
 
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!pickup_vic") {
       return {0,{}};
     }
@@ -1414,8 +1448,8 @@ template <class State> pTasks relocate_victim_Search_Specialist(State state, Arg
 template <class State> pTasks resume_relocate_victim_Search_Specialist(State state, Args args) {
   auto agent = args["agent"];
 
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!move" && act.action != "!put_down_vic") {
       return {0,{}};
     }
@@ -1436,8 +1470,8 @@ template <class State> pTasks pickup_victim(State state, Args args) {
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!pickup_vic") {
       return {0,{}};
     }
@@ -1467,8 +1501,8 @@ template <class State> pTasks move_victim(State state, Args args) {
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!move") {
       return {0,{}};
     }
@@ -1510,8 +1544,8 @@ template <class State> pTasks putdown_victim(State state, Args args) {
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!put_down_vic") {
       return {0,{}};
     }
@@ -1537,8 +1571,8 @@ template <class State> pTasks putdown_victim(State state, Args args) {
 
 template<class State> pTasks need_to_do_something_else(State state,Args args) {
   auto agent = args["agent"];
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action == "!put_down_vic" || act.action == "!move") {
       return {0,{}};
     }
@@ -1563,8 +1597,8 @@ template <class State> pTasks move_Search_Specialist(State state, Args args) {
 
   std::string duration;
   std::string start;
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action != "!move") {
       return {0,{}};
     }
@@ -1619,8 +1653,8 @@ template <class State> pTasks move_Search_Specialist(State state, Args args) {
 template <class State> pTasks change_Search_Specialist(State state, Args args) {
   auto agent = args["agent"];
 
-  if (!state.action_tracker.empty()) {
-    Action act = state.action_tracker.back();
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
     if (act.action.substr(0,11) != "!change_to_") {
       return {0,{}};
     }
@@ -1726,8 +1760,8 @@ class TeamSARState {
 
    
     // Not part of the state representation!
-    std::vector<Action> action_tracker;
-    std::unordered_map<std::string, std::vector<std::string>> loc_tracker;
+    std::unordered_map<std::string,std::vector<Action>> action_tracker;
+    std::unordered_map<std::string,std::vector<std::string>> loc_tracker;
     int seed = 100;
 
     nlohmann::json to_json() {
