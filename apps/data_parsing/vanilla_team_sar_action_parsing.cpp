@@ -13,9 +13,9 @@ int main(int argc, char* argv[]) {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
-      ("trace_size,N", po::value<int>(), "Sets trace size of N from beginning")
-      ("trace_segment,T", po::value<std::vector<int> >()->multitoken(), "Sets trace segments size by mission times. Ignored if trace_size is set.")
-      ("file,f",po::value<std::string>(),"file to parse")
+      ("trace_size,N", po::value<int>(), "Sets trace size of N from beginning (int)")
+      ("trace_segment,T", po::value<std::vector<int> >()->multitoken(), "Sets trace segments size by mission times (int int). Ignored if trace_size is set.")
+      ("file,f",po::value<std::string>(),"file to parse (string)")
     ;
 
     po::variables_map vm;        
