@@ -730,6 +730,7 @@ parse_data team_sar_parser(std::string infile,
   std::unordered_map<std::string,int> regTriageTime;
   std::unordered_map<std::string,int> critTriageTime;
   std::unordered_map<int,int> c_awake;
+  std::unordered_map<int,std::string> c_awake_area;
   parse_data p;
   int i = 0;
   p.initial_state = state;
@@ -755,6 +756,7 @@ parse_data team_sar_parser(std::string infile,
         state.holding[a[player_key].get<std::string>()] = false;
         state.time[a[player_key].get<std::string>()] = 0;
         state.loc_tracker[a[player_key].get<std::string>()] = {};
+        state.action_tracker[a[player_key].get<std::string>()] = {};
         state.visited[a[player_key].get<std::string>()][state.change_zone] = 1;
         state.role[a[player_key].get<std::string>()] = "NONE";
 
@@ -1034,6 +1036,7 @@ parse_data team_sar_parser(std::string infile,
            g["data"]["action_type"] == "ENTERED_RANGE") {
         j_node n = process_wakeCrit_act(g,state,domain);
         c_awake[g["data"]["victim_id"].get<int>()] = i;
+        c_awake_area[g["data"]["victim_id"].get<int>()] = n.action.area;
 //        for (auto a : agents) {
 //          if (prev_act_endtime[a] != -1) {
 //            if (n.starttime > prev_act_endtime[a]) {
@@ -1055,7 +1058,7 @@ parse_data team_sar_parser(std::string infile,
           g["data"]["action_type"] == "LEFT_RANGE") {
         int vic = g["data"]["victim_id"].get<int>();
         if (c_awake.find(vic) != c_awake.end()) {
-          state.c_awake[j[c_awake[vic]]["post-state"]["agent_loc"][state.agents[0]]] = false;
+          state.c_awake[c_awake_area[vic]] = false;
           for (auto a : state.agents) {    
             j[a].erase(c_awake[vic]);
             p.action_tracker[a].erase(p.action_tracker[a].begin()+i);
@@ -1172,9 +1175,11 @@ parse_data team_sar_parser(std::string infile,
   std::unordered_map<std::string,int> regTriageTime;
   std::unordered_map<std::string,int> critTriageTime;
   std::unordered_map<int,int> c_awake;
+  std::unordered_map<int,std::string> c_awake_area;
   parse_data p;
   int i = 0;
   p.initial_state = state;
+  bool initial_set = false;
   std::string player_key = "playername";
   std::unordered_map<std::string, Action> prevAct;
 //  std::unordered_map<std::string,int> prev_act_endtime;
@@ -1194,6 +1199,7 @@ parse_data team_sar_parser(std::string infile,
         state.holding[a[player_key].get<std::string>()] = false;
         state.time[a[player_key].get<std::string>()] = 0;
         state.loc_tracker[a[player_key].get<std::string>()] = {};
+        state.action_tracker[a[player_key].get<std::string>()] = {};
         state.visited[a[player_key].get<std::string>()][state.change_zone] = 1;
         state.role[a[player_key].get<std::string>()] = "NONE";
 
@@ -1230,6 +1236,10 @@ parse_data team_sar_parser(std::string infile,
 //            }
           if (state.time[state.agents[0]] >= trace_segment.first &&
               state.time[state.agents[0]] <= trace_segment.second) {
+            if (!initial_set) {
+              p.initial_state = state;
+              initial_set = true;
+            }
             j[state.agents[0]].push_back(n.j);
             p.loc_tracker[state.agents[0]].push_back(state.agent_loc[state.agents[0]]);
             p.action_tracker[state.agents[0]].push_back(n.action); 
@@ -1256,6 +1266,10 @@ parse_data team_sar_parser(std::string infile,
 //            }
           if (state.time[state.agents[1]] >= trace_segment.first &&
               state.time[state.agents[1]] <= trace_segment.second) {
+            if (!initial_set) {
+              p.initial_state = state;
+              initial_set = true;
+            }
             j[state.agents[1]].push_back(n.j);
             p.loc_tracker[state.agents[1]].push_back(state.agent_loc[state.agents[1]]);
             p.action_tracker[state.agents[1]].push_back(n.action); 
@@ -1282,6 +1296,10 @@ parse_data team_sar_parser(std::string infile,
 //            }
           if (state.time[state.agents[2]] >= trace_segment.first &&
               state.time[state.agents[2]] <= trace_segment.second) {
+            if (!initial_set) {
+              p.initial_state = state;
+              initial_set = true;
+            }
             j[state.agents[2]].push_back(n.j);
             p.loc_tracker[state.agents[2]].push_back(state.agent_loc[state.agents[2]]);
             p.action_tracker[state.agents[2]].push_back(n.action); 
@@ -1303,6 +1321,10 @@ parse_data team_sar_parser(std::string infile,
         std::string player = g["data"][player_key].get<std::string>();
         if (state.time[player] >= trace_segment.first &&
             state.time[player] <= trace_segment.second) {
+          if (!initial_set) {
+            p.initial_state = state;
+            initial_set = true;
+          }
           j[player].push_back(n.j);
           p.action_tracker[player].push_back(n.action); 
         }
@@ -1332,6 +1354,10 @@ parse_data team_sar_parser(std::string infile,
 //            }
             if (state.time[state.agents[0]] >= trace_segment.first &&
               state.time[state.agents[0]] <= trace_segment.second) {
+              if (!initial_set) {
+                p.initial_state = state;
+                initial_set = true;
+              }
               j[state.agents[0]].push_back(n.j);
               p.action_tracker[state.agents[0]].push_back(n.action); 
             }
@@ -1364,6 +1390,10 @@ parse_data team_sar_parser(std::string infile,
 //            }
             if (state.time[state.agents[1]] >= trace_segment.first &&
               state.time[state.agents[1]] <= trace_segment.second) {
+              if (!initial_set) {
+                p.initial_state = state;
+                initial_set = true;
+              }
               j[state.agents[1]].push_back(n.j);
               p.action_tracker[state.agents[1]].push_back(n.action); 
             }
@@ -1396,6 +1426,10 @@ parse_data team_sar_parser(std::string infile,
 //            }
             if (state.time[state.agents[2]] >= trace_segment.first &&
               state.time[state.agents[2]] <= trace_segment.second) {
+              if (!initial_set) {
+                p.initial_state = state;
+                initial_set = true;
+              }
               j[state.agents[2]].push_back(n.j);
               p.action_tracker[state.agents[2]].push_back(n.action); 
             }
@@ -1428,6 +1462,10 @@ parse_data team_sar_parser(std::string infile,
 //            }
             if (state.time[state.agents[0]] >= trace_segment.first &&
               state.time[state.agents[0]] <= trace_segment.second) {
+              if (!initial_set) {
+                p.initial_state = state;
+                initial_set = true;
+              }
               j[state.agents[0]].push_back(n.j);
               p.action_tracker[state.agents[0]].push_back(n.action); 
             }
@@ -1460,6 +1498,10 @@ parse_data team_sar_parser(std::string infile,
 //            }
             if (state.time[state.agents[1]] >= trace_segment.first &&
               state.time[state.agents[1]] <= trace_segment.second) {
+              if (!initial_set) {
+                p.initial_state = state;
+                initial_set = true;
+              }
               j[state.agents[1]].push_back(n.j);
               p.action_tracker[state.agents[1]].push_back(n.action); 
             }
@@ -1492,6 +1534,10 @@ parse_data team_sar_parser(std::string infile,
 //            }
             if (state.time[state.agents[2]] >= trace_segment.first &&
               state.time[state.agents[2]] <= trace_segment.second) {
+              if (!initial_set) {
+                p.initial_state = state;
+                initial_set = true;
+              }
               j[state.agents[2]].push_back(n.j);
               p.action_tracker[state.agents[2]].push_back(n.action); 
             }
@@ -1508,6 +1554,7 @@ parse_data team_sar_parser(std::string infile,
            g["data"]["players_in_range"] == 3 &&
            g["data"]["action_type"] == "ENTERED_RANGE") {
         j_node n = process_wakeCrit_act(g,state,domain);
+        c_awake_area[g["data"]["victim_id"].get<int>()] = n.action.area;
         c_awake[g["data"]["victim_id"].get<int>()] = i;
 //        for (auto a : agents) {
 //          if (prev_act_endtime[a] != -1) {
@@ -1517,14 +1564,22 @@ parse_data team_sar_parser(std::string infile,
 //          }
 //          prev_act_endtime[a] = n.endtime;
 //        }
+        bool record = false;
         if (state.time[state.agents[0]] >= trace_segment.first &&
             state.time[state.agents[0]] <= trace_segment.second) {
+          if (!initial_set) {
+            p.initial_state = state;
+            initial_set = true;
+          }
+          record = true;
         }
         state = n.new_s;
         for (auto a : state.agents) {
-          j[a].push_back(n.j);
+          if (record) {
+            j[a].push_back(n.j);
+            p.action_tracker[a].push_back(n.action); 
+          }
           prevAct[a] = n.action;
-          p.action_tracker[a].push_back(n.action); 
         }
         i++;
       }  
@@ -1533,7 +1588,8 @@ parse_data team_sar_parser(std::string infile,
           g["data"]["action_type"] == "LEFT_RANGE") {
         int vic = g["data"]["victim_id"].get<int>();
         if (c_awake.find(vic) != c_awake.end()) {
-          state.c_awake[j[c_awake[vic]]["post-state"]["agent_loc"][state.agents[0]]] = false;
+          state.c_awake[c_awake_area[vic]] = false;
+          p.initial_state.c_awake[c_awake_area[vic]] = false;
           for (auto a : state.agents) {
             j[a].erase(c_awake[vic]);
             p.action_tracker[a].erase(p.action_tracker[a].begin()+i);
@@ -1552,6 +1608,10 @@ parse_data team_sar_parser(std::string infile,
         std::string player = g["data"][player_key].get<std::string>();
         if (state.time[player] >= trace_segment.first &&
             state.time[player] <= trace_segment.second) {
+          if (!initial_set) {
+            p.initial_state = state;
+            initial_set = true;
+          }
           j[player].push_back(n.j);
           p.action_tracker[player].push_back(n.action); 
         }
@@ -1571,6 +1631,10 @@ parse_data team_sar_parser(std::string infile,
         std::string player = g["data"][player_key].get<std::string>();
         if (state.time[player] >= trace_segment.first &&
             state.time[player] <= trace_segment.second) {
+          if (!initial_set) {
+            p.initial_state = state;
+            initial_set = true;
+          }
           j[player].push_back(n.j);
           p.action_tracker[player].push_back(n.action); 
         }
@@ -1590,6 +1654,10 @@ parse_data team_sar_parser(std::string infile,
         std::string player = g["data"][player_key].get<std::string>();
         if (state.time[player] >= trace_segment.first &&
             state.time[player] <= trace_segment.second) {
+          if (!initial_set) {
+            p.initial_state = state;
+            initial_set = true;
+          }
           j[player].push_back(n.j);
           p.action_tracker[player].push_back(n.action); 
         }
