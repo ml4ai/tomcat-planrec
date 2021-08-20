@@ -11,11 +11,12 @@ struct Task {
   std::string task_id;
   Args args;
   std::vector<std::string> args_order;
-  Task(std::string t_id, Args a, std::vector<std::string> a_o) {
+  std::vector<std::string> agents;
+  Task(std::string t_id, Args a, std::vector<std::string> a_o, std::vector<std::string> as) {
     task_id = t_id;
     args = a;
     args_order = a_o;
-    std::vector<std::string> agents;
+    agents = as; 
   }
 };
 

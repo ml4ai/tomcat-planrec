@@ -102,15 +102,15 @@ void backprop_rec(Tree<State, Selector>& t, int n, double r) {
 
 template <class State, class Domain>
 double
-simulation_rec(json& trace,
-           json plan_trace,
+simulation_rec(json& data_team_plan,
+           json team_plan,
            State state,
            Tasks tasks,
            Domain& domain,
            double likelihood,
            int seed) {
 
-    while (plan_trace.size() < trace.size()) {
+    while (team_plan["size"] < data_team_plan["size"]) {
       Task task = tasks.back();
 
       if (in(task.task_id, domain.operators)) {
@@ -122,10 +122,11 @@ simulation_rec(json& trace,
               likelihood = likelihood*pop(state,newstate.value(),task.args);
               json g;
               g["task"] = task2string(task);
-              g["pre-state"] = state.to_json();
               state = newstate.value();
-              g["post-state"] = state.to_json();
-              plan_trace.push_back(g);
+              for (auto a : task.agents) {
+                team_plan["plan"][a].push_back(g);
+              }
+              team_plan["size"] = 1 + team_plan["size"].get<int>();
               seed++;
               continue;
           }
@@ -166,7 +167,7 @@ simulation_rec(json& trace,
       message += " during simulation!";
       throw std::logic_error(message);
     }
-    if (plan_trace == trace) {
+    if (team_plan["plan"] == data_team_plan["plan"]) {
       return likelihood;
     }
     return 0;
@@ -195,12 +196,13 @@ int expansion_rec(Tree<State, Selector>& t,
             v.selector = selector;
             v.pred = n;
             v.likelihood = t[n].likelihood*pop(t[n].state,v.state,task.args); 
-            v.plan_trace = t[n].plan_trace;
+            v.team_plan = t[n].team_plan;
             json g;
             g["task"] = task2string(task);
-            g["pre-state"] = t[n].state.to_json();
-            g["post-state"] = v.state.to_json();
-            v.plan_trace.push_back(g);
+            for (auto a : task.agents) {
+              v.team_plan["plan"][a].push_back(g);
+            }
+            v.team_plan["size"] = 1 + v.team_plan["size"].template get<int>();
             int w = boost::add_vertex(v, t);
             t[n].successors.push_back(w);
             return w;
@@ -222,7 +224,7 @@ int expansion_rec(Tree<State, Selector>& t,
                 v.plan = t[n].plan;
                 v.selector = selector;
                 v.likelihood = t[n].likelihood*subtasks.first;
-                v.plan_trace = t[n].plan_trace;
+                v.team_plan = t[n].team_plan;
                 for (auto i = subtasks.second.end();
                      i != subtasks.second.begin();) {
                     v.tasks.push_back(*(--i));
@@ -241,7 +243,7 @@ int expansion_rec(Tree<State, Selector>& t,
 
 template <class State, class Domain, class Selector>
 void
-seek_planrecMCTS(json& trace,
+seek_planrecMCTS(json& team_plan,
                  Tree<State,Selector>& t,
                  int v,
                  Domain& domain,
@@ -249,36 +251,36 @@ seek_planrecMCTS(json& trace,
                  int N = 30,
                  double eps = 0.4,
                  int seed = 2021) {
-  while (t[v].plan_trace.size() < trace.size()) {
+  while (t[v].team_plan["size"] < team_plan["size"]) {
     Tree<State, Selector> m;
     Node<State, Selector> n_node;
     n_node.state = t[v].state;
     n_node.tasks = t[v].tasks;
     n_node.depth = t[v].depth;
     n_node.plan = t[v].plan;
-    n_node.plan_trace = t[v].plan_trace;
+    n_node.team_plan = t[v].team_plan;
     n_node.selector = selector;
     n_node.likelihood = t[v].likelihood;
     int w = boost::add_vertex(n_node, m);
     for (int i = 0; i < N; i++) {
       int n = selection_rec(m,w,eps,seed);
       seed++;
-      if (m[n].plan_trace.size() >= trace.size()) {
-        if (m[n].plan_trace == trace) {
+      if (m[n].team_plan["size"] >= team_plan["size"]) {
+        if (m[n].team_plan["plan"] == team_plan["plan"]) {
           backprop_rec(m,n,m[n].likelihood);
         }
         backprop_rec(m,n,0);
       }
       else {
         if (m[n].selector.sims == 0) {
-          double r = simulation_rec(trace,m[n].plan_trace,m[n].state, m[n].tasks, domain, m[n].likelihood,seed);
+          double r = simulation_rec(team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, m[n].likelihood,seed);
           seed++;
           backprop_rec(m,n,r);
         }
         else {
           int n_p = expansion_rec(m,n,domain,selector,seed);
           seed++;
-          double r = simulation_rec(trace,m[n_p].plan_trace,m[n_p].state, m[n_p].tasks, domain, m[n_p].likelihood,seed);
+          double r = simulation_rec(team_plan,m[n_p].team_plan,m[n_p].state, m[n_p].tasks, domain, m[n_p].likelihood,seed);
           seed++;
           backprop_rec(m,n_p,r);   
         }
@@ -297,7 +299,7 @@ seek_planrecMCTS(json& trace,
     k.state = m[arg_max].state;
     k.tasks = m[arg_max].tasks;
     k.plan = m[arg_max].plan;
-    k.plan_trace = m[arg_max].plan_trace;
+    k.team_plan = m[arg_max].team_plan;
     k.selector = selector;
     k.depth = t[v].depth + 1;
     k.pred = v;
@@ -313,7 +315,7 @@ seek_planrecMCTS(json& trace,
 
 template <class State, class Domain, class Selector>
 std::pair<Tree<State,Selector>,int> 
-cpphopPlanrecMCTS(json& trace,
+cpphopPlanrecMCTS(json& team_plan,
                   State state,
                   Tasks tasks,
                   Domain& domain,
@@ -329,7 +331,8 @@ cpphopPlanrecMCTS(json& trace,
     root.depth = 0;
     root.selector = selector;
     root.likelihood = 1;
+    root.team_plan["size"] = 0;
     int v = boost::add_vertex(root, t);
-    seek_planrecMCTS(trace,t, v, domain, selector, N, eps, seed);
+    seek_planrecMCTS(team_plan,t, v, domain, selector, N, eps, seed);
     return std::make_pair(t,v);
 }

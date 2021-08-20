@@ -16,7 +16,7 @@ class Node {
     Tasks tasks;
     int depth;
     pTasks plan;
-    json plan_trace;
+    json team_plan;
     Selector selector;
     double likelihood;
 

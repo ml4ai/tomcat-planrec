@@ -79,16 +79,17 @@ nlohmann::json gpt(Tree<State,Selector>& t, int v, nlohmann::json j) {
   int w = t[v].successors.back();
   if (t[w].tasks.size() < t[v].tasks.size()) {
     nlohmann::json g;
-    g["task"] = task2string(t[v].tasks.back());
-    g["pre-state"] = t[v].state.to_json();
-    g["post-state"] = t[w].state.to_json();
-    j.push_back(g);
+    Task task = t[v].tasks.back();
+    if (task.task_id.find("!") != std::string::npos) {
+      g["task"] = task2string(task);
+      for (auto a : task.agents) {
+        j["plan"][a].push_back(g);
+      }
+      j["size"] = 1 + j["size"].get<int>();
+    }
   }
 
   if (t[w].successors.empty()) {
-    nlohmann::json g;
-    g["Final State"] = t[w].state.to_json();
-    j.push_back(g);
     return j;
   }
 
@@ -101,6 +102,7 @@ nlohmann::json generate_plan_trace(Tree<State, Selector>& t,
                                    bool gen_file = false,
                                    std::string outfile = "plan_trace.json") {
     nlohmann::json j;
+    j["size"] = 0;
     auto g = gpt(t, v, j);
     if (gen_file) {
         std::ofstream o(outfile);
