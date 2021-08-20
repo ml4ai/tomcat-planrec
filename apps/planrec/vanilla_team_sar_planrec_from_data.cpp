@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
                          {"agent2", p.initial_state.agents[1]},
                          {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p.initial_state.agents[0],p.initial_state.agents[1],p.initial_state.agents[2]})}};
 
-    auto pt = cpphopPlanrecMCTS(p.trace,
+    auto pt = cpphopPlanrecMCTS(p.team_plan,
                           p.initial_state,
                           tasks,
                           domain,

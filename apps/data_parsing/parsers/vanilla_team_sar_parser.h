@@ -1153,7 +1153,7 @@ parse_data team_sar_parser(std::string infile,
     std::reverse(p.loc_tracker[a].begin(),p.loc_tracker[a].end());
   }
   j["size"] = i;
-  p.trace = j;
+  p.team_plan = j;
   rfile.close();
   if (gen_file) {
     std::ofstream o(outfile);
@@ -1550,7 +1550,7 @@ parse_data team_sar_parser(std::string infile,
                 p.initial_state = state;
                 initial_set = true;
               }
-              ji["plan"][state.agents[2]].push_back(n.j);
+              j["plan"][state.agents[2]].push_back(n.j);
               p.action_tracker[state.agents[2]].push_back(n.action); 
               k++;
             }
@@ -1723,7 +1723,7 @@ parse_data team_sar_parser(std::string infile,
     std::reverse(p.loc_tracker[a].begin(),p.loc_tracker[a].end());
   }
   j["size"] = k;
-  p.trace = j;
+  p.team_plan = j;
   rfile.close();
   if (gen_file) {
     std::ofstream o(outfile);

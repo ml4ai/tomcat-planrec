@@ -4,6 +4,7 @@
 #include <math.h>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <boost/algorithm/string/find.hpp>
 
 // aux functions
 std::string 
@@ -37,7 +38,9 @@ get_loc_seq(nlohmann::json j,
   for (auto& e : j) {
     std::string str = e["task"];
     if (str.substr(1,5) == "!move") {
-      std::string n_area = str.substr(7,str.find(",",7) - 7);
+      boost::iterator_range<std::string::iterator> r = boost::find_nth(str, ",", 2);
+      int s = std::distance(str.begin(), r.begin());
+      std::string n_area = str.substr(s + 1,str.find(",",s + 1) - (s + 1));
       if (in(n_area,left_r)) {
         left.push_back(n_area);
       }
