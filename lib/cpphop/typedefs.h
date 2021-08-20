@@ -15,6 +15,7 @@ struct Task {
     task_id = t_id;
     args = a;
     args_order = a_o;
+    std::vector<std::string> agents;
   }
 };
 
