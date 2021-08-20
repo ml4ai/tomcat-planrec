@@ -86,18 +86,20 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planrec) {
 
     auto selector = SARSelector();
     Tasks tasks = {
-        {Task("SAR", Args({{"agent", "me"}}),{"agent"})}};
+        {Task("SAR", Args({{"agent", "me"}}),{"agent"},{"me"})}};
 
     std::ifstream i("../../test/test_simple_sar_trace.json");
     json j;
     i >> j;
 
     json trace;
-    for (json::iterator it = j.begin(); it != j.begin()+3; ++it) {
-      trace.push_back(*it);
+    trace["size"] = 0;
+    for (json::iterator it = j["plan"]["me"].begin(); it != j["plan"]["me"].begin()+3; ++it) {
+      trace["plan"]["me"].push_back(*it);
+      trace["size"] = 1 + trace["size"].get<int>();
     }
 
-    state1.loc_tracker = get_loc_seq(trace,
+    state1.loc_tracker = get_loc_seq(trace["plan"]["me"],
                                     state1.left_region,
                                     state1.right_region,
                                     state1.mid_region);
@@ -109,7 +111,6 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planrec) {
                      90,
                      0.4,
                      2021);
-
     json g = generate_plan_trace_tree(pt.first,pt.second);
     BOOST_TEST(true);
     // BOOST_TEST(g["task"] == "(SAR,me,)");
