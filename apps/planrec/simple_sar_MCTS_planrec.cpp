@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
     auto selector = SARSelector();
     Tasks tasks = {
-        {Task("SAR", Args({{"agent", "me"}}),{"agent"})}};
+        {Task("SAR", Args({{"agent", "me"}}),{"agent"},{"me"})}};
 
     std::ifstream i("simple_sar_trace.json");
     json j;

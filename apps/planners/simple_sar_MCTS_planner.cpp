@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
     auto selector = SARSelector();
 
     Tasks tasks = {
-        {Task("sweep_left_YF", Args({{"agent", "me"}}),{"agent"})}};
+        {Task("sweep_left_YF", Args({{"agent", "me"}}),{"agent"},{"me"})}};
     auto pt = cpphopMCTS(state1, tasks, domain, selector,N,e);
 
     json j = generate_plan_trace_tree(pt.first,pt.second,true,"simple_sar_trace_tree.json");

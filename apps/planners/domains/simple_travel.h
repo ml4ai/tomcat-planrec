@@ -56,7 +56,7 @@ template <class State> pTasks travel_by_foot(State state, Args args) {
     auto a = args["a"];
 
     if (state.dist[x][y] <= 2) {
-        return {0.50, {Task("walk", Args({{"a", a}, {"x", x}, {"y", y}}), {"a", "x", "y"})}};
+        return {0.50, {Task("walk", Args({{"a", a}, {"x", x}, {"y", y}}), {"a", "x", "y"},{a})}};
     }
     else {
         return {0.00, {}};
@@ -70,9 +70,9 @@ template <class State> pTasks travel_by_taxi(State state, Args args) {
 
     if (state.cash[a] >= taxi_rate(state.dist[x][y])) {
         return {0.50,
-                {Task("call_taxi", Args({{"a", a}, {"x", x}}),{"a","x"}),
-                 Task("ride_taxi", Args({{"a", a}, {"x", x}, {"y", y}}),{"a","x","y"}),
-                 Task("pay_driver", Args({{"a", a}}), {"a"})}};
+                {Task("call_taxi", Args({{"a", a}, {"x", x}}),{"a","x"},{a}),
+                 Task("ride_taxi", Args({{"a", a}, {"x", x}, {"y", y}}),{"a","x","y"},{a}),
+                 Task("pay_driver", Args({{"a", a}}), {"a"},{a})}};
     }
     else {
         return {0.00, {}};

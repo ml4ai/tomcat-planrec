@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
     auto selector = SARSelector();
 
     Tasks tasks = {
-        {Task("SAR", Args({{"agent", "me"}}),{"agent"})}};
+        {Task("SAR", Args({{"agent", "me"}}),{"agent"},{"me"})}};
     cpphopDFS(state1, tasks, domain, selector);
     return EXIT_SUCCESS;
 }

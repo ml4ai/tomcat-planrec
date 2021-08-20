@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
     Tasks tasks = {
       {Task("SAR", Args({{"agent3", p.initial_state.agents[2]},
                          {"agent2", p.initial_state.agents[1]},
-                         {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"})}};
+                         {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p.initial_state.agents[0],p.initial_state.agents[1],p.initial_state.agents[2]})}};
 
     auto pt = cpphopPlanrecMCTS(p.trace,
                           p.initial_state,

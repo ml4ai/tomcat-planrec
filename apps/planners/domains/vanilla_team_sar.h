@@ -551,10 +551,10 @@ template <class State> pTasks SAR(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   return {1.0,
-    {Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"}),
-     Task("!exit", Args({{"agent",agent1},{"start","900"},{"duration","0"}}), {"agent","start","duration"}),
-     Task("!exit", Args({{"agent",agent2},{"start","900"},{"duration","0"}}), {"agent","start","duration"}),
-     Task("!exit", Args({{"agent",agent3},{"start","900"},{"duration","0"}}), {"agent","start","duration"})}};
+    {Task("Explore", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+     Task("!exit", Args({{"agent",agent1},{"start","900"},{"duration","0"}}), {"agent","start","duration"},{agent1}),
+     Task("!exit", Args({{"agent",agent2},{"start","900"},{"duration","0"}}), {"agent","start","duration"},{agent2}),
+     Task("!exit", Args({{"agent",agent3},{"start","900"},{"duration","0"}}), {"agent","start","duration"},{agent3})}};
 }
 
 template <class State> pTasks assign_tasks(State state, Args args) {
@@ -641,8 +641,8 @@ template <class State> pTasks assign_tasks(State state, Args args) {
       }
     }
     return {prob,
-          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"}),
-           Task("Explore", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"})}};
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {0,{}};
 }
@@ -737,8 +737,8 @@ template <class State> pTasks wake_crit_vic(State state, Args args) {
                                      {"area",state.agent_loc[min_agent]},
                                      {"agent3",agent3},
                                      {"agent2",agent2},
-                                     {"agent1",agent1}}), {"agent1","agent2","agent3","area","start","duration"}),
-           Task("Explore", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"})}};
+                                     {"agent1",agent1}}), {"agent1","agent2","agent3","area","start","duration"},{agent1,agent2,agent3}),
+           Task("Explore", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {0,{}};
 }
@@ -804,7 +804,7 @@ template <class State> pTasks choose_Medical_Specialist(State state, Args args) 
     return {4.0/11,
       {Task("!change_to_Medical_Specialist", Args({{"duration", duration},
                                      {"start",start},
-                                     {"agent",agent}}), {"agent","start","duration"})}};
+                                     {"agent",agent}}), {"agent","start","duration"},{agent})}};
   }
   return {0,{}};
 
@@ -832,7 +832,7 @@ template <class State> pTasks choose_Hazardous_Material_Specialist(State state, 
     return {3.0/11,
       {Task("!change_to_Hazardous_Material_Specialist", Args({{"duration", duration},
                                      {"start",start},
-                                     {"agent",agent}}), {"agent","start","duration"})}};
+                                     {"agent",agent}}), {"agent","start","duration"},{agent})}};
   }
   return {0,{}};
 
@@ -860,7 +860,7 @@ template <class State> pTasks choose_Search_Specialist(State state, Args args) {
     return {4.0/11,
       {Task("!change_to_Search_Specialist", Args({{"duration", duration},
                                      {"start",start},
-                                     {"agent",agent}}),{"agent","start","duration"})}};
+                                     {"agent",agent}}),{"agent","start","duration"},{agent})}};
   }
   return {0,{}};
 
@@ -879,7 +879,7 @@ template <class State> pTasks no_class_change(State state,Args args) {
   if (state.role[agent] == "NONE" && state.time[agent] < 900 &&
       state.agent_loc[agent] == state.change_zone) {
     return {0.5,
-      {Task("Change_role",Args({{"agent",agent}}),{"agent"})}};
+      {Task("Change_role",Args({{"agent",agent}}),{"agent"},{agent})}};
   }
   return {0,{}};
 }
@@ -927,7 +927,7 @@ template <class State> pTasks no_class_move(State state,Args args) {
                             {"start",start},
                             {"n_area",n_area},
                             {"c_area",state.agent_loc[agent]},
-                            {"agent",agent}}), {"agent","c_area","n_area","start","duration"})}};
+                            {"agent",agent}}), {"agent","c_area","n_area","start","duration"},{agent})}};
   }
   return {0,{}};
 }
@@ -937,7 +937,7 @@ template <class State> pTasks Medical_Specialist_task(State state, Args args) {
 
   if (state.role[agent] == "Medical_Specialist") {
     return {1.0,
-      {Task("Do_Medical_Specialist_task", Args({{"agent", agent}}), {"agent"})}};
+      {Task("Do_Medical_Specialist_task", Args({{"agent", agent}}), {"agent"},{agent})}};
   }
   return {0,{}};
 
@@ -948,7 +948,7 @@ template <class State> pTasks Search_Specialist_task(State state, Args args) {
 
   if (state.role[agent] == "Search_Specialist") {
     return {1.0,
-      {Task("Do_Search_Specialist_task", Args({{"agent", agent}}),{"agent"})}};
+      {Task("Do_Search_Specialist_task", Args({{"agent", agent}}),{"agent"},{agent})}};
   }
   return {0,{}};
 
@@ -959,7 +959,7 @@ template <class State> pTasks Hazardous_Material_Specialist_task(State state, Ar
 
   if (state.role[agent] == "Hazardous_Material_Specialist") {
     return {1.0,
-      {Task("Do_Hazardous_Material_Specialist_task", Args({{"agent", agent}}),{"agent"})}};
+      {Task("Do_Hazardous_Material_Specialist_task", Args({{"agent", agent}}),{"agent"},{agent})}};
   }
   return {0,{}};
 
@@ -995,7 +995,7 @@ template <class State> pTasks triageReg_Medical_Specialist(State state, Args arg
     }
     return {prob,
       {Task("Triage_area",Args({{"area",state.agent_loc[agent]},
-                            {"agent",agent}}), {"agent","area"})}};
+                            {"agent",agent}}), {"agent","area"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1054,7 +1054,7 @@ template <class State> pTasks triageCrit_Medical_Specialist(State state, Args ar
       {Task("!triageCrit",Args({{"duration",duration},
                                 {"start",start},
                                 {"area",state.agent_loc[agent]},
-                                {"agent",agent}}), {"agent","area","start","duration"})}};
+                                {"agent",agent}}), {"agent","area","start","duration"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1153,7 +1153,7 @@ template <class State> pTasks move_Medical_Specialist(State state, Args args) {
                             {"start",start},
                             {"n_area",n_area},
                             {"c_area",state.agent_loc[agent]},
-                            {"agent",agent}}), {"agent","c_area","n_area","start","duration"})}};
+                            {"agent",agent}}), {"agent","c_area","n_area","start","duration"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1173,7 +1173,7 @@ template <class State> pTasks change_Medical_Specialist(State state, Args args) 
       state.time[agent] < 900) {
 
     return {11.0/19,
-      {Task("Change_role",Args({{"agent",agent}}), {"agent"})}};
+      {Task("Change_role",Args({{"agent",agent}}), {"agent"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1219,9 +1219,9 @@ template <class State> pTasks triageArea(State state, Args args) {
       {Task("!triageReg",Args({{"duration",duration},
                                 {"start",start},
                                 {"area",area},
-                                {"agent",agent}}),{"agent","area","start","duration"}),
+                                {"agent",agent}}),{"agent","area","start","duration"},{agent}),
        Task("Triage_area",Args({{"area",area},
-                                {"agent",agent}}),{"agent","area"})}};
+                                {"agent",agent}}),{"agent","area"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1270,7 +1270,7 @@ template <class State> pTasks clear_blocks_Hazardous_Material_Specialist(State s
       state.time[agent] < 900 && !in(state.agent_loc[agent],state.no_victim_zones)) {
     return {18.0/66,
       {Task("Clear_area",Args({{"area",state.agent_loc[agent]},
-                                      {"agent",agent}}),{"agent","area"})}};
+                                      {"agent",agent}}),{"agent","area"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1316,9 +1316,9 @@ template <class State> pTasks clearArea(State state, Args args) {
       {Task("!break_block",Args({{"duration",duration},
                             {"start",start},
                             {"area",area},
-                            {"agent",agent}}),{"agent","area","start","duration"}),
+                            {"agent",agent}}),{"agent","area","start","duration"},{agent}),
        Task("Clear_area",Args({{"area",area},
-                               {"agent",agent}}),{"agent","area"})}};
+                               {"agent",agent}}),{"agent","area"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1400,7 +1400,7 @@ template <class State> pTasks move_Hazardous_Material_Specialist(State state, Ar
                           {"start",start},
                           {"n_area",n_area},
                           {"c_area",state.agent_loc[agent]},
-                          {"agent",agent}}),{"agent","c_area","n_area","start","duration"})}};
+                          {"agent",agent}}),{"agent","c_area","n_area","start","duration"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1420,7 +1420,7 @@ template <class State> pTasks change_Hazardous_Material_Specialist(State state, 
       state.time[agent] < 900) {
 
     return {2.0/5,
-      {Task("Change_role",Args({{"agent",agent}}), {"agent"})}};
+      {Task("Change_role",Args({{"agent",agent}}), {"agent"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1440,7 +1440,7 @@ template <class State> pTasks relocate_victim_Search_Specialist(State state, Arg
       state.r_triage_total < state.r_max && !state.holding[agent]) {
 
     return {6.0/161,
-      {Task("Relocate_vic",Args({{"agent",agent}}),{"agent"})}};
+      {Task("Relocate_vic",Args({{"agent",agent}}),{"agent"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1460,7 +1460,7 @@ template <class State> pTasks resume_relocate_victim_Search_Specialist(State sta
       state.holding[agent]) {
 
     return {1.0,
-      {Task("Relocate_vic",Args({{"agent",agent}}),{"agent"})}};
+      {Task("Relocate_vic",Args({{"agent",agent}}),{"agent"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1490,8 +1490,8 @@ template <class State> pTasks pickup_victim(State state, Args args) {
       {Task("!pickup_vic",Args({{"duration",duration},
                                 {"start",start},
                                 {"area",state.agent_loc[agent]},
-                                {"agent",agent}}),{"agent","area","start","duration"}),
-       Task("Relocate_vic",Args({{"agent",agent}}), {"agent"})}};
+                                {"agent",agent}}),{"agent","area","start","duration"},{agent}),
+       Task("Relocate_vic",Args({{"agent",agent}}), {"agent"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1533,8 +1533,8 @@ template <class State> pTasks move_victim(State state, Args args) {
                           {"start",start},
                           {"n_area",n_area},
                           {"c_area",state.agent_loc[agent]},
-                          {"agent",agent}}),{"agent","c_area","n_area","start","duration"}),
-       Task("Relocate_vic",Args({{"agent",agent}}),{"agent"})}};
+                          {"agent",agent}}),{"agent","c_area","n_area","start","duration"},{agent}),
+       Task("Relocate_vic",Args({{"agent",agent}}),{"agent"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1564,7 +1564,7 @@ template <class State> pTasks putdown_victim(State state, Args args) {
       {Task("!put_down_vic",Args({{"duration",duration},
                                 {"start",start},
                                 {"area",state.agent_loc[agent]},
-                                {"agent",agent}}),{"agent","area","start","duration"})}};
+                                {"agent",agent}}),{"agent","area","start","duration"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1645,7 +1645,7 @@ template <class State> pTasks move_Search_Specialist(State state, Args args) {
                           {"start",start},
                           {"n_area",n_area},
                           {"c_area",state.agent_loc[agent]},
-                          {"agent",agent}}),{"agent","c_area","n_area","start","duration"})}};
+                          {"agent",agent}}),{"agent","c_area","n_area","start","duration"},{agent})}};
   }  
   return {0,{}};
 }
@@ -1665,7 +1665,7 @@ template <class State> pTasks change_Search_Specialist(State state, Args args) {
       state.time[agent] < 900 && !state.holding[agent]) {
 
     return {4.0/6,
-      {Task("Change_role",Args({{"agent",agent}}),{"agent"})}};
+      {Task("Change_role",Args({{"agent",agent}}),{"agent"},{agent})}};
   }  
   return {0,{}};
 }
