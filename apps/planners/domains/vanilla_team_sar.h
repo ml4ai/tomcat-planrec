@@ -192,9 +192,6 @@ template <class State> std::optional<State> move(State state, Args args) {
 
     state.agent_loc[agent] = n_area;
 
-    state.adjacent[c_area][n_area];
-    state.adjacent[n_area][c_area];
-    
     if (state.visited[agent].find(n_area) == state.visited[agent].end()) {
       state.visited[agent][n_area] = 1;
       state.seed++;
