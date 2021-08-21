@@ -125,8 +125,8 @@ simulation_rec(json& data_team_plan,
               state = newstate.value();
               for (auto a : task.agents) {
                 team_plan["plan"][a].push_back(g);
+                team_plan["size"] = 1 + team_plan["size"].get<int>();
               }
-              team_plan["size"] = 1 + team_plan["size"].get<int>();
               seed++;
               continue;
           }
@@ -201,8 +201,8 @@ int expansion_rec(Tree<State, Selector>& t,
             g["task"] = task2string(task);
             for (auto a : task.agents) {
               v.team_plan["plan"][a].push_back(g);
+              v.team_plan["size"] = 1 + v.team_plan["size"].template get<int>();
             }
-            v.team_plan["size"] = 1 + v.team_plan["size"].template get<int>();
             int w = boost::add_vertex(v, t);
             t[n].successors.push_back(w);
             return w;
