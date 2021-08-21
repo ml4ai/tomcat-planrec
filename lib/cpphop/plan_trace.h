@@ -84,8 +84,8 @@ nlohmann::json gpt(Tree<State,Selector>& t, int v, nlohmann::json j) {
       g["task"] = task2string(task);
       for (auto a : task.agents) {
         j["plan"][a].push_back(g);
+        j["size"] = 1 + j["size"].get<int>();
       }
-      j["size"] = 1 + j["size"].get<int>();
     }
   }
 
