@@ -577,15 +577,15 @@ template <class State> pTasks assign_tasks(State state, Args args) {
   }
   else {
     min_agent = act_agents.back();
-    auto min_time = state.time[min_agent];
+    auto min_act = state.action_tracker[min_agent].back();
     for (auto a : act_agents) {
-      if (state.time[a] < min_time) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
         min_agent = a;
-        min_time = state.time[a];
+        min_act = c_act;
       }
     }
-    Action act = state.action_tracker[min_agent].back();
-    if (act.agent == "all" || act.action == "!exit") {
+    if (min_act.agent == "all" || min_act.action == "!exit") {
       return {0,{}};
     }
   }
