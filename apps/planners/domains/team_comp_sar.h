@@ -17,11 +17,11 @@ struct Action {
 
 // aux functions
 std::string 
-sample_loc(std::vector<std::string> zones,
+sample_loc(std::vector<std::string> allowable_zones,
            std::unordered_map<std::string, int> visited,
            int seed) {
   std::vector<double> w;
-  for (auto a : zones) {
+  for (auto a : allowable_zones) {
     if (visited.find(a) == visited.end()) {
       w.push_back(1.0);
     }
@@ -32,14 +32,14 @@ sample_loc(std::vector<std::string> zones,
   std::mt19937 gen(seed);
   std::discrete_distribution<int> dist (w.begin(),w.end());
   int s = dist(gen);
-  return zones[s];
+  return allowable_zones[s];
 }
 
 std::string 
-sample_loc(std::vector<std::string> zones,
+sample_loc(std::vector<std::string> allowable_zones,
            std::unordered_map<std::string, int> visited) {
   std::vector<double> w;
-  for (auto a : zones) {
+  for (auto a : allowable_zones) {
     if (visited.find(a) == visited.end()) {
       w.push_back(1.0);
     }
@@ -51,7 +51,7 @@ sample_loc(std::vector<std::string> zones,
   std::mt19937 gen(rd());
   std::discrete_distribution<int> dist (w.begin(),w.end());
   int s = dist(gen);
-  return zones[s];
+  return allowable_zones[s];
 }
 
 bool sample_vic_seen(double p) {
@@ -571,24 +571,726 @@ template <class State> pTasks SAR(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   return {1.0,
-    {Task("Start_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+    {Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
      Task("!exit", Args({{"agent",agent1},{"start","900"},{"duration","0"}}), {"agent","start","duration"},{agent1}),
      Task("!exit", Args({{"agent",agent2},{"start","900"},{"duration","0"}}), {"agent","start","duration"},{agent2}),
      Task("!exit", Args({{"agent",agent3},{"start","900"},{"duration","0"}}), {"agent","start","duration"},{agent3})}};
 }
 
-template <class State> pTasks explore_no_class(State state, Args args) {
+template <class State> pTasks No_class(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   if (state.team_code.empty()) {
     return {1.0,
-      {Task("explore_no_class", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      {Task("No_class", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {0,{}};
 }
 
-template <class State> pTasks assign_tasks_no_class(State state, Args args) {
+template <class State> pTasks single_agent_no_class(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  bool single_agent_tasks = false;
+  bool act_available = false;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_available = true;
+      auto act = state.action_tracker[a].back();
+      if (act.agent != "all" && act.action != "exit" &&
+          act.action.substr(0,11) != "!change_to_") {
+        single_agent_tasks = true;
+      }
+    }
+  }
+  
+  if (act_available) {
+    if (!single_agent_task) {
+      return {0,{}};
+    }
+  }
+
+  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  if (min_time < 900) {
+    return {0.05,
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+           Task("No_class", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks group_no_class(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  bool group_task = true;
+  bool act_available = false;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_available = true;
+      auto act = state.action_tracker[a].back();
+      if (act.agent == "all") {
+        group_task = false;
+      }
+    }
+  }
+  
+  if (act_available) {
+    if (!single_agent_task) {
+      return {0,{}};
+    }
+  }
+
+  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  if (min_time < 900) {
+    return {0.05,
+          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+           Task("No_class", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks comp_change_no_class(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  if (min_time < 900) {
+    return {0.9,
+          {Task("Team_composition_change", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+           Task("Do_mission", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks do_task_agent1_no_class(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  
+}
+
+template <class State> pTasks explore_h(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "h") {
+    return {1.0,
+      {Task("Explore_h", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_h(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 0.5;
+    if (state.role[min_agent] == "Hazardous_Material_Specialist") {
+      prob = 2.0/5;
+    }
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_h", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_m(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "m") {
+    return {1.0,
+      {Task("Explore_m", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_m(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 0.5;
+    if (state.role[min_agent] == "Medical_Specialist") {
+      prob = 11.0/19;
+    }
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_m", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_s(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "s") {
+    return {1.0,
+      {Task("Explore_s", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_s(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 0.5;
+    if (state.role[min_agent] == "Search_Specialist") {
+      prob = 4.0/6;
+    }
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_s", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_hh(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "hh") {
+    return {1.0,
+      {Task("Explore_hh", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_hh(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 0.5;
+    if (state.role[min_agent] == "Hazardous_Material_Specialist") {
+      prob = 2.0/5;
+    }
+
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_hh", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_hm(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "hm") {
+    return {1.0,
+      {Task("Explore_hm", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_hm(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 0.5;
+    if (state.role[min_agent] == "Hazardous_Material_Specialist") {
+      prob = 2.0/5;
+    }
+    if (state.role[min_agent] == "Medical_Specialist") {
+      prob = 11.0/19;
+    }
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_hm", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_hs(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "hs") {
+    return {1.0,
+      {Task("Explore_hs", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_hs(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 0.5;
+    if (state.role[min_agent] == "Hazardous_Material_Specialist") {
+      prob = 2.0/5;
+    }
+    if (state.role[min_agent] == "Search_Specialist") {
+      prob = 4.0/6;
+    }
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_hs", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_mm(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "mm") {
+    return {1.0,
+      {Task("Explore_mm", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_mm(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 0.5;
+    if (state.role[min_agent] == "Medical_Specialist") {
+      prob = 11.0/19;
+    }
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_mm", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_ms(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "ms") {
+    return {1.0,
+      {Task("Explore_ms", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_ms(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 0.5;
+    if (state.role[min_agent] == "Medical_Specialist") {
+      prob = 11.0/19;
+    }
+    if (state.role[min_agent] == "Search_Specialist") {
+      prob = 4.0/6;
+    }
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_ms", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_ss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "ss") {
+    return {1.0,
+      {Task("Explore_ss", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_ss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 0.5;
+    if (state.role[min_agent] == "Search_Specialist") {
+      prob = 4.0/6;
+    }
+
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_ss", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_hhh(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "hhh") {
+    return {1.0,
+      {Task("Explore_hhh", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_hhh(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.action.substr(0,11) == "!change_to_" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    return {2.0/5,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_hhh", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_hhm(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "hhm") {
+    return {1.0,
+      {Task("Explore_hhm", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_hhm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
@@ -627,46 +1329,37 @@ template <class State> pTasks assign_tasks_no_class(State state, Args args) {
   if (state.time[min_agent] < 900) {
     double prob = 1;
 
-    bool r_triaged_here;
-    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
-      r_triaged_here = false;
-    }
-    else {
-      r_triaged_here = state.r_triaged_here[c_vic_area];
-    }
-
-    if (can_wake_here && have_Medical_Specialist) {
-      if (in_room && r_triaged_here) {
-        prob = 0.99;
-      }
-      else {
-        prob = 0.01;
-      }
-    }
     return {prob,
           {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
-           Task("Explore", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+           Task("Explore_hhm", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {0,{}};
 }
 
-template <class State> pTasks wake_crit_vic(State state, Args args) {
+template <class State> pTasks explore_hhs(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "hhs") {
+    return {1.0,
+      {Task("Explore_hhs", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_hhs(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool act_available = false;
+  std::vector<std::string> act_agents;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
-      act_available = true;
+      act_agents.push_back(a);
     }
   }
-
   auto min_agent = agent1;
-  std::string duration = "1";
-  int start_num = std::max({state.time[agent1],state.time[agent2],state.time[agent3]});
-  std::string start = std::to_string(start_num);
-  if (!act_available) {
+  if (act_agents.empty()) {
     auto min_time = state.time[agent1];
     for (auto a : state.agents) {
       if (state.time[a] < min_time) {
@@ -675,73 +1368,426 @@ template <class State> pTasks wake_crit_vic(State state, Args args) {
       }
     }
   }
-  else { 
-    if (state.action_tracker[min_agent].empty()) {
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.agent == "all" || min_act.action == "!exit") {
       return {0,{}};
     }
-    Action act = state.action_tracker[min_agent].back();
-    if (act.agent != "all") {
-      return {0,{}};
-    }
-    duration = act.duration;
-    start = act.start;
   }
 
-  if (state.time[min_agent] < 900 && !in(state.agent_loc[min_agent],state.no_victim_zones)) {
-    std::string c_vic_area = state.agent_loc[agent1];
+  if (state.time[min_agent] < 900) {
+    double prob = 1;
 
-    bool c_awake;
-    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
-      c_awake = false;
-    }
-    else {
-      c_awake = state.c_awake[c_vic_area];
-    }
-
-    bool in_room = in(c_vic_area,state.rooms);
-    if ((!in_room && 
-        !in(c_vic_area,state.multi_room_zones)) ||
-        c_awake ||
-        state.c_triage_total >= state.c_max) {
-      c_vic_area = "NONE";
-    }
-    bool can_wake_here = true;
-    bool have_Medical_Specialist = false;
-    for (auto a : state.agents) {
-      if (state.role[a] == "Medical_Specialist") {
-        have_Medical_Specialist = true;
-      }
-      if (state.agent_loc[a] != c_vic_area) {
-        can_wake_here = false;
-      } 
-    }
-    double prob = 0;
-
-    bool r_triaged_here;
-    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
-      r_triaged_here = false;
-    }
-    else {
-      r_triaged_here = state.r_triaged_here[c_vic_area];
-    }
-
-    if (can_wake_here && have_Medical_Specialist) {
-      if (in_room && r_triaged_here) {
-        prob = 0.01;
-      }
-      else {
-        prob = 0.99;
-      }
-    }
- 
     return {prob,
-          {Task("!wakeCrit", Args({{"duration",duration},
-                                     {"start",start},
-                                     {"area",state.agent_loc[min_agent]},
-                                     {"agent3",agent3},
-                                     {"agent2",agent2},
-                                     {"agent1",agent1}}), {"agent1","agent2","agent3","area","start","duration"},{agent1,agent2,agent3}),
-           Task("Explore", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_hhs", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_hmm(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "hmm") {
+    return {1.0,
+      {Task("Explore_hmm", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_hmm(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.agent == "all" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 1;
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_hmm", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_hms(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "hms") {
+    return {1.0,
+      {Task("Explore_hms", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_hms(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.agent == "all" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 1;
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_hms", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_hss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "hss") {
+    return {1.0,
+      {Task("Explore_hss", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_hss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.agent == "all" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 1;
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_hss", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_mmm(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "mmm") {
+    return {1.0,
+      {Task("Explore_mmm", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_mmm(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.agent == "all" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 1;
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_mmm", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_mms(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "mms") {
+    return {1.0,
+      {Task("Explore_mms", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_mms(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.agent == "all" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 1;
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_mms", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_mss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "mss") {
+    return {1.0,
+      {Task("Explore_mss", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_mss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.agent == "all" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 1;
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_mss", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks explore_sss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+  if (state.team_code == "sss") {
+    return {1.0,
+      {Task("Explore_sss", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {0,{}};
+}
+
+template <class State> pTasks assign_tasks_sss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.agent == "all" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+
+  if (state.time[min_agent] < 900) {
+    double prob = 1;
+
+    return {prob,
+          {Task("Do_task", Args({{"agent",min_agent}}),{"agent"},{min_agent}),
+           Task("Explore_sss", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {0,{}};
 }
@@ -783,6 +1829,44 @@ template <class State> pTasks out_of_time(State state, Args args) {
     return {1.0,{}};
   }
   return {0,{}};
+}
+
+template <class State> pTasks change_team_comp(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  std::vector<std::string> act_agents;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_agents.push_back(a);
+    }
+  }
+  auto min_agent = agent1;
+  if (act_agents.empty()) {
+    auto min_time = state.time[agent1];
+    for (auto a : state.agents) {
+      if (state.time[a] < min_time) {
+        min_agent = a;
+        min_time = state.time[a];
+      }
+    }
+  }
+  else {
+    min_agent = act_agents.back();
+    auto min_act = state.action_tracker[min_agent].back();
+    for (auto a : act_agents) {
+      auto c_act = state.action_tracker[a].back();
+      if (stoi(c_act.start,nullptr) < stoi(min_act.start,nullptr)) {
+        min_agent = a;
+        min_act = c_act;
+      }
+    }
+    if (min_act.agent == "all" || min_act.action == "!exit") {
+      return {0,{}};
+    }
+  }
+ 
 }
 
 template <class State> pTasks choose_Medical_Specialist(State state, Args args) {
@@ -1688,6 +2772,10 @@ class TeamSARState {
     std::vector<std::string> multi_room_zones;
 
     std::string change_zone;
+
+    std::unordered_map<std::string,int> dist_from_change_zone;
+
+    std::unordered_map<std::string,std::vector<std::string>> graph;
 
     // ******
 
