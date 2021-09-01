@@ -55,6 +55,16 @@ int main(int argc, char* argv[]) {
 
   json g;
 
+  mp.zones.push_back("UNKNOWN");
+
+  mp.graph["llcn"].push_back("UNKNOWN");
+
+  mp.graph["UNKNOWN"].push_back("llcn");
+
+  mp.graph["r103"].push_back("UNKNOWN");
+
+  mp.graph["UNKNOWN"].push_back("r103");
+
   for (auto z : mp.zones) {
     g["zones"].push_back(z);
     for (auto c : mp.graph[z]) {
