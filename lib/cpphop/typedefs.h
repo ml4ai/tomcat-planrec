@@ -22,7 +22,9 @@ struct Task {
 
 using Tasks = std::vector<Task>;
 using pTasks = std::pair<double, Tasks>;
+using cTasks = std::pair<std::string, Tasks>
 using Plans = std::vector<pTasks>;
+using cPlans = std::vector<cTasks>;
 
 
 template <class State> using Operator = std::optional<State> (*)(State, Args);
@@ -37,5 +39,10 @@ using pOperators = std::unordered_map<std::string, pOperator<State>>;
 
 template <class State> using Method = pTasks (*)(State, Args);
 
+template <class State> using cMethod = cTasks (*)(State, Args);
+
 template <class State>
 using Methods = std::unordered_map<std::string, std::vector<Method<State>>>;
+
+template <class State>
+using cMethods = std::unordered_map<std::string, std::vector<cMethod<State>>>;
