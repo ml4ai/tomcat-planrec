@@ -680,11 +680,43 @@ template <class State> cTasks comp_change(State state, Args args) {
 
   int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
   if (min_time < 900) {
-    std::string cond = "comp_change_0";
-    if (state.team_comp.size() <= 1) {
+    std::string cond;
+    if (state.team_comp.size() <= 2) {
+      cond = "comp_change_0";
+    }
+
+    if (state.team_comp == "hhh") {
       cond = "comp_change_1";
     }
-    return {cond,
+    if (state.team_comp == "hhm") {
+      cond = "comp_change_2";
+    }
+    if (state.team_comp == "hhs") {
+      cond = "comp_change_3";
+    }
+    if (state.team_comp == "hmm") {
+      cond = "comp_change_4";
+    }
+    if (state.team_comp == "hms") {
+      cond = "comp_change_5";
+    }
+    if (state.team_comp == "hss") {
+      cond = "comp_change_6";
+    }
+    if (state.team_comp == "mmm") {
+      cond = "comp_change_7";
+    }
+    if (state.team_comp == "mms") {
+      cond = "comp_change_8";
+    }
+    if (state.team_comp == "mss") {
+      cond = "comp_change_9";
+    }
+    if (state.team_comp == "sss") {
+      cond = "comp_change_10";
+    }
+
+   return {cond,
           {Task("Team_composition_change", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("Do_mission", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -2364,7 +2396,7 @@ template <class State> cTasks move_agent(State state, Args args) {
 
     }
 
-    return {prob,
+    return {cond,
       {Task("!move",Args({{"duration",duration},
                             {"start",start},
                             {"n_area",n_area},
@@ -2398,7 +2430,7 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
   }
 
   if (state.time[agent1] < 900) {
-    return {1.0/3,
+    return {"agent1_change_role_0",
           {Task("Agent_1_change_role", Args({{"agent",agent1}}),{"agent"},{agent1})}};
   }
   return {"NIL",{}};
@@ -2428,7 +2460,7 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
   }
 
   if (state.time[agent2] < 900) {
-    return {1.0/3,
+    return {"agent2_change_role_0",
           {Task("Agent_2_change_role", Args({{"agent",agent2}}),{"agent"},{agent2})}};
   }
   return {"NIL",{}};
@@ -2458,7 +2490,7 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
   }
 
   if (state.time[agent3] < 900) {
-    return {1.0/3,
+    return {"agent3_change_role_0",
           {Task("Agent_3_change_role", Args({{"agent",agent3}}),{"agent"},{agent3})}};
   }
   return {"NIL",{}};
