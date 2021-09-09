@@ -2281,6 +2281,158 @@ template <class State> cTasks h_task(State state, Args args) {
   return {"NIL",{}};
 }
 
+template <class State> cTasks clear_area(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!break_block") {
+      return {"NIL",{}};
+    }
+  }
+
+  if (state.role[agent] == "Hazardous_Material_Specialist" && state.team_code >= 3 && 
+      state.time[agent] < 900 && !in(state.agent_loc[agent],state.no_victim_zones)) {
+      std::string cond;
+      if (state.team_comp == "hhh") {
+        cond = "clear_area_0";
+      }
+      if (state.team_comp == "hhm") {
+        cond = "clear_area_1";
+      }
+      if (state.team_comp == "hhs") {
+        cond = "clear_area_2";
+      }
+      if (state.team_comp == "hmm") {
+        cond = "clear_area_3";
+      }
+      if (state.team_comp == "hms") {
+        cond = "clear_area_4";
+      }
+      if (state.team_comp == "hss") {
+        cond = "clear_area_5";
+      }
+    }
+
+
+    return {cond,
+      {Task("Clear_area",Args({{"area",state.agent_loc[agent]},
+                                      {"agent",agent}}),{"agent","area"},{agent})}};
+  }  
+  return {"NIL",{}};
+}
+
+template <class State> cTasks break_blocks(State state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+
+  std::string duration;
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!break_block") {
+      return {"NIL",{}};
+    }
+    duration = act.duration;
+    start = act.start;
+  }
+  else {
+    duration = "1";
+    start = std::to_string(state.time[agent]);
+  }
+
+  if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] < 900) {
+    std::string cond;
+
+    int blocks_broken;
+    if(state.blocks_broken.find(area) == state.blocks_broken.end()) {
+      blocks_broken = 0;
+    }
+    else {
+      blocks_broken = state.blocks_broken[area];
+    }
+
+    if (blocks_broken > 0) {
+      if (state.team_comp == "hhh") {
+        cond = "break_blocks_1";
+      }
+      if (state.team_comp == "hhm") {
+        cond = "break_blocks_2";
+      }
+      if (state.team_comp == "hhs") {
+        cond = "break_blocks_3";
+      }
+      if (state.team_comp == "hmm") {
+        cond = "break_blocks_4";
+      }
+      if (state.team_comp == "hms") {
+        cond = "break_blocks_5";
+      }
+      if (state.team_comp == "hss") {
+        cond = "break_blocks_6";
+      }
+    }
+    else {
+      cond = "break_blocks_0";
+    }
+
+    return {cond,
+      {Task("!break_block",Args({{"duration",duration},
+                            {"start",start},
+                            {"area",area},
+                            {"agent",agent}}),{"agent","area","start","duration"},{agent}),
+       Task("Clear_area",Args({{"area",area},
+                               {"agent",agent}}),{"agent","area"},{agent})}};
+  }  
+  return {"NIL",{}};
+}
+
+template <class State> cTasks done_breaking(State state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+  if (state.role[agent] == "Hazardous_Material_Specialist") {
+    std::string cond;
+
+    int blocks_broken;
+    if(state.blocks_broken.find(area) == state.blocks_broken.end()) {
+      blocks_broken = 0;
+    }
+    else {
+      blocks_broken = state.blocks_broken[area];
+    }
+
+    if (blocks_broken > 0) {
+      if (state.team_comp == "hhh") {
+        cond = "done_breaking_1";
+      }
+      if (state.team_comp == "hhm") {
+        cond = "done_breaking_2";
+      }
+      if (state.team_comp == "hhs") {
+        cond = "done_breaking_3";
+      }
+      if (state.team_comp == "hmm") {
+        cond = "done_breaking_4";
+      }
+      if (state.team_comp == "hms") {
+        cond = "done_breaking_5";
+      }
+      if (state.team_comp == "hss") {
+        cond = "done_breaking_6";
+      }
+    }
+    else {
+      cond = "NIL";
+    }
+    if (state.time[agent] >= 900) {
+      cond = "done_breaking_0";
+    }
+
+    return {cond,{}};
+  }  
+  return {"NIL",{}};
+}
+
 template <class State> cTasks m_task(State state, Args args) {
   auto agent = args["agent"];
 
@@ -2288,6 +2440,142 @@ template <class State> cTasks m_task(State state, Args args) {
     return {"m_task_0",
           {Task("M_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
+  return {"NIL",{}};
+}
+
+template <class State> cTasks triage_regs_in_area(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!triageReg") {
+      return {"NIL",{}};
+    }
+  }
+  if (state.role[agent] == "Medical_Specialist" && state.time[agent] < 900 &&
+      !in(state.agent_loc[agent],state.no_victim_zones) &&
+      state.r_triage_total < state.r_max) {
+    std::string cond;
+
+    bool c_awake;
+    if(state.c_awake.find(state.agent_loc[agent]) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[state.agent_loc[agent]];
+    }
+
+    if (in(state.agent_loc[agent],state.rooms) && c_awake) {
+      if (state.team_comp == "hhm") {
+        cond = "triage_regs_in_area_6";
+      }
+      if (state.team_comp == "hmm") {
+        cond = "triage_regs_in_area_7";
+      }
+      if (state.team_comp == "hms") {
+        cond = "triage_regs_in_area_8";
+      }
+      if (state.team_comp == "mmm") {
+        cond = "triage_regs_in_area_9";
+      }
+      if (state.team_comp == "mms") {
+        cond = "triage_regs_in_area_10";
+      }
+      if (state.team_comp == "mss") {
+        cond = "triage_regs_in_area_11";
+      }
+    }
+    else {
+      if (state.team_comp == "hhm") {
+        cond = "triage_regs_in_area_0";
+      }
+      if (state.team_comp == "hmm") {
+        cond = "triage_regs_in_area_1";
+      }
+      if (state.team_comp == "hms") {
+        cond = "triage_regs_in_area_2";
+      }
+      if (state.team_comp == "mmm") {
+        cond = "triage_regs_in_area_3";
+      }
+      if (state.team_comp == "mms") {
+        cond = "triage_regs_in_area_4";
+      }
+      if (state.team_comp == "mss") {
+        cond = "triage_regs_in_area_5";
+      }
+    }
+
+    return {cond,
+      {Task("Triage_regs_in_area",Args({{"area",state.agent_loc[agent]},
+                            {"agent",agent}}), {"agent","area"},{agent})}};
+  }  
+  return {"NIL",{}};
+}
+
+template <class State> cTasks triage_regs(State state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+
+  std::string duration;
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!triageReg") {
+      return {"NIL",{}};
+    }
+    duration = act.duration;
+    start = act.start;
+  }
+  else {
+    duration = "7";
+    start = std::to_string(state.time[agent]);
+  }
+
+  if (state.role[agent] == "Medical_Specialist" && state.time[agent] < 900 &&
+      state.r_triage_total < state.r_max) {
+    std::string cond;
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[area];
+    }
+
+    if (r_triaged_here) {
+      if (state.team_comp == "hhm") {
+        cond = "triage_regs_1";
+      }
+      if (state.team_comp == "hmm") {
+        cond = "triage_regs_2";
+      }
+      if (state.team_comp == "hms") {
+        cond = "triage_regs_3";
+      }
+      if (state.team_comp == "mmm") {
+        cond = "triage_regs_4";
+      }
+      if (state.team_comp == "mms") {
+        cond = "triage_regs_5";
+      }
+      if (state.team_comp == "mss") {
+        cond = "triage_regs_6";
+      }
+
+    }
+    else {
+      cond = "triage_regs_0";
+    }
+    return {cond,
+      {Task("!triageReg",Args({{"duration",duration},
+                                {"start",start},
+                                {"area",area},
+                                {"agent",agent}}),{"agent","area","start","duration"},{agent}),
+       Task("Triage_area",Args({{"area",area},
+                                {"agent",agent}}),{"agent","area"},{agent})}};
+  }  
   return {"NIL",{}};
 }
 
@@ -2430,7 +2718,73 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
   }
 
   if (state.time[agent1] < 900) {
-    return {"agent1_change_role_0",
+    std::string cond = "agent1_change_role_0";
+    if (state.team_comp >= 3) {
+      if (state.role[agent1] == "Hazardous_Material_Specialist") {
+        if (state.team_comp == "hhh") {
+          cond = "agent1_change_role_1";
+        }
+        if (state.team_comp == "hhm") {
+          cond = "agent1_change_role_2";
+        }
+        if (state.team_comp == "hhs") {
+          cond = "agent1_change_role_3";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "agent1_change_role_4";
+        }
+        if (state.team_comp == "hms") {
+          cond = "agent1_change_role_5";
+        }
+        if (state.team_comp == "hss") {
+          cond = "agent1_change_role_6";
+        }
+      }
+
+      if (state.role[agent1] == "Medical_Specialist") {
+        if (state.team_comp == "hhm") {
+          cond = "agent1_change_role_7";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "agent1_change_role_8";
+        }
+        if (state.team_comp == "hms") {
+          cond = "agent1_change_role_9";
+        }
+        if (state.team_comp == "mmm") {
+          cond = "agent1_change_role_10";
+        }
+        if (state.team_comp == "mms") {
+          cond = "agent1_change_role_11";
+        }
+        if (state.team_comp == "mss") {
+          cond = "agent1_change_role_12";
+        }
+      }
+
+      if (state.role[agent1] == "Search_Specialist") {
+        if (state.team_comp == "hhs") {
+          cond = "agent1_change_role_13";
+        }
+        if (state.team_comp == "hms") {
+          cond = "agent1_change_role_14";
+        }
+        if (state.team_comp == "hss") {
+          cond = "agent1_change_role_15";
+        }
+        if (state.team_comp == "mms") {
+          cond = "agent1_change_role_16";
+        }
+        if (state.team_comp == "mss") {
+          cond = "agent1_change_role_17";
+        }
+        if (state.team_comp == "sss") {
+          cond = "agent1_change_role_18";
+        }
+      }
+    }
+
+    return {cond,
           {Task("Agent_1_change_role", Args({{"agent",agent1}}),{"agent"},{agent1})}};
   }
   return {"NIL",{}};
@@ -2460,7 +2814,73 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
   }
 
   if (state.time[agent2] < 900) {
-    return {"agent2_change_role_0",
+    std::string cond = "agent2_change_role_0";
+    if (state.team_comp >= 3) {
+      if (state.role[agent2] == "Hazardous_Material_Specialist") {
+        if (state.team_comp == "hhh") {
+          cond = "agent2_change_role_1";
+        }
+        if (state.team_comp == "hhm") {
+          cond = "agent2_change_role_2";
+        }
+        if (state.team_comp == "hhs") {
+          cond = "agent2_change_role_3";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "agent2_change_role_4";
+        }
+        if (state.team_comp == "hms") {
+          cond = "agent2_change_role_5";
+        }
+        if (state.team_comp == "hss") {
+          cond = "agent2_change_role_6";
+        }
+      }
+
+      if (state.role[agent2] == "Medical_Specialist") {
+        if (state.team_comp == "hhm") {
+          cond = "agent2_change_role_7";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "agent2_change_role_8";
+        }
+        if (state.team_comp == "hms") {
+          cond = "agent2_change_role_9";
+        }
+        if (state.team_comp == "mmm") {
+          cond = "agent2_change_role_10";
+        }
+        if (state.team_comp == "mms") {
+          cond = "agent2_change_role_11";
+        }
+        if (state.team_comp == "mss") {
+          cond = "agent2_change_role_12";
+        }
+      }
+
+      if (state.role[agent2] == "Search_Specialist") {
+        if (state.team_comp == "hhs") {
+          cond = "agent2_change_role_13";
+        }
+        if (state.team_comp == "hms") {
+          cond = "agent2_change_role_14";
+        }
+        if (state.team_comp == "hss") {
+          cond = "agent2_change_role_15";
+        }
+        if (state.team_comp == "mms") {
+          cond = "agent2_change_role_16";
+        }
+        if (state.team_comp == "mss") {
+          cond = "agent2_change_role_17";
+        }
+        if (state.team_comp == "sss") {
+          cond = "agent2_change_role_18";
+        }
+      }
+    }
+
+    return {cond,
           {Task("Agent_2_change_role", Args({{"agent",agent2}}),{"agent"},{agent2})}};
   }
   return {"NIL",{}};
@@ -2490,7 +2910,73 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
   }
 
   if (state.time[agent3] < 900) {
-    return {"agent3_change_role_0",
+    std::string cond = "agent3_change_role_0";
+    if (state.team_comp >= 3) {
+      if (state.role[agent3] == "Hazardous_Material_Specialist") {
+        if (state.team_comp == "hhh") {
+          cond = "agent3_change_role_1";
+        }
+        if (state.team_comp == "hhm") {
+          cond = "agent3_change_role_2";
+        }
+        if (state.team_comp == "hhs") {
+          cond = "agent3_change_role_3";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "agent3_change_role_4";
+        }
+        if (state.team_comp == "hms") {
+          cond = "agent3_change_role_5";
+        }
+        if (state.team_comp == "hss") {
+          cond = "agent3_change_role_6";
+        }
+      }
+
+      if (state.role[agent3] == "Medical_Specialist") {
+        if (state.team_comp == "hhm") {
+          cond = "agent3_change_role_7";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "agent3_change_role_8";
+        }
+        if (state.team_comp == "hms") {
+          cond = "agent3_change_role_9";
+        }
+        if (state.team_comp == "mmm") {
+          cond = "agent3_change_role_10";
+        }
+        if (state.team_comp == "mms") {
+          cond = "agent3_change_role_11";
+        }
+        if (state.team_comp == "mss") {
+          cond = "agent3_change_role_12";
+        }
+      }
+
+      if (state.role[agent3] == "Search_Specialist") {
+        if (state.team_comp == "hhs") {
+          cond = "agent3_change_role_13";
+        }
+        if (state.team_comp == "hms") {
+          cond = "agent3_change_role_14";
+        }
+        if (state.team_comp == "hss") {
+          cond = "agent3_change_role_15";
+        }
+        if (state.team_comp == "mms") {
+          cond = "agent3_change_role_16";
+        }
+        if (state.team_comp == "mss") {
+          cond = "agent3_change_role_17";
+        }
+        if (state.team_comp == "sss") {
+          cond = "agent3_change_role_18";
+        }
+      }
+    }
+
+    return {cond,
           {Task("Agent_3_change_role", Args({{"agent",agent3}}),{"agent"},{agent3})}};
   }
   return {"NIL",{}};
@@ -2500,7 +2986,7 @@ template <class State> cTasks changing_role(State state, Args args) {
   auto agent = args["agent"];
 
   if (state.time[agent] < 900) {
-    return {1.0,
+    return {"changing_role_0",
           {Task("Changing_role", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
   return {"NIL",{}};
@@ -2534,7 +3020,7 @@ template <class State> cTasks moving_to_change_zone(State state, Args args) {
   }
 
   if (state.time[agent] < 900 && state.agent_loc[agent] != state.change_zone) {
-    return {1.0,
+    return {"moving_to_change_zone_0",
           {Task("!move", Args({{"agent",agent},
                                {"c_area",state.agent_loc[agent]},
                                {"n_area",n_area},
@@ -2549,7 +3035,7 @@ template <class State> cTasks moving_to_change_zone(State state, Args args) {
   return {"NIL",{}};
 }
 
-template <class State> cTasks Picking_role(State state, Args args) {
+template <class State> cTasks picking_role(State state, Args args) {
   auto agent = args["agent"];
 
   if (!state.action_tracker[agent].empty()) {
@@ -2560,7 +3046,7 @@ template <class State> cTasks Picking_role(State state, Args args) {
   }
 
   if (state.time[agent] < 900 && state.agent_loc[agent] == state.change_zone) {
-    return {1.0,
+    return {"picking_role_0",
           {Task("Pick_new_role", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
   return {"NIL",{}};
@@ -2591,7 +3077,7 @@ template <class State> cTasks all_task(State state, Args args) {
 
 
   if (state.time[agent1] < 900) {
-    return {1.0,
+    return {"all_task_0",
            {Task("All_task", Args({{"agent1",agent1},
                                    {"agent2",agent2},
                                    {"agent3",agent3}}),{"agent1",
@@ -2663,7 +3149,7 @@ template <class State> cTasks wake_crit_vic(State state, Args args) {
         all_gathered = false;
       } 
     }
-    double prob = 0;
+    std::string cond = "NIL";
 
     bool r_triaged_here;
     if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
@@ -2675,14 +3161,14 @@ template <class State> cTasks wake_crit_vic(State state, Args args) {
 
     if (all_gathered) {
       if (in_room && r_triaged_here) {
-        prob = 0.01;
+        cond = "wake_crit_vic_0";
       }
       else {
-        prob = 0.99;
+        cond = "wake_crit_vic_1";
       }
     }
  
-    return {prob,
+    return {cond,
           {Task("!wakeCrit", Args({{"duration",duration},
                                      {"start",start},
                                      {"area",state.agent_loc[min_agent]},
@@ -2721,13 +3207,13 @@ template <class State> cTasks out_of_time(State state, Args args) {
     }
     Action act = state.action_tracker[min_agent].back();
     if (act.action == "!exit") {
-      return {1,{}};
+      return {"out_of_time_0",{}};
     }
     return {"NIL",{}};
   }
 
   if (state.time[min_agent] >= 900) {
-    return {1.0,{}};
+    return {"out_of_time_0",{}};
   }
   return {"NIL",{}};
 }
@@ -2751,7 +3237,73 @@ template <class State> cTasks choose_Medical_Specialist(State state, Args args) 
   }
 
   if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
-    return {4.0/11,
+    std::string cond = "choose_Medical_Specialist_0";
+    if (state.team_comp >= 3) {
+      if (state.role[agent] == "Hazardous_Material_Specialist") {
+        if (state.team_comp == "hhh") {
+          cond = "choose_Medical_Specialist_1";
+        }
+        if (state.team_comp == "hhm") {
+          cond = "choose_Medical_Specialist_2";
+        }
+        if (state.team_comp == "hhs") {
+          cond = "choose_Medical_Specialist_3";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "choose_Medical_Specialist_4";
+        }
+        if (state.team_comp == "hms") {
+          cond = "choose_Medical_Specialist_5";
+        }
+        if (state.team_comp == "hss") {
+          cond = "choose_Medical_Specialist_6";
+        }
+      }
+
+      if (state.role[agent] == "Medical_Specialist") {
+        if (state.team_comp == "hhm") {
+          cond = "choose_Medical_Specialist_7";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "choose_Medical_Specialist_8";
+        }
+        if (state.team_comp == "hms") {
+          cond = "choose_Medical_Specialist_9";
+        }
+        if (state.team_comp == "mmm") {
+          cond = "choose_Medical_Specialist_10";
+        }
+        if (state.team_comp == "mms") {
+          cond = "choose_Medical_Specialist_11";
+        }
+        if (state.team_comp == "mss") {
+          cond = "choose_Medical_Specialist_12";
+        }
+      }
+
+      if (state.role[agent] == "Search_Specialist") {
+        if (state.team_comp == "hhs") {
+          cond = "choose_Medical_Specialist_13";
+        }
+        if (state.team_comp == "hms") {
+          cond = "choose_Medical_Specialist_14";
+        }
+        if (state.team_comp == "hss") {
+          cond = "choose_Medical_Specialist_15";
+        }
+        if (state.team_comp == "mms") {
+          cond = "choose_Medical_Specialist_16";
+        }
+        if (state.team_comp == "mss") {
+          cond = "choose_Medical_Specialist_17";
+        }
+        if (state.team_comp == "sss") {
+          cond = "choose_Medical_Specialist_18";
+        }
+      }
+    }
+
+    return {cond,
       {Task("!change_to_Medical_Specialist", Args({{"duration", duration},
                                      {"start",start},
                                      {"agent",agent}}), {"agent","start","duration"},{agent})}};
@@ -2779,7 +3331,73 @@ template <class State> cTasks choose_Hazardous_Material_Specialist(State state, 
   }
 
   if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
-    return {3.0/11,
+    std::string cond = "choose_Hazardous_Material_Specialist_0";
+    if (state.team_comp >= 3) {
+      if (state.role[agent] == "Hazardous_Material_Specialist") {
+        if (state.team_comp == "hhh") {
+          cond = "choose_Hazardous_Material_Specialist_1";
+        }
+        if (state.team_comp == "hhm") {
+          cond = "choose_Hazardous_Material_Specialist_2";
+        }
+        if (state.team_comp == "hhs") {
+          cond = "choose_Hazardous_Material_Specialist_3";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "choose_Hazardous_Material_Specialist_4";
+        }
+        if (state.team_comp == "hms") {
+          cond = "choose_Hazardous_Material_Specialist_5";
+        }
+        if (state.team_comp == "hss") {
+          cond = "choose_Hazardous_Material_Specialist_6";
+        }
+      }
+
+      if (state.role[agent] == "Medical_Specialist") {
+        if (state.team_comp == "hhm") {
+          cond = "choose_Hazardous_Material_Specialist_7";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "choose_Hazardous_Material_Specialist_8";
+        }
+        if (state.team_comp == "hms") {
+          cond = "choose_Hazardous_Material_Specialist_9";
+        }
+        if (state.team_comp == "mmm") {
+          cond = "choose_Hazardous_Material_Specialist_10";
+        }
+        if (state.team_comp == "mms") {
+          cond = "choose_Hazardous_Material_Specialist_11";
+        }
+        if (state.team_comp == "mss") {
+          cond = "choose_Hazardous_Material_Specialist_12";
+        }
+      }
+
+      if (state.role[agent] == "Search_Specialist") {
+        if (state.team_comp == "hhs") {
+          cond = "choose_Hazardous_Material_Specialist_13";
+        }
+        if (state.team_comp == "hms") {
+          cond = "choose_Hazardous_Material_Specialist_14";
+        }
+        if (state.team_comp == "hss") {
+          cond = "choose_Hazardous_Material_Specialist_15";
+        }
+        if (state.team_comp == "mms") {
+          cond = "choose_Hazardous_Material_Specialist_16";
+        }
+        if (state.team_comp == "mss") {
+          cond = "choose_Hazardous_Material_Specialist_17";
+        }
+        if (state.team_comp == "sss") {
+          cond = "choose_Hazardous_Material_Specialist_18";
+        }
+      }
+    }
+
+    return {cond,
       {Task("!change_to_Hazardous_Material_Specialist", Args({{"duration", duration},
                                      {"start",start},
                                      {"agent",agent}}), {"agent","start","duration"},{agent})}};
@@ -2807,7 +3425,73 @@ template <class State> cTasks choose_Search_Specialist(State state, Args args) {
   }
 
   if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
-    return {4.0/11,
+    std::string cond = "choose_Search_Specialist_0";
+    if (state.team_comp >= 3) {
+      if (state.role[agent] == "Hazardous_Material_Specialist") {
+        if (state.team_comp == "hhh") {
+          cond = "choose_Search_Specialist_1";
+        }
+        if (state.team_comp == "hhm") {
+          cond = "choose_Search_Specialist_2";
+        }
+        if (state.team_comp == "hhs") {
+          cond = "choose_Search_Specialist_3";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "choose_Search_Specialist_4";
+        }
+        if (state.team_comp == "hms") {
+          cond = "choose_Search_Specialist_5";
+        }
+        if (state.team_comp == "hss") {
+          cond = "choose_Search_Specialist_6";
+        }
+      }
+
+      if (state.role[agent] == "Medical_Specialist") {
+        if (state.team_comp == "hhm") {
+          cond = "choose_Search_Specialist_7";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "choose_Search_Specialist_8";
+        }
+        if (state.team_comp == "hms") {
+          cond = "choose_Search_Specialist_9";
+        }
+        if (state.team_comp == "mmm") {
+          cond = "choose_Search_Specialist_10";
+        }
+        if (state.team_comp == "mms") {
+          cond = "choose_Search_Specialist_11";
+        }
+        if (state.team_comp == "mss") {
+          cond = "choose_Search_Specialist_12";
+        }
+      }
+
+      if (state.role[agent] == "Search_Specialist") {
+        if (state.team_comp == "hhs") {
+          cond = "choose_Search_Specialist_13";
+        }
+        if (state.team_comp == "hms") {
+          cond = "choose_Search_Specialist_14";
+        }
+        if (state.team_comp == "hss") {
+          cond = "choose_Search_Specialist_15";
+        }
+        if (state.team_comp == "mms") {
+          cond = "choose_Search_Specialist_16";
+        }
+        if (state.team_comp == "mss") {
+          cond = "choose_Search_Specialist_17";
+        }
+        if (state.team_comp == "sss") {
+          cond = "choose_Search_Specialist_18";
+        }
+      }
+    }
+
+    return {cond,
       {Task("!change_to_Search_Specialist", Args({{"duration", duration},
                                      {"start",start},
                                      {"agent",agent}}),{"agent","start","duration"},{agent})}};
