@@ -2579,6 +2579,53 @@ template <class State> cTasks triage_regs(State state, Args args) {
   return {"NIL",{}};
 }
 
+template <class State> cTasks done_triaging(State state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+
+  if (state.role[agent] == "Medical_Specialist") {
+    std::string cond;;
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[area];
+    }
+
+    if (r_triaged_here) {
+      if (state.team_comp == "hhm") {
+        cond = "done_triaging_1";
+      }
+      if (state.team_comp == "hmm") {
+        cond = "done_triaging_2";
+      }
+      if (state.team_comp == "hms") {
+        cond = "done_triaging_3";
+      }
+      if (state.team_comp == "mmm") {
+        cond = "done_triaging_4";
+      }
+      if (state.team_comp == "mms") {
+        cond = "done_triaging_5";
+      }
+      if (state.team_comp == "mss") {
+        cond = "done_triaging_6";
+      }
+    }
+    else {
+      cond = "NIL";
+    }
+    if (state.time[agent] >= 900) {
+      cond = "done_triaging_0";
+    }
+
+    return {cond,{}};
+  }
+  return {"NIL",{}};
+}
+
 template <class State> cTasks s_task(State state, Args args) {
   auto agent = args["agent"];
 
@@ -2586,6 +2633,230 @@ template <class State> cTasks s_task(State state, Args args) {
     return {"s_task_0",
           {Task("S_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
+  return {"NIL",{}};
+}
+
+template <class State> cTasks relocate_victim(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!pickup_vic") {
+      return {"NIL",{}};
+    }
+  }
+
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
+      !in(state.agent_loc[agent],state.no_victim_zones) &&
+      state.r_triage_total < state.r_max && !state.holding[agent]) {
+    std::string cond;
+    if (state.team_comp == "hhs") {
+      cond = "relocate_victim_0";
+    }
+    if (state.team_comp == "hms") {
+      cond = "relocate_victim_1";
+    }
+    if (state.team_comp == "hss") {
+      cond = "relocate_victim_2";
+    }
+    if (state.team_comp == "mms") {
+      cond = "relocate_victim_3";
+    }
+    if (state.team_comp == "mss") {
+      cond = "relocate_victim_4";
+    }
+    if (state.team_comp == "sss") {
+      cond = "relocate_victim_5";
+    }
+
+    return {cond,
+      {Task("Relocate_vic",Args({{"agent",agent}}),{"agent"},{agent})}};
+  }  
+  return {"NIL",{}};
+}
+
+template <class State> cTasks resume_relocate_victim(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!move" && act.action != "!put_down_vic") {
+      return {"NIL",{}};
+    }
+  }
+
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
+      !in(state.agent_loc[agent],state.no_victim_zones) &&
+      state.holding[agent]) {
+
+    return {"resume_relocate_victim_0",
+      {Task("Relocate_vic",Args({{"agent",agent}}),{"agent"},{agent})}};
+  }  
+  return {"NIL",{}};
+}
+
+template <class State> cTasks pickup_victim(State state, Args args) {
+  auto agent = args["agent"];
+
+  std::string duration;
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!pickup_vic") {
+      return {"NIL",{}};
+    }
+    duration = act.duration;
+    start = act.start;
+  }
+  else {
+    duration = "1";
+    start = std::to_string(state.time[agent]);
+  }
+
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
+      !state.holding[agent]) {
+
+    return {"pickup_victim_0",
+      {Task("!pickup_vic",Args({{"duration",duration},
+                                {"start",start},
+                                {"area",state.agent_loc[agent]},
+                                {"agent",agent}}),{"agent","area","start","duration"},{agent}),
+       Task("Relocate_vic",Args({{"agent",agent}}), {"agent"},{agent})}};
+  }  
+  return {"NIL",{}};
+}
+
+template <class State> cTasks move_victim(State state, Args args) {
+  auto agent = args["agent"];
+
+  std::string duration;
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!move") {
+      return {"NIL",{}};
+    }
+    duration = act.duration;
+    start = act.start;
+  }
+  else {
+    duration = "4";
+    start = std::to_string(state.time[agent]);
+  }
+
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
+      state.holding[agent]) {
+
+    std::string n_area;
+    if (state.loc_tracker[agent].empty()) {
+        n_area = sample_loc(state.graph[state.agent_loc[agent]],state.visited[agent],state.seed);
+        state.seed++;
+    }
+    else {
+      n_area = state.loc_tracker[agent].back();
+    }
+
+    std::string cond;
+    if (state.team_comp == "hhs") {
+      cond = "move_victim_0";
+    }
+    if (state.team_comp == "hms") {
+      cond = "move_victim_1";
+    }
+    if (state.team_comp == "hss") {
+      cond = "move_victim_2";
+    }
+    if (state.team_comp == "mms") {
+      cond = "move_victim_3";
+    }
+    if (state.team_comp == "mss") {
+      cond = "move_victim_4";
+    }
+    if (state.team_comp == "sss") {
+      cond = "move_victim_5";
+    }
+
+    return {cond,
+      {Task("!move",Args({{"duration",duration},
+                          {"start",start},
+                          {"n_area",n_area},
+                          {"c_area",state.agent_loc[agent]},
+                          {"agent",agent}}),{"agent","c_area","n_area","start","duration"},{agent}),
+       Task("Relocate_vic",Args({{"agent",agent}}),{"agent"},{agent})}};
+  }  
+  return {"NIL",{}};
+}
+
+template <class State> cTasks putdown_victim(State state, Args args) {
+  auto agent = args["agent"];
+
+  std::string duration;
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!put_down_vic") {
+      return {"NIL",{}};
+    }
+    duration = act.duration;
+    start = act.start;
+  }
+  else {
+    duration = "1";
+    start = std::to_string(state.time[agent]);
+  }
+
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
+      state.holding[agent]) {
+
+    std::string cond;
+    if (state.team_comp == "hhs") {
+      cond = "putdown_victim_0";
+    }
+    if (state.team_comp == "hms") {
+      cond = "putdown_victim_1";
+    }
+    if (state.team_comp == "hss") {
+      cond = "putdown_victim_2";
+    }
+    if (state.team_comp == "mms") {
+      cond = "putdown_victim_3";
+    }
+    if (state.team_comp == "mss") {
+      cond = "putdown_victim_4";
+    }
+    if (state.team_comp == "sss") {
+      cond = "putdown_victim_5";
+    }
+
+    return {cond,
+      {Task("!put_down_vic",Args({{"duration",duration},
+                                {"start",start},
+                                {"area",state.agent_loc[agent]},
+                                {"agent",agent}}),{"agent","area","start","duration"},{agent})}};
+  }  
+  return {"NIL",{}};
+}
+
+template<class State> cTasks need_to_do_something_else(State state,Args args) {
+  auto agent = args["agent"];
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action == "!put_down_vic" || act.action == "!move") {
+      return {"NIL",{}};
+    }
+  }
+  return {"need_to_do_something_else_0", {}};
+
+}
+
+template <class State> cTasks no_time_to_putdown(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] >= 900 &&
+      state.holding[agent]) {
+
+    return {"no_time_to_putdown_0",{}};
+  }  
   return {"NIL",{}};
 }
 
