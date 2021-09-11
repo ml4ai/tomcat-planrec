@@ -2443,6 +2443,116 @@ template <class State> cTasks m_task(State state, Args args) {
   return {"NIL",{}};
 }
 
+template <class State> cTasks triage_critical(State state, Args args) {
+  auto agent = args["agent"];
+
+  std::string duration;
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    if (act.action != "!triageCrit") {
+      return {"NIL",{}};
+    }
+    duration = act.duration;
+    start = act.start;
+  }
+  else {
+    duration = "15";
+    start = std::to_string(state.time[agent]);
+  }
+
+  bool c_awake;
+  if(state.c_awake.find(state.agent_loc[agent]) == state.c_awake.end()) {
+    c_awake = false;
+  }
+  else {
+    c_awake = state.c_awake[state.agent_loc[agent]];
+  }
+
+  bool c_triaged_here;
+  if(state.c_triaged_here.find(state.agent_loc[agent]) == state.c_triaged_here.end()) {
+    c_triaged_here = false;
+  }
+  else {
+    c_triaged_here = state.c_triaged_here[state.agent_loc[agent]];
+  }
+
+  if (state.role[agent] == "Medical_Specialist" && state.time[agent] < 900 &&
+      c_awake && 
+      !c_triaged_here &&
+      state.c_triage_total < state.c_max) {
+    std::string cond;
+    if (in(state.agent_loc[agent],state.rooms)) {
+      if (state.r_triage_total < state.r_max) {
+        if (state.team_comp == "hhm") {
+          cond = "triage_critical_0";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "triage_critical_1";
+        }
+        if (state.team_comp == "hms") {
+          cond = "triage_critical_2";
+        }
+        if (state.team_comp == "mmm") {
+          cond = "triage_critical_3";
+        }
+        if (state.team_comp == "mms") {
+          cond = "triage_critical_4";
+        }
+        if (state.team_comp == "mss") {
+          cond = "triage_critical_5";
+        }
+      }
+      else {
+        if (state.team_comp == "hhm") {
+          cond = "triage_critical_6";
+        }
+        if (state.team_comp == "hmm") {
+          cond = "triage_critical_7";
+        }
+        if (state.team_comp == "hms") {
+          cond = "triage_critical_8";
+        }
+        if (state.team_comp == "mmm") {
+          cond = "triage_critical_9";
+        }
+        if (state.team_comp == "mms") {
+          cond = "triage_critical_10";
+        }
+        if (state.team_comp == "mss") {
+          cond = "triage_critical_11";
+        }
+      }
+    }
+    else {
+      if (state.team_comp == "hhm") {
+        cond = "triage_critical_12";
+      }
+      if (state.team_comp == "hmm") {
+        cond = "triage_critical_13";
+      }
+      if (state.team_comp == "hms") {
+        cond = "triage_critical_14";
+      }
+      if (state.team_comp == "mmm") {
+        cond = "triage_critical_15";
+      }
+      if (state.team_comp == "mms") {
+        cond = "triage_critical_16";
+      }
+      if (state.team_comp == "mss") {
+        cond = "triage_critical_17";
+      }
+    }
+    return {cond,
+      {Task("!triageCrit",Args({{"duration",duration},
+                                {"start",start},
+                                {"area",state.agent_loc[agent]},
+                                {"agent",agent}}), {"agent","area","start","duration"},{agent})}};
+  }  
+  return {"NIL",{}};
+}
+
 template <class State> cTasks triage_regs_in_area(State state, Args args) {
   auto agent = args["agent"];
 
@@ -2573,7 +2683,7 @@ template <class State> cTasks triage_regs(State state, Args args) {
                                 {"start",start},
                                 {"area",area},
                                 {"agent",agent}}),{"agent","area","start","duration"},{agent}),
-       Task("Triage_area",Args({{"area",area},
+       Task("Triage_regs_in_area",Args({{"area",area},
                                 {"agent",agent}}),{"agent","area"},{agent})}};
   }  
   return {"NIL",{}};
@@ -3962,46 +4072,192 @@ class TeamSARDomain {
     cMethods<TeamSARState> methods =
       cMethods<TeamSARState>({{"SAR",
                           {SAR}},
-                         {"Change_role",
-                          {choose_Medical_Specialist,
-                           choose_Hazardous_Material_Specialist,
-                           choose_Search_Specialist}},
-                         {"Explore",
-                          {assign_tasks,
-                           wake_crit_vic,
+                         {"Do_mission",
+                          {no_class,
+                           h,
+                           m,
+                           s,
+                           hh,
+                           hm,
+                           hs,
+                           mm,
+                           ms,
+                           ss,
+                           hhh,
+                           hhm,
+                           hhs,
+                           hmm,
+                           hms,
+                           hss,
+                           mmm,
+                           mms,
+                           mss,
+                           sss}},
+                         {"No_class",
+                          {single_agent_no_class,
+                           group_no_class,
+                           comp_change,
                            out_of_time}},
-                         {"Do_task",
-                          {no_class_change,
-                           no_class_move,
-                           Medical_Specialist_task,
-                           Search_Specialist_task,
-                           Hazardous_Material_Specialist_task}},
-                         {"Do_Medical_Specialist_task",
-                          {triageReg_Medical_Specialist,
-                           triageCrit_Medical_Specialist,
-                           move_Medical_Specialist,
-                           change_Medical_Specialist}},
-                         {"Do_Hazardous_Material_Specialist_task",
-                          {clear_blocks_Hazardous_Material_Specialist,
-                           move_Hazardous_Material_Specialist,
-                           change_Hazardous_Material_Specialist}},
-                         {"Do_Search_Specialist_task",
-                          {relocate_victim_Search_Specialist,
-                           resume_relocate_victim_Search_Specialist,
-                           move_Search_Specialist,
-                           change_Search_Specialist}},
-                         {"Triage_area",
-                          {triageArea,
-                           doneTriaging}},
+                         {"H",
+                          {single_agent_h,
+                           group_h,
+                           comp_change,
+                           out_of_time}},
+                         {"M",
+                          {single_agent_m,
+                           group_m,
+                           comp_change,
+                           out_of_time}},
+                         {"S",
+                          {single_agent_s,
+                           group_s,
+                           comp_change,
+                           out_of_time}},
+                         {"HH",
+                          {single_agent_hh,
+                           group_hh,
+                           comp_change,
+                           out_of_time}},
+                         {"HM",
+                          {single_agent_hm,
+                           group_hm,
+                           comp_change,
+                           out_of_time}},
+                         {"HS",
+                          {single_agent_hs,
+                           group_hs,
+                           comp_change,
+                           out_of_time}},
+                         {"MM",
+                          {single_agent_mm,
+                           group_mm,
+                           comp_change,
+                           out_of_time}},
+                         {"MS",
+                          {single_agent_ms,
+                           group_ms,
+                           comp_change,
+                           out_of_time}},
+                         {"SS",
+                          {single_agent_ss,
+                           group_ss,
+                           comp_change,
+                           out_of_time}},
+                         {"HHH",
+                          {single_agent_hhh,
+                           group_hhh,
+                           comp_change,
+                           out_of_time}},
+                         {"HHM",
+                          {single_agent_hhm,
+                           group_hhm,
+                           comp_change,
+                           out_of_time}},
+                         {"HHS",
+                          {single_agent_hhs,
+                           group_hhs,
+                           comp_change,
+                           out_of_time}},
+                         {"HMM",
+                          {single_agent_hmm,
+                           group_hmm,
+                           comp_change,
+                           out_of_time}},
+                         {"HMS",
+                          {single_agent_hms,
+                           group_hms,
+                           comp_change,
+                           out_of_time}},
+                         {"HSS",
+                          {single_agent_hss,
+                           group_hss,
+                           comp_change,
+                           out_of_time}},
+                         {"MMM",
+                          {single_agent_mmm,
+                           group_mmm,
+                           comp_change,
+                           out_of_time}},
+                         {"MMS",
+                          {single_agent_mms,
+                           group_mms,
+                           comp_change,
+                           out_of_time}},
+                         {"MSS",
+                          {single_agent_mss,
+                           group_mss,
+                           comp_change,
+                           out_of_time}},
+                         {"SSS",
+                          {single_agent_sss,
+                           group_sss,
+                           comp_change,
+                           out_of_time}},
+                         {"Assign_agent_for_task",
+                          {agent1_task,
+                           agent2_task,
+                           agent3_task}},
+                         {"Agent_1_task",
+                          {no_class_task,
+                           h_task,
+                           m_task,
+                           s_task}},
+                         {"Agent_2_task",
+                          {no_class_task,
+                           h_task,
+                           m_task,
+                           s_task}},
+                         {"Agent_3_task",
+                          {no_class_task,
+                           h_task,
+                           m_task,
+                           s_task}},
+                         {"No_class_task",
+                          {move_agent}},
+                         {"H_task",
+                          {move_agent,
+                           clear_area}},
                          {"Clear_area",
-                          {clearArea,
-                           doneBreaking}},
+                          {break_blocks,
+                           done_breaking}},
+                         {"M_task",
+                          {move_agent,
+                           triage_regs_in_area,
+                           triage_critical}},
+                         {"Triage_regs_in_area",
+                          {triage_regs,
+                           done_triaging}},
+                         {"S_task",
+                          {move_agent,
+                           relocate_victim,
+                           resume_relocate_victim}},
                          {"Relocate_vic",
                           {pickup_victim,
                            move_victim,
                            putdown_victim,
                            need_to_do_something_else,
-                           no_time_to_putdown}}});
+                           no_time_to_putdown}},
+                         {"Assign_agents_for_group_task",
+                          {all_task}},
+                         {"All_task",
+                          {wake_crit_vic}},
+                         {"Team_composition_change",
+                          {agent1_change_role,
+                           agent2_change_role,
+                           agent3_change_role}},
+                         {"Agent_1_change_role",
+                          {changing_role}},
+                         {"Agent_2_change_role",
+                          {changing_role}},
+                         {"Agent_3_change_role",
+                          {changing_role}},
+                         {"Changing_role",
+                          {moving_to_change_zone,
+                           picking_role}},
+                         {"Pick_new_role",
+                          {choose_Medical_Specialist,
+                           choose_Hazardous_Material_Specialist,
+                           choose_Search_Specialist}}});
 
     TeamSARDomain() {
       std::cout << "Operators: ";
