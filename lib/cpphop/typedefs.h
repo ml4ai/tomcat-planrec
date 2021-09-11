@@ -22,7 +22,7 @@ struct Task {
 
 using Tasks = std::vector<Task>;
 using pTasks = std::pair<double, Tasks>;
-using cTasks = std::pair<std::string, Tasks>
+using cTasks = std::pair<std::string, Tasks>;
 using Plans = std::vector<pTasks>;
 using cPlans = std::vector<cTasks>;
 
