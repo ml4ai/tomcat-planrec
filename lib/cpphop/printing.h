@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include "typedefs.h"
 
@@ -30,6 +32,7 @@ std::string task2string(Task task) {
 }
 
 void print(pTasks ptasks) { print(ptasks.second); }
+void print(cTasks ctasks) { print(ctasks.second); }
 
 void print(Plans plans) {
     std::cout << "Plans Found:" << std::endl;
@@ -41,6 +44,15 @@ void print(Plans plans) {
     }
 }
 
+void print(cPlans cplans) {
+    std::cout << "Plans Found:" << std::endl;
+    int i = 0;
+    for (auto bt : cplans) {
+        std::cout << "Plan " << i << ": ";
+        print(bt);
+        i++;
+    }
+}
 // Utility methods for printing information to stdout.
 template <class State> void print(Operators<State> operators) {
     for (auto [operator_name, operator_func] : operators) {
@@ -56,3 +68,9 @@ template <class State> void print(Methods<State> methods) {
     std::cout << std::endl;
 }
 
+template <class State> void print(cMethods<State> cmethods) {
+    for (auto [cmethod_name, cmethod_func] : cmethods) {
+        std::cout << cmethod_name << ", ";
+    }
+    std::cout << std::endl;
+}
