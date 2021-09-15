@@ -1,4 +1,4 @@
-#include "cpphop.h"
+#include "cppMCTShop.h"
 #include "typedefs.h"
 #include <math.h>
 #include <nlohmann/json.hpp>
@@ -20,7 +20,7 @@ std::string
 sample_loc(std::vector<std::string> allowable_zones,
            std::unordered_map<std::string, int> cost,
            int seed,
-           int def = 1.0) {
+           double def = 1.0) {
   std::vector<double> w;
   for (auto a : allowable_zones) {
     if (cost.find(a) == cost.end()) {
@@ -39,7 +39,7 @@ sample_loc(std::vector<std::string> allowable_zones,
 std::string 
 sample_loc(std::vector<std::string> allowable_zones,
            std::unordered_map<std::string, int> cost,
-           int def = 1.0) {
+           double def = 1.0) {
   std::vector<double> w;
   for (auto a : allowable_zones) {
     if (cost.find(a) == cost.end()) {
@@ -69,24 +69,24 @@ bool sample_vic_seen(double p, int seed) {
   return dist(gen);
 }
 
-template <class State> std::string get_team_code(State state) {
-  std::string team_code = "";
+template <class State> std::string get_team_comp(State state) {
+  std::string team_comp = "";
   for (auto a : state.agents) {
     if(state.role[a] != "NONE") {
       if (state.role[a] == "Medical_Specialist") {
-        team_code += "m";
+        team_comp += "m";
       }
       if (state.role[a] == "Hazardous_Material_Specialist") {
-        team_code += "h";
+        team_comp += "h";
       }
       if (state.role[a] == "Search_Specialist") {
-        team_code += "s";
+        team_comp += "s";
       }
     }
   } 
-  sort(team_code.begin(),team_code.end());
+  sort(team_comp.begin(),team_comp.end());
 
-  return team_code;
+  return team_comp;
 }
 
 // operators
@@ -491,7 +491,7 @@ template <class State> std::optional<State> change_to_Medical_Specialist(State s
   
     state.role[agent] = "Medical_Specialist";
     state.time[agent] = end;
-    state.team_code = get_team_code(state);
+    state.team_comp = get_team_comp(state);
     if (!state.action_tracker[agent].empty()) {
       state.action_tracker[agent].pop_back();
     }
@@ -515,7 +515,7 @@ template <class State> std::optional<State> change_to_Hazardous_Material_Special
   
     state.role[agent] = "Hazardous_Material_Specialist";
     state.time[agent] = end;
-    state.team_code = get_team_code(state);
+    state.team_comp = get_team_comp(state);
     if (!state.action_tracker[agent].empty()) {
       state.action_tracker[agent].pop_back();
     }
@@ -539,7 +539,7 @@ template <class State> std::optional<State> change_to_Search_Specialist(State st
   
     state.role[agent] = "Search_Specialist";
     state.time[agent] = end;
-    state.team_code = get_team_code(state);
+    state.team_comp = get_team_comp(state);
     if (!state.action_tracker[agent].empty()) {
       state.action_tracker[agent].pop_back();
     }
@@ -583,7 +583,7 @@ template <class State> cTasks no_class(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code.empty()) {
+  if (state.team_comp.empty()) {
     return {"no_class_0",
       {Task("No_class", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -609,12 +609,12 @@ template <class State> cTasks single_agent_no_class(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_no_class_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -646,7 +646,7 @@ template <class State> cTasks group_no_class(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_no_class_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -678,7 +678,7 @@ template <class State> cTasks comp_change(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     std::string cond;
     if (state.team_comp.size() <= 2) {
@@ -727,7 +727,7 @@ template <class State> cTasks h(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "h") {
+  if (state.team_comp == "h") {
     return {"h_0",
       {Task("H", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -753,12 +753,12 @@ template <class State> cTasks single_agent_h(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_h_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -790,7 +790,7 @@ template <class State> cTasks group_h(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_h_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -803,7 +803,7 @@ template <class State> cTasks m(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "m") {
+  if (state.team_comp == "m") {
     return {"m_0",
       {Task("M", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -829,12 +829,12 @@ template <class State> cTasks single_agent_m(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_m_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -866,7 +866,7 @@ template <class State> cTasks group_m(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_m_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -879,7 +879,7 @@ template <class State> cTasks s(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "s") {
+  if (state.team_comp == "s") {
     return {"s_0",
       {Task("S", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -905,12 +905,12 @@ template <class State> cTasks single_agent_s(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_s_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -942,7 +942,7 @@ template <class State> cTasks group_s(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_s_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -955,7 +955,7 @@ template <class State> cTasks hh(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "hh") {
+  if (state.team_comp == "hh") {
     return {"hh_0",
       {Task("HH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -981,12 +981,12 @@ template <class State> cTasks single_agent_hh(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_hh_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1018,7 +1018,7 @@ template <class State> cTasks group_hh(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_hh_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1031,7 +1031,7 @@ template <class State> cTasks hm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "hm") {
+  if (state.team_comp == "hm") {
     return {"hm_0",
       {Task("HM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1057,12 +1057,12 @@ template <class State> cTasks single_agent_hm(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_hm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1094,7 +1094,7 @@ template <class State> cTasks group_hm(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_hm_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1107,7 +1107,7 @@ template <class State> cTasks hs(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "hs") {
+  if (state.team_comp == "hs") {
     return {"hs_0",
       {Task("HS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1133,12 +1133,12 @@ template <class State> cTasks single_agent_hs(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_hs",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1170,7 +1170,7 @@ template <class State> cTasks group_hs(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_hs_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1183,7 +1183,7 @@ template <class State> cTasks mm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "mm") {
+  if (state.team_comp == "mm") {
     return {"mm_0",
       {Task("MM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1209,12 +1209,12 @@ template <class State> cTasks single_agent_mm(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_mm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1246,7 +1246,7 @@ template <class State> cTasks group_mm(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_mm_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1259,7 +1259,7 @@ template <class State> cTasks ms(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "ms") {
+  if (state.team_comp == "ms") {
     return {"ms_0",
       {Task("MS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1285,12 +1285,12 @@ template <class State> cTasks single_agent_ms(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_ms_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1322,7 +1322,7 @@ template <class State> cTasks group_ms(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_ms_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1335,7 +1335,7 @@ template <class State> cTasks ss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "ss") {
+  if (state.team_comp == "ss") {
     return {"ss_0",
       {Task("SS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1361,12 +1361,12 @@ template <class State> cTasks single_agent_ss(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_ss_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1398,7 +1398,7 @@ template <class State> cTasks group_ss(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_ss_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1411,7 +1411,7 @@ template <class State> cTasks hhh(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "hhh") {
+  if (state.team_comp == "hhh") {
     return {"hhh_0",
       {Task("HHH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1437,12 +1437,12 @@ template <class State> cTasks single_agent_hhh(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_hhh_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1474,7 +1474,7 @@ template <class State> cTasks group_hhh(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_hhh_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1487,7 +1487,7 @@ template <class State> cTasks hhm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "hhm") {
+  if (state.team_comp == "hhm") {
     return {"hhm_0",
       {Task("HHM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1513,12 +1513,12 @@ template <class State> cTasks single_agent_hhm(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_hhm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1550,7 +1550,7 @@ template <class State> cTasks group_hhm(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_hhm_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1563,7 +1563,7 @@ template <class State> cTasks hhs(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "hhs") {
+  if (state.team_comp == "hhs") {
     return {"hhs_0",
       {Task("HHS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1589,12 +1589,12 @@ template <class State> cTasks single_agent_hhs(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_hhs_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1626,7 +1626,7 @@ template <class State> cTasks group_hhs(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_hhs_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1639,7 +1639,7 @@ template <class State> cTasks hmm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "hmm") {
+  if (state.team_comp == "hmm") {
     return {"hmm_0",
       {Task("HMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1665,12 +1665,12 @@ template <class State> cTasks single_agent_hmm(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_hmm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1702,7 +1702,7 @@ template <class State> cTasks group_hmm(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_hmm_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1715,7 +1715,7 @@ template <class State> cTasks hms(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "hms") {
+  if (state.team_comp == "hms") {
     return {"hms_0",
       {Task("HMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1741,12 +1741,12 @@ template <class State> cTasks single_agent_hms(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_hms_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1778,7 +1778,7 @@ template <class State> cTasks group_hms(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_hms_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1791,7 +1791,7 @@ template <class State> cTasks hss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "hss") {
+  if (state.team_comp == "hss") {
     return {"hss_0",
       {Task("HSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1817,12 +1817,12 @@ template <class State> cTasks single_agent_hss(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_hss_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1854,7 +1854,7 @@ template <class State> cTasks group_hss(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_hss_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1867,7 +1867,7 @@ template <class State> cTasks mmm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "mmm") {
+  if (state.team_comp == "mmm") {
     return {"mmm_0",
       {Task("MMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1893,12 +1893,12 @@ template <class State> cTasks single_agent_mmm(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_mmm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1930,7 +1930,7 @@ template <class State> cTasks group_mmm(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_mmm_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -1944,7 +1944,7 @@ template <class State> cTasks mms(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "mms") {
+  if (state.team_comp == "mms") {
     return {"mms_0",
       {Task("MMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1970,12 +1970,12 @@ template <class State> cTasks single_agent_mms(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_mms_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -2007,7 +2007,7 @@ template <class State> cTasks group_mms(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_mms_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -2020,7 +2020,7 @@ template <class State> cTasks mss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "mss") {
+  if (state.team_comp == "mss") {
     return {"mss_0",
       {Task("MSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -2046,12 +2046,12 @@ template <class State> cTasks single_agent_mss(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_mss_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -2083,7 +2083,7 @@ template <class State> cTasks group_mss(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_mss_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -2096,7 +2096,7 @@ template <class State> cTasks sss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_code == "sss") {
+  if (state.team_comp == "sss") {
     return {"sss_0",
       {Task("SSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -2122,12 +2122,12 @@ template <class State> cTasks single_agent_sss(State state, Args args) {
   }
   
   if (act_available) {
-    if (!single_agent_task) {
+    if (!single_agent_tasks) {
       return {"NIL",{}};
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"single_agent_sss_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -2159,7 +2159,7 @@ template <class State> cTasks group_sss(State state, Args args) {
     }
   }
 
-  int min_time = std::min(state.time[agent1], state.time[agent2], state.time[agent3]);
+  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
   if (min_time < 900) {
     return {"group_sss_0",
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
@@ -2291,7 +2291,7 @@ template <class State> cTasks clear_area(State state, Args args) {
     }
   }
 
-  if (state.role[agent] == "Hazardous_Material_Specialist" && state.team_code >= 3 && 
+  if (state.role[agent] == "Hazardous_Material_Specialist" && state.team_comp.size() >= 3 && 
       state.time[agent] < 900 && !in(state.agent_loc[agent],state.no_victim_zones)) {
       std::string cond;
       if (state.team_comp == "hhh") {
@@ -2312,10 +2312,9 @@ template <class State> cTasks clear_area(State state, Args args) {
       if (state.team_comp == "hss") {
         cond = "clear_area_5";
       }
-    }
 
 
-    return {cond,
+      return {cond,
       {Task("Clear_area",Args({{"area",state.agent_loc[agent]},
                                       {"agent",agent}}),{"agent","area"},{agent})}};
   }  
@@ -2999,7 +2998,7 @@ template <class State> cTasks move_agent(State state, Args args) {
 
   if (state.time[agent] < 900) {
     std::string cond = "move_agent_0";
-    if (state.team_comp >= 3) {
+    if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
         if (state.team_comp == "hhh") {
           cond = "move_agent_1";
@@ -3100,7 +3099,7 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
 
   if (state.time[agent1] < 900) {
     std::string cond = "agent1_change_role_0";
-    if (state.team_comp >= 3) {
+    if (state.team_comp.size() >= 3) {
       if (state.role[agent1] == "Hazardous_Material_Specialist") {
         if (state.team_comp == "hhh") {
           cond = "agent1_change_role_1";
@@ -3196,7 +3195,7 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
 
   if (state.time[agent2] < 900) {
     std::string cond = "agent2_change_role_0";
-    if (state.team_comp >= 3) {
+    if (state.team_comp.size() >= 3) {
       if (state.role[agent2] == "Hazardous_Material_Specialist") {
         if (state.team_comp == "hhh") {
           cond = "agent2_change_role_1";
@@ -3292,7 +3291,7 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
 
   if (state.time[agent3] < 900) {
     std::string cond = "agent3_change_role_0";
-    if (state.team_comp >= 3) {
+    if (state.team_comp.size() >= 3) {
       if (state.role[agent3] == "Hazardous_Material_Specialist") {
         if (state.team_comp == "hhh") {
           cond = "agent3_change_role_1";
@@ -3379,7 +3378,7 @@ template <class State> cTasks moving_to_change_zone(State state, Args args) {
   std::string duration;
   std::string start;
   if (!state.action_tracker[agent].empty()) {
-    auto act = state.action_tracker[a].back();
+    auto act = state.action_tracker[agent].back();
     if (act.action != "!move") {
       return {"NIL",{}};
     } 
@@ -3420,7 +3419,7 @@ template <class State> cTasks picking_role(State state, Args args) {
   auto agent = args["agent"];
 
   if (!state.action_tracker[agent].empty()) {
-    auto act = state.action_tracker[a].back();
+    auto act = state.action_tracker[agent].back();
     if (act.action.substr(0,11) != "!change_to_") {
       return {"NIL",{}};
     } 
@@ -3506,7 +3505,7 @@ template <class State> cTasks wake_crit_vic(State state, Args args) {
   }
 
   if (state.time[min_agent] < 900 && !in(state.agent_loc[min_agent],state.no_victim_zones) &&
-      state.team_comp.size() >= 3 && state.team_comp.contains("m")) {
+      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
     std::string c_vic_area = state.agent_loc[min_agent];
 
     bool c_awake;
@@ -3555,7 +3554,7 @@ template <class State> cTasks wake_crit_vic(State state, Args args) {
                                      {"area",state.agent_loc[min_agent]},
                                      {"agent3",agent3},
                                      {"agent2",agent2},
-                                     {"agent1",agent1}}), {"agent1","agent2","agent3","area","start","duration"},{agent1,agent2,agent3})}}
+                                     {"agent1",agent1}}), {"agent1","agent2","agent3","area","start","duration"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -3619,7 +3618,7 @@ template <class State> cTasks choose_Medical_Specialist(State state, Args args) 
 
   if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
     std::string cond = "choose_Medical_Specialist_0";
-    if (state.team_comp >= 3) {
+    if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
         if (state.team_comp == "hhh") {
           cond = "choose_Medical_Specialist_1";
@@ -3713,7 +3712,7 @@ template <class State> cTasks choose_Hazardous_Material_Specialist(State state, 
 
   if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
     std::string cond = "choose_Hazardous_Material_Specialist_0";
-    if (state.team_comp >= 3) {
+    if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
         if (state.team_comp == "hhh") {
           cond = "choose_Hazardous_Material_Specialist_1";
@@ -3807,7 +3806,7 @@ template <class State> cTasks choose_Search_Specialist(State state, Args args) {
 
   if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
     std::string cond = "choose_Search_Specialist_0";
-    if (state.team_comp >= 3) {
+    if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
         if (state.team_comp == "hhh") {
           cond = "choose_Search_Specialist_1";
@@ -3904,7 +3903,7 @@ class TeamSARState {
     // ******
 
     // *** General ***
-    std::string team_code;
+    std::string team_comp;
 
     // ******
 
@@ -4069,7 +4068,7 @@ class TeamSARDomain {
                            {"!exit",exit}});
 
 
-    cMethods<TeamSARState> methods =
+    cMethods<TeamSARState> cmethods =
       cMethods<TeamSARState>({{"SAR",
                           {SAR}},
                          {"Do_mission",
@@ -4264,6 +4263,6 @@ class TeamSARDomain {
       print(this->operators);
 
       std::cout << "Method: ";
-      print(this->methods);
+      print(this->cmethods);
     };
 };
