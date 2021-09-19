@@ -77,7 +77,8 @@ int main(int argc, char* argv[]) {
     state1.agents.push_back(agent1);
     state1.agents.push_back(agent2);
     state1.agents.push_back(agent3);
-
+    
+    state1.class_only_boundary = "el";
     state1.change_zone = g["change_zone"].get<std::string>();
     for (auto& nvz : g["no_victim_zones"]) {
       state1.no_victim_zones.push_back(nvz.get<std::string>());
