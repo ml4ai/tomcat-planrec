@@ -678,8 +678,7 @@ template <class State> cTasks comp_change(State state, Args args) {
     }
   }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  if ((state.time[agent1] < 900 && !state.holding[agent1]) || (state.time[agent2] < 900 && !state.holding[agent2]) || (state.time[agent3] < 900 && !state.holding[agent3])) {
     std::string cond;
     if (state.team_comp.size() <= 2) {
       cond = "comp_change_0";
@@ -1550,9 +1549,51 @@ template <class State> cTasks group_hhm(State state, Args args) {
     }
   }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_hhm_0",
+  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_hhm_0";
+      }
+      else {
+        cond = "group_hhm_1";
+      }
+    }
+
+    return {cond,
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HHM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1702,9 +1743,51 @@ template <class State> cTasks group_hmm(State state, Args args) {
     }
   }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_hmm_0",
+  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_hmm_0";
+      }
+      else {
+        cond = "group_hmm_1";
+      }
+    }
+
+    return {cond,
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HMM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1778,9 +1861,51 @@ template <class State> cTasks group_hms(State state, Args args) {
     }
   }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_hms_0",
+  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_hms_0";
+      }
+      else {
+        cond = "group_hms_1";
+      }
+    }
+
+    return {cond,
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HMS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -1930,9 +2055,51 @@ template <class State> cTasks group_mmm(State state, Args args) {
     }
   }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_mmm_0",
+  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_mmm_0";
+      }
+      else {
+        cond = "group_mmm_1";
+      }
+    }
+
+    return {cond,
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MMM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -2007,9 +2174,51 @@ template <class State> cTasks group_mms(State state, Args args) {
     }
   }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_mms_0",
+  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_mms_0";
+      }
+      else {
+        cond = "group_mms_1";
+      }
+    }
+
+    return {cond,
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MMS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -2083,9 +2292,51 @@ template <class State> cTasks group_mss(State state, Args args) {
     }
   }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_mss_0",
+  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_mss_0";
+      }
+      else {
+        cond = "group_mss_1";
+      }
+    }
+
+    return {cond,
           {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
@@ -2264,7 +2515,7 @@ template <class State> cTasks agent3_task(State state, Args args) {
 template <class State> cTasks no_class_task(State state, Args args) {
   auto agent = args["agent"];
 
-  if (state.role[agent] == "None") {
+  if (state.role[agent] == "NONE") {
     return {"no_class_task_0",
           {Task("No_class_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -2858,8 +3109,11 @@ template <class State> cTasks move_victim(State state, Args args) {
 
     std::string n_area;
     if (state.loc_tracker[agent].empty()) {
+      do {
         n_area = sample_loc(state.graph[state.agent_loc[agent]],state.visited[agent],state.seed);
         state.seed++;
+      }
+      while(state.agent_loc[agent] == state.class_only_boundary && in(n_area,state.no_victim_zones));
     }
     else {
       n_area = state.loc_tracker[agent].back();
@@ -2989,8 +3243,11 @@ template <class State> cTasks move_agent(State state, Args args) {
 
   std::string n_area;
   if (state.loc_tracker[agent].empty()) {
-      n_area = sample_loc(state.graph[state.agent_loc[agent]],state.visited[agent],state.seed);
-      state.seed++;
+      do {
+        n_area = sample_loc(state.graph[state.agent_loc[agent]],state.visited[agent],state.seed);
+        state.seed++;
+      }
+      while(state.team_comp.size() < 3 && n_area == state.class_only_boundary);
   }
   else {
     n_area = state.loc_tracker[agent].back();
@@ -3097,7 +3354,7 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
     }
   }
 
-  if (state.time[agent1] < 900) {
+  if (state.time[agent1] < 900 && !state.holding[agent1]) {
     std::string cond = "agent1_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent1] == "Hazardous_Material_Specialist") {
@@ -3193,7 +3450,7 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
     }
   }
 
-  if (state.time[agent2] < 900) {
+  if (state.time[agent2] < 900 && !state.holding[agent2]) {
     std::string cond = "agent2_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent2] == "Hazardous_Material_Specialist") {
@@ -3289,7 +3546,7 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
     }
   }
 
-  if (state.time[agent3] < 900) {
+  if (state.time[agent3] < 900 && !state.holding[agent3]) {
     std::string cond = "agent3_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent3] == "Hazardous_Material_Specialist") {
@@ -3398,7 +3655,6 @@ template <class State> cTasks moving_to_change_zone(State state, Args args) {
   else {
     n_area = state.loc_tracker[agent].back();
   }
-
   if (state.time[agent] < 900 && state.agent_loc[agent] != state.change_zone) {
     return {"moving_to_change_zone_0",
           {Task("!move", Args({{"agent",agent},
@@ -3432,6 +3688,22 @@ template <class State> cTasks picking_role(State state, Args args) {
   return {"NIL",{}};
 }
 
+template <class State> cTasks no_time_to_change(State state, Args args) {
+  auto agent = args["agent"];
+
+  if (!state.action_tracker[agent].empty()) {
+    auto act = state.action_tracker[agent].back();
+    if (act.action != "!exit") {
+      return {"NIL",{}};
+    } 
+  }
+
+  if (state.time[agent] >= 900) {
+    return {"no_time_to_change_0",{}};
+  }
+  return {"NIL",{}};
+}
+
 template <class State> cTasks all_task(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
@@ -3456,8 +3728,51 @@ template <class State> cTasks all_task(State state, Args args) {
   }
 
 
-  if (state.time[agent1] < 900) {
-    return {"all_task_0",
+  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "all_task_0";
+      }
+      else {
+        cond = "all_task_1";
+      }
+    }
+
+    return {cond,
            {Task("All_task", Args({{"agent1",agent1},
                                    {"agent2",agent2},
                                    {"agent3",agent3}}),{"agent1",
@@ -3896,6 +4211,8 @@ class TeamSARState {
 
     std::string change_zone;
 
+    std::string class_only_boundary;
+
     std::unordered_map<std::string,int> dist_from_change_zone;
 
     std::unordered_map<std::string,std::vector<std::string>> graph;
@@ -4014,7 +4331,7 @@ class TeamSARState {
 
 class TeamSARSelector {
   public:
-    double mean = 0;
+    double mean = 0.0;
     int sims = 0;
 
     double selectFunc(int pSims, double c, int r_l, int r_t) {
@@ -4094,57 +4411,46 @@ class TeamSARDomain {
                            sss}},
                          {"No_class",
                           {single_agent_no_class,
-                           group_no_class,
                            comp_change,
                            out_of_time}},
                          {"H",
                           {single_agent_h,
-                           group_h,
                            comp_change,
                            out_of_time}},
                          {"M",
                           {single_agent_m,
-                           group_m,
                            comp_change,
                            out_of_time}},
                          {"S",
                           {single_agent_s,
-                           group_s,
                            comp_change,
                            out_of_time}},
                          {"HH",
                           {single_agent_hh,
-                           group_hh,
                            comp_change,
                            out_of_time}},
                          {"HM",
                           {single_agent_hm,
-                           group_hm,
                            comp_change,
                            out_of_time}},
                          {"HS",
                           {single_agent_hs,
-                           group_hs,
                            comp_change,
                            out_of_time}},
                          {"MM",
                           {single_agent_mm,
-                           group_mm,
                            comp_change,
                            out_of_time}},
                          {"MS",
                           {single_agent_ms,
-                           group_ms,
                            comp_change,
                            out_of_time}},
                          {"SS",
                           {single_agent_ss,
-                           group_ss,
                            comp_change,
                            out_of_time}},
                          {"HHH",
                           {single_agent_hhh,
-                           group_hhh,
                            comp_change,
                            out_of_time}},
                          {"HHM",
@@ -4154,7 +4460,6 @@ class TeamSARDomain {
                            out_of_time}},
                          {"HHS",
                           {single_agent_hhs,
-                           group_hhs,
                            comp_change,
                            out_of_time}},
                          {"HMM",
@@ -4169,7 +4474,6 @@ class TeamSARDomain {
                            out_of_time}},
                          {"HSS",
                           {single_agent_hss,
-                           group_hss,
                            comp_change,
                            out_of_time}},
                          {"MMM",
@@ -4189,7 +4493,6 @@ class TeamSARDomain {
                            out_of_time}},
                          {"SSS",
                           {single_agent_sss,
-                           group_sss,
                            comp_change,
                            out_of_time}},
                          {"Assign_agent_for_task",
@@ -4252,7 +4555,8 @@ class TeamSARDomain {
                           {changing_role}},
                          {"Changing_role",
                           {moving_to_change_zone,
-                           picking_role}},
+                           picking_role,
+                           no_time_to_change}},
                          {"Pick_new_role",
                           {choose_Medical_Specialist,
                            choose_Hazardous_Material_Specialist,
