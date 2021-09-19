@@ -101,12 +101,13 @@ void cbackprop(Tree<State, Selector>& t, int n, double r) {
 }
 
 template <class State, class Domain>
-double
+std::pair<int,double>
 csimulation(State state,
            Tasks tasks,
            Domain& domain,
            CFM& cfm,
            double likelihood,
+           double max_likelihood,
            int plan_size,
            double alpha,
            int seed) {
@@ -119,13 +120,16 @@ csimulation(State state,
           if (newstate) {
               pOperator<State> pop = domain.poperators[task.task_id];
               tasks.pop_back();
-              likelihood = likelihood*pop(state,newstate.value(),task.args);
+              likelihood = likelihood + log(pop(state,newstate.value(),task.args));
+              if (likelihood < max_likelihood) {
+                return std::make_pair(-1,likelihood);
+              }
               plan_size += 1;
               seed++;
               state = newstate.value();
               continue;
           }
-          return 0.0;
+          return std::make_pair(-1,likelihood);
       }
 
       if (in(task.task_id, domain.cmethods)) {
@@ -153,21 +157,24 @@ csimulation(State state,
           }
           seed++;
           if (c.empty()) {
-            return 0.0;
+            return std::make_pair(-1,likelihood);
           }
           cTasks r = *select_randomly(c.begin(), c.end(), seed);
           seed++;
           tasks.pop_back();
           if (!no_task) {
             if(cfm[task.task_id].find(r.first) != cfm[task.task_id].end()) {
-              likelihood = likelihood*(cfm[task.task_id][r.first]/f_total);
+              likelihood = likelihood + log((cfm[task.task_id][r.first]/f_total));
             }
             else {
-              likelihood = likelihood*(alpha/f_total);
+              likelihood = likelihood + log((alpha/f_total));
             }
           }
           else {
-            likelihood = likelihood*(alpha/f_total);
+            likelihood = likelihood + log((alpha/f_total));
+          }
+          if (likelihood < max_likelihood) {
+            return std::make_pair(-1,likelihood);
           }
           for (auto i = r.second.end();
               i != r.second.begin();) {
@@ -180,7 +187,13 @@ csimulation(State state,
       message += " during simulation!";
       throw std::logic_error(message);
     }
-    return std::pow(likelihood,1.0/plan_size);
+    if (likelihood < max_likelihood) {
+      return std::make_pair(-1,likelihood);
+    }
+    if (likelihood == max_likelihood) {
+      return std::make_pair(0,likelihood);
+    }
+    return std::make_pair(1,likelihood);
 }
 
 template <class State, class Domain, class Selector>
@@ -189,6 +202,7 @@ int cexpansion(Tree<State, Selector>& t,
               Domain& domain,
               CFM& cfm,
               Selector selector,
+              double max_likelihood,
               double alpha,
               int seed = 4021) {
     Task task = t[n].tasks.back();
@@ -207,7 +221,7 @@ int cexpansion(Tree<State, Selector>& t,
             v.cplan.second.push_back(task);
             v.selector = selector;
             v.pred = n;
-            v.likelihood = t[n].likelihood*pop(t[n].state,v.state,task.args);
+            v.likelihood = t[n].likelihood + log(pop(t[n].state,v.state,task.args));
             int w = boost::add_vertex(v, t);
             t[n].successors.push_back(w);
             return w;
@@ -245,23 +259,23 @@ int cexpansion(Tree<State, Selector>& t,
         std::vector<int> c_count = {};
         for (auto m : c) {
           Node<State, Selector> v;
+          if (!no_task) {
+            if(cfm[task.task_id].find(m.first) != cfm[task.task_id].end()) {
+              v.likelihood = t[n].likelihood + log((cfm[task.task_id][m.first]/f_total));
+            }
+            else {
+              v.likelihood = t[n].likelihood + log((alpha/f_total));
+            }
+          }
+          else {
+            v.likelihood = t[n].likelihood + log((alpha/f_total));
+          }
           v.state = t[n].state;
           v.tasks = t[n].tasks;
           v.tasks.pop_back();
           v.depth = t[n].depth + 1;
           v.cplan = t[n].cplan;
           v.selector = selector;
-          if (!no_task) {
-            if(cfm[task.task_id].find(m.first) != cfm[task.task_id].end()) {
-              v.likelihood = t[n].likelihood*(cfm[task.task_id][m.first]/f_total);
-            }
-            else {
-              v.likelihood = t[n].likelihood*(alpha/f_total);
-            }
-          }
-          else {
-            v.likelihood = t[n].likelihood*(alpha/f_total);
-          }
           for (auto i = m.second.end();
               i != m.second.begin();) {
             v.tasks.push_back(*(--i));
@@ -273,6 +287,9 @@ int cexpansion(Tree<State, Selector>& t,
         }
         //std::cout << total << std::endl;
         seed++;
+        if (c_count.empty()) {   
+          return n;
+        }
         int r = *select_randomly(c_count.begin(), c_count.end(), seed);
         return r;
     }
@@ -290,6 +307,8 @@ cseek_planMCTS(Tree<State,Selector>& t,
                  double eps = 0.4,
                  double alpha = 0.5,
                  int seed = 4021) {
+
+  double max_likelihood = log(0.0);
   while (!t[v].tasks.empty()) {
     Tree<State, Selector> m;
     Node<State, Selector> n_node;
@@ -304,21 +323,30 @@ cseek_planMCTS(Tree<State,Selector>& t,
       int n = cselection(m,w,eps,seed);
       seed++;
       if (m[n].tasks.empty()) {
-          double r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,t[n].cplan.second.size(),alpha,seed);
-          cbackprop(m,n,r);
+          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,t[n].cplan.second.size(),alpha,seed);
+          if (r.second > max_likelihood) {
+            max_likelihood = r.second;
+          }
+          cbackprop(m,n,r.first);
       }
       else {
         if (m[n].selector.sims == 0) {
-          double r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,t[n].cplan.second.size(),alpha,seed);
+          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,t[n].cplan.second.size(),alpha,seed);
+          if (r.second > max_likelihood) {
+            max_likelihood = r.second;
+          }
           seed++;
-          cbackprop(m,n,r);
+          cbackprop(m,n,r.first);
         }
         else {
-          int n_p = cexpansion(m,n,domain,cfm,selector,alpha,seed);
+          int n_p = cexpansion(m,n,domain,cfm,selector,max_likelihood,alpha,seed);
           seed++;
-          double r = csimulation(m[n_p].state, m[n_p].tasks, domain, cfm, m[n_p].likelihood,t[n_p].cplan.second.size(),alpha,seed);
+          auto r = csimulation(m[n_p].state, m[n_p].tasks, domain, cfm, m[n_p].likelihood,max_likelihood,t[n_p].cplan.second.size(),alpha,seed);
+          if (r.second > max_likelihood) {
+            max_likelihood = r.second;
+          }
           seed++;
-          cbackprop(m,n_p,r);
+          cbackprop(m,n_p,r.first);
         }
       }
     }
@@ -372,7 +400,7 @@ std::pair<Tree<State,Selector>,int> cppMCTShop(State state,
     root.cplan = {};
     root.depth = 0;
     root.selector = selector;
-    root.likelihood = 1;
+    root.likelihood = 0.0;
     int v = boost::add_vertex(root, t);
     std::cout << std::endl;
     std::cout << "Initial State:" << std::endl;
