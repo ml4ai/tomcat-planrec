@@ -367,7 +367,7 @@ cseek_planrecMCTS(json& team_plan,
           cbackprop_rec(m,n,r.first);
         }
         else {
-          int n_p = cexpansion(m,n,domain,cfm,selector,max_likelihood,alpha,seed);
+          int n_p = cexpansion_rec(m,n,domain,cfm,selector,alpha,seed);
           seed++;
           auto r = csimulation_rec(team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
           if (r.second > max_likelihood) {
@@ -427,6 +427,6 @@ cppMCTSplanrec(json& team_plan,
     root.likelihood = 0.0;
     root.team_plan["size"] = 0;
     int v = boost::add_vertex(root, t);
-    seek_planrecMCTS(team_plan,t, v, domain, cfm, selector, R, eps, alpha, seed);
+    cseek_planrecMCTS(team_plan,t, v, domain, cfm, selector, R, eps, alpha, seed);
     return std::make_pair(t,v);
 }
