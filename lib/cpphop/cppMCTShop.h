@@ -127,7 +127,7 @@ csimulation(State state,
               state = newstate.value();
               continue;
           }
-          return std::make_pair(-1,likelihood);
+          return std::make_pair(-1,log(0.0));
       }
 
       if (in(task.task_id, domain.cmethods)) {
@@ -155,7 +155,7 @@ csimulation(State state,
           }
           seed++;
           if (c.empty()) {
-            return std::make_pair(-1,likelihood);
+            return std::make_pair(-1,log(0.0));
           }
           cTasks r = *select_randomly(c.begin(), c.end(), seed);
           seed++;
