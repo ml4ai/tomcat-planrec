@@ -194,7 +194,7 @@ int main(int argc, char* argv[]) {
                           e,
                           alpha,
                           2021);
-    json g = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_pred_exp.json");
-    generate_graph_from_json(g, "team_sar_pred_exp_graph.png");
+    json tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_pred_exp.json");
+    generate_graph_from_json(tree, "team_sar_pred_exp_graph.png");
     return EXIT_SUCCESS;
 }
