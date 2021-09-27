@@ -200,7 +200,6 @@ int cexpansion(Tree<State, Selector>& t,
               Domain& domain,
               CFM& cfm,
               Selector selector,
-              double max_likelihood,
               double alpha,
               int seed = 4021) {
     Task task = t[n].tasks.back();
