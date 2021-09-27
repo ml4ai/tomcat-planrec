@@ -108,7 +108,6 @@ csimulation(State state,
            CFM& cfm,
            double likelihood,
            double max_likelihood,
-           int plan_size,
            double alpha,
            int seed) {
     while (!tasks.empty()) {
@@ -124,7 +123,6 @@ csimulation(State state,
               if (likelihood < max_likelihood) {
                 return std::make_pair(-1,likelihood);
               }
-              plan_size += 1;
               seed++;
               state = newstate.value();
               continue;
@@ -323,7 +321,7 @@ cseek_planMCTS(Tree<State,Selector>& t,
       int n = cselection(m,w,eps,seed);
       seed++;
       if (m[n].tasks.empty()) {
-          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,t[n].cplan.second.size(),alpha,seed);
+          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -331,7 +329,7 @@ cseek_planMCTS(Tree<State,Selector>& t,
       }
       else {
         if (m[n].selector.sims == 0) {
-          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,t[n].cplan.second.size(),alpha,seed);
+          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -341,7 +339,7 @@ cseek_planMCTS(Tree<State,Selector>& t,
         else {
           int n_p = cexpansion(m,n,domain,cfm,selector,max_likelihood,alpha,seed);
           seed++;
-          auto r = csimulation(m[n_p].state, m[n_p].tasks, domain, cfm, m[n_p].likelihood,max_likelihood,t[n_p].cplan.second.size(),alpha,seed);
+          auto r = csimulation(m[n_p].state, m[n_p].tasks, domain, cfm, m[n_p].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
