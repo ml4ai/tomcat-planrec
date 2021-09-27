@@ -336,7 +336,7 @@ cseek_planMCTS(Tree<State,Selector>& t,
           cbackprop(m,n,r.first);
         }
         else {
-          int n_p = cexpansion(m,n,domain,cfm,selector,max_likelihood,alpha,seed);
+          int n_p = cexpansion(m,n,domain,cfm,selector,alpha,seed);
           seed++;
           auto r = csimulation(m[n_p].state, m[n_p].tasks, domain, cfm, m[n_p].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
