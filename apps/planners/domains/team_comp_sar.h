@@ -585,7 +585,8 @@ template <class State> cTasks no_class(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp.empty()) {
     return {"no_class_0",
-      {Task("No_class", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("No_class", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -628,14 +629,14 @@ template <class State> cTasks group_no_class(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -662,12 +663,18 @@ template <class State> cTasks comp_change(State state, Args args) {
 
   bool role_change = false;
   bool act_available = false;
+  int min_time = 900;
+  std::vector<int> change_time = {};
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
+      if (stoi(act.start,nullptr) < min_time) {
+        min_time = stoi(act.start,nullptr);
+      }
       if (act.action.substr(0,11) == "!change_to_") {
         role_change = true;
+        change_time.push_back(stoi(act.start,nullptr));
       }
     }
   }
@@ -675,6 +682,11 @@ template <class State> cTasks comp_change(State state, Args args) {
   if (act_available) {
     if (!role_change) {
       return {"NIL",{}};
+    }
+    else {
+      if (!in(min_time,change_time)) {
+        return {"NIL",{}};
+      }
     }
   }
 
@@ -716,8 +728,7 @@ template <class State> cTasks comp_change(State state, Args args) {
     }
 
    return {cond,
-          {Task("Team_composition_change", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("Do_mission", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+          {Task("Team_composition_change", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -728,7 +739,8 @@ template <class State> cTasks h(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "h") {
     return {"h_0",
-      {Task("H", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("H", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -771,14 +783,14 @@ template <class State> cTasks group_h(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -804,7 +816,8 @@ template <class State> cTasks m(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "m") {
     return {"m_0",
-      {Task("M", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("M", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -847,14 +860,14 @@ template <class State> cTasks group_m(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -880,7 +893,8 @@ template <class State> cTasks s(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "s") {
     return {"s_0",
-      {Task("S", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("S", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -923,14 +937,14 @@ template <class State> cTasks group_s(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -956,7 +970,8 @@ template <class State> cTasks hh(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "hh") {
     return {"hh_0",
-      {Task("HH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("HH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -999,14 +1014,14 @@ template <class State> cTasks group_hh(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1032,7 +1047,8 @@ template <class State> cTasks hm(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "hm") {
     return {"hm_0",
-      {Task("HM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("HM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1075,14 +1091,14 @@ template <class State> cTasks group_hm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1108,7 +1124,8 @@ template <class State> cTasks hs(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "hs") {
     return {"hs_0",
-      {Task("HS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("HS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1151,14 +1168,14 @@ template <class State> cTasks group_hs(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1184,7 +1201,8 @@ template <class State> cTasks mm(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "mm") {
     return {"mm_0",
-      {Task("MM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("MM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1227,14 +1245,14 @@ template <class State> cTasks group_mm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1260,7 +1278,8 @@ template <class State> cTasks ms(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "ms") {
     return {"ms_0",
-      {Task("MS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("MS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1303,14 +1322,14 @@ template <class State> cTasks group_ms(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1336,7 +1355,8 @@ template <class State> cTasks ss(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "ss") {
     return {"ss_0",
-      {Task("SS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("SS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1379,14 +1399,14 @@ template <class State> cTasks group_ss(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1412,7 +1432,8 @@ template <class State> cTasks hhh(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "hhh") {
     return {"hhh_0",
-      {Task("HHH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("HHH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1455,14 +1476,14 @@ template <class State> cTasks group_hhh(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1488,7 +1509,8 @@ template <class State> cTasks hhm(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "hhm") {
     return {"hhm_0",
-      {Task("HHM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("HHM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1531,14 +1553,14 @@ template <class State> cTasks group_hhm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1606,7 +1628,8 @@ template <class State> cTasks hhs(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "hhs") {
     return {"hhs_0",
-      {Task("HHS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("HHS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1649,14 +1672,14 @@ template <class State> cTasks group_hhs(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1682,7 +1705,8 @@ template <class State> cTasks hmm(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "hmm") {
     return {"hmm_0",
-      {Task("HMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("HMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1725,14 +1749,14 @@ template <class State> cTasks group_hmm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1800,7 +1824,8 @@ template <class State> cTasks hms(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "hms") {
     return {"hms_0",
-      {Task("HMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("HMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1843,14 +1868,14 @@ template <class State> cTasks group_hms(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1918,7 +1943,8 @@ template <class State> cTasks hss(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "hss") {
     return {"hss_0",
-      {Task("HSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("HSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -1961,14 +1987,14 @@ template <class State> cTasks group_hss(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -1994,7 +2020,8 @@ template <class State> cTasks mmm(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "mmm") {
     return {"mmm_0",
-      {Task("MMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("MMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -2037,14 +2064,14 @@ template <class State> cTasks group_mmm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -2113,7 +2140,8 @@ template <class State> cTasks mms(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "mms") {
     return {"mms_0",
-      {Task("MMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("MMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -2156,14 +2184,14 @@ template <class State> cTasks group_mms(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -2231,7 +2259,8 @@ template <class State> cTasks mss(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "mss") {
     return {"mss_0",
-      {Task("MSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("MSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -2274,14 +2303,14 @@ template <class State> cTasks group_mss(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -2349,7 +2378,8 @@ template <class State> cTasks sss(State state, Args args) {
   auto agent3 = args["agent3"];
   if (state.team_comp == "sss") {
     return {"sss_0",
-      {Task("SSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+      {Task("SSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+      Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -2392,14 +2422,14 @@ template <class State> cTasks group_sss(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool group_task = false;
+  bool group_task = true;
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.agent != a) {
-        group_task = true;
+      if (act.agent == a) {
+        group_task = false;
       }
     }
   }
@@ -2426,10 +2456,16 @@ template <class State> cTasks agent1_task(State state, Args args) {
 
   bool has_task = false;
   bool act_available = false;
+  auto min_agent = agent1;
+  int min_time = 900;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
+      if (stoi(act.start,nullptr) < min_time) {
+        min_time = stoi(act.start,nullptr);
+        min_agent = a;
+      }
       if (act.agent == agent1 && act.action != "exit" && 
           act.action.substr(0,11) != "!change_to_") {
         has_task = true;
@@ -2442,8 +2478,14 @@ template <class State> cTasks agent1_task(State state, Args args) {
       return {"NIL",{}};
     }
   }
+  else {
+    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+    if (min_time != state.time[agent1]) {
+      min_agent = "NIL";
+    }
+  }
 
-  if (state.time[agent1] < 900) {
+  if (state.time[agent1] < 900 && min_agent == agent1) {
     return {"U",
           {Task("Agent_1_task", Args({{"agent",agent1}}),{"agent"},{agent1})}};
   }
@@ -2457,10 +2499,16 @@ template <class State> cTasks agent2_task(State state, Args args) {
 
   bool has_task = false;
   bool act_available = false;
+  auto min_agent = agent2;
+  int min_time = 900;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
+      if (stoi(act.start,nullptr) < min_time) {
+        min_time = stoi(act.start,nullptr);
+        min_agent = a;
+      }
       if (act.agent == agent2 && act.action != "exit" && 
           act.action.substr(0,11) != "!change_to_") {
         has_task = true;
@@ -2473,8 +2521,14 @@ template <class State> cTasks agent2_task(State state, Args args) {
       return {"NIL",{}};
     }
   }
+  else {
+    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+    if (min_time != state.time[agent2]) {
+      min_agent = "NIL";
+    }
+  }
 
-  if (state.time[agent2] < 900) {
+  if (state.time[agent2] < 900 && min_agent == agent2) {
     return {"U",
           {Task("Agent_2_task", Args({{"agent",agent2}}),{"agent"},{agent2})}};
   }
@@ -2488,10 +2542,16 @@ template <class State> cTasks agent3_task(State state, Args args) {
 
   bool has_task = false;
   bool act_available = false;
+  auto min_agent = agent3;
+  int min_time = 900;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
+      if (stoi(act.start,nullptr) < min_time) {
+        min_time = stoi(act.start,nullptr);
+        min_agent = a;
+      }
       if (act.agent == agent3 && act.action != "exit" && 
           act.action.substr(0,11) != "!change_to_") {
         has_task = true;
@@ -2504,8 +2564,14 @@ template <class State> cTasks agent3_task(State state, Args args) {
       return {"NIL",{}};
     }
   }
+  else {
+    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+    if (min_time != state.time[agent3]) {
+      min_agent = "NIL";
+    }
+  }
 
-  if (state.time[agent3] < 900) {
+  if (state.time[agent3] < 900 && min_agent == agent3) {
     return {"U",
           {Task("Agent_3_task", Args({{"agent",agent3}}),{"agent"},{agent3})}};
   }
@@ -3338,11 +3404,17 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
 
   bool change_role = false;
   bool act_available = false;
+  auto min_agent = agent1;
+  int min_time = 900;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.action.substr(0,11) == "!change_to_") {
+      if (stoi(act.start,nullptr) < min_time) {
+        min_time = stoi(act.start,nullptr);
+        min_agent = a;
+      }
+      if (act.action.substr(0,11) == "!change_to_" && act.agent == agent1) {
         change_role = true;
       }
     }
@@ -3353,8 +3425,14 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
       return {"NIL",{}};
     }
   }
+  else {
+    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+    if (min_time != state.time[agent1]) {
+      min_agent = "NIL";
+    }
+  }
 
-  if (state.time[agent1] < 900 && !state.holding[agent1]) {
+  if (state.time[agent1] < 900 && !state.holding[agent1] && min_agent == agent1) {
     std::string cond = "agent1_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent1] == "Hazardous_Material_Specialist") {
@@ -3434,11 +3512,17 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
 
   bool change_role = false;
   bool act_available = false;
+  auto min_agent = agent2;
+  int min_time = 900;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.action.substr(0,11) == "!change_to_") {
+      if (stoi(act.start,nullptr) < min_time) {
+        min_time = stoi(act.start,nullptr);
+        min_agent = a;
+      }
+      if (act.action.substr(0,11) == "!change_to_" && act.agent == agent2) {
         change_role = true;
       }
     }
@@ -3449,8 +3533,14 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
       return {"NIL",{}};
     }
   }
+  else {
+    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+    if (min_time != state.time[agent2]) {
+      min_agent = "NIL";
+    }
+  }
 
-  if (state.time[agent2] < 900 && !state.holding[agent2]) {
+  if (state.time[agent2] < 900 && !state.holding[agent2] && min_agent == agent2) {
     std::string cond = "agent2_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent2] == "Hazardous_Material_Specialist") {
@@ -3530,11 +3620,17 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
 
   bool change_role = false;
   bool act_available = false;
+  auto min_agent = agent3;
+  int min_time = 900;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
       auto act = state.action_tracker[a].back();
-      if (act.action.substr(0,11) == "!change_to_") {
+      if (stoi(act.start,nullptr) < min_time) {
+        min_time = stoi(act.start,nullptr);
+        min_agent = a;
+      }
+      if (act.action.substr(0,11) == "!change_to_" && act.agent == agent3) {
         change_role = true;
       }
     }
@@ -3545,8 +3641,14 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
       return {"NIL",{}};
     }
   }
+  else {
+    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+    if (min_time != state.time[agent3]) {
+      min_agent = "NIL";
+    }
+  }
 
-  if (state.time[agent3] < 900 && !state.holding[agent3]) {
+  if (state.time[agent3] < 900 && !state.holding[agent3] && min_agent == agent3) {
     std::string cond = "agent3_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent3] == "Hazardous_Material_Specialist") {
@@ -4408,7 +4510,8 @@ class TeamSARDomain {
                            mmm,
                            mms,
                            mss,
-                           sss}},
+                           sss,
+                           out_of_time}},
                          {"No_class",
                           {single_agent_no_class,
                            comp_change,
