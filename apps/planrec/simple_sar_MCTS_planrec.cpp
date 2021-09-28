@@ -100,18 +100,20 @@ int main(int argc, char* argv[]) {
 
     auto selector = SARSelector();
     Tasks tasks = {
-        {Task("SAR", Args({{"agent", "me"}}),{"agent"})}};
+        {Task("SAR", Args({{"agent", "me"}}),{"agent"},{"me"})}};
 
     std::ifstream i("simple_sar_trace.json");
     json j;
     i >> j;
 
     json trace;
-    for (json::iterator it = j.begin(); it != j.begin()+s; ++it) {
-      trace.push_back(*it);
+    trace["size"] = 0;
+    for (json::iterator it = j["plan"]["me"].begin(); it != j["plan"]["me"].begin()+s; ++it) {
+      trace["plan"]["me"].push_back(*it);
+      trace["size"] = 1 + trace["size"].get<int>();
     }
 
-    state1.loc_tracker = get_loc_seq(trace,
+    state1.loc_tracker = get_loc_seq(trace["plan"]["me"],
                                     state1.left_region,
                                     state1.right_region,
                                     state1.mid_region);

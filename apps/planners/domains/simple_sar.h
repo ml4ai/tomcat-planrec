@@ -4,6 +4,7 @@
 #include <math.h>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <boost/algorithm/string/find.hpp>
 
 // aux functions
 std::string 
@@ -37,7 +38,9 @@ get_loc_seq(nlohmann::json j,
   for (auto& e : j) {
     std::string str = e["task"];
     if (str.substr(1,5) == "!move") {
-      std::string n_area = str.substr(7,str.find(",",7) - 7);
+      boost::iterator_range<std::string::iterator> r = boost::find_nth(str, ",", 2);
+      int s = std::distance(str.begin(), r.begin());
+      std::string n_area = str.substr(s + 1,str.find(",",s + 1) - (s + 1));
       if (in(n_area,left_r)) {
         left.push_back(n_area);
       }
@@ -308,67 +311,67 @@ template <class State> double exit(State pre_state, State post_state, Args args)
 template <class State> pTasks SAR_O(State state, Args args) {
   auto agent = args["agent"];
   return {0.5,
-    {Task("SAR_O", Args({{"agent",agent}}),{"agent"})}};
+    {Task("SAR_O", Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks sweep_left_O(State state, Args args) {
   auto agent = args["agent"];
   return {0.25,
-    {Task("sweep_left_O",Args({{"agent",agent}}),{"agent"})}};
+    {Task("sweep_left_O",Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks sweep_right_O(State state, Args args) {
   auto agent = args["agent"];
   return {0.25,
-    {Task("sweep_right_O",Args({{"agent",agent}}),{"agent"})}};
+    {Task("sweep_right_O",Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks zigzag_left_O(State state, Args args) {
   auto agent = args["agent"];
   return {0.25,
-    {Task("zigzag_left_O",Args({{"agent",agent}}),{"agent"})}};
+    {Task("zigzag_left_O",Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks zigzag_right_O(State state, Args args) {
   auto agent = args["agent"];
   return {0.25,
-    {Task("zigzag_right_O",Args({{"agent",agent}}),{"agent"})}};
+    {Task("zigzag_right_O",Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks explore_left_to_right_O(State state, Args args) {
   auto agent = args["agent"];
   return {1, 
-    {Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("!exit",Args({}),{})}}; 
+    {Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("!exit",Args({}),{},{agent})}}; 
 }
 
 template <class State> pTasks explore_right_to_left_O(State state, Args args) {
   auto agent = args["agent"];
   return {1, 
-    {Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("!exit",Args({}),{})}}; 
+    {Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("!exit",Args({}),{},{agent})}}; 
 }
 
 template <class State> pTasks explore_mid_left_right_O(State state, Args args) {
   auto agent = args["agent"];
   return {1, 
-    {Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("!exit",Args({}),{})}}; 
+    {Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("!exit",Args({}),{},{agent})}}; 
 }
 
 template <class State> pTasks explore_mid_right_left_O(State state, Args args) {
   auto agent = args["agent"];
   return {1, 
-    {Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"}),
-     Task("!exit",Args({}),{})}}; 
+    {Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("!exit",Args({}),{},{agent})}}; 
 }
 
 template <class State> pTasks search_left_O(State state, Args args) {
@@ -387,8 +390,8 @@ template <class State> pTasks search_left_O(State state, Args args) {
       }
     }
     return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}), {"agent","area"}),
-      Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"})}};
+      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}), {"agent","area"},{agent}),
+      Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"},{agent})}};
   }
   else {
     return {0,{}};
@@ -408,8 +411,8 @@ template <class State> pTasks triageGreen_left_O(State state, Args args) {
       prob = 1;
     }
     return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -429,8 +432,8 @@ template <class State> pTasks triageYellow_left_O(State state, Args args) {
       prob = 1;
     }
     return {prob, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -455,8 +458,8 @@ template <class State> pTasks move_left_O(State state, Args args) {
                          !in(state.loc[agent], state.left_region));
     if (need_to_move) {
       return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"}),
-        Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"},{agent}),
+        Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
     }
  
     double prob;
@@ -473,8 +476,8 @@ template <class State> pTasks move_left_O(State state, Args args) {
       prob /= 2;
     }
     return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"}),
-      Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"},{agent}),
+      Task("explore_left_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -518,8 +521,8 @@ template <class State> pTasks search_right_O(State state, Args args) {
       prob = (1.0 - 0.10*state.times_searched);
     }
     return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"})}};
+      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"},{agent})}};
   }
   else {
     return {0,{}};
@@ -539,8 +542,8 @@ template <class State> pTasks triageGreen_right_O(State state, Args args) {
       prob = 1;
     }
     return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -560,8 +563,8 @@ template <class State> pTasks triageYellow_right_O(State state, Args args) {
       prob = 1;
     }
     return {prob, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -585,8 +588,8 @@ template <class State> pTasks move_right_O(State state, Args args) {
                          !in(state.loc[agent], state.right_region));
     if (need_to_move) {
       return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"}),
-        Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"},{agent}),
+        Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
     }
 
     double prob;
@@ -604,8 +607,8 @@ template <class State> pTasks move_right_O(State state, Args args) {
     }
 
     return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"}),
-      Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"},{agent}),
+      Task("explore_right_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -652,8 +655,8 @@ template <class State> pTasks search_mid_O(State state, Args args) {
       }
     }
     return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"})}};
+      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"},{agent})}};
   }
   else {
     return {0,{}};
@@ -673,8 +676,8 @@ template <class State> pTasks triageGreen_mid_O(State state, Args args) {
       prob = 1;
     }
     return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}), {"agent", "area"}),
-      Task("explore_mid_region_O",Args({{"agent",agent}}),{"area"})}}; 
+      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}), {"agent", "area"},{agent}),
+      Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -694,8 +697,8 @@ template <class State> pTasks triageYellow_mid_O(State state, Args args) {
       prob = 1;
     }
     return {prob, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent", "area"}),
-      Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent", "area"},{agent}),
+      Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -720,8 +723,8 @@ template <class State> pTasks move_mid_O(State state, Args args) {
                          !in(state.loc[agent], state.mid_region));
     if (need_to_move) {
       return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}), {"agent","c_area","n_area"}),
-        Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}), {"agent","c_area","n_area"},{agent}),
+        Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
     }
 
     double prob;
@@ -739,8 +742,8 @@ template <class State> pTasks move_mid_O(State state, Args args) {
     }
 
     return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"}),
-      Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"},{agent}),
+      Task("explore_mid_region_O",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -775,67 +778,67 @@ template <class State> pTasks leave_mid_O(State state, Args args) {
 template <class State> pTasks SAR_YF(State state, Args args) {
   auto agent = args["agent"];
   return {0.5,
-    {Task("SAR_YF", Args({{"agent",agent}}),{"agent"})}};
+    {Task("SAR_YF", Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks sweep_left_YF(State state, Args args) {
   auto agent = args["agent"];
   return {0.25,
-    {Task("sweep_left_YF",Args({{"agent",agent}}),{"agent"})}};
+    {Task("sweep_left_YF",Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks sweep_right_YF(State state, Args args) {
   auto agent = args["agent"];
   return {0.25,
-    {Task("sweep_right_YF",Args({{"agent",agent}}),{"agent"})}};
+    {Task("sweep_right_YF",Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks zigzag_left_YF(State state, Args args) {
   auto agent = args["agent"];
   return {0.25,
-    {Task("zigzag_left_YF",Args({{"agent",agent}}),{"agent"})}};
+    {Task("zigzag_left_YF",Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks zigzag_right_YF(State state, Args args) {
   auto agent = args["agent"];
   return {0.25,
-    {Task("zigzag_right_YF",Args({{"agent",agent}}),{"agent"})}};
+    {Task("zigzag_right_YF",Args({{"agent",agent}}),{"agent"},{agent})}};
 }
 
 template <class State> pTasks explore_left_to_right_YF(State state, Args args) {
   auto agent = args["agent"];
   return {1, 
-    {Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("!exit",Args({}), {})}}; 
+    {Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("!exit",Args({}), {},{agent})}}; 
 }
 
 template <class State> pTasks explore_right_to_left_YF(State state, Args args) {
   auto agent = args["agent"];
   return {1, 
-    {Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("!exit",Args({}),{})}}; 
+    {Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("!exit",Args({}),{},{agent})}}; 
 }
 
 template <class State> pTasks explore_mid_left_right_YF(State state, Args args) {
   auto agent = args["agent"];
   return {1, 
-    {Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("!exit",Args({}),{})}}; 
+    {Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("!exit",Args({}),{},{agent})}}; 
 }
 
 template <class State> pTasks explore_mid_right_left_YF(State state, Args args) {
   auto agent = args["agent"];
   return {1, 
-    {Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"}),
-     Task("!exit",Args({}), {})}}; 
+    {Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"},{agent}),
+     Task("!exit",Args({}), {},{agent})}}; 
 }
 
 template <class State> pTasks search_left_YF(State state, Args args) {
@@ -859,8 +862,8 @@ template <class State> pTasks search_left_YF(State state, Args args) {
       }
     }
     return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}), {"agent","area"}),
-      Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"})}};
+      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}), {"agent","area"},{agent}),
+      Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}};
   }
   else {
     return {0,{}};
@@ -880,8 +883,8 @@ template <class State> pTasks triageGreen_left_YF(State state, Args args) {
       prob = 0;
     }
     return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}), {"agent","area"}),
-      Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}), {"agent","area"},{agent}),
+      Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -894,8 +897,8 @@ template <class State> pTasks triageYellow_left_YF(State state, Args args) {
                        !in(state.loc[agent], state.left_region));
   if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
     return {1, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -920,8 +923,8 @@ template <class State> pTasks move_left_YF(State state, Args args) {
                          !in(state.loc[agent], state.left_region));
     if (need_to_move) {
       return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"}),
-        Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"},{agent}),
+        Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
     }
 
     double prob;
@@ -945,8 +948,8 @@ template <class State> pTasks move_left_YF(State state, Args args) {
     }
 
     return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}), {"agent","c_area","n_area"}),
-      Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}), {"agent","c_area","n_area"},{agent}),
+      Task("explore_left_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -1003,8 +1006,8 @@ template <class State> pTasks search_right_YF(State state, Args args) {
       }
     }
     return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"})}};
+      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}};
   }
   else {
     return {0,{}};
@@ -1024,8 +1027,8 @@ template <class State> pTasks triageGreen_right_YF(State state, Args args) {
       prob = 0;
     }
     return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -1038,8 +1041,8 @@ template <class State> pTasks triageYellow_right_YF(State state, Args args) {
                        !in(state.loc[agent], state.right_region));
   if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
     return {1, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -1064,8 +1067,8 @@ template <class State> pTasks move_right_YF(State state, Args args) {
                          !in(state.loc[agent], state.right_region));
     if (need_to_move) {
       return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"}),
-        Task("explore_right_region_YF",Args({{"agent",agent}}), {"agent"})}}; 
+        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"},{agent}),
+        Task("explore_right_region_YF",Args({{"agent",agent}}), {"agent"},{agent})}}; 
     }
 
     double prob;
@@ -1089,8 +1092,8 @@ template <class State> pTasks move_right_YF(State state, Args args) {
     }
 
     return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}), {"agent","c_area","n_area"}),
-      Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}), {"agent","c_area","n_area"},{agent}),
+      Task("explore_right_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -1148,8 +1151,8 @@ template <class State> pTasks search_mid_YF(State state, Args args) {
       }
     }
     return {prob, 
-      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"})}};
+      {Task("!search",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}};
   }
   else {
     return {0,{}};
@@ -1169,8 +1172,8 @@ template <class State> pTasks triageGreen_mid_YF(State state, Args args) {
       prob = 0;
     }
     return {prob, 
-      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageGreen",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -1183,8 +1186,8 @@ template <class State> pTasks triageYellow_mid_YF(State state, Args args) {
                        !in(state.loc[agent], state.mid_region));
   if (state.time <= 405 && state.y_seen[agent] && !need_to_move) {
     return {1, 
-      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"}),
-      Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!triageYellow",Args({{"agent",agent},{"area",state.loc[agent]}}),{"agent","area"},{agent}),
+      Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};
@@ -1209,8 +1212,8 @@ template <class State> pTasks move_mid_YF(State state, Args args) {
                          !in(state.loc[agent], state.mid_region));
     if (need_to_move) {
       return {1, 
-        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"}),
-        Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+        {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}),{"agent","c_area","n_area"},{agent}),
+        Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
     }
 
     double prob;
@@ -1234,8 +1237,8 @@ template <class State> pTasks move_mid_YF(State state, Args args) {
     }
 
     return {prob, 
-      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}), {"agent","c_area","n_area"}),
-      Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"})}}; 
+      {Task("!move",Args({{"agent",agent},{"c_area",state.loc[agent]},{"n_area",n_area}}), {"agent","c_area","n_area"},{agent}),
+      Task("explore_mid_region_YF",Args({{"agent",agent}}),{"agent"},{agent})}}; 
   }
   else {
     return {0,{}};

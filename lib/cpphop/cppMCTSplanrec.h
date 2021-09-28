@@ -20,7 +20,7 @@ using json = nlohmann::json;
 
 template <class State, class Selector>
 int
-selection_rec(Tree<State, Selector>& t,
+cselection_rec(Tree<State, Selector>& t,
           int v,
           double eps,
           int seed = 2021) {
@@ -84,7 +84,7 @@ selection_rec(Tree<State, Selector>& t,
 }
 
 template <class State, class Selector>
-void backprop_rec(Tree<State, Selector>& t, int n, double r) {
+void cbackprop_rec(Tree<State, Selector>& t, int n, double r) {
   do {
     if (t[n].successors.empty()) {
       t[n].selector.mean = r;
@@ -101,13 +101,16 @@ void backprop_rec(Tree<State, Selector>& t, int n, double r) {
 }
 
 template <class State, class Domain>
-double
-simulation_rec(json& data_team_plan,
+std::pair<int,double>
+csimulation_rec(json& data_team_plan,
            json team_plan,
            State state,
            Tasks tasks,
            Domain& domain,
+           CFM& cfm,
            double likelihood,
+           double max_likelihood,
+           double alpha,
            int seed) {
 
     while (team_plan["size"] < data_team_plan["size"]) {
@@ -119,7 +122,10 @@ simulation_rec(json& data_team_plan,
           if (newstate) {
               pOperator<State> pop = domain.poperators[task.task_id];
               tasks.pop_back();
-              likelihood = likelihood*pop(state,newstate.value(),task.args);
+              likelihood = likelihood + log(pop(state,newstate.value(),task.args));
+              if (likelihood < max_likelihood) {
+                return std::make_pair(-1,likelihood);
+              }
               json g;
               g["task"] = task2string(task);
               state = newstate.value();
@@ -130,54 +136,83 @@ simulation_rec(json& data_team_plan,
               seed++;
               continue;
           }
-          std::string message = task.task_id;
-          message += " preconditions failed during simulation!";
-          throw std::logic_error(
-              message);
+          return std::make_pair(-1,log(0.0));
       }
 
-      if (in(task.task_id, domain.methods)) {
-          auto relevant = domain.methods[task.task_id];
-          std::vector<pTasks> c = {};
-          for (auto method : relevant) {
-              pTasks subtasks = method(state, task.args);
-              if (subtasks.first) {
+      if (in(task.task_id, domain.cmethods)) {
+          auto relevant = domain.cmethods[task.task_id];
+          std::vector<cTasks> c = {};
+          double f_total = 0;
+          bool no_task = false;
+          for (auto cmethod : relevant) {
+              cTasks subtasks = cmethod(state, task.args);
+              if (subtasks.first != "NIL") {
                 c.push_back(subtasks);
+                if (cfm.find(task.task_id) != cfm.end()) {
+                  if(cfm[task.task_id].find(subtasks.first) != cfm[task.task_id].end()) {
+                    f_total += cfm[task.task_id][subtasks.first];
+                  }
+                  else {
+                    f_total += alpha;
+                  }
+                }
+                else {
+                  no_task = true;
+                  f_total += alpha;
+                }
               }
           }
           seed++;
           if (c.empty()) {
-            std::string message = "No valid method for ";
-            message += task.task_id;
-            message += " during simulation!";
-            throw std::logic_error(message);
+            return std::make_pair(-1,log(0.0));
           }
-          pTasks r = *select_randomly(c.begin(), c.end(), seed);
+          cTasks r = *select_randomly(c.begin(), c.end(), seed);
           seed++;
           tasks.pop_back();
-          likelihood = likelihood*r.first;
+          if (!no_task) {
+            if(cfm[task.task_id].find(r.first) != cfm[task.task_id].end()) {
+              likelihood = likelihood + log((cfm[task.task_id][r.first]/f_total));
+            }
+            else {
+              likelihood = likelihood + log((alpha/f_total));
+            }
+          }
+          else {
+            likelihood = likelihood + log((alpha/f_total));
+          }
+          if (likelihood < max_likelihood) {
+            return std::make_pair(-1,likelihood);
+          }
           for (auto i = r.second.end();
               i != r.second.begin();) {
             tasks.push_back(*(--i));
           }
           continue;
       }   
-      std::string message = "No valid method for ";
+      std::string message = "Invalid task ";
       message += task.task_id;
       message += " during simulation!";
       throw std::logic_error(message);
     }
     if (team_plan["plan"] == data_team_plan["plan"]) {
-      return likelihood;
+      if (likelihood < max_likelihood) {
+        return std::make_pair(-1,likelihood);
+      }
+      if (likelihood == max_likelihood) {
+        return std::make_pair(0,likelihood);
+      }
+      return std::make_pair(1,likelihood);
     }
-    return 0;
+    return std::make_pair(-1,log(0.0));
 }
 
 template <class State, class Domain, class Selector>
-int expansion_rec(Tree<State, Selector>& t,
+int cexpansion_rec(Tree<State, Selector>& t,
                   int n,
                   Domain& domain,
+                  CFM& cfm,
                   Selector selector,
+                  double alpha,
                   int seed = 2021) {
     Task task = t[n].tasks.back();
 
@@ -195,7 +230,7 @@ int expansion_rec(Tree<State, Selector>& t,
             v.plan.second.push_back(task);
             v.selector = selector;
             v.pred = n;
-            v.likelihood = t[n].likelihood*pop(t[n].state,v.state,task.args); 
+            v.likelihood = t[n].likelihood + log(pop(t[n].state,v.state,task.args)); 
             v.team_plan = t[n].team_plan;
             json g;
             g["task"] = task2string(task);
@@ -207,35 +242,72 @@ int expansion_rec(Tree<State, Selector>& t,
             t[n].successors.push_back(w);
             return w;
         }
-        throw std::logic_error("Action Preconditions failed during expansion!");
+        std::string message = task.task_id;
+        message += " preconditions failed during expansion!";
+        throw std::logic_error(
+            message);
     }
 
-    if (in(task.task_id, domain.methods)) {
-        auto relevant = domain.methods[task.task_id];
-        std::vector<int> c = {};
-        for (auto method : relevant) {
-            pTasks subtasks = method(t[n].state, task.args);
-            if (subtasks.first) {
-                Node<State, Selector> v;
-                v.state = t[n].state;
-                v.tasks = t[n].tasks;
-                v.tasks.pop_back();
-                v.depth = t[n].depth + 1;
-                v.plan = t[n].plan;
-                v.selector = selector;
-                v.likelihood = t[n].likelihood*subtasks.first;
-                v.team_plan = t[n].team_plan;
-                for (auto i = subtasks.second.end();
-                     i != subtasks.second.begin();) {
-                    v.tasks.push_back(*(--i));
-                }
-                v.pred = n;
-                int w = boost::add_vertex(v, t);
-                t[n].successors.push_back(w);
-                c.push_back(w);
+    if (in(task.task_id, domain.cmethods)) {
+        auto relevant = domain.cmethods[task.task_id];
+        std::vector<cTasks> c = {};
+        double f_total = 0;
+        bool no_task = false;
+        for (auto cmethod : relevant) {
+          cTasks subtasks = cmethod(t[n].state,task.args);
+          if (subtasks.first != "NIL") {
+            c.push_back(subtasks);
+            if (cfm.find(task.task_id) != cfm.end()) {
+              if(cfm[task.task_id].find(subtasks.first) != cfm[task.task_id].end()) {
+                f_total += cfm[task.task_id][subtasks.first];
+              }
+              else {
+                f_total += alpha;
+              }
             }
+            else {
+              no_task = true;
+              f_total += alpha;
+            }
+          }
         }
-        int r = *select_randomly(c.begin(), c.end(), ++seed);
+        
+        std::vector<int> c_count = {};
+        for (auto m : c) {
+          Node<State, Selector> v;
+          if (!no_task) {
+            if(cfm[task.task_id].find(m.first) != cfm[task.task_id].end()) {
+              v.likelihood = t[n].likelihood + log((cfm[task.task_id][m.first]/f_total));
+            }
+            else {
+              v.likelihood = t[n].likelihood + log((alpha/f_total));
+            }
+          }
+          else {
+            v.likelihood = t[n].likelihood + log((alpha/f_total));
+          }
+          v.state = t[n].state;
+          v.tasks = t[n].tasks;
+          v.tasks.pop_back();
+          v.depth = t[n].depth + 1;
+          v.cplan = t[n].cplan;
+          v.selector = selector;
+          v.team_plan = t[n].team_plan;
+          for (auto i = m.second.end();
+              i != m.second.begin();) {
+            v.tasks.push_back(*(--i));
+          }
+          v.pred = n;
+          int w = boost::add_vertex(v, t);
+          t[n].successors.push_back(w);
+          c_count.push_back(w);
+        }
+        //std::cout << total << std::endl;
+        seed++;
+        if (c_count.empty()) {   
+          return n;
+        }
+        int r = *select_randomly(c_count.begin(), c_count.end(), seed);
         return r;
     }
     throw std::logic_error("Invalid task during expansion!");
@@ -243,14 +315,17 @@ int expansion_rec(Tree<State, Selector>& t,
 
 template <class State, class Domain, class Selector>
 void
-seek_planrecMCTS(json& team_plan,
+cseek_planrecMCTS(json& team_plan,
                  Tree<State,Selector>& t,
                  int v,
                  Domain& domain,
+                 CFM& cfm,
                  Selector selector,
-                 int N = 30,
+                 int R = 30,
                  double eps = 0.4,
+                 double alpha = 0.5,
                  int seed = 2021) {
+  double max_likelihood = log(0.0);
   while (t[v].team_plan["size"] < team_plan["size"]) {
     Tree<State, Selector> m;
     Node<State, Selector> n_node;
@@ -262,27 +337,44 @@ seek_planrecMCTS(json& team_plan,
     n_node.selector = selector;
     n_node.likelihood = t[v].likelihood;
     int w = boost::add_vertex(n_node, m);
-    for (int i = 0; i < N; i++) {
-      int n = selection_rec(m,w,eps,seed);
+    for (int i = 0; i < R; i++) {
+      int n = cselection_rec(m,w,eps,seed);
       seed++;
       if (m[n].team_plan["size"] >= team_plan["size"]) {
         if (m[n].team_plan["plan"] == team_plan["plan"]) {
-          backprop_rec(m,n,m[n].likelihood);
+          int r;
+          if (m[n].likelihood < max_likelihood) {
+            r = -1;
+          }
+          if (m[n].likelihood == max_likelihood) {
+            r = 0;
+          }
+          if (m[n].likelihood > max_likelihood) {
+            r = 1; 
+            max_likelihood = m[n].likelihood;
+          }
+          cbackprop_rec(m,n,r);
         }
-        backprop_rec(m,n,0);
+        cbackprop_rec(m,n,-1);
       }
       else {
         if (m[n].selector.sims == 0) {
-          double r = simulation_rec(team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, m[n].likelihood,seed);
+          auto r = csimulation_rec(team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
+          if (r.second > max_likelihood) {
+            max_likelihood = r.second;
+          }
           seed++;
-          backprop_rec(m,n,r);
+          cbackprop_rec(m,n,r.first);
         }
         else {
-          int n_p = expansion_rec(m,n,domain,selector,seed);
+          int n_p = cexpansion_rec(m,n,domain,cfm,selector,alpha,seed);
           seed++;
-          double r = simulation_rec(team_plan,m[n_p].team_plan,m[n_p].state, m[n_p].tasks, domain, m[n_p].likelihood,seed);
+          auto r = csimulation_rec(team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
+          if (r.second > max_likelihood) {
+            max_likelihood = r.second;
+          }
           seed++;
-          backprop_rec(m,n_p,r);   
+          cbackprop_rec(m,n_p,r.first);   
         }
       }
     }
@@ -315,13 +407,15 @@ seek_planrecMCTS(json& team_plan,
 
 template <class State, class Domain, class Selector>
 std::pair<Tree<State,Selector>,int> 
-cpphopPlanrecMCTS(json& team_plan,
+cppMCTSplanrec(json& team_plan,
                   State state,
                   Tasks tasks,
                   Domain& domain,
+                  CFM& cfm,
                   Selector selector,
-                  int N = 30,
+                  int R = 30,
                   double eps = 0.4,
+                  double alpha = 0.5,
                   int seed = 2021) {
     Tree<State, Selector> t;
     Node<State, Selector> root;
@@ -330,9 +424,9 @@ cpphopPlanrecMCTS(json& team_plan,
     root.plan = {};
     root.depth = 0;
     root.selector = selector;
-    root.likelihood = 1;
+    root.likelihood = 0.0;
     root.team_plan["size"] = 0;
     int v = boost::add_vertex(root, t);
-    seek_planrecMCTS(team_plan,t, v, domain, selector, N, eps, seed);
+    cseek_planrecMCTS(team_plan,t, v, domain, cfm, selector, R, eps, alpha, seed);
     return std::make_pair(t,v);
 }

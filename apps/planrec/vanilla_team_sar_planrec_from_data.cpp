@@ -1,40 +1,80 @@
 #include <nlohmann/json.hpp>
-#include "../data_parsing/parsers/team_sar_parser.h"
+#include "../data_parsing/parsers/vanilla_team_sar_parser.h"
 #include <math.h>
 #include <stdlib.h>
 #include "plan_trace.h"
 #include <istream>
 #include "planrec.h"
 #include "plangrapher.h"
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 using json = nlohmann::json;
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    int N;
-    if (argc > 1) {
-      N = strtol(argv[1], nullptr, 0);
-    }
-    else {
-      N = 30;
-    }
-    
-    int s;
-    if (argc > 2) {
-      s = strtol(argv[2],nullptr,0);
-    }
-    else {
-      s = 5;
+  bool use_t = false; 
+  int N = -1;
+  int start = 0;
+  int end = 0;
+  int R = 30;
+  double e = 0.4;
+  std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
+  try {
+    po::options_description desc("Allowed options");
+    desc.add_options()
+      ("help,h", "produce help message")
+      ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
+      ("exp_param,e",po::value<double>(),"The exploration parameter for the plan recognition algorithm (double)")
+      ("trace_size,N", po::value<int>(), "Sets trace size of N from beginning (int)")
+      ("trace_segment,T", po::value<std::vector<int> >()->multitoken(), "Sets trace segments size by mission times (int int). Ignored if trace_size is set.")
+      ("file,f",po::value<std::string>(),"file to parse (string)")
+    ;
+
+    po::variables_map vm;        
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("help")) {
+      std::cout << desc << std::endl;
+      return 0;
     }
 
-    std::string infile;
-    if (argc > 3) {
-      infile = argv[3];
+    if (vm.count("resource_cycles")) {
+      R = vm["resource_cycles"].as<int>();
     }
-    else {
-      infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-2.metadata";
+
+    if (vm.count("exp_param")) {
+      e = vm["exp_para"].as<double>();
     }
+
+    if (vm.count("trace_size")) {
+      N = vm["trace_size"].as<int>();
+    } else {
+      if (vm.count("trace_segment")) {
+        const std::vector<int>& s = vm["trace_segment"].as<std::vector<int>>(); 
+        use_t = true;
+        start = s[0];
+        end = s[1];
+        if (start >= end) {
+          std::cout << "Start time must be less than end time" << std::endl; 
+          return 0;
+        }
+      }
+    }
+    if (vm.count("file")) {
+      infile = vm["file"].as<std::string>();
+    }
+  }
+  catch(std::exception& e) {
+    std::cerr << "error: " << e.what() << "\n";
+    return 1;
+  }
+  catch(...) {
+    std::cerr << "Exception of unknown type!\n";
+  }
+ 
 
     auto state1 = TeamSARState();
   
@@ -101,11 +141,17 @@ int main(int argc, char* argv[]) {
     state1.c_max = 5;
     state1.r_max = 50;
   
-    state1.action_tracker = {};
-  
     auto domain = TeamSARDomain();
-  
-    auto p = team_sar_parser(infile,state1, domain, s);
+
+    parse_data p;
+
+    if (use_t) {
+      std::pair<int,int> T = std::make_pair(start,end);
+      p = team_sar_parser(infile,state1, domain, T);
+    }
+    else {
+      p = team_sar_parser(infile,state1, domain, N);
+    }
 
     
     p.initial_state.action_tracker = p.action_tracker;
@@ -116,15 +162,15 @@ int main(int argc, char* argv[]) {
     Tasks tasks = {
       {Task("SAR", Args({{"agent3", p.initial_state.agents[2]},
                          {"agent2", p.initial_state.agents[1]},
-                         {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"})}};
+                         {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p.initial_state.agents[0],p.initial_state.agents[1],p.initial_state.agents[2]})}};
 
-    auto pt = cpphopPlanrecMCTS(p.trace,
+    auto pt = cpphopPlanrecMCTS(p.team_plan,
                           p.initial_state,
                           tasks,
                           domain,
                           selector,
-                          N,
-                          0.4,
+                          R,
+                          e,
                           2021);
     json g = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_pred_exp.json");
     generate_graph_from_json(g, "team_sar_pred_exp_graph.png");

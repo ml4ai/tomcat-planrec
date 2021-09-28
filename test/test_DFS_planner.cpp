@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE(test_DFS_planner) {
     auto selector = TravelSelector();
 
     Tasks tasks = {
-        {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}),{"a","x","y"})}};
+        {Task("travel", Args({{"a", "me"}, {"x", "home"}, {"y", "park"}}),{"a","x","y"},{"me"})}};
     auto plans = cpphopDFS(state1, tasks, domain, selector);
     BOOST_TEST(plans.size() == 2);
     

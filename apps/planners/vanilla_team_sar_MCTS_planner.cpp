@@ -1,4 +1,4 @@
-#include "domains/team_sar.h"
+#include "domains/vanilla_team_sar.h"
 #include <math.h>
 #include <stdlib.h>
 #include "plan_trace.h"
@@ -81,6 +81,8 @@ int main(int argc, char* argv[]) {
 
       state1.loc_tracker[a] = {};
 
+      state1.action_tracker[a] = {};
+
       for (auto s : state1.zones) {
         if (s == "CZ") {
           state1.visited[a][s] = 1;
@@ -109,14 +111,12 @@ int main(int argc, char* argv[]) {
     state1.c_max = 3;
     state1.r_max = 24;
 
-    state1.action_tracker = {};
-
     auto domain = TeamSARDomain();
 
     auto selector = TeamSARSelector();
 
     Tasks tasks = {
-        {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"})}};
+        {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
     auto pt = cpphopMCTS(state1, tasks, domain, selector,N,e);
 
     json j = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_trace_tree.json");
