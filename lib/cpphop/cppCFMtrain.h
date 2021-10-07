@@ -93,11 +93,25 @@ std::vector<CFM> cppCFMtrain(json& data_team_plan,
   return cfms;
 }
 
-CFM aggCFM(std::vector<CFM>& cfms) {
+CFM sumCFMs(std::vector<CFM>& cfms) {
   CFM cfm = cfms.back();
   cfms.pop_back();
-  int total = 1;
-  for (auto& c : cfms) {
-     
+  for (const auto& c : cfms) {
+    for (const auto& [k1, v1] : c) {
+      for (const auto& [k2, v2] : v1) {
+        if (cfm.find(k1) != cfm.end()) {
+          if (cfm[k1].find(k2) != cfm[k1].end()) {
+            cfm[k1][k2] += v2;
+          }
+          else {
+            cfm[k1][k2] = v2;
+          }
+        }
+        else {
+          cfm[k1][k2] = v2;
+        }
+      }
+    }   
   }
+  return cfm;
 }
