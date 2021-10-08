@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
   int R = 30;
   double e = 0.4;
   double alpha = 0.5;
+  int aux_R = 10;
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
   std::string cfm_json;
   try {
@@ -27,6 +28,7 @@ int main(int argc, char* argv[]) {
       ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CFM (default)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
       ("cfm_json,j",po::value<std::string>(),"json file to parse CFM (string)")
+      ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
     ;
 
     po::variables_map vm;        
@@ -48,6 +50,10 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("alpha")) {
       alpha = vm["alpha"].as<double>();
+    }
+
+    if (vm.count("aux_r")) {
+      aux_R = vm["aux_r"].as<int>();
     }
 
     if (vm.count("cfm_json")) {
@@ -168,7 +174,7 @@ int main(int argc, char* argv[]) {
 
     Tasks tasks = {
         {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-    auto pt = cppMCTShop(state1, tasks, domain, cfm,selector,R,e,alpha);
+    auto pt = cppMCTShop(state1, tasks, domain, cfm,selector,R,e,alpha,4021,aux_R);
 
     json j_tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_comp_sar_trace_tree.json");
     generate_graph_from_json(j_tree, "team_comp_sar_tree_graph.png");

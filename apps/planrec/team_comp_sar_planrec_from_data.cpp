@@ -21,6 +21,7 @@ int main(int argc, char* argv[]) {
   int R = 30;
   double e = 0.4;
   double alpha = 0.5;
+  int aux_R = 10;
   std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
   std::string cfm_json;
@@ -36,6 +37,7 @@ int main(int argc, char* argv[]) {
       ("file,f",po::value<std::string>(),"file to parse (string)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
       ("cfm_json,j",po::value<std::string>(),"json file to parse CFM (string)")
+      ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
     ;
 
     po::variables_map vm;        
@@ -72,6 +74,10 @@ int main(int argc, char* argv[]) {
           return 0;
         }
       }
+    }
+
+    if (vm.count("aux_r")) {
+      aux_R = vm["aux_r"].as<int>();
     }
 
     if (vm.count("file")) {
@@ -193,7 +199,8 @@ int main(int argc, char* argv[]) {
                           R,
                           e,
                           alpha,
-                          2021);
+                          2021,
+                          aux_R);
     json tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_pred_exp.json");
     generate_graph_from_json(tree, "team_sar_pred_exp_graph.png");
     return EXIT_SUCCESS;
