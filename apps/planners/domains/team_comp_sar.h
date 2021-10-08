@@ -672,7 +672,7 @@ template <class State> cTasks comp_change(State state, Args args) {
       if (stoi(act.start,nullptr) < min_time) {
         min_time = stoi(act.start,nullptr);
       }
-      if (act.action.substr(0,11) == "!change_to_") {
+      if (act.action.substr(0,11) == "!change_to_" || act.action == "!move") {
         role_change = true;
         change_time.push_back(stoi(act.start,nullptr));
       }
@@ -3414,7 +3414,7 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
         min_time = stoi(act.start,nullptr);
         min_agent = a;
       }
-      if (act.action.substr(0,11) == "!change_to_" && act.agent == agent1) {
+      if ((act.action.substr(0,11) == "!change_to_" || act.action == "!move") && act.agent == agent1) {
         change_role = true;
       }
     }
@@ -3522,7 +3522,7 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
         min_time = stoi(act.start,nullptr);
         min_agent = a;
       }
-      if (act.action.substr(0,11) == "!change_to_" && act.agent == agent2) {
+      if ((act.action.substr(0,11) == "!change_to_" || act.action == "!move") && act.agent == agent2) {
         change_role = true;
       }
     }
@@ -3630,7 +3630,7 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
         min_time = stoi(act.start,nullptr);
         min_agent = a;
       }
-      if (act.action.substr(0,11) == "!change_to_" && act.agent == agent3) {
+      if ((act.action.substr(0,11) == "!change_to_" || act.action == "!move") && act.agent == agent3) {
         change_role = true;
       }
     }
