@@ -17,6 +17,7 @@ class Node {
     int depth;
     pTasks plan;
     cTasks cplan;
+    CFM cfm;
     json team_plan;
     Selector selector;
     double likelihood;
