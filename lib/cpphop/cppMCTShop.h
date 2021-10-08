@@ -303,7 +303,8 @@ cseek_planMCTS(Tree<State,Selector>& t,
                  int R = 30,
                  double eps = 0.4,
                  double alpha = 0.5,
-                 int seed = 4021) {
+                 int seed = 4021,
+                 int aux_R = 10) {
 
   double max_likelihood = log(0.0);
   while (!t[v].tasks.empty()) {
@@ -316,6 +317,7 @@ cseek_planMCTS(Tree<State,Selector>& t,
     n_node.selector = selector;
     n_node.likelihood = t[v].likelihood;
     int w = boost::add_vertex(n_node, m);
+    int aux = aux_R;
     for (int i = 0; i < R; i++) {
       int n = cselection(m,w,eps,seed);
       seed++;
@@ -337,6 +339,16 @@ cseek_planMCTS(Tree<State,Selector>& t,
         }
         else {
           int n_p = cexpansion(m,n,domain,cfm,selector,alpha,seed);
+          if (n_p == n) {
+            if (aux == 0) {
+              throw std::logic_error("Out of auxiliary resources, shutting down!");   
+            }
+            aux--;
+            i--;
+          }
+          else {
+            aux = aux_R;
+          }
           seed++;
           auto r = csimulation(m[n_p].state, m[n_p].tasks, domain, cfm, m[n_p].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
@@ -389,7 +401,8 @@ std::pair<Tree<State,Selector>,int> cppMCTShop(State state,
                   int R,
                   double eps = 0.4,
                   double alpha = 0.5,
-                  int seed = 4021) {
+                  int seed = 4021,
+                  int aux_R = 10) {
     Tree<State, Selector> t;
     Node<State, Selector> root;
     root.state = state;

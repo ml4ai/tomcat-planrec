@@ -226,8 +226,8 @@ int cexpansion_rec(Tree<State, Selector>& t,
             v.tasks = t[n].tasks;
             v.tasks.pop_back();
             v.depth = t[n].depth + 1;
-            v.plan = t[n].plan;
-            v.plan.second.push_back(task);
+            v.cplan = t[n].cplan;
+            v.cplan.second.push_back(task);
             v.selector = selector;
             v.pred = n;
             v.likelihood = t[n].likelihood + log(pop(t[n].state,v.state,task.args)); 
@@ -324,7 +324,8 @@ cseek_planrecMCTS(json& team_plan,
                  int R = 30,
                  double eps = 0.4,
                  double alpha = 0.5,
-                 int seed = 2021) {
+                 int seed = 2021,
+                 int aux_R = 10) {
   double max_likelihood = log(0.0);
   while (t[v].team_plan["size"] < team_plan["size"]) {
     Tree<State, Selector> m;
@@ -337,6 +338,7 @@ cseek_planrecMCTS(json& team_plan,
     n_node.selector = selector;
     n_node.likelihood = t[v].likelihood;
     int w = boost::add_vertex(n_node, m);
+    int aux = aux_R;
     for (int i = 0; i < R; i++) {
       int n = cselection_rec(m,w,eps,seed);
       seed++;
@@ -368,6 +370,16 @@ cseek_planrecMCTS(json& team_plan,
         }
         else {
           int n_p = cexpansion_rec(m,n,domain,cfm,selector,alpha,seed);
+          if (n_p == n) {
+            if (aux == 0) {
+              throw std::logic_error("Out of auxiliary resources, shutting down!");
+            }
+            aux--;
+            i--;
+          }
+          else {
+            aux = aux_R;
+          }
           seed++;
           auto r = csimulation_rec(team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
           if (r.second > max_likelihood) {
@@ -416,7 +428,8 @@ cppMCTSplanrec(json& team_plan,
                   int R = 30,
                   double eps = 0.4,
                   double alpha = 0.5,
-                  int seed = 2021) {
+                  int seed = 2021,
+                  int aux_R = 10) {
     Tree<State, Selector> t;
     Node<State, Selector> root;
     root.state = state;
