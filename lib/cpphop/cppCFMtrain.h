@@ -2,6 +2,8 @@
 
 #include "../util.h"
 #include "typedefs.h"
+#include "Node.h"
+#include "Tree.h"
 #include "printing.h"
 #include <any>
 #include <iostream>
@@ -11,85 +13,112 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <stack>
 
-template <class State, class Domain>
+template <class State, class Domain, class Selector>
 void train_cfmDFS(std::vector<CFM>& cfms, 
-                  CFM cfm,
                   json& data_team_plan,
-                  json team_plan,
-                  Tasks tasks, 
-                  State state, 
+                  Tree<State,Selector>& t,
+                  int v,
                   Domain& domain) {
-  if (team_plan["size"] >= data_team_plan["size"]) {
-    if (team_plan["plan"] == data_team_plan["plan"]) {
-      cfms.push_back(cfm);
-    }
-    return;
-  }
-
-  Task task = tasks.back();
-
-  if (in(task.task_id, domain.operators)) {
-    Operator<State> op = domain.operators[task.task_id];
-    std::optional<State> newstate = op(state,task.args);
-    if (newstate) {
-      pOperator<State> pop = domain.poperators[task.task_id];
-      tasks.pop_back();
-      json g;
-      g["task"] = task2string(task);
-      state = newstate.value();
-      for (auto a : task.agents) {
-        team_plan["plan"][a].push_back(g);
-        team_plan["size"] = 1 + team_plan["size"].get<int>();
+  std::stack<int> S;
+  S.push(v);
+  while (!S.empty()) {
+    v = S.top();
+    S.pop();
+    if (t[v].team_plan["size"] >= data_team_plan["size"] ||
+        t[v].tasks.empty()) {
+      if (t[v].team_plan == data_team_plan) {
+        cfms.push_back(t[v].cfm);
       }
-      train_cfmDFS(cfms,cfm,data_team_plan,team_plan,tasks,state,domain);
+      continue;
     }
-    return;
-  }
 
-  if (in(task.task_id, domain.cmethods)) {
-    auto relevant = domain.cmethods[task.task_id];
-    for (auto cmethod : relevant) {
-      cTasks subtasks = cmethod(state, task.args);
-      if (subtasks.first != "NIL") {
-        if (cfm.find(task.task_id) != cfm.end()) {
-          if(cfm[task.task_id].find(subtasks.first) != cfm[task.task_id].end()) {
-            cfm[task.task_id][subtasks.first] += 1;
+    Task task = t[v].tasks.back();
+    if (in(task.task_id, domain.operators)) {
+      Operator<State> op = domain.operators[task.task_id];
+      std::optional<State> newstate = op(t[v].state, task.args);
+      if (newstate) {
+        pOperator<State> pop = domain.poperators[task.task_id];
+        Node<State, Selector> n;
+        n.state = newstate.value();
+        n.tasks = t[v].tasks;
+        n.tasks.pop_back();
+        n.depth = t[v].depth + 1;
+        n.pred = v;
+        n.team_plan = t[v].team_plan;
+        json g;
+        g["task"] = task2string(task);
+        for (auto a : task.agents) {
+          n.team_plan["plan"][a].push_back(g);
+          n.team_plan["size"] = 1 + n.team_plan["size"].template get<int>();
+        }
+        int w = boost::add_vertex(n, t);
+        t[v].successors.push_back(w);
+        S.push(w);
+      }
+      continue;
+    }
+    
+    if (in(task.task_id, domain.cmethods)) {
+      auto relevant = domain.cmethods[task.task_id];
+      for (auto cmethod : relevant) {
+        cTasks subtasks = cmethod(t[v].state,task.args); 
+        if (subtasks.first != "NIL") {
+          Node<State, Selector> n;
+          n.state = t[v].state;
+          n.tasks = t[v].tasks;
+          n.tasks.pop_back();
+          n.depth = t[v].depth + 1;
+          n.team_plan = t[v].team_plan;
+          for (auto i = subtasks.second.end();
+              i != subtasks.second.begin();) {
+            n.tasks.push_back(*(--i));
+          }
+          n.pred = v;
+          n.cfm = t[v].cfm;
+          if (n.cfm.find(task.task_id) != n.cfm.end()) {
+            if (n.cfm[task.task_id].find(subtasks.first) != n.cfm[task.task_id].end()) {
+              n.cfm[task.task_id][subtasks.first] += 1;
+            }
+            else {
+              n.cfm[task.task_id][subtasks.first] = 1;
+            }
           }
           else {
-            cfm[task.task_id][subtasks.first] = 1;
+            n.cfm[task.task_id][subtasks.first] = 1;
           }
-        }
-        else {
-          cfm[task.task_id][subtasks.first] = 1;
+          int w = boost::add_vertex(n,t);
+          t[v].successors.push_back(w);
+          S.push(w);
         }
       }
-      Tasks new_tasks = tasks;
-      new_tasks.pop_back();
-      for (auto i = subtasks.second.end();
-          i != subtasks.second.begin();) {
-        new_tasks.push_back(*(--i));
-      }
-      train_cfmDFS(cfms,cfm,data_team_plan,team_plan,new_tasks,state,domain);
+      continue;
     }
-    return;
-  }   
-  std::string message = "Invalid task ";
-  message += task.task_id;
-  message += " during training!";
-  throw std::logic_error(message);
+    std::string message = "Invalid task ";
+    message += task.task_id;
+    message += " during training!";
+    throw std::logic_error(message);
+  }
+  return;
 }
 
-template <class State, class Domain>
+template <class State, class Domain, class Selector>
 std::vector<CFM> cppCFMtrain(json& data_team_plan,
-                             Tasks tasks, 
                              State state,
-                             Domain& domain, 
-                             std::vector<CFM> cfms = {}) {
-  CFM cfm = {};
-  json team_plan;
-  team_plan["size"] = 0;
-  train_cfmDFS(cfms,cfm,data_team_plan,team_plan,tasks,state,domain);
+                             Tasks tasks, 
+                             Selector selector,
+                             Domain& domain) {
+  std::vector<CFM> cfms = {};
+  Tree<State, Selector> t;
+  Node<State, Selector> root;
+  root.state = state;
+  root.tasks = tasks;
+  root.depth = 0;
+  root.team_plan["size"] = 0;
+  root.cfm = {};
+  int w = boost::add_vertex(root,t);
+  train_cfmDFS(cfms,data_team_plan,t,w,domain);
   return cfms;
 }
 
