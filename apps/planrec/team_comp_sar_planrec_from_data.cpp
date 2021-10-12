@@ -183,8 +183,6 @@ int main(int argc, char* argv[]) {
     p.initial_state.action_tracker = p.action_tracker;
     p.initial_state.loc_tracker = p.loc_tracker;
 
-    auto selector = TeamSARSelector();
-
     Tasks tasks = {
       {Task("SAR", Args({{"agent3", p.initial_state.agents[2]},
                          {"agent2", p.initial_state.agents[1]},
@@ -195,7 +193,6 @@ int main(int argc, char* argv[]) {
                           tasks,
                           domain,
                           cfm,
-                          selector,
                           R,
                           e,
                           alpha,
