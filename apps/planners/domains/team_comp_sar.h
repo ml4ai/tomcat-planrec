@@ -3274,7 +3274,10 @@ template<class State> cTasks need_to_do_something_else(State state,Args args) {
       return {"NIL",{}};
     }
   }
-  return {"need_to_do_something_else_0", {}};
+  if (state.role[agent] == "Search_Specialist" && state.holding[agent]) {
+    return {"need_to_do_something_else_0", {}};
+  }
+  return {"NIL",{}};
 
 }
 
