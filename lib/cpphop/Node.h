@@ -10,8 +10,7 @@
 using json = nlohmann::json;
 
 template <class State,class Selector>
-class Node {
-  public:
+struct Node {
     State state;
     Tasks tasks;
     int depth;
