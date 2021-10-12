@@ -1,10 +1,7 @@
 #pragma once
 
 #include "../util.h"
-#include "cpphop.h"
 #include "typedefs.h"
-#include "Node.h"
-#include "Tree.h"
 #include "printing.h"
 #include <any>
 #include <iostream>
@@ -15,12 +12,30 @@
 #include <utility>
 #include <vector>
 
-// MCTS algorithms
-// See Tree.hpp for why boost::edges are not used and why
-// the successor/predecessor functions are not used
+template <class State, class Selector>
+struct pNode {
+    State state;
+    Tasks tasks;
+    cTasks cplan;
+    int depth;
+    Selector selector;
+    double likelihood;
+    int pred = -1;
+    std::vector<int> successors = {};
+};
+
+template <class State, class Selector>
+using pTree = std::vector<pNode<State, Selector>>;
+
+template <class State, class Selector>
+int add_node(pNode<State, Selector>& n,pTree<State,Selector>& t) {
+  t.push_back(n);
+  return t.size() - 1;
+}
+
 template <class State, class Selector>
 int
-cselection(Tree<State, Selector>& t,
+cselection(pTree<State,Selector>& t,
           int v,
           double eps,
           int seed = 4021) {
@@ -84,7 +99,7 @@ cselection(Tree<State, Selector>& t,
 }
 
 template <class State, class Selector>
-void cbackprop(Tree<State, Selector>& t, int n, double r) {
+void cbackprop(pTree<State, Selector>& t, int n, double r) {
   do {
     if (t[n].successors.empty()) {
       t[n].selector.mean = r;
@@ -195,7 +210,7 @@ csimulation(State state,
 }
 
 template <class State, class Domain, class Selector>
-int cexpansion(Tree<State, Selector>& t,
+int cexpansion(pTree<State, Selector>& t,
               int n,
               Domain& domain,
               CFM& cfm,
@@ -209,17 +224,16 @@ int cexpansion(Tree<State, Selector>& t,
         std::optional<State> newstate = op(t[n].state, task.args);
         if (newstate) {
             pOperator<State> pop = domain.poperators[task.task_id];
-            Node<State, Selector> v;
+            pNode<State, Selector> v;
             v.state = newstate.value();
             v.tasks = t[n].tasks;
             v.tasks.pop_back();
             v.depth = t[n].depth + 1;
             v.cplan = t[n].cplan;
             v.cplan.second.push_back(task);
-            v.selector = selector;
             v.pred = n;
             v.likelihood = t[n].likelihood + log(pop(t[n].state,v.state,task.args));
-            int w = boost::add_vertex(v, t);
+            int w = add_node(v, t);
             t[n].successors.push_back(w);
             return w;
         }
@@ -255,7 +269,7 @@ int cexpansion(Tree<State, Selector>& t,
         
         std::vector<int> c_count = {};
         for (auto m : c) {
-          Node<State, Selector> v;
+          pNode<State, Selector> v;
           if (!no_task) {
             if(cfm[task.task_id].find(m.first) != cfm[task.task_id].end()) {
               v.likelihood = t[n].likelihood + log((cfm[task.task_id][m.first]/f_total));
@@ -272,13 +286,12 @@ int cexpansion(Tree<State, Selector>& t,
           v.tasks.pop_back();
           v.depth = t[n].depth + 1;
           v.cplan = t[n].cplan;
-          v.selector = selector;
           for (auto i = m.second.end();
               i != m.second.begin();) {
             v.tasks.push_back(*(--i));
           }
           v.pred = n;
-          int w = boost::add_vertex(v, t);
+          int w = add_node(v, t);
           t[n].successors.push_back(w);
           c_count.push_back(w);
         }
@@ -294,8 +307,8 @@ int cexpansion(Tree<State, Selector>& t,
 }
 
 template <class State, class Domain, class Selector>
-void
-cseek_planMCTS(Tree<State,Selector>& t,
+cTasks
+cseek_planMCTS(pTree<State,Selector>& t,
                  int v,
                  Domain& domain,
                  CFM& cfm,
@@ -308,15 +321,15 @@ cseek_planMCTS(Tree<State,Selector>& t,
 
   double max_likelihood = log(0.0);
   while (!t[v].tasks.empty()) {
-    Tree<State, Selector> m;
-    Node<State, Selector> n_node;
+    pTree<State, Selector> m;
+    pNode<State, Selector> n_node;
     n_node.state = t[v].state;
     n_node.tasks = t[v].tasks;
     n_node.depth = t[v].depth;
     n_node.cplan = t[v].cplan;
     n_node.selector = selector;
     n_node.likelihood = t[v].likelihood;
-    int w = boost::add_vertex(n_node, m);
+    int w = add_node(n_node, m);
     int aux = aux_R;
     for (int i = 0; i < R; i++) {
       int n = cselection(m,w,eps,seed);
@@ -368,7 +381,7 @@ cseek_planMCTS(Tree<State,Selector>& t,
             arg_max = s;
         }
     }
-    Node<State, Selector> k;
+    pNode<State, Selector> k;
     k.state = m[arg_max].state;
     k.tasks = m[arg_max].tasks;
     k.cplan = m[arg_max].cplan;
@@ -376,24 +389,23 @@ cseek_planMCTS(Tree<State,Selector>& t,
     k.depth = t[v].depth + 1;
     k.pred = v;
     k.likelihood = m[arg_max].likelihood;
-    int y = boost::add_vertex(k, t);
+    int y = add_node(k, t);
     t[v].successors.push_back(y);
     seed++;
     v = y;
   }
-  t[boost::graph_bundle].cplans.push_back(t[v].cplan);
-  std::cout << "Plan found at depth " << t[v].depth << " and score of " << t[v].selector.rewardFunc(t[v].state);
+  std::cout << "Plan found at depth " << t[v].depth;
   std::cout << " with likelihood " << t[v].likelihood << std::endl;
   std::cout << std::endl;
   std::cout << "Final State:" << std::endl;
   std::cout << t[v].state.to_json() << std::endl;
   std::cout << std::endl;
-  return;
+  return t[v].cplan;
 
 }
 
 template <class State, class Domain, class Selector>
-std::pair<Tree<State,Selector>,int> cppMCTShop(State state,
+std::pair<pTree<State,Selector>,int> cppMCTShop(State state,
                   Tasks tasks,
                   Domain& domain,
                   CFM& cfm,
@@ -403,21 +415,21 @@ std::pair<Tree<State,Selector>,int> cppMCTShop(State state,
                   double alpha = 0.5,
                   int seed = 4021,
                   int aux_R = 10) {
-    Tree<State, Selector> t;
-    Node<State, Selector> root;
+    pTree<State, Selector> t;
+    pNode<State, Selector> root;
     root.state = state;
     root.tasks = tasks;
     root.cplan = {};
     root.depth = 0;
     root.selector = selector;
     root.likelihood = 0.0;
-    int v = boost::add_vertex(root, t);
+    int v = add_node(root, t);
     std::cout << std::endl;
     std::cout << "Initial State:" << std::endl;
     std::cout << t[v].state.to_json() << std::endl;
     std::cout << std::endl;
-    cseek_planMCTS(t, v, domain, cfm, selector, R, eps, alpha, seed);
+    auto plan = cseek_planMCTS(t, v, domain, cfm, selector, R, eps, alpha, seed);
     std::cout << "Plan:" << std::endl;
-    print(t[boost::graph_bundle].cplans.back());
+    print(plan);
     return std::make_pair(t,v);
 }
