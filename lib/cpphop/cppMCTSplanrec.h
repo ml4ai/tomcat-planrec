@@ -8,8 +8,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "Node.h"
-#include "Tree.h"
 #include "../util.h"
 #include <nlohmann/json.hpp>
 #include <math.h>
@@ -18,9 +16,30 @@
 
 using json = nlohmann::json;
 
-template <class State, class Selector>
+template <class State>
+struct prNode {
+    State state;
+    Tasks tasks;
+    json team_plan;
+    double mean = 0.0;
+    int sims = 0;
+    double likelihood;
+    int pred = -1;
+    std::vector<int> successors = {};
+};
+
+template <class State>
+using prTree = std::vector<prNode<State>>;
+
+template <class State>
+int add_node(prNode<State>& n,prTree<State>& t) {
+  t.push_back(n);
+  return t.size() - 1;
+}
+
+template <class State>
 int
-cselection_rec(Tree<State, Selector>& t,
+cselection_rec(prTree<State>& t,
           int v,
           double eps,
           int seed = 2021) {
@@ -32,12 +51,12 @@ cselection_rec(Tree<State, Selector>& t,
       if (e > eps) {
         std::vector<double> r_maxes = {};
         r_maxes.push_back(t[v].successors.front());
-        double r_max = t[r_maxes.back()].selector.mean;
+        double r_max = t[r_maxes.back()].mean;
         for (int w : t[v].successors) {
-            if (t[w].selector.sims == 0) {
+            if (t[w].sims == 0) {
               return w;
             }
-            double s = t[w].selector.mean;
+            double s = t[w].mean;
             if (s >= r_max) {
               if (s > r_max) {
                 r_max = s;
@@ -51,9 +70,9 @@ cselection_rec(Tree<State, Selector>& t,
         }
         std::vector<double> v_maxes = {};
         v_maxes.push_back(r_maxes.front());
-        int v_max = t[v_maxes.back()].selector.sims;
+        int v_max = t[v_maxes.back()].sims;
         for (int w : r_maxes) {
-          int s = t[w].selector.sims;
+          int s = t[w].sims;
           if (s >= v_max) {
             if (s > v_max) {
               v_max = s;
@@ -71,7 +90,7 @@ cselection_rec(Tree<State, Selector>& t,
       }
       else {
         for (int w : t[v].successors) {
-          if (t[w].selector.sims == 0) {
+          if (t[w].sims == 0) {
             return w;
           }
         }
@@ -83,16 +102,16 @@ cselection_rec(Tree<State, Selector>& t,
     return v;
 }
 
-template <class State, class Selector>
-void cbackprop_rec(Tree<State, Selector>& t, int n, double r) {
+template <class State>
+void cbackprop_rec(prTree<State>& t, int n, double r) {
   do {
     if (t[n].successors.empty()) {
-      t[n].selector.mean = r;
-      t[n].selector.sims++;
+      t[n].mean = r;
+      t[n].sims++;
     }
     else {
-      t[n].selector.mean = (r + t[n].selector.sims*t[n].selector.mean)/(t[n].selector.sims + 1);
-      t[n].selector.sims++;
+      t[n].mean = (r + t[n].sims*t[n].mean)/(t[n].sims + 1);
+      t[n].sims++;
     }
     n = t[n].pred;
   }
@@ -206,12 +225,11 @@ csimulation_rec(json& data_team_plan,
     return std::make_pair(-1,log(0.0));
 }
 
-template <class State, class Domain, class Selector>
-int cexpansion_rec(Tree<State, Selector>& t,
+template <class State, class Domain>
+int cexpansion_rec(prTree<State>& t,
                   int n,
                   Domain& domain,
                   CFM& cfm,
-                  Selector selector,
                   double alpha,
                   int seed = 2021) {
     Task task = t[n].tasks.back();
@@ -221,14 +239,10 @@ int cexpansion_rec(Tree<State, Selector>& t,
         std::optional<State> newstate = op(t[n].state, task.args);
         if (newstate) {
             pOperator<State> pop = domain.poperators[task.task_id];
-            Node<State, Selector> v;
+            prNode<State> v;
             v.state = newstate.value();
             v.tasks = t[n].tasks;
             v.tasks.pop_back();
-            v.depth = t[n].depth + 1;
-            v.cplan = t[n].cplan;
-            v.cplan.second.push_back(task);
-            v.selector = selector;
             v.pred = n;
             v.likelihood = t[n].likelihood + log(pop(t[n].state,v.state,task.args)); 
             v.team_plan = t[n].team_plan;
@@ -238,7 +252,7 @@ int cexpansion_rec(Tree<State, Selector>& t,
               v.team_plan["plan"][a].push_back(g);
               v.team_plan["size"] = 1 + v.team_plan["size"].template get<int>();
             }
-            int w = boost::add_vertex(v, t);
+            int w = add_node(v, t);
             t[n].successors.push_back(w);
             return w;
         }
@@ -274,7 +288,7 @@ int cexpansion_rec(Tree<State, Selector>& t,
         
         std::vector<int> c_count = {};
         for (auto m : c) {
-          Node<State, Selector> v;
+          prNode<State> v;
           if (!no_task) {
             if(cfm[task.task_id].find(m.first) != cfm[task.task_id].end()) {
               v.likelihood = t[n].likelihood + log((cfm[task.task_id][m.first]/f_total));
@@ -289,16 +303,13 @@ int cexpansion_rec(Tree<State, Selector>& t,
           v.state = t[n].state;
           v.tasks = t[n].tasks;
           v.tasks.pop_back();
-          v.depth = t[n].depth + 1;
-          v.cplan = t[n].cplan;
-          v.selector = selector;
           v.team_plan = t[n].team_plan;
           for (auto i = m.second.end();
               i != m.second.begin();) {
             v.tasks.push_back(*(--i));
           }
           v.pred = n;
-          int w = boost::add_vertex(v, t);
+          int w = add_node(v, t);
           t[n].successors.push_back(w);
           c_count.push_back(w);
         }
@@ -313,37 +324,33 @@ int cexpansion_rec(Tree<State, Selector>& t,
     throw std::logic_error("Invalid task during expansion!");
 }
 
-template <class State, class Domain, class Selector>
+template <class State, class Domain>
 void
-cseek_planrecMCTS(json& team_plan,
-                 Tree<State,Selector>& t,
+cseek_planrecMCTS(json& data_team_plan,
+                 prTree<State>& t,
                  int v,
                  Domain& domain,
                  CFM& cfm,
-                 Selector selector,
                  int R = 30,
                  double eps = 0.4,
                  double alpha = 0.5,
                  int seed = 2021,
                  int aux_R = 10) {
   double max_likelihood = log(0.0);
-  while (t[v].team_plan["size"] < team_plan["size"]) {
-    Tree<State, Selector> m;
-    Node<State, Selector> n_node;
+  while (t[v].team_plan["size"] < data_team_plan["size"]) {
+    prTree<State> m;
+    prNode<State> n_node;
     n_node.state = t[v].state;
     n_node.tasks = t[v].tasks;
-    n_node.depth = t[v].depth;
-    n_node.plan = t[v].plan;
     n_node.team_plan = t[v].team_plan;
-    n_node.selector = selector;
     n_node.likelihood = t[v].likelihood;
-    int w = boost::add_vertex(n_node, m);
+    int w = add_node(n_node, m);
     int aux = aux_R;
     for (int i = 0; i < R; i++) {
       int n = cselection_rec(m,w,eps,seed);
       seed++;
-      if (m[n].team_plan["size"] >= team_plan["size"]) {
-        if (m[n].team_plan["plan"] == team_plan["plan"]) {
+      if (m[n].team_plan["size"] >= data_team_plan["size"]) {
+        if (m[n].team_plan["plan"] == data_team_plan["plan"]) {
           int r;
           if (m[n].likelihood < max_likelihood) {
             r = -1;
@@ -360,8 +367,8 @@ cseek_planrecMCTS(json& team_plan,
         cbackprop_rec(m,n,-1);
       }
       else {
-        if (m[n].selector.sims == 0) {
-          auto r = csimulation_rec(team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
+        if (m[n].sims == 0) {
+          auto r = csimulation_rec(data_team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -369,7 +376,7 @@ cseek_planrecMCTS(json& team_plan,
           cbackprop_rec(m,n,r.first);
         }
         else {
-          int n_p = cexpansion_rec(m,n,domain,cfm,selector,alpha,seed);
+          int n_p = cexpansion_rec(m,n,domain,cfm,alpha,seed);
           if (n_p == n) {
             if (aux == 0) {
               throw std::logic_error("Out of auxiliary resources, shutting down!");
@@ -381,7 +388,7 @@ cseek_planrecMCTS(json& team_plan,
             aux = aux_R;
           }
           seed++;
-          auto r = csimulation_rec(team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
+          auto r = csimulation_rec(data_team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -391,24 +398,21 @@ cseek_planrecMCTS(json& team_plan,
       }
     }
     int arg_max = m[w].successors.front();
-    double max = m[arg_max].selector.mean;
+    double max = m[arg_max].mean;
     for (int s : m[w].successors) {
-        double mean = m[s].selector.mean;
+        double mean = m[s].mean;
         if (mean > max) {
             max = mean;
             arg_max = s;
         }
     }
-    Node<State, Selector> k;
+    prNode<State> k;
     k.state = m[arg_max].state;
     k.tasks = m[arg_max].tasks;
-    k.plan = m[arg_max].plan;
     k.team_plan = m[arg_max].team_plan;
-    k.selector = selector;
-    k.depth = t[v].depth + 1;
     k.pred = v;
     k.likelihood = m[arg_max].likelihood;
-    int y = boost::add_vertex(k, t);
+    int y = add_node(k, t);
     t[v].successors.push_back(y);
     seed++;
     v = y;
@@ -417,29 +421,25 @@ cseek_planrecMCTS(json& team_plan,
  
 }
 
-template <class State, class Domain, class Selector>
-std::pair<Tree<State,Selector>,int> 
-cppMCTSplanrec(json& team_plan,
+template <class State, class Domain>
+std::pair<prTree<State>,int> 
+cppMCTSplanrec(json& data_team_plan,
                   State state,
                   Tasks tasks,
                   Domain& domain,
                   CFM& cfm,
-                  Selector selector,
                   int R = 30,
                   double eps = 0.4,
                   double alpha = 0.5,
                   int seed = 2021,
                   int aux_R = 10) {
-    Tree<State, Selector> t;
-    Node<State, Selector> root;
+    prTree<State> t;
+    prNode<State> root;
     root.state = state;
     root.tasks = tasks;
-    root.plan = {};
-    root.depth = 0;
-    root.selector = selector;
     root.likelihood = 0.0;
     root.team_plan["size"] = 0;
-    int v = boost::add_vertex(root, t);
-    cseek_planrecMCTS(team_plan,t, v, domain, cfm, selector, R, eps, alpha, seed);
+    int v = add_node(root, t);
+    cseek_planrecMCTS(data_team_plan,t, v, domain, cfm, R, eps, alpha, seed);
     return std::make_pair(t,v);
 }
