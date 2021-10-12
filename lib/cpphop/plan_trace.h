@@ -113,8 +113,8 @@ nlohmann::json generate_plan_trace(Tree<State, Selector>& t,
 }
 
 //For pTree and pNode
-template<class State, class Selector> 
-json_node gptt(pTree<State,Selector>& t, int v) {
+template<class State> 
+json_node gptt(pTree<State>& t, int v) {
   nlohmann::json j;
   
   if (t[v].successors.empty()) {
@@ -158,9 +158,9 @@ json_node gptt(pTree<State,Selector>& t, int v) {
   return n;
 }
 
-template <class State, class Selector>
+template <class State>
 nlohmann::json
-generate_plan_trace_tree(pTree<State, Selector>& t,
+generate_plan_trace_tree(pTree<State>& t,
                          int v,
                          bool gen_file = false,
                          std::string outfile = "plan_trace_tree.json") {
@@ -173,8 +173,8 @@ generate_plan_trace_tree(pTree<State, Selector>& t,
     return g.node;
 }
 
-template<class State, class Selector>
-nlohmann::json gpt(pTree<State,Selector>& t, int v, nlohmann::json j) {
+template<class State>
+nlohmann::json gpt(pTree<State>& t, int v, nlohmann::json j) {
   int w = t[v].successors.back();
   if (t[w].tasks.size() < t[v].tasks.size()) {
     nlohmann::json g;
@@ -195,8 +195,8 @@ nlohmann::json gpt(pTree<State,Selector>& t, int v, nlohmann::json j) {
   return gpt(t, w, j);
 }
 
-template <class State, class Selector>
-nlohmann::json generate_plan_trace(pTree<State, Selector>& t,
+template <class State>
+nlohmann::json generate_plan_trace(pTree<State>& t,
                                    int v,
                                    bool gen_file = false,
                                    std::string outfile = "plan_trace.json") {

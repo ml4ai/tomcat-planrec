@@ -156,8 +156,6 @@ int main(int argc, char* argv[]) {
     state1.r_max = 50;
 
     auto domain = TeamSARDomain();
-
-    auto selector = TeamSARSelector();
     
     CFM cfm = {};
 
@@ -174,7 +172,7 @@ int main(int argc, char* argv[]) {
 
     Tasks tasks = {
         {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-    auto pt = cppMCTShop(state1, tasks, domain, cfm,selector,R,e,alpha,4021,aux_R);
+    auto pt = cppMCTShop(state1, tasks, domain, cfm,R,e,alpha,4021,aux_R);
 
     json j_tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_comp_sar_trace_tree.json");
     generate_graph_from_json(j_tree, "team_comp_sar_tree_graph.png");
