@@ -2,8 +2,6 @@
 
 #include "../util.h"
 #include "typedefs.h"
-#include "Node.h"
-#include "Tree.h"
 #include "printing.h"
 #include <any>
 #include <iostream>
@@ -14,11 +12,33 @@
 #include <utility>
 #include <vector>
 #include <stack>
+#include <nlohmann/json.hpp>
 
-template <class State, class Domain, class Selector>
+using json = nlohmann::json;
+
+template <class State>
+struct tNode {
+    State state;
+    Tasks tasks;
+    CFM cfm;
+    json team_plan;
+    int pred = -1;
+    std::vector<int> successors = {};
+};
+
+template <class State>
+using tTree = std::vector<tNode<State>>;
+
+template <class State>
+int add_node(tNode<State>& n,tTree<State>& t) {
+  t.push_back(n);
+  return t.size() - 1;
+}
+
+template <class State, class Domain>
 void train_cfmDFS(std::vector<CFM>& cfms, 
                   json& data_team_plan,
-                  Tree<State,Selector>& t,
+                  tTree<State>& t,
                   int v,
                   Domain& domain) {
   std::stack<int> S;
@@ -35,16 +55,16 @@ void train_cfmDFS(std::vector<CFM>& cfms,
     }
 
     Task task = t[v].tasks.back();
+
     if (in(task.task_id, domain.operators)) {
       Operator<State> op = domain.operators[task.task_id];
       std::optional<State> newstate = op(t[v].state, task.args);
       if (newstate) {
         pOperator<State> pop = domain.poperators[task.task_id];
-        Node<State, Selector> n;
+        tNode<State> n;
         n.state = newstate.value();
         n.tasks = t[v].tasks;
         n.tasks.pop_back();
-        n.depth = t[v].depth + 1;
         n.pred = v;
         n.team_plan = t[v].team_plan;
         json g;
@@ -53,7 +73,7 @@ void train_cfmDFS(std::vector<CFM>& cfms,
           n.team_plan["plan"][a].push_back(g);
           n.team_plan["size"] = 1 + n.team_plan["size"].template get<int>();
         }
-        int w = boost::add_vertex(n, t);
+        int w = add_node(n, t);
         t[v].successors.push_back(w);
         S.push(w);
       }
@@ -65,11 +85,10 @@ void train_cfmDFS(std::vector<CFM>& cfms,
       for (auto cmethod : relevant) {
         cTasks subtasks = cmethod(t[v].state,task.args); 
         if (subtasks.first != "NIL") {
-          Node<State, Selector> n;
+          tNode<State> n;
           n.state = t[v].state;
           n.tasks = t[v].tasks;
           n.tasks.pop_back();
-          n.depth = t[v].depth + 1;
           n.team_plan = t[v].team_plan;
           for (auto i = subtasks.second.end();
               i != subtasks.second.begin();) {
@@ -77,18 +96,20 @@ void train_cfmDFS(std::vector<CFM>& cfms,
           }
           n.pred = v;
           n.cfm = t[v].cfm;
-          if (n.cfm.find(task.task_id) != n.cfm.end()) {
-            if (n.cfm[task.task_id].find(subtasks.first) != n.cfm[task.task_id].end()) {
-              n.cfm[task.task_id][subtasks.first] += 1;
+          if (subtasks.first != "U") {
+            if (n.cfm.find(task.task_id) != n.cfm.end()) {
+              if (n.cfm[task.task_id].find(subtasks.first) != n.cfm[task.task_id].end()) {
+                n.cfm[task.task_id][subtasks.first] += 1;
+              }
+              else {
+                n.cfm[task.task_id][subtasks.first] = 1;
+              }
             }
             else {
               n.cfm[task.task_id][subtasks.first] = 1;
             }
           }
-          else {
-            n.cfm[task.task_id][subtasks.first] = 1;
-          }
-          int w = boost::add_vertex(n,t);
+          int w = add_node(n,t);
           t[v].successors.push_back(w);
           S.push(w);
         }
@@ -103,21 +124,19 @@ void train_cfmDFS(std::vector<CFM>& cfms,
   return;
 }
 
-template <class State, class Domain, class Selector>
+template <class State, class Domain>
 std::vector<CFM> cppCFMtrain(json& data_team_plan,
                              State state,
                              Tasks tasks, 
-                             Selector selector,
                              Domain& domain) {
   std::vector<CFM> cfms = {};
-  Tree<State, Selector> t;
-  Node<State, Selector> root;
+  tTree<State> t;
+  tNode<State> root;
   root.state = state;
   root.tasks = tasks;
-  root.depth = 0;
   root.team_plan["size"] = 0;
   root.cfm = {};
-  int w = boost::add_vertex(root,t);
+  int w = add_node(root,t);
   train_cfmDFS(cfms,data_team_plan,t,w,domain);
   return cfms;
 }
