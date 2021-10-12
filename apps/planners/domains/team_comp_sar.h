@@ -4434,21 +4434,6 @@ class TeamSARState {
     }
 };
 
-class TeamSARSelector {
-  public:
-    double mean = 0.0;
-    int sims = 0;
-
-    double selectFunc(int pSims, double c, int r_l, int r_t) {
-      return this->mean + ((c*r_l)/r_t)*sqrt(log(pSims)/this->sims);
-    }
-
-    double rewardFunc(TeamSARState s) {
-      return (50.00*s.c_triage_total + 10.00*s.r_triage_total)/(50.00*s.c_max + 10.00*s.r_max);
-    }
-
-};
-
 class TeamSARDomain {
   public:
     Operators<TeamSARState> operators = 
