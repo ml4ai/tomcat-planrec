@@ -3,7 +3,6 @@
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <map>
-#include "cpphop.h"
 #include <math.h>
 #include "typedefs.h"
 
