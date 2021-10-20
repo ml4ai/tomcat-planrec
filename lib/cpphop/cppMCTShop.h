@@ -256,11 +256,11 @@ int cexpansion(pTree<State>& t,
         std::vector<int> c_count = {};
         for (auto m : c) {
           pNode<State> v;
-          if (r.first != "U") {
+          if (m.first != "U") {
             if (cpm.find(key) != cpm.end()) {
               if (cpm[key].find(task.task_id) != cpm[key].end()) {
-                if (cpm[key][task.task_id].find(r.first) != cpm[key][task.task_id].end()) {
-                  v.likelihood = t[n].likelihood + log(cpm[key][task.task_id][r.first]); 
+                if (cpm[key][task.task_id].find(m.first) != cpm[key][task.task_id].end()) {
+                  v.likelihood = t[n].likelihood + log(cpm[key][task.task_id][m.first]); 
                 }
                 else {
                   v.likelihood = t[n].likelihood + log(alpha);
@@ -275,7 +275,7 @@ int cexpansion(pTree<State>& t,
             }
           }
           else {
-            v.likelihood = t[n].likelihood + log(1.0/c.size());
+            v.likelihood = t[n].likelihood + log(1.0/c_count.size());
           }
 
           v.state = t[n].state;
@@ -292,7 +292,6 @@ int cexpansion(pTree<State>& t,
           t[n].successors.push_back(w);
           c_count.push_back(w);
         }
-        //std::cout << total << std::endl;
         seed++;
         if (c_count.empty()) {   
           return n;
