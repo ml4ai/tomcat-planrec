@@ -24,19 +24,19 @@ int main(int argc, char* argv[]) {
   int aux_R = 10;
   std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
-  std::string cfm_json;
+  std::string cpm_json;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
       ("exp_param,e",po::value<double>(),"The exploration parameter for the plan recognition algorithm (double)")
-      ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CFM (default)")
+      ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CPM (default)")
       ("trace_size,N", po::value<int>(), "Sets trace size of N from beginning (int)")
       ("trace_segment,T", po::value<std::vector<int> >()->multitoken(), "Sets trace segments size by mission times (int int). Ignored if trace_size is set.")
       ("file,f",po::value<std::string>(),"file to parse (string)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
-      ("cfm_json,j",po::value<std::string>(),"json file to parse CFM (string)")
+      ("cpm_json,j",po::value<std::string>(),"json file to parse CPM (string)")
       ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
     ;
 
@@ -84,8 +84,8 @@ int main(int argc, char* argv[]) {
       infile = vm["file"].as<std::string>();
     }
 
-    if (vm.count("cfm_json")) {
-      cfm_json = vm["cfm_json"].as<std::string>();
+    if (vm.count("cpm_json")) {
+      cpm_json = vm["cpm_json"].as<std::string>();
     }
 
     if (vm.count("map_json")) {
@@ -156,15 +156,17 @@ int main(int argc, char* argv[]) {
   
     auto domain = TeamSARDomain();
 
-    CFM cfm = {};
+    CPM cpm = {};
 
-    if (cfm_json != "") {
-      std::ifstream i(cfm_json);
+    if (cpm_json != "") {
+      std::ifstream i(cpm_json);
       json j;
       i >> j;
       for (auto& [k1, v1] : j.items()) {
         for (auto& [k2,v2] : v1.items()) {
-          cfm[k1][k2] = v2;
+          for (auto& [k3,v3] : v2.items()) {
+            cpm[k1][k2][k3] = v3;
+          }
         }
       }
     }
@@ -183,6 +185,8 @@ int main(int argc, char* argv[]) {
     p.initial_state.action_tracker = p.action_tracker;
     p.initial_state.loc_tracker = p.loc_tracker;
 
+    p.initial_state.plan_rec = true;
+
     Tasks tasks = {
       {Task("SAR", Args({{"agent3", p.initial_state.agents[2]},
                          {"agent2", p.initial_state.agents[1]},
@@ -192,7 +196,7 @@ int main(int argc, char* argv[]) {
                           p.initial_state,
                           tasks,
                           domain,
-                          cfm,
+                          cpm,
                           R,
                           e,
                           alpha,
