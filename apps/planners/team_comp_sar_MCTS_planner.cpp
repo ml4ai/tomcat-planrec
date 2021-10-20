@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
   double alpha = 0.5;
   int aux_R = 10;
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
-  std::string cfm_json;
+  std::string cpm_json;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
       ("exp_param,e",po::value<double>(),"The exploration parameter for the planner (double)")
       ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CFM (default)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
-      ("cfm_json,j",po::value<std::string>(),"json file to parse CFM (string)")
+      ("cpm_json,j",po::value<std::string>(),"json file to parse CPM (string)")
       ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
     ;
 
@@ -56,8 +56,8 @@ int main(int argc, char* argv[]) {
       aux_R = vm["aux_r"].as<int>();
     }
 
-    if (vm.count("cfm_json")) {
-      cfm_json = vm["cfm_json"].as<std::string>();
+    if (vm.count("cpm_json")) {
+      cpm_json = vm["cpm_json"].as<std::string>();
     }
 
     if (vm.count("map_json")) {
@@ -157,22 +157,24 @@ int main(int argc, char* argv[]) {
 
     auto domain = TeamSARDomain();
     
-    CFM cfm = {};
+    CPM cpm = {};
 
-    if (cfm_json != "") {
-      std::ifstream i(cfm_json); 
+    if (cpm_json != "") {
+      std::ifstream i(cpm_json); 
       json j;
       i >> j;
       for (auto& [k1, v1] : j.items()) {
         for (auto& [k2,v2] : v1.items()) {
-          cfm[k1][k2] = v2;
+          for (auto& [k3, v3] : v2.items()) {
+            cpm[k1][k2][k3] = v3;
+          }
         }
       }
     }
 
     Tasks tasks = {
         {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-    auto pt = cppMCTShop(state1, tasks, domain, cfm,R,e,alpha,4021,aux_R);
+    auto pt = cppMCTShop(state1, tasks, domain, cpm,R,e,alpha,4021,aux_R);
 
     json j_tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_comp_sar_trace_tree.json");
     generate_graph_from_json(j_tree, "team_comp_sar_tree_graph.png");
