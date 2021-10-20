@@ -194,7 +194,7 @@ CFM cppDFSplanrec(json& data_team_plan,
   root.cfm = {};
   root.likelihood = 0.0;
   int w = add_node(root,t);
-  return planrecDFS(data_team_plan,cpm,t,w,domain);
+  return planrecDFS(data_team_plan,t,cpm,w,domain,seed);
 }
 
 CFM sumCFMs(std::vector<CFM>& cfms) {
