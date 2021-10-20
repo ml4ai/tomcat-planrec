@@ -126,7 +126,7 @@ csimulation_rec(json& data_team_plan,
            State state,
            Tasks tasks,
            Domain& domain,
-           CFM& cfm,
+           CPM& cpm,
            double likelihood,
            double max_likelihood,
            double alpha,
@@ -159,55 +159,53 @@ csimulation_rec(json& data_team_plan,
       }
 
       if (in(task.task_id, domain.cmethods)) {
-          auto relevant = domain.cmethods[task.task_id];
-          std::vector<cTasks> c = {};
-          double f_total = 0;
-          bool no_task = false;
-          for (auto cmethod : relevant) {
-              cTasks subtasks = cmethod(state, task.args);
-              if (subtasks.first != "NIL") {
-                c.push_back(subtasks);
-                if (cfm.find(task.task_id) != cfm.end()) {
-                  if(cfm[task.task_id].find(subtasks.first) != cfm[task.task_id].end()) {
-                    f_total += cfm[task.task_id][subtasks.first];
-                  }
-                  else {
-                    f_total += alpha;
-                  }
-                }
-                else {
-                  no_task = true;
-                  f_total += alpha;
-                }
+        auto relevant = domain.cmethods[task.task_id];
+        std::vector<cTasks> c = {};
+        std::string key = "";
+        for (auto cmethod : relevant) {
+            cTasks subtasks = cmethod(state, task.args);
+            if (subtasks.first != "NIL") {
+              c.push_back(subtasks);
+              key += subtasks.first + "#";
+            }
+        }
+        seed++;
+        if (c.empty()) {
+          return std::make_pair(-1,log(0.0));
+        }
+        cTasks r = *select_randomly(c.begin(), c.end(), seed);
+        seed++;
+        tasks.pop_back();
+        if (r.first != "U") {
+          if (cpm.find(key) != cpm.end()) {
+            if (cpm[key].find(task.task_id) != cpm[key].end()) {
+              if (cpm[key][task.task_id].find(r.first) != cpm[key][task.task_id].end()) {
+                likelihood = likelihood + log(cpm[key][task.task_id][r.first]); 
               }
-          }
-          seed++;
-          if (c.empty()) {
-            return std::make_pair(-1,log(0.0));
-          }
-          cTasks r = *select_randomly(c.begin(), c.end(), seed);
-          seed++;
-          tasks.pop_back();
-          if (!no_task) {
-            if(cfm[task.task_id].find(r.first) != cfm[task.task_id].end()) {
-              likelihood = likelihood + log((cfm[task.task_id][r.first]/f_total));
+              else {
+                likelihood = likelihood + log(alpha);
+              }
             }
             else {
-              likelihood = likelihood + log((alpha/f_total));
+              likelihood = likelihood + log(alpha);
             }
           }
           else {
-            likelihood = likelihood + log((alpha/f_total));
+            likelihood = likelihood + log(alpha);
           }
-          if (likelihood < max_likelihood) {
+        }
+        else {
+          likelihood = likelihood + log(1.0/c.size());
+        }
+        if (likelihood < max_likelihood) {
             return std::make_pair(-1,likelihood);
-          }
-          for (auto i = r.second.end();
-              i != r.second.begin();) {
-            tasks.push_back(*(--i));
-          }
-          continue;
-      }   
+        }
+        for (auto i = r.second.end();
+            i != r.second.begin();) {
+          tasks.push_back(*(--i));
+        }
+        continue;  
+      }
       std::string message = "Invalid task ";
       message += task.task_id;
       message += " during simulation!";
@@ -229,7 +227,7 @@ template <class State, class Domain>
 int cexpansion_rec(prTree<State>& t,
                   int n,
                   Domain& domain,
-                  CFM& cfm,
+                  CPM& cpm,
                   double alpha,
                   int seed = 2021) {
     Task task = t[n].tasks.back();
@@ -265,40 +263,38 @@ int cexpansion_rec(prTree<State>& t,
     if (in(task.task_id, domain.cmethods)) {
         auto relevant = domain.cmethods[task.task_id];
         std::vector<cTasks> c = {};
-        double f_total = 0;
-        bool no_task = false;
+        std::string key = "";
         for (auto cmethod : relevant) {
           cTasks subtasks = cmethod(t[n].state,task.args);
           if (subtasks.first != "NIL") {
             c.push_back(subtasks);
-            if (cfm.find(task.task_id) != cfm.end()) {
-              if(cfm[task.task_id].find(subtasks.first) != cfm[task.task_id].end()) {
-                f_total += cfm[task.task_id][subtasks.first];
-              }
-              else {
-                f_total += alpha;
-              }
-            }
-            else {
-              no_task = true;
-              f_total += alpha;
-            }
+            key += subtasks.first + "#";
           }
         }
         
         std::vector<int> c_count = {};
         for (auto m : c) {
           prNode<State> v;
-          if (!no_task) {
-            if(cfm[task.task_id].find(m.first) != cfm[task.task_id].end()) {
-              v.likelihood = t[n].likelihood + log((cfm[task.task_id][m.first]/f_total));
+          if (m.first != "U") {
+            if (cpm.find(key) != cpm.end()) {
+              if (cpm[key].find(task.task_id) != cpm[key].end()) {
+                if (cpm[key][task.task_id].find(m.first) != cpm[key][task.task_id].end()) {
+                  v.likelihood = t[n].likelihood + log(cpm[key][task.task_id][m.first]);
+                }
+                else {
+                  v.likelihood = t[n].likelihood + log(alpha);
+                }
+              }
+              else {
+                v.likelihood = t[n].likelihood + log(alpha);
+              }
             }
             else {
-              v.likelihood = t[n].likelihood + log((alpha/f_total));
+              v.likelihood = t[n].likelihood + log(alpha);
             }
           }
           else {
-            v.likelihood = t[n].likelihood + log((alpha/f_total));
+            v.likelihood = t[n].likelihood + log(1.0/c_count.size());
           }
           v.state = t[n].state;
           v.tasks = t[n].tasks;
@@ -330,7 +326,7 @@ cseek_planrecMCTS(json& data_team_plan,
                  prTree<State>& t,
                  int v,
                  Domain& domain,
-                 CFM& cfm,
+                 CPM& cpm,
                  int R = 30,
                  double eps = 0.4,
                  double alpha = 0.5,
@@ -368,7 +364,7 @@ cseek_planrecMCTS(json& data_team_plan,
       }
       else {
         if (m[n].sims == 0) {
-          auto r = csimulation_rec(data_team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
+          auto r = csimulation_rec(data_team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cpm, m[n].likelihood, max_likelihood, alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -376,7 +372,7 @@ cseek_planrecMCTS(json& data_team_plan,
           cbackprop_rec(m,n,r.first);
         }
         else {
-          int n_p = cexpansion_rec(m,n,domain,cfm,alpha,seed);
+          int n_p = cexpansion_rec(m,n,domain,cpm,alpha,seed);
           if (n_p == n) {
             if (aux == 0) {
               throw std::logic_error("Out of auxiliary resources, shutting down!");
@@ -388,7 +384,7 @@ cseek_planrecMCTS(json& data_team_plan,
             aux = aux_R;
           }
           seed++;
-          auto r = csimulation_rec(data_team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cfm, m[n].likelihood, max_likelihood, alpha,seed);
+          auto r = csimulation_rec(data_team_plan,m[n].team_plan,m[n].state, m[n].tasks, domain, cpm, m[n].likelihood, max_likelihood, alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -427,7 +423,7 @@ cppMCTSplanrec(json& data_team_plan,
                   State state,
                   Tasks tasks,
                   Domain& domain,
-                  CFM& cfm,
+                  CPM& cpm,
                   int R = 30,
                   double eps = 0.4,
                   double alpha = 0.5,
@@ -440,6 +436,6 @@ cppMCTSplanrec(json& data_team_plan,
     root.likelihood = 0.0;
     root.team_plan["size"] = 0;
     int v = add_node(root, t);
-    cseek_planrecMCTS(data_team_plan,t, v, domain, cfm, R, eps, alpha, seed);
+    cseek_planrecMCTS(data_team_plan,t, v, domain, cpm, R, eps, alpha, seed);
     return std::make_pair(t,v);
 }
