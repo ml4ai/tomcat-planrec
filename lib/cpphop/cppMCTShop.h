@@ -121,7 +121,7 @@ std::pair<int,double>
 csimulation(State state,
            Tasks tasks,
            Domain& domain,
-           CFM& cfm,
+           CPM& cpm,
            double likelihood,
            double max_likelihood,
            double alpha,
@@ -149,24 +149,12 @@ csimulation(State state,
       if (in(task.task_id, domain.cmethods)) {
           auto relevant = domain.cmethods[task.task_id];
           std::vector<cTasks> c = {};
-          double f_total = 0;
-          bool no_task = false;
+          std::string key = "";
           for (auto cmethod : relevant) {
               cTasks subtasks = cmethod(state, task.args);
               if (subtasks.first != "NIL") {
                 c.push_back(subtasks);
-                if (cfm.find(task.task_id) != cfm.end()) {
-                  if(cfm[task.task_id].find(subtasks.first) != cfm[task.task_id].end()) {
-                    f_total += cfm[task.task_id][subtasks.first];
-                  }
-                  else {
-                    f_total += alpha;
-                  }
-                }
-                else {
-                  no_task = true;
-                  f_total += alpha;
-                }
+                key += subtasks.first + "#";
               }
           }
           seed++;
@@ -176,19 +164,29 @@ csimulation(State state,
           cTasks r = *select_randomly(c.begin(), c.end(), seed);
           seed++;
           tasks.pop_back();
-          if (!no_task) {
-            if(cfm[task.task_id].find(r.first) != cfm[task.task_id].end()) {
-              likelihood = likelihood + log((cfm[task.task_id][r.first]/f_total));
+          if (r.first != "U") {
+            if (cpm.find(key) != cpm.end()) {
+              if (cpm[key].find(task.task_id) != cpm[key].end()) {
+                if (cpm[key][task.task_id].find(r.first) != cpm[key][task.task_id].end()) {
+                  likelihood = likelihood + log(cpm[key][task.task_id][r.first]); 
+                }
+                else {
+                  likelihood = likelihood + log(alpha);
+                }
+              }
+              else {
+                likelihood = likelihood + log(alpha);
+              }
             }
             else {
-              likelihood = likelihood + log((alpha/f_total));
+              likelihood = likelihood + log(alpha);
             }
           }
           else {
-            likelihood = likelihood + log((alpha/f_total));
+            likelihood = likelihood + log(1.0/c.size());
           }
           if (likelihood < max_likelihood) {
-            return std::make_pair(-1,likelihood);
+              return std::make_pair(-1,likelihood);
           }
           for (auto i = r.second.end();
               i != r.second.begin();) {
@@ -214,7 +212,7 @@ template <class State, class Domain>
 int cexpansion(pTree<State>& t,
               int n,
               Domain& domain,
-              CFM& cfm,
+              CPM& cpm,
               double alpha,
               int seed = 4021) {
     Task task = t[n].tasks.back();
@@ -246,41 +244,40 @@ int cexpansion(pTree<State>& t,
     if (in(task.task_id, domain.cmethods)) {
         auto relevant = domain.cmethods[task.task_id];
         std::vector<cTasks> c = {};
-        double f_total = 0;
-        bool no_task = false;
+        std::string key = "";
         for (auto cmethod : relevant) {
           cTasks subtasks = cmethod(t[n].state,task.args);
           if (subtasks.first != "NIL") {
             c.push_back(subtasks);
-            if (cfm.find(task.task_id) != cfm.end()) {
-              if(cfm[task.task_id].find(subtasks.first) != cfm[task.task_id].end()) {
-                f_total += cfm[task.task_id][subtasks.first];
-              }
-              else {
-                f_total += alpha;
-              }
-            }
-            else {
-              no_task = true;
-              f_total += alpha;
-            }
+            key += subtasks.first + "#";
           }
         }
         
         std::vector<int> c_count = {};
         for (auto m : c) {
           pNode<State> v;
-          if (!no_task) {
-            if(cfm[task.task_id].find(m.first) != cfm[task.task_id].end()) {
-              v.likelihood = t[n].likelihood + log((cfm[task.task_id][m.first]/f_total));
+          if (r.first != "U") {
+            if (cpm.find(key) != cpm.end()) {
+              if (cpm[key].find(task.task_id) != cpm[key].end()) {
+                if (cpm[key][task.task_id].find(r.first) != cpm[key][task.task_id].end()) {
+                  v.likelihood = t[n].likelihood + log(cpm[key][task.task_id][r.first]); 
+                }
+                else {
+                  v.likelihood = t[n].likelihood + log(alpha);
+                }
+              }
+              else {
+                v.likelihood = t[n].likelihood + log(alpha);
+              }
             }
             else {
-              v.likelihood = t[n].likelihood + log((alpha/f_total));
+              v.likelihood = t[n].likelihood + log(alpha);
             }
           }
           else {
-            v.likelihood = t[n].likelihood + log((alpha/f_total));
+            v.likelihood = t[n].likelihood + log(1.0/c.size());
           }
+
           v.state = t[n].state;
           v.tasks = t[n].tasks;
           v.tasks.pop_back();
@@ -311,7 +308,7 @@ cTasks
 cseek_planMCTS(pTree<State>& t,
                  int v,
                  Domain& domain,
-                 CFM& cfm,
+                 CPM& cpm,
                  int R = 30,
                  double eps = 0.4,
                  double alpha = 0.5,
@@ -333,7 +330,7 @@ cseek_planMCTS(pTree<State>& t,
       int n = cselection(m,w,eps,seed);
       seed++;
       if (m[n].tasks.empty()) {
-          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,alpha,seed);
+          auto r = csimulation(m[n].state, m[n].tasks, domain, cpm, m[n].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -341,7 +338,7 @@ cseek_planMCTS(pTree<State>& t,
       }
       else {
         if (m[n].sims == 0) {
-          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,alpha,seed);
+          auto r = csimulation(m[n].state, m[n].tasks, domain, cpm, m[n].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -349,7 +346,7 @@ cseek_planMCTS(pTree<State>& t,
           cbackprop(m,n,r.first);
         }
         else {
-          int n_p = cexpansion(m,n,domain,cfm,alpha,seed);
+          int n_p = cexpansion(m,n,domain,cpm,alpha,seed);
           if (n_p == n) {
             if (aux == 0) {
               throw std::logic_error("Out of auxiliary resources, shutting down!");   
@@ -361,7 +358,7 @@ cseek_planMCTS(pTree<State>& t,
             aux = aux_R;
           }
           seed++;
-          auto r = csimulation(m[n_p].state, m[n_p].tasks, domain, cfm, m[n_p].likelihood,max_likelihood,alpha,seed);
+          auto r = csimulation(m[n_p].state, m[n_p].tasks, domain, cpm, m[n_p].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -405,7 +402,7 @@ template <class State, class Domain>
 std::pair<pTree<State>,int> cppMCTShop(State state,
                   Tasks tasks,
                   Domain& domain,
-                  CFM& cfm,
+                  CPM& cpm,
                   int R,
                   double eps = 0.4,
                   double alpha = 0.5,
@@ -423,7 +420,7 @@ std::pair<pTree<State>,int> cppMCTShop(State state,
     std::cout << "Initial State:" << std::endl;
     std::cout << t[v].state.to_json() << std::endl;
     std::cout << std::endl;
-    auto plan = cseek_planMCTS(t, v, domain, cfm, R, eps, alpha, seed);
+    auto plan = cseek_planMCTS(t, v, domain, cpm, R, eps, alpha, seed);
     std::cout << "Plan:" << std::endl;
     print(plan);
     return std::make_pair(t,v);
