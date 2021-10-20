@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <istream>
-#include "cppCFMtrain.h"
+#include "cppDFSplanrec.h"
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -14,7 +14,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
   std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
-  std::string outfile = "team_comp_cfm.json";
+  std::string outfile = "team_comp_cpm.json";
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -116,19 +116,19 @@ int main(int argc, char* argv[]) {
     p.initial_state.action_tracker = p.action_tracker;
     p.initial_state.loc_tracker = p.loc_tracker;
 
+    p.initial_state.plan_rec = true;
+
+    CPM cpm = {};
+
     Tasks tasks = {
       {Task("SAR", Args({{"agent3", p.initial_state.agents[2]},
                          {"agent2", p.initial_state.agents[1]},
                          {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p.initial_state.agents[0],p.initial_state.agents[1],p.initial_state.agents[2]})}};
-    auto cfms = cppCFMtrain(p.team_plan,
+    auto cfm = cppDFSplanrec(p.team_plan,
+                          cpm,
                           p.initial_state,
                           tasks,
-                          domain);
-    std::cout << "Training Complete, summing CFMs" << std::endl;
-    auto cfm = sumCFMs(cfms);
-    std::cout << "Summing Complete, saving CFM to json" << std::endl;
-    json jcfm = cfm;
-    std::ofstream o(outfile);
-    o << std::setw(4) << jcfm << std::endl;
+                          domain,
+                          3021);
     return EXIT_SUCCESS;
 }
