@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <istream>
-#include "cppDFSplanrec.h"
+#include "cppMCTStrain.h"
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -12,16 +12,23 @@ using json = nlohmann::json;
 using namespace std;
 
 int main(int argc, char* argv[]) {
+  bool use_t = false; 
+  int R = 30;
+  double e = 0.4;
+  int aux_R = 10;
   std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
-  std::string outfile = "team_comp_cpm.json";
+  std::string cpm_json;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
+      ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
+      ("exp_param,e",po::value<double>(),"The exploration parameter for the plan recognition algorithm (double)")
       ("file,f",po::value<std::string>(),"file to parse (string)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
-      ("outfile,o",po::value<std::string>(),"json file to output (string)")
+      ("cpm_json,j",po::value<std::string>(),"json file to parse CPM (string)")
+      ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
     ;
 
     po::variables_map vm;        
@@ -33,16 +40,28 @@ int main(int argc, char* argv[]) {
       return 0;
     }
 
+    if (vm.count("resource_cycles")) {
+      R = vm["resource_cycles"].as<int>();
+    }
+
+    if (vm.count("exp_param")) {
+      e = vm["exp_para"].as<double>();
+    }
+
+    if (vm.count("aux_r")) {
+      aux_R = vm["aux_r"].as<int>();
+    }
+
     if (vm.count("file")) {
       infile = vm["file"].as<std::string>();
     }
 
-    if (vm.count("map_json")) {
-      map_json = vm["map_json"].as<std::string>();
+    if (vm.count("cpm_json")) {
+      cpm_json = vm["cpm_json"].as<std::string>();
     }
 
-    if (vm.count("outfile")) {
-      outfile = vm["outfile"].as<std::string>();
+    if (vm.count("map_json")) {
+      map_json = vm["map_json"].as<std::string>();
     }
   }
   catch(std::exception& e) {
@@ -109,26 +128,44 @@ int main(int argc, char* argv[]) {
   
     auto domain = TeamSARDomain();
 
+    CPM cpm = {};
+
+    if (cpm_json != "") {
+      std::ifstream i(cpm_json);
+      json j;
+      i >> j;
+      for (auto& [k1, v1] : j.items()) {
+        for (auto& [k2,v2] : v1.items()) {
+          for (auto& [k3,v3] : v2.items()) {
+            cpm[k1][k2][k3] = v3;
+          }
+        }
+      }
+    }
+
     parse_data p;
 
     p = team_sar_parser(infile,state1, domain, -1);
 
+    
     p.initial_state.action_tracker = p.action_tracker;
     p.initial_state.loc_tracker = p.loc_tracker;
 
     p.initial_state.plan_rec = true;
 
-    CPM cpm = {};
-
     Tasks tasks = {
       {Task("SAR", Args({{"agent3", p.initial_state.agents[2]},
                          {"agent2", p.initial_state.agents[1]},
                          {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p.initial_state.agents[0],p.initial_state.agents[1],p.initial_state.agents[2]})}};
-    auto cfm = cppDFSplanrec(p.team_plan,
-                          cpm,
+
+    auto cfm = cppMCTStrain(p.team_plan,
                           p.initial_state,
                           tasks,
                           domain,
-                          3021);
+                          cpm,
+                          R,
+                          e,
+                          2021,
+                          aux_R);
     return EXIT_SUCCESS;
 }
