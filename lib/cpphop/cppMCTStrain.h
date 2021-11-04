@@ -347,17 +347,21 @@ int texpansion_rec(prTree<State>& t,
               if (v.cfm[key].find(task.task_id) != v.cfm[key].end()) {
                 if (v.cfm[key][task.task_id].find(m.first) != v.cfm[key][task.task_id].end()) {
                   v.cfm[key][task.task_id][m.first] += 1;
+                  v.cfm[key][task.task_id]["#TOTAL#"] += 1;
                 }
                 else {
                   v.cfm[key][task.task_id][m.first] = 1;
+                  v.cfm[key][task.task_id]["#TOTAL#"] += 1;
                 }
               }
               else {
                 v.cfm[key][task.task_id][m.first] = 1;
+                v.cfm[key][task.task_id]["#TOTAL#"] = 1;
               }
             }
             else {
               v.cfm[key][task.task_id][m.first] = 1;
+              v.cfm[key][task.task_id]["#TOTAL#"] += 1;
             }
           }
           int w = t.add_node(v);
@@ -533,4 +537,33 @@ cppMCTStrain(json& data_team_plan,
     root.likelihood = 0.0;
     root.team_plan["size"] = 0;
     return train_planrecMCTS(data_team_plan,root, domain, cpm, R, eps, seed);
+}
+
+void estimate_probs(std::vector<CFM>& cfms, CPM& cpm) {
+  for (auto [k1,v1] : cpm) {
+    for (auto [k2,v2] : v1) {
+      double totals = 0.0;
+      for (auto &c : cfms) {
+        if (c.find(k1) != c.end()) {
+          if (c[k1].find(k2) != c[k1].end()) {
+            totals += c[k1][k2]["#TOTAL"];
+          }
+        }
+      }
+      for (auto [k3,v3] : v2) {
+        double count = 0.0; 
+        for (auto &c : cfms) {
+          if (c.find(k1) != c.end()) {
+            if (c[k1].find(k2) != c[k1].end()) {
+              if (c[k1][k2].find(k3) != c[k1][k2].end()) {
+                count += c[k1][k2][k3];
+              }
+            } 
+          } 
+        }
+        cpm[k1][k2][k3] = count/totals;
+      }
+    }
+  } 
+  return;
 }
