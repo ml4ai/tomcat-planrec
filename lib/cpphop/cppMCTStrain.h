@@ -393,7 +393,7 @@ train_planrecMCTS(json& data_team_plan,
   n_node.team_plan = v.team_plan;
   n_node.likelihood = v.likelihood;
   int w = m.add_node(n_node);
-  while (v.team_plan["size"] < data_team_plan["size"]) {
+  while (m.nodes[w].team_plan["size"] < data_team_plan["size"]) {
     int aux = aux_R;
     for (int i = 0; i < R; i++) {
       int n = tselection_rec(m,w,eps,seed);
@@ -445,6 +445,9 @@ train_planrecMCTS(json& data_team_plan,
           tbackprop_rec(m,n_p,r.first);   
         }
       }
+    }
+    if (m.nodes[w].successors.empty()) {
+      std::cout << "empty" << std::endl;
     }
     //Mandatory step
     int arg_max = m.nodes[w].successors.front();
