@@ -2,7 +2,7 @@
 #include "../data_parsing/parsers/team_comp_sar_parser.h"
 #include <math.h>
 #include <stdlib.h>
-#include <istream>
+#include <iostream>
 #include "cppMCTStrain.h"
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -167,5 +167,10 @@ int main(int argc, char* argv[]) {
                           e,
                           2021,
                           aux_R);
+    std::vector<CFM> cfms = {cfm};
+    estimate_probs(cfms,cpm);
+    json n = cpm;
+    std::ofstream o("sar_cpm.json");
+    o << std::setw(4) << n << std::endl;
     return EXIT_SUCCESS;
 }
