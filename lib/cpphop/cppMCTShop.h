@@ -75,7 +75,7 @@ cselection(pTree<State>& t,
       if (e > eps) {
         std::vector<double> r_maxes = {};
         r_maxes.push_back(t.nodes[v].successors.front());
-        double r_max = t[r_maxes.back()].mean;
+        double r_max = t.nodes[r_maxes.back()].mean;
         for (auto const & w : t.nodes[v].successors) {
             if (t.nodes[w].sims == 0) {
               return w;
