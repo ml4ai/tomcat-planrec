@@ -441,7 +441,7 @@ train_planrecMCTS(json& data_team_plan,
             aux = aux_R;
           }
           seed++;
-          auto r = tsimulation_rec(data_team_plan,m.nodes[n].team_plan,m.nodes[n].state, m.nodes[n].tasks, domain, cpm, m.nodes[n].likelihood, max_likelihood,seed);
+          auto r = tsimulation_rec(data_team_plan,m.nodes[n_p].team_plan,m.nodes[n_p].state, m.nodes[n_p].tasks, domain, cpm, m.nodes[n_p].likelihood, max_likelihood,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -546,7 +546,7 @@ void estimate_probs(std::vector<CFM>& cfms, CPM& cpm) {
       for (auto &c : cfms) {
         if (c.find(k1) != c.end()) {
           if (c[k1].find(k2) != c[k1].end()) {
-            totals += c[k1][k2]["#TOTAL"];
+            totals += c[k1][k2]["#TOTAL#"];
           }
         }
       }
