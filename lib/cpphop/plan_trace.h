@@ -118,28 +118,28 @@ template<class State>
 json_node gptt(pTree<State>& t, int v) {
   nlohmann::json j;
   
-  if (t[v].successors.empty()) {
+  if (t.nodes[v].successors.empty()) {
     json_node n;
     n.node = j;
     n.id = -1;
     return n;
   }
 
-  j["task"] = task2string(t[v].tasks.back());
-  j["likelihood"] = t[v].likelihood;
-  j["pre-state"] = t[v].state.to_json();
+  j["task"] = task2string(t.nodes[v].tasks.back());
+  j["likelihood"] = t.nodes[v].likelihood;
+  j["pre-state"] = t.nodes[v].state.to_json();
   
-  int w = t[v].successors.back();
+  int w = t.nodes[v].successors.back();
 
-  if (t[w].tasks.size() < t[v].tasks.size()) {
-    j["post-state"] = t[w].state.to_json();
+  if (t.nodes[w].tasks.size() < t.nodes[v].tasks.size()) {
+    j["post-state"] = t.nodes[w].state.to_json();
     j["children"] = R"([])"_json;
     json_node n;
     n.node = j;
     n.id = w;
     return n; 
   }
-  int r = (t[w].tasks.size() - t[v].tasks.size()) + 1;
+  int r = (t.nodes[w].tasks.size() - t.nodes[v].tasks.size()) + 1;
   for (int i = 0; i < r; i++) {
     auto temp = gptt(t,w);
     if (temp.id == -1) {
@@ -166,7 +166,7 @@ generate_plan_trace_tree(pTree<State>& t,
                          bool gen_file = false,
                          std::string outfile = "plan_trace_tree.json") {
     auto g = gptt(t, v);
-    g.node["Final State"] = t[g.id].state.to_json();
+    g.node["Final State"] = t.nodes[g.id].state.to_json();
     if (gen_file) {
         std::ofstream o(outfile);
         o << std::setw(4) << g.node << std::endl;
@@ -176,10 +176,10 @@ generate_plan_trace_tree(pTree<State>& t,
 
 template<class State>
 nlohmann::json gpt(pTree<State>& t, int v, nlohmann::json j) {
-  int w = t[v].successors.back();
-  if (t[w].tasks.size() < t[v].tasks.size()) {
+  int w = t.nodes[v].successors.back();
+  if (t.nodes[w].tasks.size() < t.nodes[v].tasks.size()) {
     nlohmann::json g;
-    Task task = t[v].tasks.back();
+    Task task = t.nodes[v].tasks.back();
     if (task.task_id.find("!") != std::string::npos) {
       g["task"] = task2string(task);
       for (auto a : task.agents) {
@@ -189,7 +189,7 @@ nlohmann::json gpt(pTree<State>& t, int v, nlohmann::json j) {
     }
   }
 
-  if (t[w].successors.empty()) {
+  if (t.nodes[w].successors.empty()) {
     return j;
   }
 
@@ -216,28 +216,28 @@ template<class State>
 json_node gptt(prTree<State>& t, int v) {
   nlohmann::json j;
   
-  if (t[v].successors.empty()) {
+  if (t.nodes[v].successors.empty()) {
     json_node n;
     n.node = j;
     n.id = -1;
     return n;
   }
 
-  j["task"] = task2string(t[v].tasks.back());
-  j["likelihood"] = t[v].likelihood;
-  j["pre-state"] = t[v].state.to_json();
+  j["task"] = task2string(t.nodes[v].tasks.back());
+  j["likelihood"] = t.nodes[v].likelihood;
+  j["pre-state"] = t.nodes[v].state.to_json();
   
-  int w = t[v].successors.back();
+  int w = t.nodes[v].successors.back();
 
-  if (t[w].tasks.size() < t[v].tasks.size()) {
-    j["post-state"] = t[w].state.to_json();
+  if (t.nodes[w].tasks.size() < t.nodes[v].tasks.size()) {
+    j["post-state"] = t.nodes[w].state.to_json();
     j["children"] = R"([])"_json;
     json_node n;
     n.node = j;
     n.id = w;
     return n; 
   }
-  int r = (t[w].tasks.size() - t[v].tasks.size()) + 1;
+  int r = (t.nodes[w].tasks.size() - t.nodes[v].tasks.size()) + 1;
   for (int i = 0; i < r; i++) {
     auto temp = gptt(t,w);
     if (temp.id == -1) {
@@ -264,7 +264,7 @@ generate_plan_trace_tree(prTree<State>& t,
                          bool gen_file = false,
                          std::string outfile = "plan_trace_tree.json") {
     auto g = gptt(t, v);
-    g.node["Final State"] = t[g.id].state.to_json();
+    g.node["Final State"] = t.nodes[g.id].state.to_json();
     if (gen_file) {
         std::ofstream o(outfile);
         o << std::setw(4) << g.node << std::endl;
@@ -274,10 +274,10 @@ generate_plan_trace_tree(prTree<State>& t,
 
 template<class State>
 nlohmann::json gpt(prTree<State>& t, int v, nlohmann::json j) {
-  int w = t[v].successors.back();
-  if (t[w].tasks.size() < t[v].tasks.size()) {
+  int w = t.nodes[v].successors.back();
+  if (t.nodes[w].tasks.size() < t.nodes[v].tasks.size()) {
     nlohmann::json g;
-    Task task = t[v].tasks.back();
+    Task task = t.nodes[v].tasks.back();
     if (task.task_id.find("!") != std::string::npos) {
       g["task"] = task2string(task);
       for (auto a : task.agents) {
@@ -287,7 +287,7 @@ nlohmann::json gpt(prTree<State>& t, int v, nlohmann::json j) {
     }
   }
 
-  if (t[w].successors.empty()) {
+  if (t.nodes[w].successors.empty()) {
     return j;
   }
 
