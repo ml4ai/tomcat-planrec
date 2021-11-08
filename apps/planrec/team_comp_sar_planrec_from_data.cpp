@@ -7,10 +7,12 @@
 #include "cppMCTSplanrec.h"
 #include "plangrapher.h"
 #include <boost/program_options.hpp>
+#include <chrono>
 namespace po = boost::program_options;
 
-using json = nlohmann::json;
 
+using json = nlohmann::json;
+using namespace std::chrono;
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -191,7 +193,7 @@ int main(int argc, char* argv[]) {
       {Task("SAR", Args({{"agent3", p.initial_state.agents[2]},
                          {"agent2", p.initial_state.agents[1]},
                          {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p.initial_state.agents[0],p.initial_state.agents[1],p.initial_state.agents[2]})}};
-
+    auto start_time = high_resolution_clock::now();
     auto pt = cppMCTSplanrec(p.team_plan,
                           p.initial_state,
                           tasks,
@@ -202,6 +204,9 @@ int main(int argc, char* argv[]) {
                           alpha,
                           2021,
                           aux_R);
+    auto stop_time = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop_time - start_time);
+    cout << "Plan Recognition Time: " << duration.count()/1000000.0 << " seconds" << endl;
     json tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_pred_exp.json");
     generate_graph_from_json(tree, "team_sar_pred_exp_graph.png");
     return EXIT_SUCCESS;
