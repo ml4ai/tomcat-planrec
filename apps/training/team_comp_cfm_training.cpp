@@ -167,10 +167,13 @@ int main(int argc, char* argv[]) {
                           e,
                           2021,
                           aux_R);
-    std::vector<CFM> cfms = {cfm};
+
+    std::vector<CFM> cfms;
+    cfms.push_back(cfm);
     estimate_probs(cfms,cpm);
-    json n = cpm;
-    std::ofstream o("sar_cpm.json");
-    o << std::setw(4) << n << std::endl;
+    json k = cpm;
+    std::ofstream a("sar_cpm.json");
+    a << std::setw(4) << k << std::endl;
+
     return EXIT_SUCCESS;
 }
