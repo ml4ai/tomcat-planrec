@@ -339,6 +339,7 @@ int cexpansion_rec(prTree<State>& t,
         //std::cout << total << std::endl;
         seed++;
         if (c_count.empty()) {   
+          std::cout << task.task_id << std::endl;
           return n;
         }
         int r = *select_randomly(c_count.begin(), c_count.end(), seed);
