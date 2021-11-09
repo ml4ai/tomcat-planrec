@@ -13,19 +13,22 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
   bool use_t = false; 
+  int R_0 = 100;
   int R = 30;
   double e = 0.4;
   int aux_R = 10;
-  std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
+
+  std::string infile1 = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000415_Team-TM000108_Member-na_CondBtwn-1_CondWin-SaturnA_Vers-4.metadata";
+  std::string infile2 = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
   std::string cpm_json;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
+      ("kickstart,K", po::value<int>(), "Initial number of resource cycles to kick start snowcap (int)")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
       ("exp_param,e",po::value<double>(),"The exploration parameter for the plan recognition algorithm (double)")
-      ("file,f",po::value<std::string>(),"file to parse (string)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
       ("cpm_json,j",po::value<std::string>(),"json file to parse CPM (string)")
       ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
@@ -40,6 +43,10 @@ int main(int argc, char* argv[]) {
       return 0;
     }
 
+    if (vm.count("kickstart")) {
+      R_0 = vm["kickstart"].as<int>();
+    }
+
     if (vm.count("resource_cycles")) {
       R = vm["resource_cycles"].as<int>();
     }
@@ -50,10 +57,6 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("aux_r")) {
       aux_R = vm["aux_r"].as<int>();
-    }
-
-    if (vm.count("file")) {
-      infile = vm["file"].as<std::string>();
     }
 
     if (vm.count("cpm_json")) {
@@ -145,7 +148,7 @@ int main(int argc, char* argv[]) {
 
     parse_data p;
 
-    p = team_sar_parser(infile,state1, domain, -1);
+    p = team_sar_parser(infile1,state1, domain, -1);
 
     
     p.initial_state.action_tracker = p.action_tracker;
@@ -163,6 +166,7 @@ int main(int argc, char* argv[]) {
                           tasks,
                           domain,
                           cpm,
+                          R_0,
                           R,
                           e,
                           2021,
