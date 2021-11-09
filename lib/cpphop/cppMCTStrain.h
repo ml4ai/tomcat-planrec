@@ -13,6 +13,7 @@
 #include <math.h>
 #include <random>
 #include <cfloat>
+#include <chrono>
 
 using json = nlohmann::json;
 
@@ -370,6 +371,7 @@ int texpansion_rec(prTree<State>& t,
         }
         seed++;
         if (c_count.empty()) {   
+          std::cout << task.task_id << std::endl; 
           return n;
         }
         auto r = *select_randomly(c_count.begin(), c_count.end(), seed);
@@ -384,6 +386,7 @@ train_planrecMCTS(json& data_team_plan,
                  prNode<State> v,
                  Domain& domain,
                  CPM& cpm,
+                 int R_0 = 100,
                  int R = 30,
                  double eps = 0.4,
                  int seed = 2021,
@@ -397,9 +400,10 @@ train_planrecMCTS(json& data_team_plan,
   n_node.team_plan = v.team_plan;
   n_node.likelihood = v.likelihood;
   int w = m.add_node(n_node);
+  int R_C = R_0;
   while (m.nodes[w].team_plan["size"] < data_team_plan["size"]) {
     int aux = aux_R;
-    for (int i = 0; i < R; i++) {
+    for (int i = 0; i < R_C; i++) {
       int n = tselection_rec(m,w,eps,seed);
       seed++;
       if (m.nodes[n].team_plan["size"] >= data_team_plan["size"]) {
@@ -450,6 +454,7 @@ train_planrecMCTS(json& data_team_plan,
         }
       }
     }
+    R_C = R;
     if (m.nodes[w].successors.empty()) {
       std::cout << "empty" << std::endl;
     }
@@ -527,6 +532,7 @@ cppMCTStrain(json& data_team_plan,
                   Tasks tasks,
                   Domain& domain,
                   CPM& cpm,
+                  int R_0 = 100,
                   int R = 30,
                   double eps = 0.4,
                   int seed = 2021,
@@ -536,7 +542,7 @@ cppMCTStrain(json& data_team_plan,
     root.tasks = tasks;
     root.likelihood = 0.0;
     root.team_plan["size"] = 0;
-    return train_planrecMCTS(data_team_plan,root, domain, cpm, R, eps, seed);
+    return train_planrecMCTS(data_team_plan,root, domain, cpm, R_0, R, eps, seed);
 }
 
 void estimate_probs(std::vector<CFM>& cfms, CPM& cpm) {
