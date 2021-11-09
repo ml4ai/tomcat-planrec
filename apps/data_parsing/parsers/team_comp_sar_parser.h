@@ -107,6 +107,10 @@ j_node process_move_act(json& g, std::string player_key, TeamSARState& state, Te
           
   int time = missionTime2secElapsed(mission_time);
 
+  if (time >= 900) {
+    time = 899;
+  }
+
   args["start"] = std::to_string(time);
 
   act += args["start"];
@@ -151,6 +155,10 @@ j_node process_change_role_act(json& g, std::string player_key, TeamSARState& st
   std::string mission_time = g["data"]["mission_timer"].get<std::string>();
           
   int time = missionTime2secElapsed(mission_time);
+
+  if (time >= 900) {
+    time = 899;
+  }
 
   args["start"] = std::to_string(time);
 
@@ -328,6 +336,10 @@ j_node process_wakeCrit_act(json& g,
 
   int time = missionTime2secElapsed(mission_time);
 
+  if (time >= 900) {
+    time = 899;
+  }
+
   args["start"] = std::to_string(time);
 
   act += args["start"];
@@ -380,6 +392,10 @@ j_node process_pickUpVic_act(json& g,
   std::string mission_time = g["data"]["mission_timer"].get<std::string>();
 
   int time = missionTime2secElapsed(mission_time);
+
+  if (time >= 900) {
+    time = 899;
+  }
 
   args["start"] = std::to_string(time);
 
@@ -434,6 +450,10 @@ j_node process_putDownVic_act(json& g,
 
   int time = missionTime2secElapsed(mission_time);
 
+  if (time >= 900) {
+    time = 899;
+  }
+
   args["start"] = std::to_string(time);
 
   act += args["start"];
@@ -486,6 +506,10 @@ j_node process_breakBlock_act(json& g,
   std::string mission_time = g["data"]["mission_timer"].get<std::string>();
 
   int time = missionTime2secElapsed(mission_time);
+
+  if (time >= 900) {
+    time = 899;
+  }
 
   args["start"] = std::to_string(time);
 
@@ -559,6 +583,10 @@ j_node process_markOpening_act(json& g,
 
   int time = missionTime2secElapsed(mission_time);
 
+  if (time >= 900) {
+    time = 899;
+  }
+
   args["start"] = std::to_string(time);
 
   act += args["start"];
@@ -623,6 +651,10 @@ j_node process_markArea_act(json& g,
   std::string mission_time = g["data"]["mission_timer"].get<std::string>();
 
   int time = missionTime2secElapsed(mission_time);
+
+  if (time >= 900) {
+    time = 899;
+  }
 
   args["start"] = std::to_string(time);
 
