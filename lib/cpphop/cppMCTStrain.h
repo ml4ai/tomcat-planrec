@@ -74,13 +74,12 @@ tselection_rec(prTree<State>& t,
           int seed = 2021) {
 
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<> dis(0.0,1.0);
+    std::uniform_real_distribution<double> dis(0.0,1.0);
     while (!t.nodes[v].successors.empty()) {
       double e = dis(gen);
       if (e > eps) {
         std::vector<double> r_maxes = {};
-        r_maxes.push_back(t.nodes[v].successors.front());
-        double r_max = t.nodes[r_maxes.back()].mean;
+        double r_max = log(0.0);
         for (auto const &w : t.nodes[v].successors) {
             if (t.nodes[w].sims == 0) {
               return w;
@@ -98,8 +97,7 @@ tselection_rec(prTree<State>& t,
             }
         }
         std::vector<double> v_maxes = {};
-        v_maxes.push_back(r_maxes.front());
-        int v_max = t.nodes[v_maxes.back()].sims;
+        double v_max = log(0.0);
         for (auto const &w : r_maxes) {
           int s = t.nodes[w].sims;
           if (s >= v_max) {
@@ -386,24 +384,17 @@ train_planrecMCTS(json& data_team_plan,
                  prNode<State> v,
                  Domain& domain,
                  CPM& cpm,
-                 int R_0 = 100,
                  int R = 30,
                  double eps = 0.4,
                  int seed = 2021,
                  int aux_R = 10) {
   double max_likelihood = log(0.0);
   prTree<State> m;
-  prNode<State> n_node;
-  n_node.state = v.state;
-  n_node.tasks = v.tasks;
-  n_node.cfm = v.cfm;
-  n_node.team_plan = v.team_plan;
-  n_node.likelihood = v.likelihood;
-  int w = m.add_node(n_node);
-  int R_C = R_0;
+  int w = m.add_node(v);
+  int test = -1;
   while (m.nodes[w].team_plan["size"] < data_team_plan["size"]) {
     int aux = aux_R;
-    for (int i = 0; i < R_C; i++) {
+    for (int i = 0; i < R; i++) {
       int n = tselection_rec(m,w,eps,seed);
       seed++;
       if (m.nodes[n].team_plan["size"] >= data_team_plan["size"]) {
@@ -454,13 +445,12 @@ train_planrecMCTS(json& data_team_plan,
         }
       }
     }
-    R_C = R;
     if (m.nodes[w].successors.empty()) {
       std::cout << "empty" << std::endl;
     }
     //Mandatory step
-    int arg_max = m.nodes[w].successors.front();
-    double max = m.nodes[arg_max].mean;
+    int arg_max;
+    double max = log(0.0);
     for (auto const &s : m.nodes[w].successors) {
         double mean = m.nodes[s].mean;
         if (mean > max) {
@@ -491,8 +481,8 @@ train_planrecMCTS(json& data_team_plan,
           arg_max = new_arg_max;
         }
         else {
-          int new_arg_max = m.nodes[arg_max].successors.front();
-          double max = m.nodes[new_arg_max].mean;
+          int new_arg_max;
+          double max = log(0.0);
           for (auto const &s : m.nodes[arg_max].successors) {
             double mean = m.nodes[s].mean;
             if (mean > max) {
@@ -532,7 +522,6 @@ cppMCTStrain(json& data_team_plan,
                   Tasks tasks,
                   Domain& domain,
                   CPM& cpm,
-                  int R_0 = 100,
                   int R = 30,
                   double eps = 0.4,
                   int seed = 2021,
@@ -542,7 +531,7 @@ cppMCTStrain(json& data_team_plan,
     root.tasks = tasks;
     root.likelihood = 0.0;
     root.team_plan["size"] = 0;
-    return train_planrecMCTS(data_team_plan,root, domain, cpm, R_0, R, eps, seed);
+    return train_planrecMCTS(data_team_plan,root, domain, cpm, R, eps, seed);
 }
 
 void estimate_probs(std::vector<CFM>& cfms, CPM& cpm) {
