@@ -65,6 +65,13 @@ struct prTree {
 };
 
 template <class State>
+struct prResults {
+  prTree<State> t;
+  int root;
+  int end;
+};
+
+template <class State>
 int
 cselection_rec(prTree<State>& t,
           int v,
@@ -349,7 +356,7 @@ int cexpansion_rec(prTree<State>& t,
 }
 
 template <class State, class Domain>
-void
+int
 cseek_planrecMCTS(json& data_team_plan,
                  prTree<State>& t,
                  int v,
@@ -368,7 +375,7 @@ cseek_planrecMCTS(json& data_team_plan,
   n_node.team_plan = t.nodes[v].team_plan;
   n_node.likelihood = t.nodes[v].likelihood;
   int w = m.add_node(n_node);
-  while (m.nodes[w].team_plan["size"] < data_team_plan["size"]) {
+  while (t.nodes[v].team_plan["size"] < data_team_plan["size"]) {
     int aux = aux_R;
     for (int i = 0; i < R; i++) {
       int n = cselection_rec(m,w,eps,seed);
@@ -515,12 +522,12 @@ cseek_planrecMCTS(json& data_team_plan,
     w = arg_max;
     seed++;
   }
-  return;
+  return v;
  
 }
 
 template <class State, class Domain>
-std::pair<prTree<State>,int> 
+prResults<State> 
 cppMCTSplanrec(json& data_team_plan,
                   State state,
                   Tasks tasks,
@@ -538,6 +545,10 @@ cppMCTSplanrec(json& data_team_plan,
     root.likelihood = 0.0;
     root.team_plan["size"] = 0;
     int v = t.add_node(root);
-    cseek_planrecMCTS(data_team_plan,t, v, domain, cpm, R, eps, alpha, seed);
-    return std::make_pair(t,v);
+    int w = cseek_planrecMCTS(data_team_plan,t, v, domain, cpm, R, eps, alpha, seed);
+    prResults<State> prr;
+    prr.t = t;
+    prr.root = v;
+    prr.end = w;
+    return prr;
 }
