@@ -1082,8 +1082,8 @@ parse_data team_sar_parser(std::string infile,
           j["plan"][a].push_back(n.j);
           prevAct[a] = n.action;
           p.action_tracker[a].push_back(n.action);
+          i++;
         }
-        i++;
       }  
 
       if (g["msg"]["sub_type"] == "Event:ProximityBlockInteraction" &&
@@ -1094,8 +1094,8 @@ parse_data team_sar_parser(std::string infile,
           for (auto a : state.agents) {    
             j["plan"][a].erase(c_awake[vic]);
             p.action_tracker[a].erase(p.action_tracker[a].begin()+i);
+            i--;
           }
-          i--;
         }
       }
 
