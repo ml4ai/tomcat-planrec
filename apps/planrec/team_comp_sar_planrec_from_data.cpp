@@ -207,7 +207,7 @@ int main(int argc, char* argv[]) {
     auto stop_time = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop_time - start_time);
     cout << "Plan Recognition Time: " << duration.count()/1000000.0 << " seconds" << endl;
-    json tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_sar_pred_exp.json");
+    json tree = generate_plan_trace_tree(pt.t,pt.root,true,"team_sar_pred_exp.json");
     generate_graph_from_json(tree, "team_sar_pred_exp_graph.png");
     return EXIT_SUCCESS;
 }
