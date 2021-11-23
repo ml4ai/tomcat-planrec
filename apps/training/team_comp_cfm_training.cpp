@@ -13,7 +13,6 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
   bool use_t = false; 
-  int R_0 = 100;
   int R = 30;
   double e = 0.4;
   int aux_R = 10;
@@ -26,7 +25,6 @@ int main(int argc, char* argv[]) {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
-      ("kickstart,K", po::value<int>(), "Initial number of resource cycles to kick start snowcap (int)")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
       ("exp_param,e",po::value<double>(),"The exploration parameter for the plan recognition algorithm (double)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
@@ -43,16 +41,12 @@ int main(int argc, char* argv[]) {
       return 0;
     }
 
-    if (vm.count("kickstart")) {
-      R_0 = vm["kickstart"].as<int>();
-    }
-
     if (vm.count("resource_cycles")) {
       R = vm["resource_cycles"].as<int>();
     }
 
     if (vm.count("exp_param")) {
-      e = vm["exp_para"].as<double>();
+      e = vm["exp_param"].as<double>();
     }
 
     if (vm.count("aux_r")) {
@@ -146,34 +140,59 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    parse_data p;
+    parse_data p1;
 
-    p = team_sar_parser(infile1,state1, domain, -1);
+    p1 = team_sar_parser(infile1,state1, domain, -1);
 
     
-    p.initial_state.action_tracker = p.action_tracker;
-    p.initial_state.loc_tracker = p.loc_tracker;
+    p1.initial_state.action_tracker = p1.action_tracker;
+    p1.initial_state.loc_tracker = p1.loc_tracker;
 
-    p.initial_state.plan_rec = true;
+    p1.initial_state.plan_rec = true;
 
-    Tasks tasks = {
-      {Task("SAR", Args({{"agent3", p.initial_state.agents[2]},
-                         {"agent2", p.initial_state.agents[1]},
-                         {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p.initial_state.agents[0],p.initial_state.agents[1],p.initial_state.agents[2]})}};
+    Tasks tasks1 = {
+      {Task("SAR", Args({{"agent3", p1.initial_state.agents[2]},
+                         {"agent2", p1.initial_state.agents[1]},
+                         {"agent1", p1.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p1.initial_state.agents[0],p1.initial_state.agents[1],p1.initial_state.agents[2]})}};
 
-    auto cfm = cppMCTStrain(p.team_plan,
-                          p.initial_state,
-                          tasks,
+    auto cfm1 = cppMCTStrain(p1.team_plan,
+                          p1.initial_state,
+                          tasks1,
                           domain,
                           cpm,
-                          R_0,
                           R,
                           e,
                           2021,
                           aux_R);
 
+    //parse_data p2;
+
+    //p2 = team_sar_parser(infile2,state1, domain, -1);
+
+    
+    //p2.initial_state.action_tracker = p2.action_tracker;
+    //p2.initial_state.loc_tracker = p2.loc_tracker;
+
+    //p2.initial_state.plan_rec = true;
+
+    //Tasks tasks2 = {
+    //  {Task("SAR", Args({{"agent3", p2.initial_state.agents[2]},
+    //                     {"agent2", p2.initial_state.agents[1]},
+    //                     {"agent1", p2.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p2.initial_state.agents[0],p2.initial_state.agents[1],p2.initial_state.agents[2]})}};
+
+    //auto cfm2 = cppMCTStrain(p2.team_plan,
+    //                      p2.initial_state,
+    //                      tasks2,
+    //                      domain,
+    //                      cpm,
+    //                      R,
+    //                      e,
+    //                      2021,
+    //                      aux_R);
+
     std::vector<CFM> cfms;
-    cfms.push_back(cfm);
+    cfms.push_back(cfm1);
+    //cfms.push_back(cfm2);
     estimate_probs(cfms,cpm);
     json k = cpm;
     std::ofstream a("sar_cpm.json");
