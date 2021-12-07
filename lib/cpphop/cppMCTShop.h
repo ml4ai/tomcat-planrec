@@ -1,10 +1,7 @@
 #pragma once
 
 #include "../util.h"
-#include "cpphop.h"
 #include "typedefs.h"
-#include "Node.h"
-#include "Tree.h"
 #include "printing.h"
 #include <any>
 #include <iostream>
@@ -15,29 +12,75 @@
 #include <utility>
 #include <vector>
 
-// MCTS algorithms
-// See Tree.hpp for why boost::edges are not used and why
-// the successor/predecessor functions are not used
-template <class State, class Selector>
+template <class State>
+struct pNode {
+    State state;
+    Tasks tasks;
+    cTasks cplan;
+    int depth;
+    double mean = 0.0;
+    int sims = 0;
+    double likelihood;
+    int pred = -1;
+    std::vector<int> successors = {};
+};
+
+template <class State>
+struct pTree {
+  std::unordered_map<int,pNode<State>> nodes;
+  int nextID = 0;
+  std::vector<int> freedIDs;
+  int add_node(pNode<State>& n) {
+    int id;
+    if (!freedIDs.empty()) {
+      id = freedIDs.back();
+      freedIDs.pop_back();
+    }
+    else {
+      id = nextID;
+      nextID++;
+    }
+    nodes[id] = n;
+    return id;
+  }
+  void delete_node(int id) {
+    if (nodes.erase(id)) {
+      freedIDs.push_back(id);
+    }
+    return;
+  }
+
+  void delete_nodes(int root_id) {
+    if (!nodes[root_id].successors.empty()) {
+      for (auto const &x : nodes[root_id].successors) {
+        delete_nodes(x);
+      }
+    }
+    delete_node(root_id);
+    return;
+  }
+};
+
+template <class State>
 int
-cselection(Tree<State, Selector>& t,
+cselection(pTree<State>& t,
           int v,
           double eps,
           int seed = 4021) {
 
     std::mt19937 gen(seed);
     std::uniform_real_distribution<> dis(0.0,1.0);
-    while (!t[v].successors.empty()) {
+    while (!t.nodes[v].successors.empty()) {
       double e = dis(gen);
       if (e > eps) {
         std::vector<double> r_maxes = {};
-        r_maxes.push_back(t[v].successors.front());
-        double r_max = t[r_maxes.back()].selector.mean;
-        for (int w : t[v].successors) {
-            if (t[w].selector.sims == 0) {
+        r_maxes.push_back(t.nodes[v].successors.front());
+        double r_max = t.nodes[r_maxes.back()].mean;
+        for (auto const & w : t.nodes[v].successors) {
+            if (t.nodes[w].sims == 0) {
               return w;
             }
-            double s = t[w].selector.mean;
+            double s = t.nodes[w].mean;
             if (s >= r_max) {
               if (s > r_max) {
                 r_max = s;
@@ -51,9 +94,9 @@ cselection(Tree<State, Selector>& t,
         }
         std::vector<double> v_maxes = {};
         v_maxes.push_back(r_maxes.front());
-        int v_max = t[v_maxes.back()].selector.sims;
-        for (int w : r_maxes) {
-          int s = t[w].selector.sims;
+        int v_max = t.nodes[v_maxes.back()].sims;
+        for (auto const &w : r_maxes) {
+          int s = t.nodes[w].sims;
           if (s >= v_max) {
             if (s > v_max) {
               v_max = s;
@@ -70,31 +113,31 @@ cselection(Tree<State, Selector>& t,
         seed++;
       }
       else {
-        for (int w : t[v].successors) {
-          if (t[w].selector.sims == 0) {
+        for (auto const &w : t.nodes[v].successors) {
+          if (t.nodes[w].sims == 0) {
             return w;
           }
         }
         seed++;
-        v = *select_randomly(t[v].successors.begin(), t[v].successors.end(), seed);
+        v = *select_randomly(t.nodes[v].successors.begin(), t.nodes[v].successors.end(), seed);
         seed++;
       }
     }
     return v;
 }
 
-template <class State, class Selector>
-void cbackprop(Tree<State, Selector>& t, int n, double r) {
+template <class State>
+void cbackprop(pTree<State>& t, int n, double r) {
   do {
-    if (t[n].successors.empty()) {
-      t[n].selector.mean = r;
-      t[n].selector.sims++;
+    if (t.nodes[n].successors.empty()) {
+      t.nodes[n].mean = r;
+      t.nodes[n].sims++;
     }
     else {
-      t[n].selector.mean = (r + t[n].selector.sims*t[n].selector.mean)/(t[n].selector.sims + 1);
-      t[n].selector.sims++;
+      t.nodes[n].mean = (r + t.nodes[n].sims*t.nodes[n].mean)/(t.nodes[n].sims + 1);
+      t.nodes[n].sims++;
     }
-    n = t[n].pred;
+    n = t.nodes[n].pred;
   }
   while (n != -1);
   return;
@@ -105,7 +148,7 @@ std::pair<int,double>
 csimulation(State state,
            Tasks tasks,
            Domain& domain,
-           CFM& cfm,
+           CPM& cpm,
            double likelihood,
            double max_likelihood,
            double alpha,
@@ -133,24 +176,12 @@ csimulation(State state,
       if (in(task.task_id, domain.cmethods)) {
           auto relevant = domain.cmethods[task.task_id];
           std::vector<cTasks> c = {};
-          double f_total = 0;
-          bool no_task = false;
-          for (auto cmethod : relevant) {
+          std::string key = "";
+          for (auto const &cmethod : relevant) {
               cTasks subtasks = cmethod(state, task.args);
               if (subtasks.first != "NIL") {
                 c.push_back(subtasks);
-                if (cfm.find(task.task_id) != cfm.end()) {
-                  if(cfm[task.task_id].find(subtasks.first) != cfm[task.task_id].end()) {
-                    f_total += cfm[task.task_id][subtasks.first];
-                  }
-                  else {
-                    f_total += alpha;
-                  }
-                }
-                else {
-                  no_task = true;
-                  f_total += alpha;
-                }
+                key += subtasks.first + "#";
               }
           }
           seed++;
@@ -160,19 +191,29 @@ csimulation(State state,
           cTasks r = *select_randomly(c.begin(), c.end(), seed);
           seed++;
           tasks.pop_back();
-          if (!no_task) {
-            if(cfm[task.task_id].find(r.first) != cfm[task.task_id].end()) {
-              likelihood = likelihood + log((cfm[task.task_id][r.first]/f_total));
+          if (r.first != "U") {
+            if (cpm.find(key) != cpm.end()) {
+              if (cpm[key].find(task.task_id) != cpm[key].end()) {
+                if (cpm[key][task.task_id].find(r.first) != cpm[key][task.task_id].end()) {
+                  likelihood = likelihood + log(cpm[key][task.task_id][r.first]); 
+                }
+                else {
+                  likelihood = likelihood + log(alpha);
+                }
+              }
+              else {
+                likelihood = likelihood + log(alpha);
+              }
             }
             else {
-              likelihood = likelihood + log((alpha/f_total));
+              likelihood = likelihood + log(alpha);
             }
           }
           else {
-            likelihood = likelihood + log((alpha/f_total));
+            likelihood = likelihood + log(1.0/c.size());
           }
           if (likelihood < max_likelihood) {
-            return std::make_pair(-1,likelihood);
+              return std::make_pair(-1,likelihood);
           }
           for (auto i = r.second.end();
               i != r.second.begin();) {
@@ -194,33 +235,31 @@ csimulation(State state,
     return std::make_pair(1,likelihood);
 }
 
-template <class State, class Domain, class Selector>
-int cexpansion(Tree<State, Selector>& t,
+template <class State, class Domain>
+int cexpansion(pTree<State>& t,
               int n,
               Domain& domain,
-              CFM& cfm,
-              Selector selector,
+              CPM& cpm,
               double alpha,
               int seed = 4021) {
-    Task task = t[n].tasks.back();
+    Task task = t.nodes[n].tasks.back();
 
     if (in(task.task_id, domain.operators)) {
         Operator<State> op = domain.operators[task.task_id];
-        std::optional<State> newstate = op(t[n].state, task.args);
+        std::optional<State> newstate = op(t.nodes[n].state, task.args);
         if (newstate) {
             pOperator<State> pop = domain.poperators[task.task_id];
-            Node<State, Selector> v;
+            pNode<State> v;
             v.state = newstate.value();
-            v.tasks = t[n].tasks;
+            v.tasks = t.nodes[n].tasks;
             v.tasks.pop_back();
-            v.depth = t[n].depth + 1;
-            v.cplan = t[n].cplan;
+            v.depth = t.nodes[n].depth + 1;
+            v.cplan = t.nodes[n].cplan;
             v.cplan.second.push_back(task);
-            v.selector = selector;
             v.pred = n;
-            v.likelihood = t[n].likelihood + log(pop(t[n].state,v.state,task.args));
-            int w = boost::add_vertex(v, t);
-            t[n].successors.push_back(w);
+            v.likelihood = t.nodes[n].likelihood + log(pop(t.nodes[n].state,v.state,task.args));
+            int w = t.add_node(v);
+            t.nodes[n].successors.push_back(w);
             return w;
         }
         std::string message = task.task_id;
@@ -232,57 +271,54 @@ int cexpansion(Tree<State, Selector>& t,
     if (in(task.task_id, domain.cmethods)) {
         auto relevant = domain.cmethods[task.task_id];
         std::vector<cTasks> c = {};
-        double f_total = 0;
-        bool no_task = false;
-        for (auto cmethod : relevant) {
-          cTasks subtasks = cmethod(t[n].state,task.args);
+        std::string key = "";
+        for (auto const &cmethod : relevant) {
+          cTasks subtasks = cmethod(t.nodes[n].state,task.args);
           if (subtasks.first != "NIL") {
             c.push_back(subtasks);
-            if (cfm.find(task.task_id) != cfm.end()) {
-              if(cfm[task.task_id].find(subtasks.first) != cfm[task.task_id].end()) {
-                f_total += cfm[task.task_id][subtasks.first];
-              }
-              else {
-                f_total += alpha;
-              }
-            }
-            else {
-              no_task = true;
-              f_total += alpha;
-            }
+            key += subtasks.first + "#";
           }
         }
         
         std::vector<int> c_count = {};
-        for (auto m : c) {
-          Node<State, Selector> v;
-          if (!no_task) {
-            if(cfm[task.task_id].find(m.first) != cfm[task.task_id].end()) {
-              v.likelihood = t[n].likelihood + log((cfm[task.task_id][m.first]/f_total));
+        for (auto const &m : c) {
+          pNode<State> v;
+          if (m.first != "U") {
+            if (cpm.find(key) != cpm.end()) {
+              if (cpm[key].find(task.task_id) != cpm[key].end()) {
+                if (cpm[key][task.task_id].find(m.first) != cpm[key][task.task_id].end()) {
+                  v.likelihood = t.nodes[n].likelihood + log(cpm[key][task.task_id][m.first]); 
+                }
+                else {
+                  v.likelihood = t.nodes[n].likelihood + log(alpha);
+                }
+              }
+              else {
+                v.likelihood = t.nodes[n].likelihood + log(alpha);
+              }
             }
             else {
-              v.likelihood = t[n].likelihood + log((alpha/f_total));
+              v.likelihood = t.nodes[n].likelihood + log(alpha);
             }
           }
           else {
-            v.likelihood = t[n].likelihood + log((alpha/f_total));
+            v.likelihood = t.nodes[n].likelihood + log(1.0/c_count.size());
           }
-          v.state = t[n].state;
-          v.tasks = t[n].tasks;
+
+          v.state = t.nodes[n].state;
+          v.tasks = t.nodes[n].tasks;
           v.tasks.pop_back();
-          v.depth = t[n].depth + 1;
-          v.cplan = t[n].cplan;
-          v.selector = selector;
+          v.depth = t.nodes[n].depth + 1;
+          v.cplan = t.nodes[n].cplan;
           for (auto i = m.second.end();
               i != m.second.begin();) {
             v.tasks.push_back(*(--i));
           }
           v.pred = n;
-          int w = boost::add_vertex(v, t);
-          t[n].successors.push_back(w);
+          int w = t.add_node(v);
+          t.nodes[n].successors.push_back(w);
           c_count.push_back(w);
         }
-        //std::cout << total << std::endl;
         seed++;
         if (c_count.empty()) {   
           return n;
@@ -293,42 +329,42 @@ int cexpansion(Tree<State, Selector>& t,
     throw std::logic_error("Invalid task during expansion!");
 }
 
-template <class State, class Domain, class Selector>
-void
-cseek_planMCTS(Tree<State,Selector>& t,
+template <class State, class Domain>
+cTasks
+cseek_planMCTS(pTree<State>& t,
                  int v,
                  Domain& domain,
-                 CFM& cfm,
-                 Selector selector,
+                 CPM& cpm,
                  int R = 30,
                  double eps = 0.4,
                  double alpha = 0.5,
-                 int seed = 4021) {
+                 int seed = 4021,
+                 int aux_R = 10) {
 
   double max_likelihood = log(0.0);
-  while (!t[v].tasks.empty()) {
-    Tree<State, Selector> m;
-    Node<State, Selector> n_node;
-    n_node.state = t[v].state;
-    n_node.tasks = t[v].tasks;
-    n_node.depth = t[v].depth;
-    n_node.cplan = t[v].cplan;
-    n_node.selector = selector;
-    n_node.likelihood = t[v].likelihood;
-    int w = boost::add_vertex(n_node, m);
+  pTree<State> m;
+  pNode<State> n_node;
+  n_node.state = t.nodes[v].state;
+  n_node.tasks = t.nodes[v].tasks;
+  n_node.depth = t.nodes[v].depth;
+  n_node.cplan = t.nodes[v].cplan;
+  n_node.likelihood = t.nodes[v].likelihood;
+  int w = m.add_node(n_node);
+  while (!m.nodes[w].tasks.empty()) {
+    int aux = aux_R;
     for (int i = 0; i < R; i++) {
       int n = cselection(m,w,eps,seed);
       seed++;
-      if (m[n].tasks.empty()) {
-          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,alpha,seed);
+      if (m.nodes[n].tasks.empty()) {
+          auto r = csimulation(m.nodes[n].state, m.nodes[n].tasks, domain, cpm, m.nodes[n].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
           cbackprop(m,n,r.first);
       }
       else {
-        if (m[n].selector.sims == 0) {
-          auto r = csimulation(m[n].state, m[n].tasks, domain, cfm, m[n].likelihood,max_likelihood,alpha,seed);
+        if (m.nodes[n].sims == 0) {
+          auto r = csimulation(m.nodes[n].state, m.nodes[n].tasks, domain, cpm, m.nodes[n].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -336,9 +372,19 @@ cseek_planMCTS(Tree<State,Selector>& t,
           cbackprop(m,n,r.first);
         }
         else {
-          int n_p = cexpansion(m,n,domain,cfm,selector,alpha,seed);
+          int n_p = cexpansion(m,n,domain,cpm,alpha,seed);
+          if (n_p == n) {
+            if (aux == 0) {
+              throw std::logic_error("Out of auxiliary resources, shutting down!");   
+            }
+            aux--;
+            i--;
+          }
+          else {
+            aux = aux_R;
+          }
           seed++;
-          auto r = csimulation(m[n_p].state, m[n_p].tasks, domain, cfm, m[n_p].likelihood,max_likelihood,alpha,seed);
+          auto r = csimulation(m.nodes[n_p].state, m.nodes[n_p].tasks, domain, cpm, m.nodes[n_p].likelihood,max_likelihood,alpha,seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -347,64 +393,137 @@ cseek_planMCTS(Tree<State,Selector>& t,
         }
       }
     }
-    int arg_max = m[w].successors.front();
-    double max = m[arg_max].selector.mean;
-    for (int s : m[w].successors) {
-        double mean = m[s].selector.mean;
+    int arg_max = m.nodes[w].successors.front();
+    double max = m.nodes[arg_max].mean;
+    for (auto const &s : m.nodes[w].successors) {
+        double mean = m.nodes[s].mean;
         if (mean > max) {
             max = mean;
             arg_max = s;
         }
     }
-    Node<State, Selector> k;
-    k.state = m[arg_max].state;
-    k.tasks = m[arg_max].tasks;
-    k.cplan = m[arg_max].cplan;
-    k.selector = selector;
-    k.depth = t[v].depth + 1;
+
+    for (auto const &s : m.nodes[w].successors) {
+      if (s != arg_max) {
+        m.delete_nodes(s);
+      }
+    }
+    m.delete_node(w);
+    m.nodes[arg_max].pred = -1;
+
+    pNode<State> k;
+    k.state = m.nodes[arg_max].state;
+    k.tasks = m.nodes[arg_max].tasks;
+    k.cplan = m.nodes[arg_max].cplan;
+    k.depth = t.nodes[v].depth + 1;
     k.pred = v;
-    k.likelihood = m[arg_max].likelihood;
-    int y = boost::add_vertex(k, t);
-    t[v].successors.push_back(y);
+    k.likelihood = m.nodes[arg_max].likelihood;
+    int y = t.add_node(k);
+    t.nodes[v].successors.push_back(y);
     seed++;
     v = y;
+
+    if (!m.nodes[arg_max].successors.empty()) {
+      std::mt19937 gen(seed);
+      std::uniform_real_distribution<double> dis(0.0,1.0);
+      bool step_again;
+      do {
+        if (m.nodes[arg_max].successors.size() == 1) {
+          step_again = true;
+          int new_arg_max = m.nodes[arg_max].successors.front();
+          m.delete_node(arg_max);
+          m.nodes[new_arg_max].pred = -1;
+          arg_max = new_arg_max;
+
+          pNode<State> j;
+          j.state = m.nodes[arg_max].state;
+          j.tasks = m.nodes[arg_max].tasks;
+          j.cplan = m.nodes[arg_max].cplan;
+          j.depth = t.nodes[v].depth + 1;
+          j.pred = v;
+          j.likelihood = m.nodes[arg_max].likelihood;
+          int y = t.add_node(j);
+          t.nodes[v].successors.push_back(y);
+          seed++;
+          v = y;
+        }
+        else {
+          int new_arg_max = m.nodes[arg_max].successors.front();
+          double max = m.nodes[new_arg_max].mean;
+          for (auto const &s : m.nodes[arg_max].successors) {
+            double mean = m.nodes[s].mean;
+            if (mean > max) {
+              max = mean;
+              new_arg_max = s;
+            }
+          }
+          double e = dis(gen); 
+          if (e <= exp(-(1.0/m.nodes[new_arg_max].sims))) {
+            step_again = true;
+            for (auto const &s : m.nodes[arg_max].successors) {
+              if (s != new_arg_max) {
+                m.delete_nodes(s);
+              }
+            }
+            m.delete_node(arg_max);
+            m.nodes[new_arg_max].pred = -1;
+            arg_max = new_arg_max;
+
+            pNode<State> j;
+            j.state = m.nodes[arg_max].state;
+            j.tasks = m.nodes[arg_max].tasks;
+            j.cplan = m.nodes[arg_max].cplan;
+            j.depth = t.nodes[v].depth + 1;
+            j.pred = v;
+            j.likelihood = m.nodes[arg_max].likelihood;
+            int y = t.add_node(j);
+            t.nodes[v].successors.push_back(y);
+            seed++;
+            v = y;
+          }
+          else {
+            step_again = false;
+          }
+        }
+      } while (step_again && !m.nodes[arg_max].successors.empty());
+    }
+    w = arg_max;
+    seed++;
   }
-  t[boost::graph_bundle].cplans.push_back(t[v].cplan);
-  std::cout << "Plan found at depth " << t[v].depth << " and score of " << t[v].selector.rewardFunc(t[v].state);
-  std::cout << " with likelihood " << t[v].likelihood << std::endl;
+  std::cout << "Plan found at depth " << t.nodes[v].depth;
+  std::cout << " with likelihood " << t.nodes[v].likelihood << std::endl;
   std::cout << std::endl;
   std::cout << "Final State:" << std::endl;
-  std::cout << t[v].state.to_json() << std::endl;
+  std::cout << t.nodes[v].state.to_json() << std::endl;
   std::cout << std::endl;
-  return;
+  return t.nodes[v].cplan;
 
 }
 
-template <class State, class Domain, class Selector>
-std::pair<Tree<State,Selector>,int> cppMCTShop(State state,
+template <class State, class Domain>
+std::pair<pTree<State>,int> cppMCTShop(State state,
                   Tasks tasks,
                   Domain& domain,
-                  CFM& cfm,
-                  Selector selector,
+                  CPM& cpm,
                   int R,
                   double eps = 0.4,
                   double alpha = 0.5,
-                  int seed = 4021) {
-    Tree<State, Selector> t;
-    Node<State, Selector> root;
+                  int seed = 4021,
+                  int aux_R = 10) {
+    pTree<State> t;
+    pNode<State> root;
     root.state = state;
     root.tasks = tasks;
     root.cplan = {};
     root.depth = 0;
-    root.selector = selector;
     root.likelihood = 0.0;
-    int v = boost::add_vertex(root, t);
+    int v = t.add_node(root);
     std::cout << std::endl;
     std::cout << "Initial State:" << std::endl;
-    std::cout << t[v].state.to_json() << std::endl;
+    std::cout << t.nodes[v].state.to_json() << std::endl;
     std::cout << std::endl;
-    cseek_planMCTS(t, v, domain, cfm, selector, R, eps, alpha, seed);
+    auto plan = cseek_planMCTS(t, v, domain, cpm, R, eps, alpha, seed);
     std::cout << "Plan:" << std::endl;
-    print(t[boost::graph_bundle].cplans.back());
+    print(plan);
     return std::make_pair(t,v);
 }

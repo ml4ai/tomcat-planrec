@@ -1,10 +1,9 @@
-#include "domains/team_comp_sar.h"
+#include <nlohmann/json.hpp>
+#include "../data_parsing/parsers/team_comp_sar_parser.h"
 #include <math.h>
 #include <stdlib.h>
-#include "plan_trace.h"
-#include "plangrapher.h"
-#include <istream>
-#include <nlohmann/json.hpp>
+#include <iostream>
+#include "cppMCTStrain.h"
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -13,10 +12,13 @@ using json = nlohmann::json;
 using namespace std;
 
 int main(int argc, char* argv[]) {
+  bool use_t = false; 
   int R = 30;
   double e = 0.4;
-  double alpha = 0.5;
   int aux_R = 10;
+
+  std::string infile1 = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000415_Team-TM000108_Member-na_CondBtwn-1_CondWin-SaturnA_Vers-4.metadata";
+  std::string infile2 = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
   std::string cpm_json;
   try {
@@ -24,8 +26,7 @@ int main(int argc, char* argv[]) {
     desc.add_options()
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
-      ("exp_param,e",po::value<double>(),"The exploration parameter for the planner (double)")
-      ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CFM (default)")
+      ("exp_param,e",po::value<double>(),"The exploration parameter for the plan recognition algorithm (double)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
       ("cpm_json,j",po::value<std::string>(),"json file to parse CPM (string)")
       ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
@@ -48,10 +49,6 @@ int main(int argc, char* argv[]) {
       e = vm["exp_param"].as<double>();
     }
 
-    if (vm.count("alpha")) {
-      alpha = vm["alpha"].as<double>();
-    }
-
     if (vm.count("aux_r")) {
       aux_R = vm["aux_r"].as<int>();
     }
@@ -71,18 +68,13 @@ int main(int argc, char* argv[]) {
   catch(...) {
     std::cerr << "Exception of unknown type!\n";
   }
+ 
 
     std::ifstream f(map_json);
     json g;
     f >> g;
-  
+
     auto state1 = TeamSARState();
-    std::string agent1 = "A1";
-    std::string agent2 = "A2";
-    std::string agent3 = "A3";
-    state1.agents.push_back(agent1);
-    state1.agents.push_back(agent2);
-    state1.agents.push_back(agent3);
     
     state1.class_only_boundary = "el";
     state1.change_zone = g["change_zone"].get<std::string>();
@@ -95,10 +87,10 @@ int main(int argc, char* argv[]) {
     for (auto& z : g["zones"]) {
       state1.zones.push_back(z.get<std::string>());
     }
-    
+
     for (auto& [l,vl] : g["graph"].items()) {
       for (auto& c : vl) {
-        state1.graph[l].push_back(c.get<std::string>()); 
+        state1.graph[l].push_back(c.get<std::string>());
       }
     }
 
@@ -111,30 +103,6 @@ int main(int argc, char* argv[]) {
     }
     for (auto& r : g["rooms"]) {
       state1.rooms.push_back(r.get<std::string>());
-    }
-
-
-    for (auto a : state1.agents) {
-      state1.role[a] = "NONE";
-
-      state1.agent_loc[a] = state1.change_zone;
-
-      state1.holding[a] = false;
-
-      state1.time[a] = 0;
-
-      state1.loc_tracker[a] = {};
-
-      state1.action_tracker[a] = {};
-
-      for (auto s : state1.zones) {
-        if (s == state1.change_zone) {
-          state1.visited[a][s] = 1;
-        }
-        else {
-          state1.visited[a][s] = 0;
-        }
-      }
     }
     
     for (auto s : state1.zones) {
@@ -149,35 +117,86 @@ int main(int argc, char* argv[]) {
     }
 
     state1.c_triage_total = 0;
-
+  
     state1.r_triage_total = 0;
-
+  
     state1.c_max = 5;
     state1.r_max = 50;
-
+  
     auto domain = TeamSARDomain();
-    
+
     CPM cpm = {};
 
     if (cpm_json != "") {
-      std::ifstream i(cpm_json); 
+      std::ifstream i(cpm_json);
       json j;
       i >> j;
       for (auto& [k1, v1] : j.items()) {
         for (auto& [k2,v2] : v1.items()) {
-          for (auto& [k3, v3] : v2.items()) {
+          for (auto& [k3,v3] : v2.items()) {
             cpm[k1][k2][k3] = v3;
           }
         }
       }
     }
 
-    Tasks tasks = {
-        {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-    auto pt = cppMCTShop(state1, tasks, domain, cpm,R,e,alpha,4021,aux_R);
+    parse_data p1;
 
-    json j_tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_comp_sar_trace_tree.json");
-    generate_graph_from_json(j_tree, "team_comp_sar_tree_graph.png");
-    generate_plan_trace(pt.first,pt.second,true,"team_comp_sar_trace.json");
+    p1 = team_sar_parser(infile1,state1, domain, -1);
+
+    
+    p1.initial_state.action_tracker = p1.action_tracker;
+    p1.initial_state.loc_tracker = p1.loc_tracker;
+
+    p1.initial_state.plan_rec = true;
+
+    Tasks tasks1 = {
+      {Task("SAR", Args({{"agent3", p1.initial_state.agents[2]},
+                         {"agent2", p1.initial_state.agents[1]},
+                         {"agent1", p1.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p1.initial_state.agents[0],p1.initial_state.agents[1],p1.initial_state.agents[2]})}};
+
+    auto cfm1 = cppMCTStrain(p1.team_plan,
+                          p1.initial_state,
+                          tasks1,
+                          domain,
+                          cpm,
+                          R,
+                          e,
+                          2021,
+                          aux_R);
+
+    //parse_data p2;
+
+    //p2 = team_sar_parser(infile2,state1, domain, -1);
+
+    
+    //p2.initial_state.action_tracker = p2.action_tracker;
+    //p2.initial_state.loc_tracker = p2.loc_tracker;
+
+    //p2.initial_state.plan_rec = true;
+
+    //Tasks tasks2 = {
+    //  {Task("SAR", Args({{"agent3", p2.initial_state.agents[2]},
+    //                     {"agent2", p2.initial_state.agents[1]},
+    //                     {"agent1", p2.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p2.initial_state.agents[0],p2.initial_state.agents[1],p2.initial_state.agents[2]})}};
+
+    //auto cfm2 = cppMCTStrain(p2.team_plan,
+    //                      p2.initial_state,
+    //                      tasks2,
+    //                      domain,
+    //                      cpm,
+    //                      R,
+    //                      e,
+    //                      2021,
+    //                      aux_R);
+
+    std::vector<CFM> cfms;
+    cfms.push_back(cfm1);
+    //cfms.push_back(cfm2);
+    estimate_probs(cfms,cpm);
+    json k = cpm;
+    std::ofstream a("sar_cpm.json");
+    a << std::setw(4) << k << std::endl;
+
     return EXIT_SUCCESS;
 }

@@ -26,7 +26,8 @@ using cTasks = std::pair<std::string, Tasks>;
 using Plans = std::vector<pTasks>;
 using cPlans = std::vector<cTasks>;
 
-using CFM = std::unordered_map<std::string, std::unordered_map<std::string, double>>;
+using CFM = std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string,int>>>;
+using CPM = std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string,double>>>;
 
 
 template <class State> using Operator = std::optional<State> (*)(State, Args);

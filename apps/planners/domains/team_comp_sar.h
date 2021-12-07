@@ -596,61 +596,32 @@ template <class State> cTasks single_agent_no_class(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_no_class_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("No_class", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_no_class(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_no_class_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("No_class", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -661,36 +632,30 @@ template <class State> cTasks comp_change(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool role_change = false;
-  bool act_available = false;
-  int min_time = 900;
-  std::vector<int> change_time = {};
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (stoi(act.start,nullptr) < min_time) {
-        min_time = stoi(act.start,nullptr);
-      }
-      if (act.action.substr(0,11) == "!change_to_") {
-        role_change = true;
-        change_time.push_back(stoi(act.start,nullptr));
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!role_change) {
-      return {"NIL",{}};
-    }
-    else {
-      if (!in(min_time,change_time)) {
-        return {"NIL",{}};
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.action.substr(0,11) == "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
 
-  if ((state.time[agent1] < 900 && !state.holding[agent1]) || (state.time[agent2] < 900 && !state.holding[agent2]) || (state.time[agent3] < 900 && !state.holding[agent3])) {
+  if (((state.time[agent1] < 900 && state.agent_loc[agent1] == state.change_zone) || 
+      (state.time[agent2] < 900 && state.agent_loc[agent2] == state.change_zone) || 
+      (state.time[agent3] < 900 && state.agent_loc[agent3] == state.change_zone)) && 
+      min_agent != "NIL") {
     std::string cond;
     if (state.team_comp.size() <= 2) {
       cond = "comp_change_0";
@@ -728,7 +693,7 @@ template <class State> cTasks comp_change(State state, Args args) {
     }
 
    return {cond,
-          {Task("Team_composition_change", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+          {Task("Team_composition_change", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
 }
@@ -750,61 +715,32 @@ template <class State> cTasks single_agent_h(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_h_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("H", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_h(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_h_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("H", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -827,61 +763,32 @@ template <class State> cTasks single_agent_m(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_m_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("M", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_m(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_m_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("M", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -904,61 +811,32 @@ template <class State> cTasks single_agent_s(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_s_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("S", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_s(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_s_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("S", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -981,61 +859,32 @@ template <class State> cTasks single_agent_hh(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_hh_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("HH", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_hh(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_hh_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HH", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1058,61 +907,32 @@ template <class State> cTasks single_agent_hm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_hm_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("HM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_hm(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_hm_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1135,61 +955,32 @@ template <class State> cTasks single_agent_hs(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"single_agent_hs",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("HS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_hs(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_hs_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
+    return {"single_agent_hs_0",
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1212,61 +1003,32 @@ template <class State> cTasks single_agent_mm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_mm_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("MM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_mm(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_mm_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1289,61 +1051,32 @@ template <class State> cTasks single_agent_ms(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_ms_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("MS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_ms(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_ms_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1366,61 +1099,32 @@ template <class State> cTasks single_agent_ss(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_ss_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("SS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_ss(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_ss_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("SS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1443,61 +1147,32 @@ template <class State> cTasks single_agent_hhh(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_hhh_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("HHH", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_hhh(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_hhh_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HHH", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1520,29 +1195,32 @@ template <class State> cTasks single_agent_hhm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_hhm_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HHM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1639,61 +1317,32 @@ template <class State> cTasks single_agent_hhs(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_hhs_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("HHS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_hhs(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_hhs_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HHS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1716,29 +1365,32 @@ template <class State> cTasks single_agent_hmm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_hmm_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HMM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1835,29 +1487,32 @@ template <class State> cTasks single_agent_hms(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_hms_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HMS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1954,61 +1609,32 @@ template <class State> cTasks single_agent_hss(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_hss_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("HSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_hss(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_hss_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -2031,32 +1657,36 @@ template <class State> cTasks single_agent_mmm(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_mmm_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MMM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
+
 }
 
 template <class State> cTasks group_mmm(State state, Args args) {
@@ -2151,29 +1781,32 @@ template <class State> cTasks single_agent_mms(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_mms_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MMS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -2270,29 +1903,32 @@ template <class State> cTasks single_agent_mss(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_mss_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -2389,61 +2025,32 @@ template <class State> cTasks single_agent_sss(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  bool single_agent_tasks = false;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent != "all" && act.action != "exit" &&
-          act.action.substr(0,11) != "!change_to_") {
-        single_agent_tasks = true;
+  std::string min_agent = "";
+  if (state.plan_rec) {
+    int min_time = 900;
+    min_agent = "NIL";
+    std::vector<int> single_time = {};
+    for (auto a : state.agents) {
+      if (!state.action_tracker[a].empty()) {
+        auto act = state.action_tracker[a].back();
+        if (stoi(act.start,nullptr) < min_time) {
+          min_time = stoi(act.start,nullptr);
+          if (act.agent != "all" && act.action != "!exit" &&
+            act.action.substr(0,11) != "!change_to_") {
+            min_agent = a;
+          }
+          else {
+            min_agent = "NIL";
+          }
+        }
       }
     }
   }
-  
-  if (act_available) {
-    if (!single_agent_tasks) {
-      return {"NIL",{}};
-    }
-  }
 
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent_time < 900 && min_agent != "NIL") {
     return {"single_agent_sss_0",
-          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-           Task("SSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks group_sss(State state, Args args) {
-  auto agent1 = args["agent1"];
-  auto agent2 = args["agent2"];
-  auto agent3 = args["agent3"];
-
-  bool group_task = true;
-  bool act_available = false;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (act.agent == a) {
-        group_task = false;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!group_task) {
-      return {"NIL",{}};
-    }
-  }
-
-  int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_time < 900) {
-    return {"group_sss_0",
-          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+          {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("SSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -2453,33 +2060,10 @@ template <class State> cTasks agent1_task(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
+  auto min_agent = args["min_agent"];
 
-  bool has_task = false;
-  bool act_available = false;
-  auto min_agent = agent1;
-  int min_time = 900;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (stoi(act.start,nullptr) < min_time) {
-        min_time = stoi(act.start,nullptr);
-        min_agent = a;
-      }
-      if (act.agent == agent1 && act.action != "exit" && 
-          act.action.substr(0,11) != "!change_to_") {
-        has_task = true;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!has_task) {
-      return {"NIL",{}};
-    }
-  }
-  else {
-    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent.empty()) {
+    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
     if (min_time != state.time[agent1]) {
       min_agent = "NIL";
     }
@@ -2496,33 +2080,10 @@ template <class State> cTasks agent2_task(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
+  auto min_agent = args["min_agent"];
 
-  bool has_task = false;
-  bool act_available = false;
-  auto min_agent = agent2;
-  int min_time = 900;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (stoi(act.start,nullptr) < min_time) {
-        min_time = stoi(act.start,nullptr);
-        min_agent = a;
-      }
-      if (act.agent == agent2 && act.action != "exit" && 
-          act.action.substr(0,11) != "!change_to_") {
-        has_task = true;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!has_task) {
-      return {"NIL",{}};
-    }
-  }
-  else {
-    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent.empty()) {
+    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
     if (min_time != state.time[agent2]) {
       min_agent = "NIL";
     }
@@ -2539,33 +2100,10 @@ template <class State> cTasks agent3_task(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
+  auto min_agent = args["min_agent"];
 
-  bool has_task = false;
-  bool act_available = false;
-  auto min_agent = agent3;
-  int min_time = 900;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (stoi(act.start,nullptr) < min_time) {
-        min_time = stoi(act.start,nullptr);
-        min_agent = a;
-      }
-      if (act.agent == agent3 && act.action != "exit" && 
-          act.action.substr(0,11) != "!change_to_") {
-        has_task = true;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!has_task) {
-      return {"NIL",{}};
-    }
-  }
-  else {
-    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent.empty()) {
+    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
     if (min_time != state.time[agent3]) {
       min_agent = "NIL";
     }
@@ -2633,7 +2171,8 @@ template <class State> cTasks clear_area(State state, Args args) {
 
       return {cond,
       {Task("Clear_area",Args({{"area",state.agent_loc[agent]},
-                                      {"agent",agent}}),{"agent","area"},{agent})}};
+                               {"agent",agent},
+                               {"blocks_broken","0"}}),{"agent","area"},{agent})}};
   }  
   return {"NIL",{}};
 }
@@ -2641,7 +2180,7 @@ template <class State> cTasks clear_area(State state, Args args) {
 template <class State> cTasks break_blocks(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
-
+  auto current_blocks_broken = std::stoi(args["blocks_broken"],nullptr);
   std::string duration;
   std::string start;
   if (!state.action_tracker[agent].empty()) {
@@ -2692,13 +2231,16 @@ template <class State> cTasks break_blocks(State state, Args args) {
       cond = "break_blocks_0";
     }
 
+    current_blocks_broken++;
+
     return {cond,
       {Task("!break_block",Args({{"duration",duration},
                             {"start",start},
                             {"area",area},
                             {"agent",agent}}),{"agent","area","start","duration"},{agent}),
        Task("Clear_area",Args({{"area",area},
-                               {"agent",agent}}),{"agent","area"},{agent})}};
+                               {"agent",agent},
+                               {"blocks_broken",std::to_string(current_blocks_broken)}}),{"agent","area"},{agent})}};
   }  
   return {"NIL",{}};
 }
@@ -2706,7 +2248,8 @@ template <class State> cTasks break_blocks(State state, Args args) {
 template <class State> cTasks done_breaking(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
-  if (state.role[agent] == "Hazardous_Material_Specialist") {
+  auto current_blocks_broken = std::stoi(args["blocks_broken"],nullptr);
+  if (state.role[agent] == "Hazardous_Material_Specialist" && current_blocks_broken > 0) {
     std::string cond;
 
     int blocks_broken;
@@ -2934,7 +2477,8 @@ template <class State> cTasks triage_regs_in_area(State state, Args args) {
 
     return {cond,
       {Task("Triage_regs_in_area",Args({{"area",state.agent_loc[agent]},
-                            {"agent",agent}}), {"agent","area"},{agent})}};
+                                        {"agent",agent},
+                                        {"regs_triaged","0"}}), {"agent","area"},{agent})}};
   }  
   return {"NIL",{}};
 }
@@ -2942,7 +2486,7 @@ template <class State> cTasks triage_regs_in_area(State state, Args args) {
 template <class State> cTasks triage_regs(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
-
+  auto regs_triaged = std::stoi(args["regs_triaged"],nullptr);
   std::string duration;
   std::string start;
   if (!state.action_tracker[agent].empty()) {
@@ -2994,13 +2538,16 @@ template <class State> cTasks triage_regs(State state, Args args) {
     else {
       cond = "triage_regs_0";
     }
+
+    regs_triaged++;
     return {cond,
       {Task("!triageReg",Args({{"duration",duration},
                                 {"start",start},
                                 {"area",area},
                                 {"agent",agent}}),{"agent","area","start","duration"},{agent}),
        Task("Triage_regs_in_area",Args({{"area",area},
-                                {"agent",agent}}),{"agent","area"},{agent})}};
+                                        {"agent",agent},
+                                        {"regs_triaged",std::to_string(regs_triaged)}}),{"agent","area"},{agent})}};
   }  
   return {"NIL",{}};
 }
@@ -3009,7 +2556,9 @@ template <class State> cTasks done_triaging(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
 
-  if (state.role[agent] == "Medical_Specialist") {
+  auto regs_triaged = std::stoi(args["regs_triaged"],nullptr);
+
+  if (state.role[agent] == "Medical_Specialist" && regs_triaged > 0) {
     std::string cond;;
 
     bool r_triaged_here;
@@ -3274,7 +2823,10 @@ template<class State> cTasks need_to_do_something_else(State state,Args args) {
       return {"NIL",{}};
     }
   }
-  return {"need_to_do_something_else_0", {}};
+  if (state.role[agent] == "Search_Specialist" && state.holding[agent]) {
+    return {"need_to_do_something_else_0", {}};
+  }
+  return {"NIL",{}};
 
 }
 
@@ -3401,38 +2953,16 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
+  auto min_agent = args["min_agent"];
 
-  bool change_role = false;
-  bool act_available = false;
-  auto min_agent = agent1;
-  int min_time = 900;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (stoi(act.start,nullptr) < min_time) {
-        min_time = stoi(act.start,nullptr);
-        min_agent = a;
-      }
-      if (act.action.substr(0,11) == "!change_to_" && act.agent == agent1) {
-        change_role = true;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!change_role) {
-      return {"NIL",{}};
-    }
-  }
-  else {
-    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent.empty()) {
+    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
     if (min_time != state.time[agent1]) {
       min_agent = "NIL";
     }
   }
 
-  if (state.time[agent1] < 900 && !state.holding[agent1] && min_agent == agent1) {
+  if (state.time[agent1] < 900 && state.agent_loc[agent1] == state.change_zone && min_agent == agent1) {
     std::string cond = "agent1_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent1] == "Hazardous_Material_Specialist") {
@@ -3509,38 +3039,16 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
+  auto min_agent = args["min_agent"];
 
-  bool change_role = false;
-  bool act_available = false;
-  auto min_agent = agent2;
-  int min_time = 900;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (stoi(act.start,nullptr) < min_time) {
-        min_time = stoi(act.start,nullptr);
-        min_agent = a;
-      }
-      if (act.action.substr(0,11) == "!change_to_" && act.agent == agent2) {
-        change_role = true;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!change_role) {
-      return {"NIL",{}};
-    }
-  }
-  else {
-    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent.empty()) {
+    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
     if (min_time != state.time[agent2]) {
       min_agent = "NIL";
     }
   }
 
-  if (state.time[agent2] < 900 && !state.holding[agent2] && min_agent == agent2) {
+  if (state.time[agent2] < 900 && state.agent_loc[agent2] == state.change_zone && min_agent == agent2) {
     std::string cond = "agent2_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent2] == "Hazardous_Material_Specialist") {
@@ -3617,38 +3125,16 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
+  auto min_agent = args["min_agent"];
 
-  bool change_role = false;
-  bool act_available = false;
-  auto min_agent = agent3;
-  int min_time = 900;
-  for (auto a : state.agents) {
-    if (!state.action_tracker[a].empty()) {
-      act_available = true;
-      auto act = state.action_tracker[a].back();
-      if (stoi(act.start,nullptr) < min_time) {
-        min_time = stoi(act.start,nullptr);
-        min_agent = a;
-      }
-      if (act.action.substr(0,11) == "!change_to_" && act.agent == agent3) {
-        change_role = true;
-      }
-    }
-  }
-  
-  if (act_available) {
-    if (!change_role) {
-      return {"NIL",{}};
-    }
-  }
-  else {
-    min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (min_agent.empty()) {
+    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
     if (min_time != state.time[agent3]) {
       min_agent = "NIL";
     }
   }
 
-  if (state.time[agent3] < 900 && !state.holding[agent3] && min_agent == agent3) {
+  if (state.time[agent3] < 900 && state.agent_loc[agent3] == state.change_zone && min_agent == agent3) {
     std::string cond = "agent3_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent3] == "Hazardous_Material_Specialist") {
@@ -3721,58 +3207,6 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
   return {"NIL",{}};
 }
 
-template <class State> cTasks changing_role(State state, Args args) {
-  auto agent = args["agent"];
-
-  if (state.time[agent] < 900) {
-    return {"changing_role_0",
-          {Task("Changing_role", Args({{"agent",agent}}),{"agent"},{agent})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks moving_to_change_zone(State state, Args args) {
-  auto agent = args["agent"];
-
-  std::string duration;
-  std::string start;
-  if (!state.action_tracker[agent].empty()) {
-    auto act = state.action_tracker[agent].back();
-    if (act.action != "!move") {
-      return {"NIL",{}};
-    } 
-    duration = act.duration;
-    start = act.start;
-  }
-  else {
-    duration = "1";
-    start = std::to_string(state.time[agent]);
-  }
-
-  std::string n_area;
-  if (state.loc_tracker[agent].empty()) {
-      n_area = sample_loc(state.graph[state.agent_loc[agent]],state.dist_from_change_zone,state.seed);
-      state.seed++;
-  }
-  else {
-    n_area = state.loc_tracker[agent].back();
-  }
-  if (state.time[agent] < 900 && state.agent_loc[agent] != state.change_zone) {
-    return {"moving_to_change_zone_0",
-          {Task("!move", Args({{"agent",agent},
-                               {"c_area",state.agent_loc[agent]},
-                               {"n_area",n_area},
-                               {"start",start},
-                               {"duration",duration}}),{"agent",
-                                                        "c_area",
-                                                        "n_area",
-                                                        "start",
-                                                        "duration"},{agent}),
-           Task("Changing_role", Args({{"agent",agent}}),{"agent"},{agent})}};
-  }
-  return {"NIL",{}};
-}
-
 template <class State> cTasks picking_role(State state, Args args) {
   auto agent = args["agent"];
 
@@ -3786,22 +3220,6 @@ template <class State> cTasks picking_role(State state, Args args) {
   if (state.time[agent] < 900 && state.agent_loc[agent] == state.change_zone) {
     return {"picking_role_0",
           {Task("Pick_new_role", Args({{"agent",agent}}),{"agent"},{agent})}};
-  }
-  return {"NIL",{}};
-}
-
-template <class State> cTasks no_time_to_change(State state, Args args) {
-  auto agent = args["agent"];
-
-  if (!state.action_tracker[agent].empty()) {
-    auto act = state.action_tracker[agent].back();
-    if (act.action != "!exit") {
-      return {"NIL",{}};
-    } 
-  }
-
-  if (state.time[agent] >= 900) {
-    return {"no_time_to_change_0",{}};
   }
   return {"NIL",{}};
 }
@@ -3981,35 +3399,25 @@ template <class State> cTasks out_of_time(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
+  bool exit_available = true; 
   bool act_available = false;
   for (auto a : state.agents) {
     if (!state.action_tracker[a].empty()) {
       act_available = true;
-    }
-  }
-
-  auto min_agent = agent1;
-  if (!act_available) {
-    auto min_time = state.time[agent1];
-    for (auto a : state.agents) {
-      if (state.time[a] < min_time) {
-        min_agent = a;
-        min_time = state.time[a];
+      if (state.action_tracker[a].back().action != "!exit") {
+        exit_available = false;
       }
     }
   }
-  else { 
-    if (state.action_tracker[min_agent].empty()) {
-      return {"NIL",{}};
-    }
-    Action act = state.action_tracker[min_agent].back();
-    if (act.action == "!exit") {
+
+  if (act_available) { 
+    if (exit_available) {
       return {"out_of_time_0",{}};
     }
     return {"NIL",{}};
   }
 
-  if (state.time[min_agent] >= 900) {
+  if (state.time[agent1] >= 900 && state.time[agent2] >= 900 && state.time[agent3] >= 900) {
     return {"out_of_time_0",{}};
   }
   return {"NIL",{}};
@@ -4400,6 +3808,7 @@ class TeamSARState {
     // Not part of the state representation!
     std::unordered_map<std::string,std::vector<Action>> action_tracker;
     std::unordered_map<std::string,std::vector<std::string>> loc_tracker;
+    bool plan_rec = false;
     int seed = 100;
 
     nlohmann::json to_json() {
@@ -4429,21 +3838,6 @@ class TeamSARState {
                {"marked_opening_2", this->marked_opening_2},
                {"marked_opening_3", this->marked_opening_3}};
     }
-};
-
-class TeamSARSelector {
-  public:
-    double mean = 0.0;
-    int sims = 0;
-
-    double selectFunc(int pSims, double c, int r_l, int r_t) {
-      return this->mean + ((c*r_l)/r_t)*sqrt(log(pSims)/this->sims);
-    }
-
-    double rewardFunc(TeamSARState s) {
-      return (50.00*s.c_triage_total + 10.00*s.r_triage_total)/(50.00*s.c_max + 10.00*s.r_max);
-    }
-
 };
 
 class TeamSARDomain {
@@ -4651,15 +4045,11 @@ class TeamSARDomain {
                            agent2_change_role,
                            agent3_change_role}},
                          {"Agent_1_change_role",
-                          {changing_role}},
+                          {picking_role}},
                          {"Agent_2_change_role",
-                          {changing_role}},
+                          {picking_role}},
                          {"Agent_3_change_role",
-                          {changing_role}},
-                         {"Changing_role",
-                          {moving_to_change_zone,
-                           picking_role,
-                           no_time_to_change}},
+                          {picking_role}},
                          {"Pick_new_role",
                           {choose_Medical_Specialist,
                            choose_Hazardous_Material_Specialist,

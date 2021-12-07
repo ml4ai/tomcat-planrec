@@ -3,20 +3,19 @@
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <map>
-#include "cpphop.h"
 #include <math.h>
 #include "typedefs.h"
 
 using json = nlohmann::json;
 
 template <class State,class Selector>
-class Node {
-  public:
+struct Node {
     State state;
     Tasks tasks;
     int depth;
     pTasks plan;
     cTasks cplan;
+    CFM cfm;
     json team_plan;
     Selector selector;
     double likelihood;
