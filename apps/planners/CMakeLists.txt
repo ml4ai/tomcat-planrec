@@ -15,6 +15,11 @@ add_executable(simple_travel_planner simple_travel_planner.cpp)
 target_include_directories(simple_travel_planner PRIVATE ${Boost_INCLUDE_DIR}
     ../../lib/cpphop)
 
+# Simple transporting example, translated from PyHOP
+add_executable(simple_transporting_planner simple_transporting_planner.cpp)
+target_include_directories(simple_transporting_planner PRIVATE ${Boost_INCLUDE_DIR}
+        ../../lib/cpphop)
+
 # Simple SAR domain, using PyHOP procedure (translated to C++)
 add_executable(simple_sar_planner simple_sar_planner.cpp)
 target_include_directories(simple_sar_planner PRIVATE ${Boost_INCLUDE_DIR}

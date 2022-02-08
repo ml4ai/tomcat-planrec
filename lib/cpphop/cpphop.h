@@ -123,6 +123,8 @@ seek_planDFS(Tree<State, Selector>& t, int v, Domain domain) {
         }
         return t;
     }
+
+    return t;
 }
 
 template <class State, class Domain>
