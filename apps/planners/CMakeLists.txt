@@ -16,7 +16,7 @@ target_include_directories(simple_travel_planner PRIVATE ${Boost_INCLUDE_DIR}
     ../../lib/cpphop)
 
 # Simple transporting example, translated from PyHOP
-add_executable(simple_transporting_planner simple_transporting_planner.cpp)
+add_executable(simple_transporting_planner simple_transport_planner.cpp)
 target_include_directories(simple_transporting_planner PRIVATE ${Boost_INCLUDE_DIR}
         ../../lib/cpphop)
 
