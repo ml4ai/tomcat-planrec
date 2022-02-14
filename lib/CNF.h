@@ -317,13 +317,20 @@ namespace ast {
     };
 
     struct RemoveQuantifiers : public boost::static_visitor<Sentence> {
-        Sentence operator()(Nil s) const { return s; }
-        Sentence operator()(Literal<Term> s) const { return s; }
-        Sentence operator()(ConnectedSentence s) const { return s; }
-        Sentence operator()(NotSentence s) const { return s; }
-        Sentence operator()(ImplySentence s) const { return s; }
+        Sentence operator()(ConnectedSentence s) const {
+            ConnectedSentence rs;
+            rs.connector = s.connector;
+            rs.sentences.push_back(visit<RemoveQuantifiers>((Sentence)s.sentences[0]));
+            rs.sentences.push_back(visit<RemoveQuantifiers>((Sentence)s.sentences[1]));
+            return rs;
+        }
+        Sentence operator()(NotSentence s) const {
+            NotSentence rs{visit<RemoveQuantifiers>((Sentence)s.sentence)};
+            return rs;
+        }
         Sentence operator()(QuantifiedSentence s) const { return s; }
-        Sentence operator()(EqualsSentence s) const { return s; }
+
+        template <class T> Sentence operator()(T s) const { return s; }
     };
 
     struct DistributeOrOverAnd : public boost::static_visitor<Sentence> {
@@ -442,9 +449,11 @@ namespace ast {
         auto s1 = visit<GeneratePairSentence>(s);
         auto s2 = visit<ImplicationsOut>(s1);
         auto s3 = visit<NegationsIn>(s2);
-        auto s4 = visit<DistributeOrOverAnd>(s3);
-        auto s5 = construct(s4);
+        auto s4 = boost::apply_visitor(StandardizeQuantiferVariables(), s3);
+        auto s5 = boost::apply_visitor(RemoveQuantifiers(), s4);
+        auto s6 = visit<DistributeOrOverAnd>(s5);
+        auto s7 = construct(s6);
 
-        return s5;
+        return s7;
     }
 } // namespace ast
