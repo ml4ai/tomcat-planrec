@@ -3,6 +3,7 @@
 #include "Clause.h"
 #include "Hash.h"
 #include "boost/variant.hpp"
+#include "fol/FOLDomain.h"
 #include "fol/Function.h"
 #include "parsing/ast.hpp"
 #include "util/boost_variant_helpers.h"
@@ -161,6 +162,7 @@ namespace ast {
 
     struct StandardizeApartIndexical {
         int index = 0;
+
       public:
         std::string getPrefix() { return "q"; }
         int getNextIndex() { return this->index++; }
@@ -213,6 +215,83 @@ namespace ast {
                     if (typeid(st) == typeid(Variable)) {
                         Variable rs;
                         rs.name = st.name;
+                        variables.push_back(rs);
+                    }
+                }
+                else {
+                    Variable rs;
+                    rs.name = v.name;
+                    variables.push_back(rs);
+                }
+            }
+            if (variables.empty()) {
+                return quantifiedAfterSubs;
+            }
+
+            QuantifiedSentence rs;
+            rs.quantifier = s.quantifier;
+            for (const auto& variable : variables) {
+                rs.variables.implicitly_typed_list.push_back(variable);
+            }
+            rs.sentence = quantifiedAfterSubs;
+
+            return rs;
+        }
+        Sentence operator()(EqualsSentence s) const {
+            BOOST_THROW_EXCEPTION(std::runtime_error(
+                "EqualsSentence handling not yet implemented!"));
+        }
+
+        template <class T> Sentence operator()(T s) const { return s; }
+    };
+
+    struct SubstVisitor2 : public boost::static_visitor<Sentence>,
+                           public boost::static_visitor<Term> {
+        std::unordered_map<Variable, Term, Hash<Variable>> theta;
+
+        SubstVisitor2() {}
+
+        SubstVisitor2(
+            std::unordered_map<Variable, Term, Hash<Variable>> theta) {
+            this->theta = theta;
+        }
+
+        Term operator()(Variable s) const {
+            if (this->theta.contains(s)) {
+                return Variable{get<Variable>(this->theta.at(s)).name};
+            }
+            return Variable{s.name};
+        }
+
+        Term operator()(Constant s) const { return s; }
+
+        Term operator()(fol::Function s) const { return s; }
+
+        Sentence operator()(Literal<Term> s) const {
+            if (!s.args.empty()) {
+                for (int i = 0; i < s.args.size(); i++) {
+                    if (visit<GetArgType>((Term)s.args[i]) == "Variable") {
+                        get<Variable>(s.args[i]).name =
+                            get<Variable>(
+                                boost::apply_visitor(*this, s.args[i]))
+                                .name;
+                    }
+                }
+            }
+            return s;
+        }
+
+        Sentence operator()(QuantifiedSentence s) const {
+            auto quantifiedAfterSubs =
+                boost::apply_visitor(*this, (Sentence)s.sentence);
+
+            std::vector<Variable> variables;
+            for (auto v : s.variables.implicitly_typed_list) {
+                if (this->theta.contains(v)) {
+                    Term st = this->theta.at(v);
+                    if (typeid(st) == typeid(Variable)) {
+                        Variable rs;
+                        rs.name = get<Variable>(st).name;
                         variables.push_back(rs);
                     }
                 }
@@ -317,18 +396,94 @@ namespace ast {
     };
 
     struct RemoveQuantifiers : public boost::static_visitor<Sentence> {
+        SubstVisitor substVisitor;
+        SubstVisitor* p_substVisitor = &substVisitor;
+        std::vector<Variable> universalScope;
+        std::vector<Variable>* p_universalScope = &universalScope;
+        fol::FOLDomain domain;
+        fol::FOLDomain* p_domain = &domain;
+
+        RemoveQuantifiers() {}
+
+        explicit RemoveQuantifiers(fol::FOLDomain domain) {
+            this->p_domain = &domain;
+        }
+
         Sentence operator()(ConnectedSentence s) const {
+            auto s1 = boost::apply_visitor(*this, (Sentence)s.sentences[0]);
+            auto s2 = boost::apply_visitor(*this, (Sentence)s.sentences[1]);
+
             ConnectedSentence rs;
             rs.connector = s.connector;
-            rs.sentences.push_back(visit<RemoveQuantifiers>((Sentence)s.sentences[0]));
-            rs.sentences.push_back(visit<RemoveQuantifiers>((Sentence)s.sentences[1]));
+            rs.sentences.push_back(s1);
+            rs.sentences.push_back(s2);
             return rs;
         }
         Sentence operator()(NotSentence s) const {
-            NotSentence rs{visit<RemoveQuantifiers>((Sentence)s.sentence)};
+            NotSentence rs;
+            rs.sentence = boost::apply_visitor(*this, (Sentence)s.sentence);
             return rs;
         }
-        Sentence operator()(QuantifiedSentence s) const { return s; }
+        Sentence operator()(QuantifiedSentence s) const {
+            if (s.quantifier == "exists") {
+                std::unordered_map<Variable, Term, Hash<Variable>> skolemSubst;
+                for (const auto& eVar : s.variables.implicitly_typed_list) {
+                    if (!universalScope.empty()) {
+                        auto skolemFunctionName =
+                            this->p_domain->addSkolemFunction();
+                        std::vector<Term> new_vec;
+                        for (auto it : this->universalScope) {
+                            new_vec.push_back(it);
+                        }
+                        skolemSubst[eVar] =
+                            fol::Function{skolemFunctionName, new_vec};
+                    }
+                    else {
+                        auto skolemConstantName =
+                            this->p_domain->addSkolemConstant();
+                        skolemSubst[eVar] = fol::Constant{skolemConstantName};
+                    }
+                }
+
+                SubstVisitor2 svis = SubstVisitor2(skolemSubst);
+                auto skolemized = boost::apply_visitor((SubstVisitor2)svis,
+                                                       (Sentence)s.sentence);
+
+                return boost::apply_visitor(*this, (Sentence)skolemized);
+            }
+
+            if (s.quantifier == "forall") {
+                for (const auto& replVariable :
+                     s.variables.implicitly_typed_list) {
+                    this->p_universalScope->push_back(replVariable);
+                }
+
+                auto droppedUniversal =
+                    boost::apply_visitor(*this, (Sentence)s.sentence);
+
+                for (const auto& replVariable :
+                     s.variables.implicitly_typed_list) {
+                    this->p_universalScope->erase(
+                        std::remove(this->p_universalScope->begin(),
+                                    this->p_universalScope->end(),
+                                    replVariable),
+                        this->p_universalScope->end());
+                    //                    for(auto it =
+                    //                    this->p_universalScope->begin(); it !=
+                    //                    this->p_universalScope->end(); ++it){
+                    //                        if (it->name ==
+                    //                        replVariable.name){
+                    //
+                    //                        }
+                    //                    }
+                }
+
+                return droppedUniversal;
+            }
+
+            BOOST_THROW_EXCEPTION(
+                std::runtime_error("Unhandled Quantifier: " + s.quantifier));
+        }
 
         template <class T> Sentence operator()(T s) const { return s; }
     };
