@@ -131,9 +131,6 @@ int main(int argc, char* argv[]) {
         state1.dist_from_change_zone[d] = di.get<int>();
     }
 
-    for (auto& mrz : g["multi_room_zones"]) {
-      state1.multi_room_zones.push_back(mrz.get<std::string>());
-    }
     for (auto& r : g["rooms"]) {
       state1.rooms.push_back(r.get<std::string>());
     }
