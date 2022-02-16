@@ -81,8 +81,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(d5.predicate == "a");
     auto d6 = get<Literal<Term>>(d4.sentences[1]);
     BOOST_TEST(d6.predicate == "b");
-    FOLDomain domain1;
-    auto d7 = to_CNF(d1, domain1);
+    auto d7 = to_CNF(d1);
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].predicate == "a");
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].is_negative == false);
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[1].predicate == "b");
@@ -97,8 +96,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(e5.predicate == "a");
     auto e6 = get<Literal<Term>>(get<NotSentence>(e4.sentences[1]).sentence);
     BOOST_TEST(e6.predicate == "c");
-    FOLDomain domain2;
-    auto e7 = to_CNF(e1, domain2);
+    auto e7 = to_CNF(e1);
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].predicate == "a");
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].is_negative == false);
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[1].predicate == "c");
@@ -189,10 +187,10 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(k7.variables.implicitly_typed_list[0].name == "q1");
 
     // (exists (?w) (forall (?z) (Q ?w ? z))) => (Q ?SC0 ?z)
-    FOLDomain domain3;
-    domain3.addPredicate("Q");
+    FOLDomain domain;
+    domain.addPredicate("Q");
     auto l1 = parse<Sentence>("(exists (?w) (forall (?z) (Q ?w ? z)))");
-    auto l2 = to_CNF(l1, domain3);
+    auto l2 = to_CNF(l1, domain);
     BOOST_TEST(l2.conjunctionOfClauses[0].literals[0].predicate == "Q");
     BOOST_TEST(get<Variable>(l2.conjunctionOfClauses[0].literals[0].args[0]).name == "SC0");
     BOOST_TEST(get<Variable>(l2.conjunctionOfClauses[0].literals[0].args[1]).name == "z");

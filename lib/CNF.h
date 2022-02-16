@@ -599,7 +599,7 @@ namespace ast {
         return c;
     }
 
-    CNF to_CNF(Sentence s, FOLDomain domain) {
+    CNF to_CNF(Sentence s, FOLDomain domain = FOLDomain()) {
         auto s1 = visit<GeneratePairSentence>(s);
         auto s2 = visit<ImplicationsOut>(s1);
         auto s3 = visit<NegationsIn>(s2);
