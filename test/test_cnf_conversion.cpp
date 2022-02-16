@@ -81,7 +81,8 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(d5.predicate == "a");
     auto d6 = get<Literal<Term>>(d4.sentences[1]);
     BOOST_TEST(d6.predicate == "b");
-    auto d7 = to_CNF(d1);
+    FOLDomain domain1;
+    auto d7 = to_CNF(d1, domain1);
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].predicate == "a");
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[0].is_negative == false);
     BOOST_TEST(d7.conjunctionOfClauses[0].literals[1].predicate == "b");
@@ -96,7 +97,8 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(e5.predicate == "a");
     auto e6 = get<Literal<Term>>(get<NotSentence>(e4.sentences[1]).sentence);
     BOOST_TEST(e6.predicate == "c");
-    auto e7 = to_CNF(e1);
+    FOLDomain domain2;
+    auto e7 = to_CNF(e1, domain2);
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].predicate == "a");
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[0].is_negative == false);
     BOOST_TEST(e7.conjunctionOfClauses[0].literals[1].predicate == "c");
@@ -114,8 +116,7 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
 
     //  (forall (?y) (imply (A ?y) (L ?x ?y))) => (forall (?y) or not (A ?y) (L
     //  ?x ?y))
-    auto g1 =
-        parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y)))");
+    auto g1 = parse<Sentence>("(forall (?y) (imply (A ?y) (L ?x ?y)))");
     auto g2 = boost::apply_visitor(ImplicationsOut(), g1);
     auto g3 = get<QuantifiedSentence>(g2);
     auto g4 = get<ConnectedSentence>(g3.sentence);
@@ -138,7 +139,8 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
 
     //  (not (exists (?y) (and (not (A ?y)) (L ?x ?y)))) => (forall (?y) (or
     //  (A ?y) (not (L ?x ?y))))
-    auto i1 = parse<Sentence>("(not (exists (?y) (and (not (A ?y)) (L ?x ?y))))");
+    auto i1 =
+        parse<Sentence>("(not (exists (?y) (and (not (A ?y)) (L ?x ?y))))");
     auto i2 = boost::apply_visitor(NegationsIn(), i1);
     auto i3 = get<QuantifiedSentence>(i2);
     BOOST_TEST(i3.variables.implicitly_typed_list[0].name == "y");
@@ -152,8 +154,10 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
 
     // (or (exists (?x) (Q ?x ? z)) (forall (?x) (P ?x ?y))) => (or (exists
     // (?x) (Q ?x ? z)) (forall (?q0) (P ?x ?y)))
-    auto j1 = parse<Sentence>("(or (exists (?x) (Q ?x ? z)) (forall (?x) (P ?x ?y)))");
-    auto j2 = boost::apply_visitor(StandardizeQuantiferVariables(), (Sentence)j1);
+    auto j1 = parse<Sentence>(
+        "(or (exists (?x) (Q ?x ? z)) (forall (?x) (P ?x ?y)))");
+    auto j2 =
+        boost::apply_visitor(StandardizeQuantiferVariables(), (Sentence)j1);
     auto j3 = get<ConnectedSentence>(j2);
     auto j4 = get<QuantifiedSentence>(j3.sentences[0]);
     BOOST_TEST(j4.quantifier == "exists");
@@ -162,10 +166,13 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     BOOST_TEST(j5.quantifier == "forall");
     BOOST_TEST(j5.variables.implicitly_typed_list[0].name == "q0");
 
-    //  (or (exists (?w) (forall (?z) (Q ?w ? z))) (exists (?w) (exists (?z) (Q ?w ? z)))) =>
-    //  (or (exists (?w) (forall (?z) (Q ?w ? z))) (exists (?q0) (exists (?q1) (Q ?w ? z))))
-    auto k1 = parse<Sentence>("(or (exists (?w) (forall (?z) (Q ?w ? z))) (exists (?w) (exists (?z) (Q ?w ? z))))");
-    auto k2 = boost::apply_visitor(StandardizeQuantiferVariables(), (Sentence)k1);
+    //  (or (exists (?w) (forall (?z) (Q ?w ? z))) (exists (?w) (exists (?z) (Q
+    //  ?w ? z)))) => (or (exists (?w) (forall (?z) (Q ?w ? z))) (exists (?q0)
+    //  (exists (?q1) (Q ?w ? z))))
+    auto k1 = parse<Sentence>("(or (exists (?w) (forall (?z) (Q ?w ? z))) "
+                              "(exists (?w) (exists (?z) (Q ?w ? z))))");
+    auto k2 =
+        boost::apply_visitor(StandardizeQuantiferVariables(), (Sentence)k1);
     auto k3 = get<ConnectedSentence>(k2);
     auto k4 = get<QuantifiedSentence>(k3.sentences[0]);
     BOOST_TEST(k4.quantifier == "exists");
@@ -180,6 +187,16 @@ BOOST_AUTO_TEST_CASE(test_cnf_conversion) {
     auto k7 = get<QuantifiedSentence>(k6.sentence);
     BOOST_TEST(k7.quantifier == "exists");
     BOOST_TEST(k7.variables.implicitly_typed_list[0].name == "q1");
+
+    // (exists (?w) (forall (?z) (Q ?w ? z))) => (Q ?SC0 ?z)
+    FOLDomain domain3;
+    domain3.addPredicate("Q");
+    auto l1 = parse<Sentence>("(exists (?w) (forall (?z) (Q ?w ? z)))");
+    auto l2 = to_CNF(l1, domain3);
+    BOOST_TEST(l2.conjunctionOfClauses[0].literals[0].predicate == "Q");
+    BOOST_TEST(get<Variable>(l2.conjunctionOfClauses[0].literals[0].args[0]).name == "SC0");
+    BOOST_TEST(get<Variable>(l2.conjunctionOfClauses[0].literals[0].args[1]).name == "z");
+    BOOST_TEST(l2.conjunctionOfClauses[0].literals[0].is_negative == false);
 }
 
 BOOST_AUTO_TEST_CASE(test_custom_map) {

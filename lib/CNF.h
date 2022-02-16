@@ -258,7 +258,16 @@ namespace ast {
 
         Term operator()(Variable s) const {
             if (this->theta.contains(s)) {
-                return Variable{get<Variable>(this->theta.at(s)).name};
+                auto term_type = visit<GetArgType>((Term)this->theta.at(s));
+                if (term_type == "Constant") {
+                    return Variable{get<Constant>(this->theta.at(s)).name};
+                }
+                if (term_type == "Variable") {
+                    return Variable{get<Variable>(this->theta.at(s)).name};
+                }
+                if (term_type == "Function") {
+                    return Variable{get<Function>(this->theta.at(s)).name};
+                }
             }
             return Variable{s.name};
         }
@@ -448,7 +457,6 @@ namespace ast {
                 SubstVisitor2 svis = SubstVisitor2(skolemSubst);
                 auto skolemized = boost::apply_visitor((SubstVisitor2)svis,
                                                        (Sentence)s.sentence);
-
                 return boost::apply_visitor(*this, (Sentence)skolemized);
             }
 
@@ -468,16 +476,7 @@ namespace ast {
                                     this->p_universalScope->end(),
                                     replVariable),
                         this->p_universalScope->end());
-                    //                    for(auto it =
-                    //                    this->p_universalScope->begin(); it !=
-                    //                    this->p_universalScope->end(); ++it){
-                    //                        if (it->name ==
-                    //                        replVariable.name){
-                    //
-                    //                        }
-                    //                    }
                 }
-
                 return droppedUniversal;
             }
 
@@ -600,12 +599,14 @@ namespace ast {
         return c;
     }
 
-    CNF to_CNF(Sentence s) {
+    CNF to_CNF(Sentence s, FOLDomain domain) {
         auto s1 = visit<GeneratePairSentence>(s);
         auto s2 = visit<ImplicationsOut>(s1);
         auto s3 = visit<NegationsIn>(s2);
         auto s4 = boost::apply_visitor(StandardizeQuantiferVariables(), s3);
-        auto s5 = boost::apply_visitor(RemoveQuantifiers(), s4);
+        RemoveQuantifiers rq_visitor;
+        rq_visitor.domain = domain;
+        auto s5 = boost::apply_visitor(rq_visitor, s4);
         auto s6 = visit<DistributeOrOverAnd>(s5);
         auto s7 = construct(s6);
 
