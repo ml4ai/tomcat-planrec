@@ -336,6 +336,7 @@ cseek_planMCTS(pTree<State>& t,
                  Domain& domain,
                  CPM& cpm,
                  int R = 30,
+                 int plan_size = -1,
                  double eps = 0.4,
                  double alpha = 0.5,
                  int seed = 4021,
@@ -423,6 +424,10 @@ cseek_planMCTS(pTree<State>& t,
     seed++;
     v = y;
 
+    if (t.nodes[v].cplan.second.size() == plan_size) {
+      break;
+    }
+
     if (!m.nodes[arg_max].successors.empty()) {
       std::mt19937 gen(seed);
       std::uniform_real_distribution<double> dis(0.0,1.0);
@@ -446,6 +451,10 @@ cseek_planMCTS(pTree<State>& t,
           t.nodes[v].successors.push_back(y);
           seed++;
           v = y;
+
+          if (t.nodes[v].cplan.second.size() == plan_size) {
+            break;
+          }
         }
         else {
           int new_arg_max = m.nodes[arg_max].successors.front();
@@ -480,12 +489,19 @@ cseek_planMCTS(pTree<State>& t,
             t.nodes[v].successors.push_back(y);
             seed++;
             v = y;
+            if (t.nodes[v].cplan.second.size() == plan_size) {
+              break;
+            }
           }
           else {
             step_again = false;
           }
         }
       } while (step_again && !m.nodes[arg_max].successors.empty());
+
+      if (t.nodes[v].cplan.second.size() == plan_size) {
+        break;
+      }
     }
     w = arg_max;
     seed++;
@@ -501,15 +517,17 @@ cseek_planMCTS(pTree<State>& t,
 }
 
 template <class State, class Domain>
-std::pair<pTree<State>,int> cppMCTShop(State state,
-                  Tasks tasks,
-                  Domain& domain,
-                  CPM& cpm,
-                  int R,
-                  double eps = 0.4,
-                  double alpha = 0.5,
-                  int seed = 4021,
-                  int aux_R = 10) {
+std::pair<pTree<State>,int> 
+cppMCTShop(State state,
+           Tasks tasks,
+           Domain& domain,
+           CPM& cpm,
+           int R,
+           int plan_size = -1,
+           double eps = 0.4,
+           double alpha = 0.5,
+           int seed = 4021,
+           int aux_R = 10) {
     pTree<State> t;
     pNode<State> root;
     root.state = state;
@@ -522,7 +540,7 @@ std::pair<pTree<State>,int> cppMCTShop(State state,
     std::cout << "Initial State:" << std::endl;
     std::cout << t.nodes[v].state.to_json() << std::endl;
     std::cout << std::endl;
-    auto plan = cseek_planMCTS(t, v, domain, cpm, R, eps, alpha, seed);
+    auto plan = cseek_planMCTS(t, v, domain, cpm, R, plan_size,eps, alpha, seed,aux_R);
     std::cout << "Plan:" << std::endl;
     print(plan);
     return std::make_pair(t,v);
