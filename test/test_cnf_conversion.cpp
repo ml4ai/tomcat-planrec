@@ -209,6 +209,6 @@ BOOST_AUTO_TEST_CASE(test_custom_map) {
     myvec.push_back(v1);
 
     auto tmp = std::find(myvec.begin(), myvec.end(), v) != myvec.end();
-    BOOST_TEST(vector_contains_variable(myvec, v));
-    BOOST_TEST(vector_contains_variable(myvec, v2) == false);
+    BOOST_TEST(in(v, myvec));
+    BOOST_TEST(in(v2, myvec) == false);
 }

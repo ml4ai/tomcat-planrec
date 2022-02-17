@@ -15,7 +15,7 @@ bool in(Element element, AssociativeContainer container) {
 
 // Utility method to see if an element is in a vector
 template <class Element> bool in(Element element, std::vector<Element> v) {
-    return std::count(v.begin(), v.end(), element);
+    return std::find(v.begin(), v.end(), element) != v.end();
 }
 
 // select_randomly taken from

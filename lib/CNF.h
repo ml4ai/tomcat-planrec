@@ -6,6 +6,7 @@
 #include "fol/FOLDomain.h"
 #include "fol/Function.h"
 #include "parsing/ast.hpp"
+#include "util.h"
 #include "util/boost_variant_helpers.h"
 #include <boost/throw_exception.hpp>
 #include <iostream>
@@ -16,9 +17,6 @@
 #include <utility>
 
 namespace ast {
-    bool vector_contains_variable(std::vector<Variable> v, Variable x) {
-        return std::find(v.begin(), v.end(), x) != v.end();
-    }
 
     template <class Visitor>
     std::vector<Sentence> visit(std::vector<Sentence> sentences) {
@@ -48,6 +46,7 @@ namespace ast {
     };
 
     using args = boost::variant<fol::Constant, fol::Variable, fol::Function>;
+
     struct GetArgType : public boost::static_visitor<std::string> {
         std::string operator()(fol::Constant s) const { return "Constant"; }
         std::string operator()(fol::Variable s) const { return "Variable"; }
@@ -370,7 +369,7 @@ namespace ast {
             std::vector<Variable> replVariables;
 
             for (auto v : s.variables.implicitly_typed_list) {
-                if (vector_contains_variable(this->seenSoFar, v)) {
+                if (in(v, this->seenSoFar)) {
                     Variable sV;
                     sV.name = this->p_quantifiedIndexical->getPrefix() +
                               std::to_string(
