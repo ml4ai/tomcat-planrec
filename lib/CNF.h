@@ -45,8 +45,6 @@ namespace ast {
         }
     };
 
-    using args = boost::variant<fol::Constant, fol::Variable, fol::Function>;
-
     struct GetArgType : public boost::static_visitor<std::string> {
         std::string operator()(fol::Constant s) const { return "Constant"; }
         std::string operator()(fol::Variable s) const { return "Variable"; }
