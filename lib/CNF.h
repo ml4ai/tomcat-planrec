@@ -46,7 +46,7 @@ namespace ast {
         }
     };
 
-    struct GetArgType : public boost::static_visitor<std::string> {
+    struct GetTermType : public boost::static_visitor<std::string> {
         std::string operator()(fol::Constant s) const { return "Constant"; }
         std::string operator()(fol::Variable s) const { return "Variable"; }
         std::string operator()(fol::Function s) const { return "Function"; }
@@ -68,8 +68,7 @@ namespace ast {
             auto last_sen = s.sentences.back();
             s.sentences.pop_back();
             rs.sentences.push_back(visit<GeneratePairSentence>((Sentence)s));
-            rs.sentences.push_back(
-                visit<GeneratePairSentence>(last_sen));
+            rs.sentences.push_back(visit<GeneratePairSentence>(last_sen));
             return rs;
         }
 
@@ -90,9 +89,8 @@ namespace ast {
             return ConnectedSentence{"or", {rs1, s2}};
         }
         Sentence operator()(QuantifiedSentence s) const {
-            QuantifiedSentence rs{s.quantifier,
-                                  s.variables,
-                                  visit<ImplicationsOut>(s.sentence)};
+            QuantifiedSentence rs{
+                s.quantifier, s.variables, visit<ImplicationsOut>(s.sentence)};
             return rs;
         }
         Sentence operator()(EqualsSentence s) const {
@@ -150,9 +148,8 @@ namespace ast {
             return rs;
         }
         Sentence operator()(QuantifiedSentence s) const {
-            return QuantifiedSentence{s.quantifier,
-                                      s.variables,
-                                      visit<NegationsIn>(s.sentence)};
+            return QuantifiedSentence{
+                s.quantifier, s.variables, visit<NegationsIn>(s.sentence)};
         }
 
         template <class T> Sentence operator()(T s) const { return s; }
@@ -189,11 +186,9 @@ namespace ast {
         Sentence operator()(Literal<Term> s) const {
             if (!s.args.empty()) {
                 for (int i = 0; i < s.args.size(); i++) {
-                    if (visit<GetArgType>((Term)s.args[i]) == "Variable") {
+                    if (visit<GetTermType>((Term)s.args[i]) == "Variable") {
                         get<Variable>(s.args[i]).name =
-                            get<Variable>(
-                                boost::apply_visitor(*this, s.args[i]))
-                                .name;
+                            name(boost::apply_visitor(*this, s.args[i]));
                     }
                 }
             }
@@ -257,7 +252,7 @@ namespace ast {
         Sentence operator()(Literal<Term> s) const {
             if (!s.args.empty()) {
                 for (int i = 0; i < s.args.size(); i++) {
-                    if (visit<GetArgType>((Term)s.args[i]) == "Variable") {
+                    if (visit<GetTermType>((Term)s.args[i]) == "Variable") {
                         get<Variable>(s.args[i]).name =
                             get<Variable>(
                                 boost::apply_visitor(*this, s.args[i]))
@@ -347,7 +342,7 @@ namespace ast {
             }
 
             SubstVisitor svis = SubstVisitor(localSubst);
-            auto subst = boost::apply_visitor(svis, s.sentence);
+            auto subst = visit(svis, s.sentence);
 
             for (const auto& replVariable : replVariables) {
                 this->p_seenSoFar->push_back(replVariable);
@@ -411,7 +406,7 @@ namespace ast {
                 }
 
                 SubstVisitor2 svis = SubstVisitor2(skolemSubst);
-                auto skolemized = boost::apply_visitor(svis, s.sentence);
+                auto skolemized = visit(svis, s.sentence);
                 return boost::apply_visitor(*this, skolemized);
             }
 
@@ -523,8 +518,7 @@ namespace ast {
             boost::apply_visitor(*this, s.sentences[1]);
         }
         void operator()(NotSentence& s) {
-            if (boost::apply_visitor(GetSentenceType(), s.sentence) ==
-                "Literal") {
+            if (visit<GetSentenceType>(s.sentence) == "Literal") {
                 get<Literal<Term>>(s.sentence).is_negative = true;
             }
             boost::apply_visitor(*this, s.sentence);
