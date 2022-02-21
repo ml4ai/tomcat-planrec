@@ -5,6 +5,7 @@
 #include "boost/variant.hpp"
 #include "fol/FOLDomain.h"
 #include "fol/Function.h"
+#include "fol/util.h"
 #include "parsing/ast.hpp"
 #include "util.h"
 #include "util/boost_variant_helpers.h"
@@ -177,10 +178,8 @@ namespace ast {
         }
 
         Term operator()(Variable s) const {
-            if (this->theta.contains(s)) {
-                return Variable{this->theta.at(s).name};
-            }
-            return Variable{s.name};
+            return this->theta.contains(s) ? Variable{this->theta.at(s).name}
+                                           : Variable{s.name};
         }
 
         Term operator()(Constant s) const { return s; }
@@ -202,8 +201,7 @@ namespace ast {
         }
 
         Sentence operator()(QuantifiedSentence s) const {
-            auto quantifiedAfterSubs =
-                boost::apply_visitor(*this, s.sentence);
+            auto quantifiedAfterSubs = boost::apply_visitor(*this, s.sentence);
 
             std::vector<Variable> variables;
             for (auto v : s.variables.implicitly_typed_list) {
@@ -221,8 +219,7 @@ namespace ast {
                 return quantifiedAfterSubs;
             }
 
-            QuantifiedSentence rs;
-            rs.quantifier = s.quantifier;
+            QuantifiedSentence rs{s.quantifier};
             for (const auto& variable : variables) {
                 rs.variables.implicitly_typed_list.push_back(variable);
             }
@@ -250,21 +247,8 @@ namespace ast {
         }
 
         Term operator()(Variable s) const {
-            if (this->theta.contains(s)) {
-                auto term_type = visit<GetArgType>((Term)this->theta.at(s));
-                if (term_type == "Constant") {
-                    return Variable{get<Constant>(this->theta.at(s)).name};
-                }
-                if (term_type == "Variable") {
-                    return Variable{get<Variable>(this->theta.at(s)).name};
-                }
-                if (term_type == "Function") {
-                    return Variable{get<Function>(this->theta.at(s)).name};
-                }
-            }
-            else {
-                return Variable{s.name};
-            }
+            return this->theta.contains(s) ? Variable{name(this->theta.at(s))}
+                                           : Variable{s.name};
         }
 
         Term operator()(Constant s) const { return s; }
@@ -285,23 +269,18 @@ namespace ast {
         }
 
         Sentence operator()(QuantifiedSentence s) const {
-            auto quantifiedAfterSubs =
-                boost::apply_visitor(*this, s.sentence);
+            auto quantifiedAfterSubs = boost::apply_visitor(*this, s.sentence);
 
             std::vector<Variable> variables;
             for (auto v : s.variables.implicitly_typed_list) {
                 if (this->theta.contains(v)) {
                     Term st = this->theta.at(v);
                     if (typeid(st) == typeid(Variable)) {
-                        Variable rs;
-                        rs.name = get<Variable>(st).name;
-                        variables.push_back(rs);
+                        variables.push_back(Variable{name(st)});
                     }
                 }
                 else {
-                    Variable rs;
-                    rs.name = v.name;
-                    variables.push_back(rs);
+                    variables.push_back(Variable{v});
                 }
             }
             if (variables.empty()) {
@@ -333,7 +312,6 @@ namespace ast {
         std::vector<Variable> seenSoFar;
         std::vector<Variable>* p_seenSoFar = &seenSoFar;
 
-
         Sentence operator()(ConnectedSentence s) const {
             auto s1 = boost::apply_visitor(*this, s.sentences[0]);
             auto s2 = boost::apply_visitor(*this, s.sentences[1]);
@@ -345,14 +323,12 @@ namespace ast {
             return rs;
         }
         Sentence operator()(NotSentence s) const {
-            NotSentence rs;
-            rs.sentence = boost::apply_visitor(*this, s.sentence);
-            return rs;
+            return NotSentence{boost::apply_visitor(*this, s.sentence)};
         }
         Sentence operator()(ImplySentence s) const {
             auto s1 = boost::apply_visitor(*this, s.sentence1);
             auto s2 = boost::apply_visitor(*this, s.sentence2);
-            ImplySentence rs{s1,s2};
+            ImplySentence rs{s1, s2};
             return rs;
         }
         Sentence operator()(QuantifiedSentence s) const {
@@ -374,8 +350,7 @@ namespace ast {
             }
 
             SubstVisitor svis = SubstVisitor(localSubst);
-            auto subst =
-                boost::apply_visitor(svis, s.sentence);
+            auto subst = boost::apply_visitor(svis, s.sentence);
 
             for (const auto& replVariable : replVariables) {
                 this->p_seenSoFar->push_back(replVariable);
@@ -418,9 +393,7 @@ namespace ast {
             return rs;
         }
         Sentence operator()(NotSentence s) const {
-            NotSentence rs;
-            rs.sentence = boost::apply_visitor(*this, s.sentence);
-            return rs;
+            return NotSentence{boost::apply_visitor(*this, s.sentence)};
         }
         Sentence operator()(QuantifiedSentence s) const {
             if (s.quantifier == "exists") {
@@ -444,8 +417,7 @@ namespace ast {
                 }
 
                 SubstVisitor2 svis = SubstVisitor2(skolemSubst);
-                auto skolemized = boost::apply_visitor(svis,
-                                                       s.sentence);
+                auto skolemized = boost::apply_visitor(svis, s.sentence);
                 return boost::apply_visitor(*this, skolemized);
             }
 
@@ -455,8 +427,7 @@ namespace ast {
                     this->p_universalScope->push_back(replVariable);
                 }
 
-                auto droppedUniversal =
-                    boost::apply_visitor(*this, s.sentence);
+                auto droppedUniversal = boost::apply_visitor(*this, s.sentence);
 
                 for (const auto& replVariable :
                      s.variables.implicitly_typed_list) {

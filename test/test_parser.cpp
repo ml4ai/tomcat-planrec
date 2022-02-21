@@ -11,6 +11,7 @@
 #include "parsing/ast_adapted.hpp"
 #include "parsing/parse.hpp"
 #include "util.h"
+#include "fol/util.h"
 #include <boost/optional.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
 
@@ -20,9 +21,6 @@ using namespace ast;
 using boost::get;
 using std::string, std::vector, std::unordered_set;
 
-std::string name(Term term) {
-    return boost::apply_visitor([](const auto& t) { return t.name; }, term);
-}
 
 template <class T> bool equals(std::vector<T> x, std::vector<T> y) {
     return x == y;
