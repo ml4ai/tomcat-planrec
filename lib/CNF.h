@@ -316,10 +316,7 @@ namespace ast {
             auto s1 = boost::apply_visitor(*this, s.sentences[0]);
             auto s2 = boost::apply_visitor(*this, s.sentences[1]);
 
-            ConnectedSentence rs;
-            rs.connector = s.connector;
-            rs.sentences.push_back(s1);
-            rs.sentences.push_back(s2);
+            ConnectedSentence rs{s.connector, {s1, s2}};
             return rs;
         }
         Sentence operator()(NotSentence s) const {
@@ -386,10 +383,7 @@ namespace ast {
             auto s1 = boost::apply_visitor(*this, s.sentences[0]);
             auto s2 = boost::apply_visitor(*this, s.sentences[1]);
 
-            ConnectedSentence rs;
-            rs.connector = s.connector;
-            rs.sentences.push_back(s1);
-            rs.sentences.push_back(s2);
+            ConnectedSentence rs{s.connector, {s1, s2}};
             return rs;
         }
         Sentence operator()(NotSentence s) const {
@@ -564,7 +558,7 @@ namespace ast {
         auto s4 = visit<StandardizeQuantiferVariables>(s3);
         RemoveQuantifiers rq_visitor;
         rq_visitor.domain = domain;
-        auto s5 = boost::apply_visitor(rq_visitor, s4);
+        auto s5 = visit(rq_visitor, s4);
         auto s6 = visit<DistributeOrOverAnd>(s5);
         auto s7 = construct(s6);
 
