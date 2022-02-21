@@ -15,3 +15,7 @@ template <class Visitor, class T> auto visit(T x) {
 template <class Visitor, class T, class U> auto visit(T x, U y) {
     return boost::apply_visitor(Visitor(), x, y);
 }
+
+template <class Visitor, class T> auto visit(Visitor visitor, T x) {
+    return boost::apply_visitor(visitor, x);
+}
