@@ -210,15 +210,11 @@ namespace ast {
                 if (this->theta.contains(v)) {
                     Symbol st = this->theta.at(v);
                     if (typeid(st) == typeid(Variable)) {
-                        Variable rs;
-                        rs.name = st.name;
-                        variables.push_back(rs);
+                        variables.push_back(Variable{st});
                     }
                 }
                 else {
-                    Variable rs;
-                    rs.name = v.name;
-                    variables.push_back(rs);
+                    variables.push_back(Variable{v});
                 }
             }
             if (variables.empty()) {
@@ -270,7 +266,6 @@ namespace ast {
         }
 
         Term operator()(Constant s) const { return s; }
-
         Term operator()(fol::Function s) const { return s; }
 
         Sentence operator()(Literal<Term> s) const {
@@ -311,8 +306,7 @@ namespace ast {
                 return quantifiedAfterSubs;
             }
 
-            QuantifiedSentence rs;
-            rs.quantifier = s.quantifier;
+            QuantifiedSentence rs{s.quantifier};
             for (const auto& variable : variables) {
                 rs.variables.implicitly_typed_list.push_back(variable);
             }
@@ -337,8 +331,7 @@ namespace ast {
         std::vector<Variable> seenSoFar;
         std::vector<Variable>* p_seenSoFar = &seenSoFar;
 
-        Sentence operator()(Nil s) const { return s; }
-        Sentence operator()(Literal<Term> s) const { return s; }
+
         Sentence operator()(ConnectedSentence s) const {
             auto s1 = boost::apply_visitor(*this, (Sentence)s.sentences[0]);
             auto s2 = boost::apply_visitor(*this, (Sentence)s.sentences[1]);
@@ -357,9 +350,7 @@ namespace ast {
         Sentence operator()(ImplySentence s) const {
             auto s1 = boost::apply_visitor(*this, (Sentence)s.sentence1);
             auto s2 = boost::apply_visitor(*this, (Sentence)s.sentence2);
-            ImplySentence rs;
-            rs.sentence1 = s1;
-            rs.sentence2 = s2;
+            ImplySentence rs{s1,s2};
             return rs;
         }
         Sentence operator()(QuantifiedSentence s) const {
@@ -389,8 +380,7 @@ namespace ast {
             }
             auto sQuantified = boost::apply_visitor(*this, (Sentence)subst);
 
-            QuantifiedSentence rs;
-            rs.quantifier = s.quantifier;
+            QuantifiedSentence rs{s.quantifier};
             for (const auto& replVariable : replVariables) {
                 rs.variables.implicitly_typed_list.push_back(replVariable);
             }
@@ -398,7 +388,7 @@ namespace ast {
             return rs;
         }
 
-        Sentence operator()(EqualsSentence s) const { return s; }
+        template <class T> Sentence operator()(T s) const { return s; }
     };
 
     struct RemoveQuantifiers : public boost::static_visitor<Sentence> {
@@ -532,8 +522,6 @@ namespace ast {
         }
     };
 
-    using Arg = boost::variant<ArgData>;
-
     struct CNF {
 
         std::vector<Clause> conjunctionOfClauses;
@@ -600,7 +588,7 @@ namespace ast {
         auto s1 = visit<GeneratePairSentence>(s);
         auto s2 = visit<ImplicationsOut>(s1);
         auto s3 = visit<NegationsIn>(s2);
-        auto s4 = boost::apply_visitor(StandardizeQuantiferVariables(), s3);
+        auto s4 = visit<StandardizeQuantiferVariables>(s3);
         RemoveQuantifiers rq_visitor;
         rq_visitor.domain = domain;
         auto s5 = boost::apply_visitor(rq_visitor, s4);
