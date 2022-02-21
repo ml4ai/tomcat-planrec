@@ -22,7 +22,7 @@ namespace ast {
     std::vector<Sentence> visit(std::vector<Sentence> sentences) {
         std::vector<Sentence> transformed_sentences = {};
         for (auto s : sentences) {
-            transformed_sentences.push_back(visit<Visitor>((Sentence)s));
+            transformed_sentences.push_back(visit<Visitor>(s));
         }
         return transformed_sentences;
     }
@@ -59,7 +59,7 @@ namespace ast {
             if (s.sentences.size() <= 2) {
                 for (auto sentence : s.sentences) {
                     rs.sentences.push_back(
-                        visit<GeneratePairSentence>(Sentence(sentence)));
+                        visit<GeneratePairSentence>(sentence));
                 }
                 return rs;
             }
@@ -68,7 +68,7 @@ namespace ast {
             s.sentences.pop_back();
             rs.sentences.push_back(visit<GeneratePairSentence>((Sentence)s));
             rs.sentences.push_back(
-                visit<GeneratePairSentence>((Sentence)last_sen));
+                visit<GeneratePairSentence>(last_sen));
             return rs;
         }
 
@@ -82,8 +82,8 @@ namespace ast {
                                      visit<ImplicationsOut>(s.sentences)};
         }
         Sentence operator()(ImplySentence s) const {
-            auto s1 = visit<ImplicationsOut>((Sentence)s.sentence1);
-            auto s2 = visit<ImplicationsOut>((Sentence)s.sentence2);
+            auto s1 = visit<ImplicationsOut>(s.sentence1);
+            auto s2 = visit<ImplicationsOut>(s.sentence2);
 
             NotSentence rs1{s1};
             return ConnectedSentence{"or", {rs1, s2}};
@@ -91,7 +91,7 @@ namespace ast {
         Sentence operator()(QuantifiedSentence s) const {
             QuantifiedSentence rs{s.quantifier,
                                   s.variables,
-                                  visit<ImplicationsOut>((Sentence)s.sentence)};
+                                  visit<ImplicationsOut>(s.sentence)};
             return rs;
         }
         Sentence operator()(EqualsSentence s) const {
@@ -109,12 +109,12 @@ namespace ast {
         }
         Sentence operator()(NotSentence s) const {
             auto s1 = s.sentence;
-            if (visit<GetSentenceType>((Sentence)s1) == "NotSentence") {
+            if (visit<GetSentenceType>(s1) == "NotSentence") {
                 auto s_ = get<NotSentence>(s1);
-                return visit<NegationsIn>((Sentence)s_.sentence);
+                return visit<NegationsIn>(s_.sentence);
             }
 
-            if (visit<GetSentenceType>((Sentence)s1) == "ConnectedSentence") {
+            if (visit<GetSentenceType>(s1) == "ConnectedSentence") {
                 auto s_ = get<ConnectedSentence>(s1);
                 auto s_1 = s_.sentences[0];
                 auto s_2 = s_.sentences[1];
@@ -126,7 +126,7 @@ namespace ast {
                 return rs;
             }
 
-            if (visit<GetSentenceType>((Sentence)s1) == "QuantifiedSentence") {
+            if (visit<GetSentenceType>(s1) == "QuantifiedSentence") {
                 auto s_ = get<QuantifiedSentence>(s1);
                 NotSentence rs1{s_.sentence};
 
@@ -138,12 +138,12 @@ namespace ast {
                 return rs;
             }
 
-            NotSentence rs{visit<NegationsIn>((Sentence)s1)};
+            NotSentence rs{visit<NegationsIn>(s1)};
             return rs;
         }
         Sentence operator()(ImplySentence s) const {
-            auto s1 = visit<NegationsIn>((Sentence)s.sentence1);
-            auto s2 = visit<NegationsIn>((Sentence)s.sentence2);
+            auto s1 = visit<NegationsIn>(s.sentence1);
+            auto s2 = visit<NegationsIn>(s.sentence2);
 
             ImplySentence rs{s1, s2};
             return rs;
@@ -151,7 +151,7 @@ namespace ast {
         Sentence operator()(QuantifiedSentence s) const {
             return QuantifiedSentence{s.quantifier,
                                       s.variables,
-                                      visit<NegationsIn>((Sentence)s.sentence)};
+                                      visit<NegationsIn>(s.sentence)};
         }
 
         template <class T> Sentence operator()(T s) const { return s; }
@@ -251,7 +251,7 @@ namespace ast {
 
         Term operator()(Variable s) const {
             if (this->theta.contains(s)) {
-                auto term_type = visit<GetArgType>((Term)this->theta.at(s));
+                auto term_type = visit<GetArgType>(this->theta.at(s));
                 if (term_type == "Constant") {
                     return Variable{get<Constant>(this->theta.at(s)).name};
                 }
