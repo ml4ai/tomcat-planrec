@@ -262,7 +262,9 @@ namespace ast {
                     return Variable{get<Function>(this->theta.at(s)).name};
                 }
             }
-            return Variable{s.name};
+            else {
+                return Variable{s.name};
+            }
         }
 
         Term operator()(Constant s) const { return s; }
