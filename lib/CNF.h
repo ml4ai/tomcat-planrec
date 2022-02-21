@@ -203,7 +203,7 @@ namespace ast {
 
         Sentence operator()(QuantifiedSentence s) const {
             auto quantifiedAfterSubs =
-                boost::apply_visitor(*this, (Sentence)s.sentence);
+                boost::apply_visitor(*this, s.sentence);
 
             std::vector<Variable> variables;
             for (auto v : s.variables.implicitly_typed_list) {
@@ -284,7 +284,7 @@ namespace ast {
 
         Sentence operator()(QuantifiedSentence s) const {
             auto quantifiedAfterSubs =
-                boost::apply_visitor(*this, (Sentence)s.sentence);
+                boost::apply_visitor(*this, s.sentence);
 
             std::vector<Variable> variables;
             for (auto v : s.variables.implicitly_typed_list) {
@@ -333,8 +333,8 @@ namespace ast {
 
 
         Sentence operator()(ConnectedSentence s) const {
-            auto s1 = boost::apply_visitor(*this, (Sentence)s.sentences[0]);
-            auto s2 = boost::apply_visitor(*this, (Sentence)s.sentences[1]);
+            auto s1 = boost::apply_visitor(*this, s.sentences[0]);
+            auto s2 = boost::apply_visitor(*this, s.sentences[1]);
 
             ConnectedSentence rs;
             rs.connector = s.connector;
@@ -344,12 +344,12 @@ namespace ast {
         }
         Sentence operator()(NotSentence s) const {
             NotSentence rs;
-            rs.sentence = boost::apply_visitor(*this, (Sentence)s.sentence);
+            rs.sentence = boost::apply_visitor(*this, s.sentence);
             return rs;
         }
         Sentence operator()(ImplySentence s) const {
-            auto s1 = boost::apply_visitor(*this, (Sentence)s.sentence1);
-            auto s2 = boost::apply_visitor(*this, (Sentence)s.sentence2);
+            auto s1 = boost::apply_visitor(*this, s.sentence1);
+            auto s2 = boost::apply_visitor(*this, s.sentence2);
             ImplySentence rs{s1,s2};
             return rs;
         }
@@ -373,12 +373,12 @@ namespace ast {
 
             SubstVisitor svis = SubstVisitor(localSubst);
             auto subst =
-                boost::apply_visitor((SubstVisitor)svis, (Sentence)s.sentence);
+                boost::apply_visitor(svis, s.sentence);
 
             for (const auto& replVariable : replVariables) {
                 this->p_seenSoFar->push_back(replVariable);
             }
-            auto sQuantified = boost::apply_visitor(*this, (Sentence)subst);
+            auto sQuantified = boost::apply_visitor(*this, subst);
 
             QuantifiedSentence rs{s.quantifier};
             for (const auto& replVariable : replVariables) {
@@ -406,8 +406,8 @@ namespace ast {
         }
 
         Sentence operator()(ConnectedSentence s) const {
-            auto s1 = boost::apply_visitor(*this, (Sentence)s.sentences[0]);
-            auto s2 = boost::apply_visitor(*this, (Sentence)s.sentences[1]);
+            auto s1 = boost::apply_visitor(*this, s.sentences[0]);
+            auto s2 = boost::apply_visitor(*this, s.sentences[1]);
 
             ConnectedSentence rs;
             rs.connector = s.connector;
@@ -417,7 +417,7 @@ namespace ast {
         }
         Sentence operator()(NotSentence s) const {
             NotSentence rs;
-            rs.sentence = boost::apply_visitor(*this, (Sentence)s.sentence);
+            rs.sentence = boost::apply_visitor(*this, s.sentence);
             return rs;
         }
         Sentence operator()(QuantifiedSentence s) const {
@@ -442,9 +442,9 @@ namespace ast {
                 }
 
                 SubstVisitor2 svis = SubstVisitor2(skolemSubst);
-                auto skolemized = boost::apply_visitor((SubstVisitor2)svis,
-                                                       (Sentence)s.sentence);
-                return boost::apply_visitor(*this, (Sentence)skolemized);
+                auto skolemized = boost::apply_visitor(svis,
+                                                       s.sentence);
+                return boost::apply_visitor(*this, skolemized);
             }
 
             if (s.quantifier == "forall") {
@@ -454,7 +454,7 @@ namespace ast {
                 }
 
                 auto droppedUniversal =
-                    boost::apply_visitor(*this, (Sentence)s.sentence);
+                    boost::apply_visitor(*this, s.sentence);
 
                 for (const auto& replVariable :
                      s.variables.implicitly_typed_list) {
