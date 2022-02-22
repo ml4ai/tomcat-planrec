@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
   int plan_size = -1;
   int R = 30;
   double e = 0.4;
-  double alpha = 0.5;
+  double alpha = 0.05;
   int aux_R = 10;
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
   std::string cpm_json;
