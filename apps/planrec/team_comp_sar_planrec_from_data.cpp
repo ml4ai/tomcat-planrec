@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
   int end = 0;
   int R = 30;
   double e = 0.4;
-  double alpha = 0.5;
+  double alpha = 0.05;
   int aux_R = 10;
   std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";

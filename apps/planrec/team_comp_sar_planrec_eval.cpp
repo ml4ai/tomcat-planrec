@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
   int N = -1;
   int R = 30;
   double e = 0.4;
-  double alpha = 0.5;
+  double alpha = 0.05;
   int aux_R = 10;
   std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
@@ -181,5 +181,11 @@ int main(int argc, char* argv[]) {
                           2021,
                           aux_R);
     auto e_node = pt.t.nodes[pt.end];
+    e_node.state.plan_rec = false;
+    for (auto a : e_node.state.agents) {
+      e_node.state.action_tracker[a] = {};
+      e_node.state.loc_tracker[a] = {};
+    }
+    cppMCTShop(e_node.state,e_node.tasks,domain,cpm,R,5,e,alpha,4021,aux_R);
     return EXIT_SUCCESS;
 }

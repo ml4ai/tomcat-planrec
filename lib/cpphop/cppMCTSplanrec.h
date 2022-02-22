@@ -364,7 +364,7 @@ cseek_planrecMCTS(json& data_team_plan,
                  CPM& cpm,
                  int R = 30,
                  double eps = 0.4,
-                 double alpha = 0.5,
+                 double alpha = 0.05,
                  int seed = 2021,
                  int aux_R = 10) {
   double max_likelihood = log(0.0);
@@ -535,7 +535,7 @@ cppMCTSplanrec(json& data_team_plan,
                   CPM& cpm,
                   int R = 30,
                   double eps = 0.4,
-                  double alpha = 0.5,
+                  double alpha = 0.05,
                   int seed = 2021,
                   int aux_R = 10) {
     prTree<State> t;
