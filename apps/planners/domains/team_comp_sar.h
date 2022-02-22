@@ -622,10 +622,9 @@ template <class State> cTasks comp_change(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  std::string min_agent = "";
+  std::string min_agent = "NIL";
+  int min_time = 901;
   if (state.plan_rec) {
-    int min_time = 901;
-    min_agent = "NIL";
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
@@ -638,11 +637,18 @@ template <class State> cTasks comp_change(State state, Args args) {
       }
     }
   }
+  else {
+    for (auto a : state.agents) {
+      if (state.time[a] <= min_time) {
+        if (state.agent_loc[a] == state.change_zone) {
+          min_time = state.time[a];
+          min_agent = a;
+        }
+      }
+    } 
+  }
 
-  if (((state.time[agent1] <= 900 && state.agent_loc[agent1] == state.change_zone) || 
-      (state.time[agent2] <= 900 && state.agent_loc[agent2] == state.change_zone) || 
-      (state.time[agent3] <= 900 && state.agent_loc[agent3] == state.change_zone)) && 
-      min_agent != "NIL") {
+  if (min_agent != "NIL" && min_time <= 900) {
     std::string cond;
     if (state.team_comp.size() <= 2) {
       cond = "comp_change_0";
@@ -2272,8 +2278,8 @@ template <class State> cTasks agent1_task(State state, Args args) {
 
   if (min_agent.empty()) {
     int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent1]) {
-      min_agent = "NIL";
+    if (min_time == state.time[agent1]) {
+      min_agent = agent1;
     }
   }
 
@@ -2292,8 +2298,8 @@ template <class State> cTasks agent2_task(State state, Args args) {
 
   if (min_agent.empty()) {
     int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent2]) {
-      min_agent = "NIL";
+    if (min_time == state.time[agent2]) {
+      min_agent = agent2;
     }
   }
 
@@ -2312,8 +2318,8 @@ template <class State> cTasks agent3_task(State state, Args args) {
 
   if (min_agent.empty()) {
     int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent3]) {
-      min_agent = "NIL";
+    if (min_time == state.time[agent3]) {
+      min_agent = agent3;
     }
   }
 
@@ -3163,13 +3169,6 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
   auto agent3 = args["agent3"];
   auto min_agent = args["min_agent"];
 
-  if (min_agent.empty()) {
-    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent1]) {
-      min_agent = "NIL";
-    }
-  }
-
   if (state.time[agent1] <= 900 && state.agent_loc[agent1] == state.change_zone && min_agent == agent1) {
     std::string cond = "agent1_change_role_0";
     if (state.team_comp.size() >= 3) {
@@ -3249,13 +3248,6 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
   auto agent3 = args["agent3"];
   auto min_agent = args["min_agent"];
 
-  if (min_agent.empty()) {
-    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent2]) {
-      min_agent = "NIL";
-    }
-  }
-
   if (state.time[agent2] <= 900 && state.agent_loc[agent2] == state.change_zone && min_agent == agent2) {
     std::string cond = "agent2_change_role_0";
     if (state.team_comp.size() >= 3) {
@@ -3334,13 +3326,6 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
   auto min_agent = args["min_agent"];
-
-  if (min_agent.empty()) {
-    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent3]) {
-      min_agent = "NIL";
-    }
-  }
 
   if (state.time[agent3] <= 900 && state.agent_loc[agent3] == state.change_zone && min_agent == agent3) {
     std::string cond = "agent3_change_role_0";
