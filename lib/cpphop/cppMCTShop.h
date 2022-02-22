@@ -145,7 +145,9 @@ void cbackprop(pTree<State>& t, int n, double r) {
 
 template <class State, class Domain>
 std::pair<int,double>
-csimulation(State state,
+csimulation(int plan_size,
+           int c_plan_size,
+           State state,
            Tasks tasks,
            Domain& domain,
            CPM& cpm,
@@ -153,7 +155,8 @@ csimulation(State state,
            double max_likelihood,
            double alpha,
            int seed) {
-    while (!tasks.empty()) {
+    while (!tasks.empty() &&
+        (c_plan_size < plan_size || plan_size == -1)) {
       Task task = tasks.back();
 
       if (in(task.task_id, domain.operators)) {
@@ -168,6 +171,7 @@ csimulation(State state,
               }
               seed++;
               state = newstate.value();
+              c_plan_size++;
               continue;
           }
           return std::make_pair(-1,log(0.0));
@@ -321,6 +325,7 @@ int cexpansion(pTree<State>& t,
         }
         seed++;
         if (c_count.empty()) {   
+          std::cout << task.task_id << std::endl;
           return n;
         }
         int r = *select_randomly(c_count.begin(), c_count.end(), seed);
@@ -338,7 +343,7 @@ cseek_planMCTS(pTree<State>& t,
                  int R = 30,
                  int plan_size = -1,
                  double eps = 0.4,
-                 double alpha = 0.5,
+                 double alpha = 0.05,
                  int seed = 4021,
                  int aux_R = 10) {
 
@@ -351,21 +356,39 @@ cseek_planMCTS(pTree<State>& t,
   n_node.cplan = t.nodes[v].cplan;
   n_node.likelihood = t.nodes[v].likelihood;
   int w = m.add_node(n_node);
-  while (!m.nodes[w].tasks.empty()) {
+  while (!t.nodes[v].tasks.empty() && 
+         (t.nodes[v].cplan.second.size() < plan_size || plan_size == -1)) {
     int aux = aux_R;
     for (int i = 0; i < R; i++) {
       int n = cselection(m,w,eps,seed);
       seed++;
-      if (m.nodes[n].tasks.empty()) {
-          auto r = csimulation(m.nodes[n].state, m.nodes[n].tasks, domain, cpm, m.nodes[n].likelihood,max_likelihood,alpha,seed);
-          if (r.second > max_likelihood) {
-            max_likelihood = r.second;
+      if (m.nodes[n].tasks.empty() || 
+          (m.nodes[n].cplan.second.size() >= plan_size && plan_size != -1)) {
+          int r;
+          if (m.nodes[n].likelihood < max_likelihood) {
+            r = -1;
           }
-          cbackprop(m,n,r.first);
+          if (m.nodes[n].likelihood == max_likelihood) {
+            r = 0;
+          }
+          if (m.nodes[n].likelihood > max_likelihood) {
+            r = 1;
+            max_likelihood = m.nodes[n].likelihood;
+          }
+          cbackprop(m,n,r);
       }
       else {
         if (m.nodes[n].sims == 0) {
-          auto r = csimulation(m.nodes[n].state, m.nodes[n].tasks, domain, cpm, m.nodes[n].likelihood,max_likelihood,alpha,seed);
+          auto r = csimulation(plan_size,
+                               m.nodes[n].cplan.second.size(),
+                               m.nodes[n].state, 
+                               m.nodes[n].tasks, 
+                               domain, 
+                               cpm, 
+                               m.nodes[n].likelihood,
+                               max_likelihood,
+                               alpha,
+                               seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -385,7 +408,16 @@ cseek_planMCTS(pTree<State>& t,
             aux = aux_R;
           }
           seed++;
-          auto r = csimulation(m.nodes[n_p].state, m.nodes[n_p].tasks, domain, cpm, m.nodes[n_p].likelihood,max_likelihood,alpha,seed);
+          auto r = csimulation(plan_size,
+                               m.nodes[n_p].cplan.second.size(),
+                               m.nodes[n_p].state, 
+                               m.nodes[n_p].tasks, 
+                               domain, 
+                               cpm, 
+                               m.nodes[n_p].likelihood,
+                               max_likelihood,
+                               alpha,
+                               seed);
           if (r.second > max_likelihood) {
             max_likelihood = r.second;
           }
@@ -424,10 +456,6 @@ cseek_planMCTS(pTree<State>& t,
     seed++;
     v = y;
 
-    if (t.nodes[v].cplan.second.size() == plan_size) {
-      break;
-    }
-
     if (!m.nodes[arg_max].successors.empty()) {
       std::mt19937 gen(seed);
       std::uniform_real_distribution<double> dis(0.0,1.0);
@@ -452,9 +480,6 @@ cseek_planMCTS(pTree<State>& t,
           seed++;
           v = y;
 
-          if (t.nodes[v].cplan.second.size() == plan_size) {
-            break;
-          }
         }
         else {
           int new_arg_max = m.nodes[arg_max].successors.front();
@@ -489,9 +514,6 @@ cseek_planMCTS(pTree<State>& t,
             t.nodes[v].successors.push_back(y);
             seed++;
             v = y;
-            if (t.nodes[v].cplan.second.size() == plan_size) {
-              break;
-            }
           }
           else {
             step_again = false;
@@ -499,9 +521,6 @@ cseek_planMCTS(pTree<State>& t,
         }
       } while (step_again && !m.nodes[arg_max].successors.empty());
 
-      if (t.nodes[v].cplan.second.size() == plan_size) {
-        break;
-      }
     }
     w = arg_max;
     seed++;
@@ -525,7 +544,7 @@ cppMCTShop(State state,
            int R,
            int plan_size = -1,
            double eps = 0.4,
-           double alpha = 0.5,
+           double alpha = 0.05,
            int seed = 4021,
            int aux_R = 10) {
     pTree<State> t;
