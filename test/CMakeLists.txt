@@ -5,6 +5,7 @@ add_definitions(-DBOOST_LOG_DYN_LINK)
 find_package(Boost COMPONENTS log REQUIRED)
 find_package(Graphviz)
 find_package(nlohmann_json REQUIRED)
+find_package(Z3 REQUIRED)
 
 # Parser testing
 add_executable(test_parser test_parser.cpp)
@@ -47,6 +48,11 @@ target_include_directories(test_MCTS_planrec PRIVATE ${GRAPHVIZ_INCLUDE_DIR}
     ../lib/cpphop)
 target_link_libraries(test_MCTS_planrec PRIVATE ${GRAPHVIZ_LIBS})
 
+# test z3
+add_executable(test_z3 test_z3.cpp)
+target_include_directories(test_z3 PRIVATE ${Z3_CXX_INCLUDE_DIRS})
+target_link_libraries(test_z3 PRIVATE ${Z3_LIBRARIES})
+
 add_test(NAME test_parser COMMAND test_parser)
 add_test(NAME test_kb COMMAND test_kb)
 add_test(NAME test_unification COMMAND test_unification)
@@ -54,3 +60,4 @@ add_test(NAME test_cnf_conversion COMMAND test_cnf_conversion)
 add_test(NAME test_DFS_planner COMMAND test_DFS_planner)
 add_test(NAME test_MCTS_planner COMMAND test_MCTS_planner)
 add_test(NAME test_MCTS_planrec COMMAND test_MCTS_planrec)
+add_test(NAME test_z3 COMMAND test_z3)
