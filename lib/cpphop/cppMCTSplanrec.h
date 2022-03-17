@@ -328,7 +328,7 @@ int cexpansion_rec(prTree<State>& t,
             }
           }
           else {
-            v.likelihood = t.nodes[n].likelihood + log(1.0/c_count.size());
+            v.likelihood = t.nodes[n].likelihood + log(1.0/c.size());
           }
           v.state = t.nodes[n].state;
           v.tasks = t.nodes[n].tasks;
