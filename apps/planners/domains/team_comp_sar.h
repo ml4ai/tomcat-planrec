@@ -90,6 +90,23 @@ template <class State> std::string get_team_comp(State state) {
 }
 
 // operators
+template <class State> std::optional<State> search(State state, Args args) {
+  auto agent = args["agent"];
+  auto area = args["area"];
+  auto start = std::stoi(args["start"],nullptr);
+  auto duration = std::stoi(args["duration"],nullptr);
+  int end = start + duration;
+  state.time[agent] = end;
+  if (!state.action_tracker[agent].empty()) {
+    state.action_tracker[agent].pop_back();
+  }
+  return state;
+}
+
+template <class State> double search(State pre_state,State post_state, Args args) {
+  return 1;
+}
+
 template <class State> std::optional<State> triageReg(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
@@ -4036,7 +4053,8 @@ class TeamSARState {
 class TeamSARDomain {
   public:
     Operators<TeamSARState> operators = 
-      Operators<TeamSARState>({{"!triageReg",triageReg},
+      Operators<TeamSARState>({{"!search",search},
+                           {"!triageReg",triageReg},
                            {"!triageCrit",triageCrit},
                            {"!wakeCrit",wakeCrit},
                            {"!break_block",break_block},
@@ -4055,7 +4073,8 @@ class TeamSARDomain {
                            {"!exit",exit}});
 
     pOperators<TeamSARState> poperators = 
-      pOperators<TeamSARState>({{"!triageReg",triageReg},
+      pOperators<TeamSARState>({{"!search",search},
+                           {"!triageReg",triageReg},
                            {"!triageCrit",triageCrit},
                            {"!wakeCrit",wakeCrit},
                            {"!break_block",break_block},
