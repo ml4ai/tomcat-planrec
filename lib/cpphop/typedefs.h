@@ -18,6 +18,13 @@ struct Task {
     args_order = a_o;
     agents = as; 
   }
+  //copy constructor
+  Task(const Task &t1) {
+    task_id = t1.task_id;
+    args = t1.args;
+    args_order = t1.args_order;
+    agents = t1.agents;
+  }
 };
 
 using Tasks = std::vector<Task>;
@@ -25,6 +32,7 @@ using pTasks = std::pair<double, Tasks>;
 using cTasks = std::pair<std::string, Tasks>;
 using Plans = std::vector<pTasks>;
 using cPlans = std::vector<cTasks>;
+using Predictions = std::unordered_map<std::string, Task>;
 
 using CFM = std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string,int>>>;
 using CPM = std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string,double>>>;
