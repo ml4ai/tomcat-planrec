@@ -90,23 +90,6 @@ template <class State> std::string get_team_comp(State state) {
 }
 
 // operators
-template <class State> std::optional<State> search(State state, Args args) {
-  auto agent = args["agent"];
-  auto area = args["area"];
-  auto start = std::stoi(args["start"],nullptr);
-  auto duration = std::stoi(args["duration"],nullptr);
-  int end = start + duration;
-  state.time[agent] = end;
-  if (!state.action_tracker[agent].empty()) {
-    state.action_tracker[agent].pop_back();
-  }
-  return state;
-}
-
-template <class State> double search(State pre_state,State post_state, Args args) {
-  return 1;
-}
-
 template <class State> std::optional<State> triageReg(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
@@ -2369,15 +2352,16 @@ template <class State> cTasks h_task(State state, Args args) {
 
 template <class State> cTasks clear_area(State state, Args args) {
   auto agent = args["agent"];
+  std::string start = std::to_string(state.time[agent]);
   if (!state.action_tracker[agent].empty()) {
     Action act = state.action_tracker[agent].back();
     if (act.action != "!break_block") {
       return {"NIL",{}};
     }
+    start = act.start;
   }
-
-  if (state.role[agent] == "Hazardous_Material_Specialist" && 
-      state.time[agent] <= 900 && !in(state.agent_loc[agent],state.no_victim_zones)) {
+  bool seen_block = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["blocks"] > 0; 
+  if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] <= 900 && seen_block) {
       std::string cond = "clear_area_0";
       if (state.team_comp == "hhh") {
         cond = "clear_area_1";
@@ -2425,8 +2409,8 @@ template <class State> cTasks break_blocks(State state, Args args) {
     duration = "1";
     start = std::to_string(state.time[agent]);
   }
-
-  if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] <= 900) {
+  bool seen_block = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["blocks"] > 0; 
+  if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] <= 900 && seen_block) {
     std::string cond;
 
     int blocks_broken;
@@ -2479,6 +2463,14 @@ template <class State> cTasks break_blocks(State state, Args args) {
 template <class State> cTasks done_breaking(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    start = act.start;
+  }
+  else {
+    start = std::to_string(state.time[agent]);
+  }
   auto current_blocks_broken = std::stoi(args["blocks_broken"],nullptr);
   if (state.role[agent] == "Hazardous_Material_Specialist" && current_blocks_broken > 0) {
     std::string cond;
@@ -2515,7 +2507,8 @@ template <class State> cTasks done_breaking(State state, Args args) {
     else {
       cond = "NIL";
     }
-    if (state.time[agent] > 900) {
+    bool no_blocks_seen = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["blocks"] < 1;  
+    if (state.time[agent] > 900 || no_blocks_seen) {
       cond = "done_breaking_0";
     }
 
@@ -2567,8 +2560,9 @@ template <class State> cTasks triage_critical(State state, Args args) {
   else {
     c_triaged_here = state.c_triaged_here[state.agent_loc[agent]];
   }
-
+  bool seen_crit_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["crit_vics"] > 0;
   if (state.role[agent] == "Medical_Specialist" && state.time[agent] <= 900 &&
+      seen_crit_vics &&
       c_awake && 
       !c_triaged_here &&
       state.c_triage_total < state.c_max) {
@@ -2646,15 +2640,17 @@ template <class State> cTasks triage_critical(State state, Args args) {
 
 template <class State> cTasks triage_regs_in_area(State state, Args args) {
   auto agent = args["agent"];
-
+  std::string start = std::to_string(state.time[agent]); 
   if (!state.action_tracker[agent].empty()) {
     Action act = state.action_tracker[agent].back();
     if (act.action != "!triageReg") {
       return {"NIL",{}};
     }
+    start = act.start;
   }
+  bool seen_reg_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] > 0;
   if (state.role[agent] == "Medical_Specialist" && state.time[agent] <= 900 &&
-      !in(state.agent_loc[agent],state.no_victim_zones) &&
+      seen_reg_vics &&
       state.r_triage_total < state.r_max) {
     std::string cond;
 
@@ -2735,8 +2731,9 @@ template <class State> cTasks triage_regs(State state, Args args) {
     duration = "7";
     start = std::to_string(state.time[agent]);
   }
-
+  bool seen_reg_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] > 0;
   if (state.role[agent] == "Medical_Specialist" && state.time[agent] <= 900 &&
+      seen_reg_vics &&
       state.r_triage_total < state.r_max) {
     std::string cond;
 
@@ -2792,6 +2789,14 @@ template <class State> cTasks done_triaging(State state, Args args) {
   auto area = args["area"];
 
   auto regs_triaged = std::stoi(args["regs_triaged"],nullptr);
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    start = act.start;
+  }
+  else {
+    start = std::to_string(state.time[agent]);
+  }
 
   if (state.role[agent] == "Medical_Specialist" && regs_triaged > 0) {
     std::string cond;;
@@ -2828,7 +2833,8 @@ template <class State> cTasks done_triaging(State state, Args args) {
     else {
       cond = "NIL";
     }
-    if (state.time[agent] > 900) {
+    bool no_reg_vics_seen = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] < 1;
+    if (state.time[agent] > 900 || no_reg_vics_seen) {
       cond = "done_triaging_0";
     }
 
@@ -2849,16 +2855,17 @@ template <class State> cTasks s_task(State state, Args args) {
 
 template <class State> cTasks relocate_victim(State state, Args args) {
   auto agent = args["agent"];
-
+  std::string start = std::to_string(state.time[agent]); 
   if (!state.action_tracker[agent].empty()) {
     Action act = state.action_tracker[agent].back();
     if (act.action != "!pickup_vic") {
       return {"NIL",{}};
     }
+    start = act.start;
   }
-
+  bool seen_reg_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] > 0;
   if (state.role[agent] == "Search_Specialist" && state.time[agent] <= 900 &&
-      !in(state.agent_loc[agent],state.no_victim_zones) &&
+      seen_reg_vics &&
       state.r_triage_total < state.r_max && !state.holding[agent]) {
     std::string cond = "relocate_victim_0";
     if (state.team_comp == "hhs") {
@@ -2923,9 +2930,9 @@ template <class State> cTasks pickup_victim(State state, Args args) {
     duration = "1";
     start = std::to_string(state.time[agent]);
   }
-
+  bool seen_reg_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] > 0;
   if (state.role[agent] == "Search_Specialist" && state.time[agent] <= 900 &&
-      !state.holding[agent]) {
+      seen_reg_vics && !state.holding[agent]) {
 
     return {"pickup_victim_0",
       {Task("!pickup_vic",Args({{"duration",duration},
@@ -3548,7 +3555,6 @@ template <class State> cTasks wake_crit_vic(State state, Args args) {
     duration = act.duration;
     start = act.start;
   }
-
   if (state.time[min_agent] <= 900 && !in(state.agent_loc[min_agent],state.no_victim_zones) &&
       state.team_comp.size() >= 3) {
     std::string c_vic_area = state.agent_loc[min_agent];
@@ -4018,6 +4024,7 @@ class TeamSARState {
     // Not part of the state representation!
     std::unordered_map<std::string,std::vector<Action>> action_tracker;
     std::unordered_map<std::string,std::vector<std::string>> loc_tracker;
+    std::vector<std::unordered_map<std::string,std::unordered_map<std::string,int>>> fov_tracker;
     bool plan_rec = false;
     int seed = 100;
 
@@ -4053,8 +4060,7 @@ class TeamSARState {
 class TeamSARDomain {
   public:
     Operators<TeamSARState> operators = 
-      Operators<TeamSARState>({{"!search",search},
-                           {"!triageReg",triageReg},
+      Operators<TeamSARState>({{"!triageReg",triageReg},
                            {"!triageCrit",triageCrit},
                            {"!wakeCrit",wakeCrit},
                            {"!break_block",break_block},
@@ -4073,8 +4079,7 @@ class TeamSARDomain {
                            {"!exit",exit}});
 
     pOperators<TeamSARState> poperators = 
-      pOperators<TeamSARState>({{"!search",search},
-                           {"!triageReg",triageReg},
+      pOperators<TeamSARState>({{"!triageReg",triageReg},
                            {"!triageCrit",triageCrit},
                            {"!wakeCrit",wakeCrit},
                            {"!break_block",break_block},
