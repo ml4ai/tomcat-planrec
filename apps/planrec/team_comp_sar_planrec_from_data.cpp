@@ -26,6 +26,7 @@ int main(int argc, char* argv[]) {
   int aux_R = 10;
   std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
+  std::string fov_file = "fov.json";
   std::string cpm_json;
   try {
     po::options_description desc("Allowed options");
@@ -103,9 +104,9 @@ int main(int argc, char* argv[]) {
   }
  
 
-    std::ifstream f(map_json);
+    std::ifstream m(map_json);
     json g;
-    f >> g;
+    m >> g;
 
     auto state1 = TeamSARState();
     
@@ -168,6 +169,20 @@ int main(int argc, char* argv[]) {
           }
         }
       }
+    }
+
+    std::ifstream f(fov_file);
+    json j_fov;
+    f >> j_fov;
+    state1.fov_tracker = {};
+    for (auto& element : j_fov) {
+      std::unordered_map<std::string,std::unordered_map<std::string,int>> entry = {};
+      for (auto& [k1,v1] : element.items()) {
+        for (auto& [k2,v2] : v1.items()) {
+          entry[k1][k2] = v2.get<int>();
+        }
+      }
+      state1.fov_tracker.push_back(entry);
     }
 
     parse_data p;
