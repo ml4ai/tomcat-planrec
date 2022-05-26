@@ -23,6 +23,7 @@ struct parse_data {
   TeamSARState initial_state;
   std::unordered_map<std::string,std::vector<Action>> action_tracker;
   std::unordered_map<std::string,std::vector<std::string>> loc_tracker;
+  std::unordered_map<std::string,Action> gt;
 };
 
 int missionTime2secElapsed(std::string str)
@@ -845,6 +846,7 @@ parse_data team_sar_parser(std::string infile,
                      TeamSARState state,
                      TeamSARDomain& domain,
                      int trace_size = -1,
+                     bool generate_gt = false,
                      bool gen_file = false,
                      std::string outfile = "parsed_plan_trace.json") {
   std::string msg;
@@ -861,8 +863,11 @@ parse_data team_sar_parser(std::string infile,
   std::string player_key = "playername";
   std::unordered_map<std::string, Action> prevAct;
   std::unordered_map<std::string,int> prev_act_endtime;
+  if (trace_size == -1) {
+    generate_gt = false;
+  }
   while(getline(rfile,msg)) {
-    if (i == trace_size) {
+    if (i >= trace_size && trace_size != -1 && !generate_gt) {
       break;
     }
     json g;
@@ -888,6 +893,11 @@ parse_data team_sar_parser(std::string infile,
       }
       p.initial_state = state;
     }
+    if (generate_gt) {
+      if (p.gt.size() >= state.agents.size()) {
+        break;
+      }
+    }
     if (g["data"]["mission_timer"] == "Mission Timer not initialized.") {
       if (g["msg"]["sub_type"] == "Event:RoleSelected") {
         state.role[g["data"][player_key].get<std::string>()] = g["data"]["new_role"].get<std::string>();
@@ -906,6 +916,7 @@ parse_data team_sar_parser(std::string infile,
           g["data"][player_key] == state.agents[0]) {
         if (g["data"]["locations"][0]["id"] != state.agent_loc[state.agents[0]]) {
           j_node n = process_move_act(g,player_key,state,domain,infile);
+          state = n.new_s;
 //          if (n.starttime > prev_act_endtime[state.agents[0]]) {
 //            j_node s = process_search_act(state.agents[0],state,domain,prev_act_endtime[state.agents[0]],n.starttime,infile);
 //            j["plan"][state.agents[0]].push_back(s.j);
@@ -914,13 +925,20 @@ parse_data team_sar_parser(std::string infile,
 //            p.action_tracker[state.agents[0]].push_back(n.action);
 //            i++;
 //          }
-          j["plan"][state.agents[0]].push_back(n.j);
-          state = n.new_s;
-          p.loc_tracker[state.agents[0]].push_back(state.agent_loc[state.agents[0]]);
-          prevAct[state.agents[0]] = n.action;
-          p.action_tracker[state.agents[0]].push_back(n.action); 
-          i++;
-          prev_act_endtime[state.agents[0]] = n.endtime;
+
+          if (generate_gt && i >= trace_size) {
+            if (p.gt.find(state.agents[0]) == p.gt.end()) {
+              p.gt.insert({state.agents[0],n.action});
+            }
+          }
+          else {
+            j["plan"][state.agents[0]].push_back(n.j);
+            p.loc_tracker[state.agents[0]].push_back(state.agent_loc[state.agents[0]]);
+            prevAct[state.agents[0]] = n.action;
+            p.action_tracker[state.agents[0]].push_back(n.action); 
+            i++;
+            prev_act_endtime[state.agents[0]] = n.endtime;
+          }
         }
       }
 
@@ -929,6 +947,7 @@ parse_data team_sar_parser(std::string infile,
           g["data"][player_key] == state.agents[1]) {
         if (g["data"]["locations"][0]["id"] != state.agent_loc[state.agents[1]]) {
           j_node n = process_move_act(g,player_key,state,domain,infile);
+          state = n.new_s;
 //          if (n.starttime > prev_act_endtime[state.agents[1]]) {
 //            j_node s = process_search_act(state.agents[1],state,domain,prev_act_endtime[state.agents[1]],n.starttime,infile);
 //            j["plan"][state.agents[1]].push_back(s.j);
@@ -937,13 +956,19 @@ parse_data team_sar_parser(std::string infile,
 //            p.action_tracker[state.agents[1]].push_back(n.action);
 //            i++;
 //          }
-          j["plan"][state.agents[1]].push_back(n.j);
-          state = n.new_s;
-          p.loc_tracker[state.agents[1]].push_back(state.agent_loc[state.agents[1]]);
-          prevAct[state.agents[1]] = n.action;
-          p.action_tracker[state.agents[1]].push_back(n.action);
-          i++;
-          prev_act_endtime[state.agents[1]] = n.endtime;
+          if (generate_gt && i >= trace_size) {
+            if (p.gt.find(state.agents[1]) == p.gt.end()) {
+              p.gt.insert({state.agents[1],n.action});
+            }
+          }
+          else {
+            j["plan"][state.agents[1]].push_back(n.j);
+            p.loc_tracker[state.agents[1]].push_back(state.agent_loc[state.agents[1]]);
+            prevAct[state.agents[1]] = n.action;
+            p.action_tracker[state.agents[1]].push_back(n.action);
+            i++;
+            prev_act_endtime[state.agents[1]] = n.endtime;
+          }
         }
       }
 
@@ -952,6 +977,7 @@ parse_data team_sar_parser(std::string infile,
           g["data"][player_key] == state.agents[2]) {
         if (g["data"]["locations"][0]["id"] != state.agent_loc[state.agents[2]]) {
           j_node n = process_move_act(g,player_key,state,domain,infile);
+          state = n.new_s;
 //          if (n.starttime > prev_act_endtime[state.agents[2]]) {
 //            j_node s = process_search_act(state.agents[2],state,domain,prev_act_endtime[state.agents[2]],n.starttime,infile);
 //            j["plan"][state.agents[2]].push_back(s.j);
@@ -960,19 +986,26 @@ parse_data team_sar_parser(std::string infile,
 //            p.action_tracker[state.agents[2]].push_back(n.action);
 //            i++;
 //          }
-          j["plan"][state.agents[2]].push_back(n.j);
-          state = n.new_s;
-          p.loc_tracker[state.agents[2]].push_back(state.agent_loc[state.agents[2]]);
-          prevAct[state.agents[2]] = n.action;
-          p.action_tracker[state.agents[2]].push_back(n.action);
-          i++;
-          prev_act_endtime[state.agents[2]] = n.endtime;
+          if (generate_gt && i >= trace_size) {
+            if (p.gt.find(state.agents[2]) == p.gt.end()) {
+              p.gt.insert({state.agents[2],n.action});
+            }
+          }
+          else {
+            j["plan"][state.agents[2]].push_back(n.j);
+            p.loc_tracker[state.agents[2]].push_back(state.agent_loc[state.agents[2]]);
+            prevAct[state.agents[2]] = n.action;
+            p.action_tracker[state.agents[2]].push_back(n.action);
+            i++;
+            prev_act_endtime[state.agents[2]] = n.endtime;
+          }
         }
       }
  
       if (g["msg"]["sub_type"] == "Event:RoleSelected") {
         j_node n = process_change_role_act(g,player_key,state,domain,infile);
         std::string player = g["data"][player_key].get<std::string>();
+        state = n.new_s;
 //        if (n.starttime > prev_act_endtime[player]) {
 //          j_node s = process_search_act(player,state,domain,prev_act_endtime[player],n.starttime,infile);
 //          j["plan"][player].push_back(s.j);
@@ -981,12 +1014,18 @@ parse_data team_sar_parser(std::string infile,
 //          p.action_tracker[player].push_back(n.action);
 //          i++;
 //        }
-        j["plan"][player].push_back(n.j);
-        state = n.new_s;
-        prevAct[player] = n.action;
-        p.action_tracker[player].push_back(n.action);
-        i++;
-        prev_act_endtime[player] = n.endtime;
+        if (generate_gt && i >= trace_size) {
+          if (p.gt.find(player) == p.gt.end()) {
+            p.gt.insert({player,n.action});
+          }
+        }
+        else {
+          j["plan"][player].push_back(n.j);
+          prevAct[player] = n.action;
+          p.action_tracker[player].push_back(n.action);
+          i++;
+          prev_act_endtime[player] = n.endtime;
+        }
       }
 
       if (g["msg"]["sub_type"] == "Event:Triage" && 
@@ -999,6 +1038,7 @@ parse_data team_sar_parser(std::string infile,
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
             j_node n = process_triageReg_act(g,player_key,regTriageTime[state.agents[0]],state,domain,infile);
+            state = n.new_s;
 //            if (n.starttime > prev_act_endtime[state.agents[0]]) {
 //              j_node s = process_search_act(state.agents[0],state,domain,prev_act_endtime[state.agents[0]],n.starttime,infile);
 //              j["plan"][state.agents[0]].push_back(s.j);
@@ -1007,12 +1047,18 @@ parse_data team_sar_parser(std::string infile,
 //              p.action_tracker[state.agents[0]].push_back(n.action);
 //              i++;
 //            }
-            j["plan"][state.agents[0]].push_back(n.j);
-            state = n.new_s;
-            prevAct[state.agents[0]] = n.action;
-            p.action_tracker[state.agents[0]].push_back(n.action);
-            i++;
-            prev_act_endtime[state.agents[0]] = n.endtime;
+            if (generate_gt && i >= trace_size) {
+              if (p.gt.find(state.agents[0]) == p.gt.end()) {
+                p.gt.insert({state.agents[0],n.action});
+              }
+            }
+            else {
+              j["plan"][state.agents[0]].push_back(n.j);
+              prevAct[state.agents[0]] = n.action;
+              p.action_tracker[state.agents[0]].push_back(n.action);
+              i++;
+              prev_act_endtime[state.agents[0]] = n.endtime;
+            }
           }
           regTriageTime[state.agents[0]] = 0;
         }
@@ -1028,6 +1074,7 @@ parse_data team_sar_parser(std::string infile,
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
             j_node n = process_triageReg_act(g,player_key,regTriageTime[state.agents[1]],state,domain,infile);
+            state = n.new_s;
 //            if (n.starttime > prev_act_endtime[state.agents[1]]) {
 //              j_node s = process_search_act(state.agents[1],state,domain,prev_act_endtime[state.agents[1]],n.starttime,infile);
 //              j["plan"][state.agents[1]].push_back(s.j);
@@ -1036,12 +1083,18 @@ parse_data team_sar_parser(std::string infile,
 //              p.action_tracker[state.agents[1]].push_back(n.action);
 //              i++;
 //            }
-            j["plan"][state.agents[1]].push_back(n.j);
-            state = n.new_s;
-            prevAct[state.agents[1]] = n.action;
-            p.action_tracker[state.agents[1]].push_back(n.action);
-            i++;
-            prev_act_endtime[state.agents[1]] = n.endtime;
+            if (generate_gt && i >= trace_size) {
+              if (p.gt.find(state.agents[1]) == p.gt.end()) {
+                p.gt.insert({state.agents[1],n.action});
+              }
+            }
+            else {
+              j["plan"][state.agents[1]].push_back(n.j);
+              prevAct[state.agents[1]] = n.action;
+              p.action_tracker[state.agents[1]].push_back(n.action);
+              i++;
+              prev_act_endtime[state.agents[1]] = n.endtime;
+            }
           }
           regTriageTime[state.agents[1]] = 0;
         }
@@ -1057,6 +1110,7 @@ parse_data team_sar_parser(std::string infile,
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
             j_node n = process_triageReg_act(g,player_key,regTriageTime[state.agents[2]],state,domain,infile);
+            state = n.new_s;
 //            if (n.starttime > prev_act_endtime[state.agents[2]]) {
 //              j_node s = process_search_act(state.agents[2],state,domain,prev_act_endtime[state.agents[2]],n.starttime,infile);
 //              j["plan"][state.agents[2]].push_back(s.j);
@@ -1065,12 +1119,18 @@ parse_data team_sar_parser(std::string infile,
 //              p.action_tracker[state.agents[2]].push_back(n.action);
 //              i++;
 //            }
-            j["plan"][state.agents[2]].push_back(n.j);
-            state = n.new_s;
-            prevAct[state.agents[2]] = n.action;
-            p.action_tracker[state.agents[2]].push_back(n.action);
-            i++;
-            prev_act_endtime[state.agents[2]] = n.endtime;
+            if (generate_gt && i >= trace_size) {
+              if (p.gt.find(state.agents[2]) == p.gt.end()) {
+                p.gt.insert({state.agents[2],n.action});
+              }
+            }
+            else {
+              j["plan"][state.agents[2]].push_back(n.j);
+              prevAct[state.agents[2]] = n.action;
+              p.action_tracker[state.agents[2]].push_back(n.action);
+              i++;
+              prev_act_endtime[state.agents[2]] = n.endtime;
+            }
           }
           regTriageTime[state.agents[2]] = 0;
         }
@@ -1086,6 +1146,7 @@ parse_data team_sar_parser(std::string infile,
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
             j_node n = process_triageCrit_act(g,player_key,critTriageTime[state.agents[0]],state,domain,infile);
+            state = n.new_s;
 //            if (n.starttime > prev_act_endtime[state.agents[0]]) {
 //              j_node s = process_search_act(state.agents[0],state,domain,prev_act_endtime[state.agents[0]],n.starttime,infile);
 //              j["plan"][state.agents[0]].push_back(s.j);
@@ -1094,12 +1155,18 @@ parse_data team_sar_parser(std::string infile,
 //              p.action_tracker[state.agents[0]].push_back(n.action);
 //              i++;
 //            }
-            j["plan"][state.agents[0]].push_back(n.j);
-            state = n.new_s;
-            prevAct[state.agents[0]] = n.action;
-            p.action_tracker[state.agents[0]].push_back(n.action);
-            i++;
-            prev_act_endtime[state.agents[0]] = n.endtime;
+            if (generate_gt && i >= trace_size) {
+              if (p.gt.find(state.agents[0]) == p.gt.end()) {
+                p.gt.insert({state.agents[0],n.action});
+              }
+            }
+            else {
+              j["plan"][state.agents[0]].push_back(n.j);
+              prevAct[state.agents[0]] = n.action;
+              p.action_tracker[state.agents[0]].push_back(n.action);
+              i++;
+              prev_act_endtime[state.agents[0]] = n.endtime;
+            }
           }
           critTriageTime[state.agents[0]] = 0;
         }
@@ -1115,6 +1182,7 @@ parse_data team_sar_parser(std::string infile,
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
             j_node n = process_triageCrit_act(g,player_key,critTriageTime[state.agents[1]],state,domain,infile);
+            state = n.new_s;
 //            if (n.starttime > prev_act_endtime[state.agents[1]]) {
 //              j_node s = process_search_act(state.agents[1],state,domain,prev_act_endtime[state.agents[1]],n.starttime,infile);
 //              j["plan"][state.agents[1]].push_back(s.j);
@@ -1123,12 +1191,18 @@ parse_data team_sar_parser(std::string infile,
 //              p.action_tracker[state.agents[1]].push_back(n.action);
 //              i++;
 //            }
-            j["plan"][state.agents[1]].push_back(n.j);
-            state = n.new_s;
-            prevAct[state.agents[1]] = n.action;
-            p.action_tracker[state.agents[1]].push_back(n.action);
-            i++;
-            prev_act_endtime[state.agents[1]] = n.endtime;
+            if (generate_gt && i >= trace_size) {
+              if (p.gt.find(state.agents[1]) == p.gt.end()) {
+                p.gt.insert({state.agents[1],n.action});
+              }
+            }
+            else {
+              j["plan"][state.agents[1]].push_back(n.j);
+              prevAct[state.agents[1]] = n.action;
+              p.action_tracker[state.agents[1]].push_back(n.action);
+              i++;
+              prev_act_endtime[state.agents[1]] = n.endtime;
+            }
           }
           critTriageTime[state.agents[1]] = 0;
         }
@@ -1144,6 +1218,7 @@ parse_data team_sar_parser(std::string infile,
         else {
           if (g["data"]["triage_state"] == "SUCCESSFUL") {
             j_node n = process_triageCrit_act(g,player_key,critTriageTime[state.agents[2]],state,domain,infile);
+            state = n.new_s;
 //            if (n.starttime > prev_act_endtime[state.agents[2]]) {
 //              j_node s = process_search_act(state.agents[2],state,domain,prev_act_endtime[state.agents[2]],n.starttime,infile);
 //              j["plan"][state.agents[2]].push_back(s.j);
@@ -1152,12 +1227,18 @@ parse_data team_sar_parser(std::string infile,
 //              p.action_tracker[state.agents[2]].push_back(n.action);
 //              i++;
 //            }
-            j["plan"][state.agents[2]].push_back(n.j);
-            state = n.new_s;
-            prevAct[state.agents[2]] = n.action;
-            p.action_tracker[state.agents[2]].push_back(n.action);
-            i++;
-            prev_act_endtime[state.agents[2]] = n.endtime;
+            if (generate_gt && i >= trace_size) {
+              if (p.gt.find(state.agents[2]) == p.gt.end()) {
+                p.gt.insert({state.agents[2],n.action});
+              }
+            }
+            else {
+              j["plan"][state.agents[2]].push_back(n.j);
+              prevAct[state.agents[2]] = n.action;
+              p.action_tracker[state.agents[2]].push_back(n.action);
+              i++;
+              prev_act_endtime[state.agents[2]] = n.endtime;
+            }
           }
           critTriageTime[state.agents[2]] = 0;
         }
@@ -1193,12 +1274,19 @@ parse_data team_sar_parser(std::string infile,
 	    }
 	    if (player != "None" && loc != "None") {
           j_node n = process_move_act(loc,player,g,player_key,state,domain,infile);
-          j["plan"][player].push_back(n.j);
           state = n.new_s;
-          p.loc_tracker[player].push_back(state.agent_loc[player]);
-          prevAct[player] = n.action;
-          p.action_tracker[player].push_back(n.action);
-          i++;
+          if (generate_gt && i >= trace_size) {
+            if (p.gt.find(player) == p.gt.end()) {
+              p.gt.insert({player,n.action});
+            }
+          }
+          else {
+            j["plan"][player].push_back(n.j);
+            p.loc_tracker[player].push_back(state.agent_loc[player]);
+            prevAct[player] = n.action;
+            p.action_tracker[player].push_back(n.action);
+            i++;
+          }
 	    }	
         j_node n = process_wakeCrit_act(g,state,domain,infile);
         c_awake_area[vic] = n.action.area;
@@ -1213,17 +1301,25 @@ parse_data team_sar_parser(std::string infile,
 //            i++;
 //            prev_act_endtime[a] = n.endtime;
 //          }
-          j["plan"][a].push_back(n.j);
-          prevAct[a] = n.action;
-          p.action_tracker[a].push_back(n.action);
-          c_awake[vic][a] = p.action_tracker[a].size() - 1;
-          i++;
+          if (generate_gt && i >= trace_size) {
+            if (p.gt.find(a) == p.gt.end()) {
+              p.gt.insert({a,n.action});
+            }
+          }
+          else {
+            j["plan"][a].push_back(n.j);
+            prevAct[a] = n.action;
+            p.action_tracker[a].push_back(n.action);
+            c_awake[vic][a] = p.action_tracker[a].size() - 1;
+            i++;
+          }
         }
       }  
 
       if (g["msg"]["sub_type"] == "Event:VictimPickedUp") {
         j_node n = process_pickUpVic_act(g,player_key,state,domain,infile);
         std::string player = g["data"][player_key].get<std::string>();
+        state = n.new_s;
 //        if (n.starttime > prev_act_endtime[player]) {
 //          j_node s = process_search_act(player,state,domain,prev_act_endtime[player],n.starttime,infile);
 //          j["plan"][player].push_back(s.j);
@@ -1232,17 +1328,24 @@ parse_data team_sar_parser(std::string infile,
 //          p.action_tracker[player].push_back(n.action);
 //          i++;
 //        }
-        j["plan"][player].push_back(n.j);
-        state = n.new_s;
-        prevAct[player] = n.action;
-        p.action_tracker[player].push_back(n.action);
-        i++;
-        prev_act_endtime[player] = n.endtime;
+        if (generate_gt && i >= trace_size) {
+          if (p.gt.find(player) == p.gt.end()) {
+            p.gt.insert({player,n.action});
+          }
+        }
+        else {
+          j["plan"][player].push_back(n.j);
+          prevAct[player] = n.action;
+          p.action_tracker[player].push_back(n.action);
+          i++;
+          prev_act_endtime[player] = n.endtime;
+        }
       }
 
       if (g["msg"]["sub_type"] == "Event:VictimPlaced") {
         j_node n = process_putDownVic_act(g,player_key,state,domain,infile);
         std::string player = g["data"][player_key].get<std::string>();
+        state = n.new_s;
 //        if (n.starttime > prev_act_endtime[player]) {
 //          j_node s = process_search_act(player,state,domain,prev_act_endtime[player],n.starttime,infile);
 //          j["plan"][player].push_back(s.j);
@@ -1251,17 +1354,24 @@ parse_data team_sar_parser(std::string infile,
 //          p.action_tracker[player].push_back(n.action);
 //          i++;
 //        }
-        j["plan"][player].push_back(n.j);
-        state = n.new_s;
-        prevAct[player] = n.action;
-        p.action_tracker[player].push_back(n.action);
-        i++;
-        prev_act_endtime[player] = n.endtime;
+        if (generate_gt && i >= trace_size) {
+          if (p.gt.find(player) == p.gt.end()) {
+            p.gt.insert({player,n.action});
+          }
+        }
+        else {
+          j["plan"][player].push_back(n.j);
+          prevAct[player] = n.action;
+          p.action_tracker[player].push_back(n.action);
+          i++;
+          prev_act_endtime[player] = n.endtime;
+        }
       }
 
       if (g["msg"]["sub_type"] == "Event:RubbleDestroyed") {
         j_node n = process_breakBlock_act(g,player_key,state,domain,infile);
         std::string player = g["data"][player_key].get<std::string>();
+        state = n.new_s;
 //        if (n.starttime > prev_act_endtime[player]) {
 //          j_node s = process_search_act(player,state,domain,prev_act_endtime[player],n.starttime,infile);
 //          j["plan"][player].push_back(s.j);
@@ -1270,12 +1380,18 @@ parse_data team_sar_parser(std::string infile,
 //          p.action_tracker[player].push_back(n.action);
 //          i++;
 //        }
-        j["plan"][player].push_back(n.j);
-        state = n.new_s;
-        prevAct[player] = n.action;
-        p.action_tracker[player].push_back(n.action);
-        i++;
-        prev_act_endtime[player] = n.endtime;
+        if (generate_gt && i >= trace_size) {
+          if (p.gt.find(player) == p.gt.end()) {
+            p.gt.insert({player,n.action});
+          }
+        }
+        else {
+          j["plan"][player].push_back(n.j);
+          prevAct[player] = n.action;
+          p.action_tracker[player].push_back(n.action);
+          i++;
+          prev_act_endtime[player] = n.endtime;
+        }
       }
 
 //      if (g["msg"]["sub_type"] == "Event:MarkerPlaced") {
