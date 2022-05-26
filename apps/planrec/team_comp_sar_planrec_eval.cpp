@@ -174,9 +174,8 @@ int main(int argc, char* argv[]) {
 
     parse_data p;
 
-    p = team_sar_parser(infile,state1, domain, N);
+    p = team_sar_parser(infile,state1, domain, N,true);
 
-    
     p.initial_state.action_tracker = p.action_tracker;
     p.initial_state.loc_tracker = p.loc_tracker;
 
@@ -201,7 +200,13 @@ int main(int argc, char* argv[]) {
     for (auto a : e_node.state.agents) {
       e_node.state.action_tracker[a] = {};
       e_node.state.loc_tracker[a] = {};
+      //e_node.state.time[a] = time[a];
     }
     cppMCTSpredict(e_node.state,e_node.tasks,domain,cpm,R,e,alpha,4021,aux_R);
+    
+    std::cout << "Ground Truth:" << std::endl;
+    for (auto const &a : p.initial_state.agents) {
+      std::cout << p.gt[a].action << std::endl;
+    }
     return EXIT_SUCCESS;
 }
