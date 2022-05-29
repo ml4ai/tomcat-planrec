@@ -40,7 +40,6 @@ string demorgan() {
     }
 }
 
-
 string test_logic_infer1() {
     context c;
 
@@ -82,7 +81,7 @@ string test_logic_infer2() {
     params p(c);
     p.set("mbqi", true);
     s.set(p);
-    s.add(forall(x,implies(k(x) && g(x), e(x))));
+    s.add(forall(x, implies(k(x) && g(x), e(x))));
     s.add(k(John));
     s.add(g(John));
     expr conjecture = e(John);
@@ -98,8 +97,77 @@ string test_logic_infer2() {
     }
 }
 
+string test_logic_infer3() {
+    std::cout << "predicates example\n";
+    context c;
+
+    expr role = c.bool_const("role");
+    expr location = c.bool_const("location");
+    expr medic = c.bool_const("medic");
+    expr loc1 = c.bool_const("room1");
+    expr loc2 = c.bool_const("room2");
+
+    z3::sort I = c.bool_sort();
+    func_decl at = z3::function("at", I, I, I);
+
+    solver s(c);
+    s.add(at(role, location));
+    s.add(at(medic, loc1));
+    expr conjecture = at(medic, loc1);
+    s.add(!conjecture);
+
+    switch (s.check()) {
+    case unsat:
+        return "sat";
+    case sat:
+        return "unsat";
+    case unknown:
+        return "unknown";
+    }
+}
+
+string test_logic_infer4() {
+    std::cout << "parse string\n";
+    z3::context c;
+    z3::solver s(c);
+    s.from_string("(declare-const x Int)(assert (> x 10))");
+
+    switch (s.check()) {
+    case unsat:
+        return "sat";
+    case sat:
+        return "unsat";
+    case unknown:
+        return "unknown";
+    }
+}
+
+string test_logic_infer5() {
+    std::cout << "test logic\n";
+    z3::context c;
+    z3::solver s(c);
+    s.from_string("(declare-fun medic () Bool)\n"
+                  " (declare-fun room1 () Bool)\n"
+                  " (declare-fun room2 () Bool)\n"
+                  " (declare-fun at (Bool Bool) Bool)\n"
+                  " (assert (at medic room1))\n"
+                  " (assert (not (at medic room1)))");
+
+    switch (s.check()) {
+    case unsat:
+        return "sat";
+    case sat:
+        return "unsat";
+    case unknown:
+        return "unknown";
+    }
+}
+
 BOOST_AUTO_TEST_CASE(test_z3) {
     BOOST_TEST(demorgan() == "sat");
     BOOST_TEST(test_logic_infer1() == "sat");
     BOOST_TEST(test_logic_infer2() == "sat");
+    BOOST_TEST(test_logic_infer3() == "sat");
+    BOOST_TEST(test_logic_infer4() == "unsat");
+    BOOST_TEST(test_logic_infer5() == "sat");
 }
