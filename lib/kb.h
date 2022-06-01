@@ -14,8 +14,8 @@
 #include <tuple>
 #include <variant>
 #include <vector>
-//using namespace z3;
-//using namespace ast;
+// using namespace z3;
+// using namespace ast;
 using namespace std;
 using namespace fol;
 
@@ -350,16 +350,16 @@ bool ask(KnowledgeBase& kb, string query) {
             sub_kb_string += ")))";
         }
         else {
-            if(f.args.size()==0){
+            if (f.args.size() == 0) {
                 sub_kb_string = "(assert " + f.predicate + ")";
-            }else{
+            }
+            else {
                 sub_kb_string = "(assert (" + f.predicate;
                 for (auto a : f.args) {
                     sub_kb_string += " " + name(a);
                 }
                 sub_kb_string += "))";
             }
-
         }
         kb_string += sub_kb_string;
     }
@@ -378,6 +378,76 @@ bool ask(KnowledgeBase& kb, string query) {
     }
 }
 
+bool is_number(const std::string& s) {
+    return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) {
+                             return !std::isdigit(c);
+                         }) == s.end();
+}
+
+std::string translate_kb(KnowledgeBase& kb) {
+    std::string kb_string = "";
+
+    vector<std::string> predicates;
+    vector<std::string> symbols;
+}
+
+std::tuple<vector<std::string>, vector<std::string>, std::string>
+translate_literal(vector<std::string> predicates,
+                  vector<std::string> symbols,
+                  Literal<Term> lit) {
+    std::string sub_kb_string = "";
+    if (std::find(predicates.begin(), predicates.end(), lit.predicate) ==
+        predicates.end()) {
+        predicates.push_back(lit.predicate);
+        sub_kb_string = "(declare-fun " + lit.predicate + " (";
+        for (auto a : lit.args) {
+            if (!is_number(name(a))) {
+                sub_kb_string += "Bool ";
+            }
+            else {
+                sub_kb_string += "Real ";
+            }
+        }
+        sub_kb_string += ") Bool)";
+    }
+
+    for (auto a : lit.args) {
+        if (!is_number(name(a))) {
+            if (std::find(symbols.begin(), symbols.end(), name(a)) ==
+                symbols.end()) {
+                symbols.push_back(name(a));
+                sub_kb_string += "(declare-fun " + name(a) + " () Bool)";
+            }
+        }
+    }
+
+    if (lit.is_negative) {
+        if (lit.args.size() == 0) {
+            sub_kb_string = "(assert (not " + lit.predicate;
+            sub_kb_string += "))";
+        }
+        else {
+            sub_kb_string = "(assert (not (" + lit.predicate;
+            for (auto a : lit.args) {
+                sub_kb_string += " " + name(a);
+            }
+            sub_kb_string += ")))";
+        }
+    }
+    else {
+        if (lit.args.size() == 0) {
+            sub_kb_string = "(assert " + lit.predicate + ")";
+        }
+        else {
+            sub_kb_string = "(assert (" + lit.predicate;
+            for (auto a : lit.args) {
+                sub_kb_string += " " + name(a);
+            }
+            sub_kb_string += "))";
+        }
+    }
+    return {predicates, symbols, sub_kb_string};
+}
 // now for the ask_vars method, which will return a substitution list for a
 // variable in the query, if resolute we do not have the standard aparting
 // implemented right now, we are operating on each variable input will have a
