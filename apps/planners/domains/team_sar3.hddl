@@ -1,0 +1,11 @@
+(define (domain teamSAR)
+  (:types
+    human location - object
+    medic engineer transporter - human
+  )
+
+  (:predicates
+    (at ?p - human ?l - location)
+    ()
+  )
+)
