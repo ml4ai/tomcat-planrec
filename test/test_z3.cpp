@@ -268,52 +268,27 @@ string test_logic_infer9() {
     z3::context c;
     z3::solver s(c);
 
-    //    s.from_string("(declare-fun medic () String)\n"
-    //                  " (declare-fun room1 () String)\n"
-    //                  " (declare-fun room2 () String)\n"
-    //                  " (declare-fun at (String String) Bool)\n"
-    //                  " (assert (at medic room1))\n"
-    //                  " (assert (not (at medic room1)))");
     s.from_string(
         "(declare-datatype Role ( (transporter) (medic) (engineer)  ))\n"
-        "(declare-datatype Location ( (room1) (room2) (room3) ))\n"
-        //        "(declare-fun medic () Role)\n"
-        //        "(declare-fun engineer () Role)\n"
-        //        "(declare-fun transporter () Role)\n"
-        //        " (declare-fun room1 () Location)\n"
-        //        " (declare-fun room2 () Location)\n"
-        //        " (declare-fun room3 () Location)\n"
+        " (declare-datatype Location ( (room1) (room2) (room3) ))\n"
         " (declare-fun r () Role)\n"
         " (declare-fun l () Location)\n"
         " (declare-fun at (Role Location) Bool)\n"
         " (assert (at medic room3))\n"
-        " (assert (not (at medic room1)))\n"
-        " (assert (not (at medic room2)))\n"
+        " (assert (forall ((x Location)) (=> (not (= x room3)) (not (at medic "
+        "x)))))\n"
         " (assert (at engineer room1))\n"
-        " (assert (not (at engineer room2)))\n"
-        " (assert (not (at engineer room3)))\n"
+        " (assert (forall ((x Location)) (=> (not (= x room1)) (not (at "
+        "engineer x)))))\n"
         " (assert (at transporter room1))\n"
-        " (assert (not (at transporter room2)))\n"
-        " (assert (not (at transporter room3)))\n"
-        " (assert (at r room3))\n"
-        " (assert (at engineer l))\n"
-        //        " (assert (forall ((z Role)) (at z room1)))");
-        " (get-value (r l))");
-    //        " (assert (at r room1))\n"
-    //                  " (assert (forall ((x String)) (at medic x)))\n"
-    //                  " (assert (forall ((y String)) (at engineer y)))\n"
-    //        " (assert (not (forall ((z Role)) (at z room3))))\n");
-    //        " (assert (at r l))\n"
-    //        " (assert (at r room1))\n"
-    //        " (get-value (r))");
-
-    //        " (get-value (forall ((z Role)) (at z room1)))");
+        " (assert (forall ((x Location)) (=> (not (= x room1)) (not (at "
+        "transporter x)))))\n"
+        " (assert (at r room1))\n"
+        " (assert (at medic l))");
 
     s.check();
-
     model m = s.get_model();
-    //    std::cout << m << "\n";
-    //     traversing the model
+
     for (unsigned i = 0; i < m.size(); i++) {
         func_decl v = m[i];
         // this problem contains only constants
@@ -334,8 +309,8 @@ string test_logic_infer10() {
     z3::context c;
     z3::solver s(c);
     std::string context = " (declare-fun x () Int)\n"
-                   " (assert (<= x 5))\n"
-                   " (assert (> x 0))\n";
+                          " (assert (<= x 5))\n"
+                          " (assert (> x 0))\n";
     s.from_string(context.c_str());
     auto res = s.check();
 
@@ -350,20 +325,65 @@ string test_logic_infer10() {
             std::cout << v.name() << " = " << m.get_const_interp(v) << "\n";
 
             st += "(assert (not (= " + v.name().str() + " " +
-                m.get_const_interp(v).to_string() + "))) \n ";
+                  m.get_const_interp(v).to_string() + "))) \n ";
         }
         context += st;
         s.from_string(context.c_str());
         res = s.check();
     }
 
-    //    std::cout << m << "\n";
-    //    //     traversing the model
-    //    for (unsigned i = 0; i < m.size(); i++) {
-    //        func_decl v = m[i];
-    //        // this problem contains only constants
-    //        std::cout << v.name() << " = " << m.get_const_interp(v) << "\n";
-    //    }
+    switch (s.check()) {
+    case unsat:
+        return "sat";
+    case sat:
+        return "unsat";
+    case unknown:
+        return "unknown";
+    }
+}
+
+string test_logic_infer11() {
+    std::cout << "test logic\n";
+    z3::context c;
+    z3::solver s(c);
+    std::string context =
+        " (declare-datatype Role ( (transporter) (medic) (engineer)  ))\n"
+        " (declare-datatype Location ( (room1) (room2) (room3) ))\n"
+        " (declare-fun r () Role)\n"
+        " (declare-fun l () Location)\n"
+        " (declare-fun at (Role Location) Bool)\n"
+        " (assert (at medic room3))\n"
+        " (assert (forall ((x Location)) (=> (not (= x room3)) (not (at medic "
+        "x)))))\n"
+        " (assert (at engineer room1))\n"
+        " (assert (forall ((x Location)) (=> (not (= x room1)) (not (at "
+        "engineer x)))))\n"
+        " (assert (at transporter room1))\n"
+        " (assert (forall ((x Location)) (=> (not (= x room1)) (not (at "
+        "transporter x)))))\n"
+        " (assert (at r room1))\n";
+
+    s.from_string(context.c_str());
+    auto res = s.check();
+
+    //    model m = s.get_model();
+    std::string st = "";
+    while (res == sat) {
+        auto m = s.get_model();
+        st = "";
+        for (unsigned i = 0; i < m.size(); i++) {
+            func_decl v = m[i];
+            // this problem contains only constants
+            if (m.get_const_interp(v)) {
+                std::cout << v.name() << " = " << m.get_const_interp(v) << "\n";
+                st += "(assert (not (= " + v.name().str() + " " +
+                      m.get_const_interp(v).to_string() + "))) \n ";
+            }
+        }
+        context += st;
+        s.from_string(context.c_str());
+        res = s.check();
+    }
 
     switch (s.check()) {
     case unsat:
@@ -376,15 +396,16 @@ string test_logic_infer10() {
 }
 
 BOOST_AUTO_TEST_CASE(test_z3) {
-    //    BOOST_TEST(demorgan() == "sat");
-    //    BOOST_TEST(test_logic_infer1() == "sat");
-    //    BOOST_TEST(test_logic_infer2() == "sat");
-    //    BOOST_TEST(test_logic_infer3() == "sat");
-    //    BOOST_TEST(test_logic_infer4() == "unsat");
-    //    BOOST_TEST(test_logic_infer5() == "sat");
-    //    BOOST_TEST(test_logic_infer6() == "sat");
-    //    BOOST_TEST(test_logic_infer7() == "sat");
-    //    BOOST_TEST(test_logic_infer8() == "unsat");
-    //    BOOST_TEST(test_logic_infer9() == "unsat");
+    BOOST_TEST(demorgan() == "sat");
+    BOOST_TEST(test_logic_infer1() == "sat");
+    BOOST_TEST(test_logic_infer2() == "sat");
+    BOOST_TEST(test_logic_infer3() == "sat");
+    BOOST_TEST(test_logic_infer4() == "unsat");
+    BOOST_TEST(test_logic_infer5() == "sat");
+    BOOST_TEST(test_logic_infer6() == "sat");
+    BOOST_TEST(test_logic_infer7() == "sat");
+    BOOST_TEST(test_logic_infer8() == "unsat");
+    BOOST_TEST(test_logic_infer9() == "unsat");
     BOOST_TEST(test_logic_infer10() == "unsat");
+    BOOST_TEST(test_logic_infer11() == "sat");
 }
