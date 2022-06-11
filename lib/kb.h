@@ -10,6 +10,7 @@
 #include "util.h"
 #include "z3++.h"
 #include <iostream>
+#include <map>
 #include <string>
 #include <tuple>
 #include <variant>
@@ -21,46 +22,56 @@ using namespace fol;
 
 // base data structs of the knowledge base to be populated using tell()
 struct KnowledgeBase {
-    vector<ast::Sentence>
-        sentences; // this should be changed to the data type of CNF sentences
-    vector<Clause> clauses;
-    vector<Clause> definite_clauses;
-    vector<Literal<Term>> facts;
+    // date_type: {candidate1, candidate2, ...}
+    map<std::string, vector<std::string>> data_types;
+    // symbol: data_type
+    map<std::string, std::string> symbols;
+    // predicate: predicate data_type1 data_type2
+    map<std::string, vector<std::string>> predicates;
+    std::string context;
 };
 
-// this method returns whether clause is definite or not, namely, if there is
-// only exactly one positive literal.
-bool isDefiniteClause(Clause c) {
-    Literal<Term> lit;
-    int i = 0;
-    for (auto lit : c.literals) {
-        if (!lit.is_negative) {
-            i += 1;
-        }
+void initialize_data_types(KnowledgeBase& kb,
+                           std::string data_type_name,
+                           vector<std::string> data_type_candidates) {
+    if (kb.data_types.count(data_type_name) == 0) {
+        kb.data_types[data_type_name] = data_type_candidates;
     }
-    if (i == 1) {
-        return true;
-    }
-    else {
-        return false;
-    }
+    std::cout << "Already exist." << endl;
 }
 
-void tell(KnowledgeBase& kb, ast::Sentence sentence) {
-    // CNF converter to run on the sentence first
-    ast::CNF cnf_tell = ast::to_CNF(sentence);
-
-    kb.sentences.push_back(sentence); // store original sentence
-
-    for (Clause c : cnf_tell.conjunctionOfClauses) {
-        kb.clauses.push_back(c);
+void initialize_symbols(KnowledgeBase& kb,
+                        std::string symbol_name,
+                        std::string symbol_type) {
+    if (kb.symbols.count(symbol_name) == 0) {
+        kb.symbols[symbol_name] = symbol_type;
     }
-};
+    std::cout << "Already exist." << endl;
+}
 
-void tell(KnowledgeBase& kb, Literal<Term> lit_in) {
-    // add literal to knowledge base as a fact
-    kb.facts.push_back(lit_in);
-};
+void initialize_predicates(KnowledgeBase& kb,
+                           std::string predicate_name,
+                           vector<std::string> predicate_var_types) {
+    if (kb.predicates.count(predicate_name) == 0) {
+        kb.predicates[predicate_name] = predicate_var_types;
+    }
+    std::cout << "Already exist." << endl;
+}
+
+void tell(KnowledgeBase& kb, std::string lit) {
+    vector<string> symbols{};
+    size_t pos = 0;
+    string space_delimiter = " ";
+    auto lit_tmp = lit;
+    while ((pos = lit_tmp.find(space_delimiter)) != string::npos) {
+        symbols.push_back(lit_tmp.substr(0, pos));
+        lit_tmp.erase(0, pos + space_delimiter.length());
+    }
+    if (kb.predicates.count(symbols[0]) == 0){
+        std::cout << "Please add this predicate first." << endl;
+    }
+    kb.context += " (assert (" + lit + "))";
+}
 
 // This is part of my permutation algorithm for permuting the literals to get
 // CNF from DNF c1 should get appended by each literal in c2, making
@@ -136,335 +147,343 @@ ast::CNF not_CNF(ast::CNF cnf) {
 // This will be the ask function for non-variable resolution
 // Have an overloaded ask, one that takes a parsed sentence and one that takes
 // CNF sentence
-bool ask(KnowledgeBase& kb, ast::Sentence query) {
-    // convert the input query into CNF form
-    ast::CNF cnf_query =
-        ast::to_CNF(query); // does this convert it to a CNF too?
-    // now we not the input, note this causes an expoential increase in the
-    // sentence size, do I need a sentence to make CNF's?
-    ast::CNF query_clauses = not_CNF(cnf_query);
-
-    // we compile a large list of all clauses in KB, including one clause of
-    typedef vector<Clause> clause_vector;
-    clause_vector clause_vec;
-    clause_vector temp_vec;
-    clause_vector fact_vec;
-    Clause kb_facts, temp, resolvant;
-    // Each fact is a seperate clause
-    for (Literal<Term> l1 : kb.facts) {
-        kb_facts.literals.push_back(l1);
-        fact_vec.push_back(kb_facts);
-        kb_facts.literals.clear();
-    }
-    clause_vec.insert(clause_vec.end(), fact_vec.begin(), fact_vec.end());
-    // adding the clauses of the query
-    for (Clause c_q : query_clauses.conjunctionOfClauses) {
-        clause_vec.push_back(c_q);
-    }
-    // adding the rule clauses of the KB
-    for (Clause c_kb : kb.clauses) {
-        clause_vec.push_back(c_kb);
-    }
-
-    bool cond = false;
-    bool found = false;
-    // now to run the resolution
-    while (cond == false) {
-        for (int i = 0; i < clause_vec.size(); i++) {
-            for (int j = 0; j < clause_vec.size(); j++) {
-                if (i != j) {
-                    resolvant = clause_vec.at(i) == clause_vec.at(j);
-                    if (resolvant.literals.size() == 0) {
-                        return true;
-                    }
-                    else {
-                        for (Clause c_o : clause_vec) {
-                            bool vec_eq = false;
-                            int found_count = 0;
-                            if (resolvant.literals.size() ==
-                                c_o.literals.size()) {
-                                for (int l = 0; l < resolvant.literals.size();
-                                     l++) {
-                                    for (int ll = 0;
-                                         ll < resolvant.literals.size();
-                                         ll++) {
-                                        if (resolvant.literals.at(l) ==
-                                            c_o.literals.at(ll)) {
-                                            found_count = found_count + 1;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (found_count == resolvant.literals.size()) {
-                                    vec_eq = true;
-                                }
-                            }
-                            if (vec_eq == true) {
-                                found =
-                                    true; // check if resolvant is a new clause
-                            }
-                        }
-                        if (found == false) { // if new, add it to list
-                            temp_vec.push_back(resolvant);
-                        }
-                        found = false; // reset found condition
-                    }
-                }
-            }
-        }
-        // resolution fail condition is no new resolutions are produced, thus KB
-        // is self consistant
-        if (temp_vec.size() ==
-            0) { // This should be the case that all resolvants have been added
-                 // and no new ones are created
-            return false;
-            cond = true;
-        }
-        clause_vec.insert(clause_vec.end(), temp_vec.begin(), temp_vec.end());
-        temp_vec.clear();
-    }
-}
-// overloaded option for CNF input instead of parsed sentence
-bool ask(KnowledgeBase& kb, ast::CNF query) {
-    // convert the input query into CNF form
-    ast::CNF query_clauses = not_CNF(query);
-    // now to start the resolution inference algorithm, this is just checking
-    // clauses only need one clause to return empty because then the whole
-    // sentence is false, if want to check each clause, ask for each clause
-
-    // we compile a large list of all clauses in KB, including one clause of
-    typedef vector<Clause> clause_vector;
-    clause_vector clause_vec;
-    clause_vector temp_vec;
-    clause_vector fact_vec;
-    Clause kb_facts, temp, resolvant;
-    // Each fact is a seperate clause
-    for (Literal<Term> l1 : kb.facts) {
-        kb_facts.literals.push_back(l1);
-        fact_vec.push_back(kb_facts);
-        kb_facts.literals.clear();
-    }
-    clause_vec.insert(clause_vec.end(), fact_vec.begin(), fact_vec.end());
-    // adding the clauses of the query
-    for (Clause c_q : query_clauses.conjunctionOfClauses) {
-        clause_vec.push_back(c_q);
-    }
-    // adding the rule clauses of the KB
-    for (Clause c_kb : kb.clauses) {
-        clause_vec.push_back(c_kb);
-    }
-
-    bool cond = false;
-    bool found = false;
-    // now to run the resolution
-    while (cond == false) {
-        for (int i = 0; i < clause_vec.size(); i++) {
-            for (int j = 0; j < clause_vec.size(); j++) {
-                if (i != j) {
-                    resolvant = clause_vec.at(i) == clause_vec.at(j);
-                    if (resolvant.literals.size() == 0) {
-                        return true;
-                        cond = true;
-                    }
-                    else {
-                        for (Clause c_o : clause_vec) {
-                            bool vec_eq = false;
-                            int found_count = 0;
-                            if (resolvant.literals.size() ==
-                                c_o.literals.size()) {
-                                for (int l = 0; l < resolvant.literals.size();
-                                     l++) {
-                                    for (int ll = 0;
-                                         ll < resolvant.literals.size();
-                                         ll++) {
-                                        if (resolvant.literals.at(l) ==
-                                            c_o.literals.at(ll)) {
-                                            found_count = found_count + 1;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (found_count == resolvant.literals.size()) {
-                                    vec_eq = true;
-                                }
-                            }
-                            if (vec_eq == true) {
-                                found =
-                                    true; // check if resolvant is a new clause
-                            }
-                        }
-                        if (found == false) { // if new, add it to list
-                            temp_vec.push_back(resolvant);
-                        }
-                        found = false; // reset found condition
-                    }
-                }
-            }
-        }
-        // resolution fail condition is no new resolutions are produced, thus KB
-        // is self consistant
-        if (temp_vec.size() ==
-            0) { // This should be the case that all resolvants have been added
-                 // and no new ones are created
-            return false;
-            cond = true;
-        }
-        clause_vec.insert(clause_vec.end(), temp_vec.begin(), temp_vec.end());
-        temp_vec.clear();
-    }
-}
-
-bool ask(KnowledgeBase& kb, string query) {
-
-    std::string kb_string = "";
-
-    vector<std::string> predicates;
-    vector<std::string> symbols;
-    std::string sub_kb_string = "";
-    for (auto f : kb.facts) {
-        if (std::find(predicates.begin(), predicates.end(), f.predicate) ==
-            predicates.end()) {
-            predicates.push_back(f.predicate);
-            sub_kb_string = "(declare-fun " + f.predicate + " (";
-            for (auto i = 0; i < f.args.size(); i++) {
-                sub_kb_string += "Bool ";
-            }
-            sub_kb_string += ") Bool)";
-            kb_string += sub_kb_string;
-        }
-
-        for (auto a : f.args) {
-            if (std::find(symbols.begin(), symbols.end(), name(a)) ==
-                symbols.end()) {
-                symbols.push_back(name(a));
-                sub_kb_string = "(declare-fun " + name(a) + " () Bool)";
-                kb_string += sub_kb_string;
-            }
-        }
-
-        if (f.is_negative) {
-            sub_kb_string = "(assert (not (" + f.predicate;
-            for (auto a : f.args) {
-                sub_kb_string += " " + name(a);
-            }
-            sub_kb_string += ")))";
-        }
-        else {
-            if (f.args.size() == 0) {
-                sub_kb_string = "(assert " + f.predicate + ")";
-            }
-            else {
-                sub_kb_string = "(assert (" + f.predicate;
-                for (auto a : f.args) {
-                    sub_kb_string += " " + name(a);
-                }
-                sub_kb_string += "))";
-            }
-        }
-        kb_string += sub_kb_string;
-    }
-    std::string query_string = "(assert (not (" + query + ")))";
-    kb_string += query_string;
-    z3::context c;
-    z3::solver s(c);
-    s.from_string(kb_string.c_str());
-    switch (s.check()) {
-    case z3::unsat:
-        return TRUE;
-    case z3::sat:
-        return FALSE;
-    case z3::unknown:
-        return FALSE;
-    }
-}
-
-bool is_number(const std::string& s) {
-    return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) {
-                             return !std::isdigit(c);
-                         }) == s.end();
-}
-
-std::string translate_kb(KnowledgeBase& kb) {
-    std::string kb_string = "";
-
-    vector<std::string> predicates;
-    vector<std::string> symbols;
-}
-
-std::tuple<vector<std::string>, vector<std::string>, std::string>
-translate_literal(vector<std::string> predicates,
-                  vector<std::string> symbols,
-                  Literal<Term> lit) {
-    std::string sub_kb_string = "";
-    if (std::find(predicates.begin(), predicates.end(), lit.predicate) ==
-        predicates.end()) {
-        predicates.push_back(lit.predicate);
-        sub_kb_string = "(declare-fun " + lit.predicate + " (";
-        for (auto a : lit.args) {
-            if (!is_number(name(a))) {
-                sub_kb_string += "Bool ";
-            }
-            else {
-                sub_kb_string += "Real ";
-            }
-        }
-        sub_kb_string += ") Bool)";
-    }
-
-    for (auto a : lit.args) {
-        if (!is_number(name(a))) {
-            if (std::find(symbols.begin(), symbols.end(), name(a)) ==
-                symbols.end()) {
-                symbols.push_back(name(a));
-                sub_kb_string += "(declare-fun " + name(a) + " () Bool)";
-            }
-        }
-    }
-
-    if (lit.is_negative) {
-        if (lit.args.size() == 0) {
-            sub_kb_string = "(assert (not " + lit.predicate;
-            sub_kb_string += "))";
-        }
-        else {
-            sub_kb_string = "(assert (not (" + lit.predicate;
-            for (auto a : lit.args) {
-                sub_kb_string += " " + name(a);
-            }
-            sub_kb_string += ")))";
-        }
-    }
-    else {
-        if (lit.args.size() == 0) {
-            sub_kb_string = "(assert " + lit.predicate + ")";
-        }
-        else {
-            sub_kb_string = "(assert (" + lit.predicate;
-            for (auto a : lit.args) {
-                sub_kb_string += " " + name(a);
-            }
-            sub_kb_string += "))";
-        }
-    }
-    return {predicates, symbols, sub_kb_string};
-}
-// now for the ask_vars method, which will return a substitution list for a
-// variable in the query, if resolute we do not have the standard aparting
-// implemented right now, we are operating on each variable input will have a
-// unqiue name
-
-// unless we restrict ourselves to horn clauses the inputs to the ask_vars will
-// have to be a literal and it will just be unified against the facts of the kb.
-// AIMA p.301 for detials.
-
-// UNDER CONSTRUCTION
-
-// This will return a vector of substitutions all of which are allowed for the
-// given input
-/* ask_vars(KnowledgeBase& kb, Literal<Term> query) {
-    // sub_optional sub;
-    for(Literal lit : kb.facts) {
-        auto sub = unify(lit, query);
-    }
-    return sub;
-} */
+//bool ask(KnowledgeBase& kb, ast::Sentence query) {
+//    // convert the input query into CNF form
+//    ast::CNF cnf_query =
+//        ast::to_CNF(query); // does this convert it to a CNF too?
+//    // now we not the input, note this causes an expoential increase in the
+//    // sentence size, do I need a sentence to make CNF's?
+//    ast::CNF query_clauses = not_CNF(cnf_query);
+//
+//    // we compile a large list of all clauses in KB, including one clause of
+//    typedef vector<Clause> clause_vector;
+//    clause_vector clause_vec;
+//    clause_vector temp_vec;
+//    clause_vector fact_vec;
+//    Clause kb_facts, temp, resolvant;
+//    // Each fact is a seperate clause
+//    for (Literal<Term> l1 : kb.facts) {
+//        kb_facts.literals.push_back(l1);
+//        fact_vec.push_back(kb_facts);
+//        kb_facts.literals.clear();
+//    }
+//    clause_vec.insert(clause_vec.end(), fact_vec.begin(), fact_vec.end());
+//    // adding the clauses of the query
+//    for (Clause c_q : query_clauses.conjunctionOfClauses) {
+//        clause_vec.push_back(c_q);
+//    }
+//    // adding the rule clauses of the KB
+//    for (Clause c_kb : kb.clauses) {
+//        clause_vec.push_back(c_kb);
+//    }
+//
+//    bool cond = false;
+//    bool found = false;
+//    // now to run the resolution
+//    while (cond == false) {
+//        for (int i = 0; i < clause_vec.size(); i++) {
+//            for (int j = 0; j < clause_vec.size(); j++) {
+//                if (i != j) {
+//                    resolvant = clause_vec.at(i) == clause_vec.at(j);
+//                    if (resolvant.literals.size() == 0) {
+//                        return true;
+//                    }
+//                    else {
+//                        for (Clause c_o : clause_vec) {
+//                            bool vec_eq = false;
+//                            int found_count = 0;
+//                            if (resolvant.literals.size() ==
+//                                c_o.literals.size()) {
+//                                for (int l = 0; l < resolvant.literals.size();
+//                                     l++) {
+//                                    for (int ll = 0;
+//                                         ll < resolvant.literals.size();
+//                                         ll++) {
+//                                        if (resolvant.literals.at(l) ==
+//                                            c_o.literals.at(ll)) {
+//                                            found_count = found_count + 1;
+//                                            break;
+//                                        }
+//                                    }
+//                                }
+//                                if (found_count == resolvant.literals.size()) {
+//                                    vec_eq = true;
+//                                }
+//                            }
+//                            if (vec_eq == true) {
+//                                found =
+//                                    true; // check if resolvant is a new clause
+//                            }
+//                        }
+//                        if (found == false) { // if new, add it to list
+//                            temp_vec.push_back(resolvant);
+//                        }
+//                        found = false; // reset found condition
+//                    }
+//                }
+//            }
+//        }
+//        // resolution fail condition is no new resolutions are produced, thus KB
+//        // is self consistant
+//        if (temp_vec.size() ==
+//            0) { // This should be the case that all resolvants have been added
+//                 // and no new ones are created
+//            return false;
+//            cond = true;
+//        }
+//        clause_vec.insert(clause_vec.end(), temp_vec.begin(), temp_vec.end());
+//        temp_vec.clear();
+//    }
+//}
+//// overloaded option for CNF input instead of parsed sentence
+//bool ask(KnowledgeBase& kb, ast::CNF query) {
+//    // convert the input query into CNF form
+//    ast::CNF query_clauses = not_CNF(query);
+//    // now to start the resolution inference algorithm, this is just checking
+//    // clauses only need one clause to return empty because then the whole
+//    // sentence is false, if want to check each clause, ask for each clause
+//
+//    // we compile a large list of all clauses in KB, including one clause of
+//    typedef vector<Clause> clause_vector;
+//    clause_vector clause_vec;
+//    clause_vector temp_vec;
+//    clause_vector fact_vec;
+//    Clause kb_facts, temp, resolvant;
+//    // Each fact is a seperate clause
+//    for (Literal<Term> l1 : kb.facts) {
+//        kb_facts.literals.push_back(l1);
+//        fact_vec.push_back(kb_facts);
+//        kb_facts.literals.clear();
+//    }
+//    clause_vec.insert(clause_vec.end(), fact_vec.begin(), fact_vec.end());
+//    // adding the clauses of the query
+//    for (Clause c_q : query_clauses.conjunctionOfClauses) {
+//        clause_vec.push_back(c_q);
+//    }
+//    // adding the rule clauses of the KB
+//    for (Clause c_kb : kb.clauses) {
+//        clause_vec.push_back(c_kb);
+//    }
+//
+//    bool cond = false;
+//    bool found = false;
+//    // now to run the resolution
+//    while (cond == false) {
+//        for (int i = 0; i < clause_vec.size(); i++) {
+//            for (int j = 0; j < clause_vec.size(); j++) {
+//                if (i != j) {
+//                    resolvant = clause_vec.at(i) == clause_vec.at(j);
+//                    if (resolvant.literals.size() == 0) {
+//                        return true;
+//                        cond = true;
+//                    }
+//                    else {
+//                        for (Clause c_o : clause_vec) {
+//                            bool vec_eq = false;
+//                            int found_count = 0;
+//                            if (resolvant.literals.size() ==
+//                                c_o.literals.size()) {
+//                                for (int l = 0; l < resolvant.literals.size();
+//                                     l++) {
+//                                    for (int ll = 0;
+//                                         ll < resolvant.literals.size();
+//                                         ll++) {
+//                                        if (resolvant.literals.at(l) ==
+//                                            c_o.literals.at(ll)) {
+//                                            found_count = found_count + 1;
+//                                            break;
+//                                        }
+//                                    }
+//                                }
+//                                if (found_count == resolvant.literals.size()) {
+//                                    vec_eq = true;
+//                                }
+//                            }
+//                            if (vec_eq == true) {
+//                                found =
+//                                    true; // check if resolvant is a new clause
+//                            }
+//                        }
+//                        if (found == false) { // if new, add it to list
+//                            temp_vec.push_back(resolvant);
+//                        }
+//                        found = false; // reset found condition
+//                    }
+//                }
+//            }
+//        }
+//        // resolution fail condition is no new resolutions are produced, thus KB
+//        // is self consistant
+//        if (temp_vec.size() ==
+//            0) { // This should be the case that all resolvants have been added
+//                 // and no new ones are created
+//            return false;
+//            cond = true;
+//        }
+//        clause_vec.insert(clause_vec.end(), temp_vec.begin(), temp_vec.end());
+//        temp_vec.clear();
+//    }
+//}
+//
+//bool ask(KnowledgeBase& kb, string query) {
+//
+//    std::string kb_string = "";
+//
+//    vector<std::string> predicates;
+//    vector<std::string> symbols;
+//    std::string sub_kb_string = "";
+//    for (auto f : kb.facts) {
+//        if (std::find(predicates.begin(), predicates.end(), f.predicate) ==
+//            predicates.end()) {
+//            predicates.push_back(f.predicate);
+//            sub_kb_string = "(declare-fun " + f.predicate + " (";
+//            for (auto i = 0; i < f.args.size(); i++) {
+//                sub_kb_string += "Bool ";
+//            }
+//            sub_kb_string += ") Bool)";
+//            kb_string += sub_kb_string;
+//        }
+//
+//        for (auto a : f.args) {
+//            if (std::find(symbols.begin(), symbols.end(), name(a)) ==
+//                symbols.end()) {
+//                symbols.push_back(name(a));
+//                sub_kb_string = "(declare-fun " + name(a) + " () Bool)";
+//                kb_string += sub_kb_string;
+//            }
+//        }
+//
+//        if (f.is_negative) {
+//            sub_kb_string = "(assert (not (" + f.predicate;
+//            for (auto a : f.args) {
+//                sub_kb_string += " " + name(a);
+//            }
+//            sub_kb_string += ")))";
+//        }
+//        else {
+//            if (f.args.size() == 0) {
+//                sub_kb_string = "(assert " + f.predicate + ")";
+//            }
+//            else {
+//                sub_kb_string = "(assert (" + f.predicate;
+//                for (auto a : f.args) {
+//                    sub_kb_string += " " + name(a);
+//                }
+//                sub_kb_string += "))";
+//            }
+//        }
+//        kb_string += sub_kb_string;
+//    }
+//    std::string query_string = "(assert (not (" + query + ")))";
+//    kb_string += query_string;
+//    z3::context c;
+//    z3::solver s(c);
+//    s.from_string(kb_string.c_str());
+//    switch (s.check()) {
+//    case z3::unsat:
+//        return TRUE;
+//    case z3::sat:
+//        return FALSE;
+//    case z3::unknown:
+//        return FALSE;
+//    }
+//}
+//
+//bool is_number(const std::string& s) {
+//    return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) {
+//                             return !std::isdigit(c);
+//                         }) == s.end();
+//}
+//
+//std::tuple<vector<std::string>, vector<std::string>, std::string>
+//translate_kb(KnowledgeBase& kb) {
+//    std::string kb_string = "";
+//    std::string* p_kb_string = &kb_string;
+//
+//    vector<std::string> predicates;
+//    vector<std::string> symbols;
+//
+//    return {predicates, symbols, kb_string};
+//}
+//
+//// std::tuple<vector<std::string>, vector<std::string>, std::string>
+//// translate_sentence(vector<std::string> predicates,
+////                   vector<std::string> symbols,
+////                   ast::Sentence sen) {
+////     if (visit<ast::GetSentenceType>(sen) == "NotSentence") {
+////         auto s_ = get<ast::NotSentence>(sen);
+////         return visit<ast::NegationsIn>(s_.sentence);
+////     }
+////     std::string sub_kb_string = "";
+////     if (std::find(predicates.begin(), predicates.end(), lit.predicate) ==
+////         predicates.end()) {
+////         predicates.push_back(lit.predicate);
+////         sub_kb_string = "(declare-fun " + lit.predicate + " (";
+////         for (auto a : lit.args) {
+////             if (!is_number(name(a))) {
+////                 sub_kb_string += "Bool ";
+////             }
+////             else {
+////                 sub_kb_string += "Real ";
+////             }
+////         }
+////         sub_kb_string += ") Bool)";
+////     }
+////
+////     for (auto a : lit.args) {
+////         if (!is_number(name(a))) {
+////             if (std::find(symbols.begin(), symbols.end(), name(a)) ==
+////                 symbols.end()) {
+////                 symbols.push_back(name(a));
+////                 sub_kb_string += "(declare-fun " + name(a) + " () Bool)";
+////             }
+////         }
+////     }
+////
+////     if (lit.is_negative) {
+////         if (lit.args.size() == 0) {
+////             sub_kb_string = "(assert (not " + lit.predicate;
+////             sub_kb_string += "))";
+////         }
+////         else {
+////             sub_kb_string = "(assert (not (" + lit.predicate;
+////             for (auto a : lit.args) {
+////                 sub_kb_string += " " + name(a);
+////             }
+////             sub_kb_string += ")))";
+////         }
+////     }
+////     else {
+////         if (lit.args.size() == 0) {
+////             sub_kb_string = "(assert " + lit.predicate + ")";
+////         }
+////         else {
+////             sub_kb_string = "(assert (" + lit.predicate;
+////             for (auto a : lit.args) {
+////                 sub_kb_string += " " + name(a);
+////             }
+////             sub_kb_string += "))";
+////         }
+////     }
+////     return {predicates, symbols, sub_kb_string};
+//// }
+////  now for the ask_vars method, which will return a substitution list for a
+////  variable in the query, if resolute we do not have the standard aparting
+////  implemented right now, we are operating on each variable input will have a
+////  unqiue name
+//
+//// unless we restrict ourselves to horn clauses the inputs to the ask_vars will
+//// have to be a literal and it will just be unified against the facts of the kb.
+//// AIMA p.301 for detials.
+//
+//// UNDER CONSTRUCTION
+//
+//// This will return a vector of substitutions all of which are allowed for the
+//// given input
+///* ask_vars(KnowledgeBase& kb, Literal<Term> query) {
+//    // sub_optional sub;
+//    for(Literal lit : kb.facts) {
+//        auto sub = unify(lit, query);
+//    }
+//    return sub;
+//} */
