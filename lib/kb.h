@@ -58,11 +58,11 @@ void initialize_predicates(KnowledgeBase& kb,
     std::cout << "Already exist." << endl;
 }
 
-void tell(KnowledgeBase& kb, const std::string& lit, int cw_key = 0) {
+void tell(KnowledgeBase& kb, const std::string& lit, const vector<int>& cw_key = {0}) {
     kb.context.push_back(lit);
 
     // add the closed world sentence
-    if (cw_key >= 0) {
+    if (!cw_key.empty()) {
         vector<string> symbols{};
         size_t pos = 0;
         string space_delimiter = " ";
@@ -80,7 +80,7 @@ void tell(KnowledgeBase& kb, const std::string& lit, int cw_key = 0) {
         int var_counter = 0;
         for (int i = 1; i < symbols.size(); i++) {
             auto date_types = kb.predicates[symbols[0]];
-            if (i != (cw_key + 1)) {
+            if (std::find(cw_key.begin(), cw_key.end(), (i - 1)) == cw_key.end()) {
                 cw_sen = "forall ((cw_var_" + to_string(var_counter) + " " +
                          date_types[i - 1] + ")) (=> (not (= cw_var_" +
                          to_string(var_counter) + " " + symbols[i] + ")) (not (";
@@ -90,7 +90,7 @@ void tell(KnowledgeBase& kb, const std::string& lit, int cw_key = 0) {
                         new_pred += symbols[j] + " ";
                     }
                     else {
-                        new_pred += "cw_var_" + to_string(var_counter);
+                        new_pred += "cw_var_" + to_string(var_counter) + " ";
                     }
                 }
                 cw_sen += new_pred + ")))";
