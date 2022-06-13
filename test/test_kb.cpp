@@ -25,10 +25,18 @@ string test_kb1() {
     initialize_data_types(
         kb, "Role", {"medic", "transporter", "engineer"});
     initialize_data_types(
-        kb, "Locations", {"room1", "room2", "room3"});
+        kb, "Location", {"room1", "room2", "room3"});
 //    initialize_symbols();
     initialize_predicates(kb, "at", {"Role", "Location"});
     tell(kb, "at medic room1");
+    tell(kb, "at transporter room1");
+    tell(kb, "at engineer room3");
+    auto context = get_context(kb);
+    auto res = ask(kb, "at engineer room2");
+    if (res.size() == 1 and (res.begin()->first == "assertion")){
+        cout << res.begin()->second.at(0);
+    }
+
     cout << "";
 }
 

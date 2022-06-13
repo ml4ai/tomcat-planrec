@@ -37,7 +37,7 @@ void initialize_data_types(KnowledgeBase& kb,
     if (kb.data_types.count(data_type_name) == 0) {
         kb.data_types[data_type_name] = data_type_candidates;
     }
-    std::cout << "Already exist." << endl;
+    //    std::cout << "Already exist." << endl;
 }
 
 void initialize_symbols(KnowledgeBase& kb,
@@ -46,7 +46,7 @@ void initialize_symbols(KnowledgeBase& kb,
     if (kb.symbols.count(symbol_name) == 0) {
         kb.symbols[symbol_name] = symbol_type;
     }
-    std::cout << "Already exist." << endl;
+    //    std::cout << "Already exist." << endl;
 }
 
 void initialize_predicates(KnowledgeBase& kb,
@@ -55,10 +55,12 @@ void initialize_predicates(KnowledgeBase& kb,
     if (kb.predicates.count(predicate_name) == 0) {
         kb.predicates[predicate_name] = predicate_var_types;
     }
-    std::cout << "Already exist." << endl;
+    //    std::cout << "Already exist." << endl;
 }
 
-void tell(KnowledgeBase& kb, const std::string& lit, const vector<int>& cw_key = {0}) {
+void tell(KnowledgeBase& kb,
+          const std::string& lit,
+          const vector<int>& cw_key = {0}) {
     kb.context.push_back(lit);
 
     // add the closed world sentence
@@ -71,7 +73,7 @@ void tell(KnowledgeBase& kb, const std::string& lit, const vector<int>& cw_key =
             symbols.push_back(lit_tmp.substr(0, pos));
             lit_tmp.erase(0, pos + space_delimiter.length());
         }
-        if (!lit_tmp.empty()){
+        if (!lit_tmp.empty()) {
             symbols.push_back(lit_tmp);
         }
 
@@ -80,10 +82,12 @@ void tell(KnowledgeBase& kb, const std::string& lit, const vector<int>& cw_key =
         int var_counter = 0;
         for (int i = 1; i < symbols.size(); i++) {
             auto date_types = kb.predicates[symbols[0]];
-            if (std::find(cw_key.begin(), cw_key.end(), (i - 1)) == cw_key.end()) {
+            if (std::find(cw_key.begin(), cw_key.end(), (i - 1)) ==
+                cw_key.end()) {
                 cw_sen = "forall ((cw_var_" + to_string(var_counter) + " " +
                          date_types[i - 1] + ")) (=> (not (= cw_var_" +
-                         to_string(var_counter) + " " + symbols[i] + ")) (not (";
+                         to_string(var_counter) + " " + symbols[i] +
+                         ")) (not (";
                 new_pred = "";
                 for (int j = 0; j < symbols.size(); j++) {
                     if (i != j) {
@@ -123,12 +127,12 @@ std::string get_context(KnowledgeBase& kb) {
     }
 
     for (const auto& pred : kb.predicates) {
-        con = "(declare-datatype ";
+        con = "(declare-fun ";
         con += pred.first + " (";
         for (const auto& var : pred.second) {
-            con += "(" + var + ") ";
+            con += var + " ";
         }
-        con += " Bool)";
+        con += ") Bool)";
         context_string += con;
         con = "";
     }
@@ -139,6 +143,33 @@ std::string get_context(KnowledgeBase& kb) {
         con = "";
     }
     return context_string;
+}
+
+map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
+                                          const std::string& query) {
+    z3::context c;
+    z3::solver s(c);
+    map<std::string, vector<std::string>> res;
+    if (query.find('?') != std::string::npos) {
+    }
+    else {
+        auto context_string = get_context(kb);
+        context_string += "(assert (not (" + query + ")))";
+        s.from_string(context_string.c_str());
+
+        switch (s.check()) {
+        case z3::unsat:
+            res["assertion"] = {"sat"};
+            return res;
+        case z3::sat:
+            res["assertion"] = {"unsat"};
+            return res;
+        case z3::unknown:
+            res["assertion"] = {"unknown"};
+            return res;
+        }
+    }
+    return res;
 }
 
 // This is part of my permutation algorithm for permuting the literals to get
