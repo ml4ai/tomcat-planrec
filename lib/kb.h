@@ -58,6 +58,22 @@ void initialize_predicates(KnowledgeBase& kb,
     //    std::cout << "Already exist." << endl;
 }
 
+std::tuple<std::string, vector<std::string>> parse_predicate(std::string pred) {
+    vector<std::string> symbols{};
+    size_t pos = 0;
+    std::string space_delimiter = " ";
+    while ((pos = pred.find(space_delimiter)) != string::npos) {
+        symbols.push_back(pred.substr(0, pos));
+        pred.erase(0, pos + space_delimiter.length());
+    }
+    if (!pred.empty()) {
+        symbols.push_back(pred);
+    }
+    std::string predicate = symbols.at(0);
+    symbols.erase(symbols.begin());
+    return {predicate, symbols};
+}
+
 void tell(KnowledgeBase& kb,
           const std::string& lit,
           const vector<int>& cw_key = {0}) {
@@ -65,33 +81,37 @@ void tell(KnowledgeBase& kb,
 
     // add the closed world sentence
     if (!cw_key.empty()) {
-        vector<string> symbols{};
-        size_t pos = 0;
-        string space_delimiter = " ";
-        auto lit_tmp = lit;
-        while ((pos = lit_tmp.find(space_delimiter)) != string::npos) {
-            symbols.push_back(lit_tmp.substr(0, pos));
-            lit_tmp.erase(0, pos + space_delimiter.length());
-        }
-        if (!lit_tmp.empty()) {
-            symbols.push_back(lit_tmp);
-        }
+        //        vector<string> symbols{};
+        //        size_t pos = 0;
+        //        string space_delimiter = " ";
+        //        auto lit_tmp = lit;
+        //        while ((pos = lit_tmp.find(space_delimiter)) != string::npos)
+        //        {
+        //            symbols.push_back(lit_tmp.substr(0, pos));
+        //            lit_tmp.erase(0, pos + space_delimiter.length());
+        //        }
+        //        if (!lit_tmp.empty()) {
+        //            symbols.push_back(lit_tmp);
+        //        }
+
+        auto [pred, args] = parse_predicate(lit);
 
         std::string cw_sen;
         std::string new_pred;
         int var_counter = 0;
-        for (int i = 1; i < symbols.size(); i++) {
-            auto date_types = kb.predicates[symbols[0]];
-            if (std::find(cw_key.begin(), cw_key.end(), (i - 1)) ==
-                cw_key.end()) {
+        for (int i = 0; i < args.size(); i++) {
+            auto date_types = kb.predicates[pred];
+            if (std::find(cw_key.begin(), cw_key.end(), i) == cw_key.end()) {
                 cw_sen = "forall ((cw_var_" + to_string(var_counter) + " " +
-                         date_types[i - 1] + ")) (=> (not (= cw_var_" +
-                         to_string(var_counter) + " " + symbols[i] +
-                         ")) (not (";
+                         date_types[i] + ")) (=> (not (= cw_var_" +
+                         to_string(var_counter) + " " + args[i] + ")) (not (";
                 new_pred = "";
-                for (int j = 0; j < symbols.size(); j++) {
+                if (!args.empty()) {
+                    new_pred += pred + " ";
+                }
+                for (int j = 0; j < args.size(); j++) {
                     if (i != j) {
-                        new_pred += symbols[j] + " ";
+                        new_pred += args[j] + " ";
                     }
                     else {
                         new_pred += "cw_var_" + to_string(var_counter) + " ";
@@ -150,10 +170,46 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
     z3::context c;
     z3::solver s(c);
     map<std::string, vector<std::string>> res;
+    auto context_string = get_context(kb);
     if (query.find('?') != std::string::npos) {
+        auto [pred, args] = parse_predicate(query);
+        auto date_type = kb.predicates[pred];
+        for (int i = 0; i < args.size(); i++) {
+            if (args[i].find('?') != std::string::npos) {
+                // " (declare-fun r () Role)\n"
+                std::string var_string =
+                    "(declare-fun " + args[i] + " () " + date_type[i] + " )";
+                context_string += var_string;
+            }
+        }
+        context_string += "(assert (" + query + "))";
+        // search all solutions
+        s.from_string(context_string.c_str());
+        auto result = s.check();
+
+        //    model m = s.get_model();
+        std::string st = "";
+        while (result == z3::sat) {
+            auto m = s.get_model();
+            st = "";
+            for (unsigned i = 0; i < m.size(); i++) {
+                z3::func_decl v = m[i];
+                // this problem contains only constants
+                if (m.get_const_interp(v)) {
+//                    std::cout << v.name() << " = " << m.get_const_interp(v)
+//                              << "\n";
+                    res[v.name().str()].push_back(
+                        m.get_const_interp(v).to_string());
+                    st += "(assert (not (= " + v.name().str() + " " +
+                          m.get_const_interp(v).to_string() + ")))";
+                }
+            }
+            context_string += st;
+            s.from_string(context_string.c_str());
+            result = s.check();
+        }
     }
     else {
-        auto context_string = get_context(kb);
         context_string += "(assert (not (" + query + ")))";
         s.from_string(context_string.c_str());
 
