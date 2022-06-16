@@ -39,4 +39,11 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     res = ask(kb, "at ?who room1");
     BOOST_TEST(res["?who"].at(0) == "medic");
     BOOST_TEST(res["?who"].at(1) == "transporter");
+    res = ask(kb, "at ?who ?location");
+    BOOST_TEST(res["?who"].at(0) == "medic");
+    BOOST_TEST(res["?location"].at(0) == "room1");
+    BOOST_TEST(res["?who"].at(1) == "engineer");
+    BOOST_TEST(res["?location"].at(1) == "room3");
+    BOOST_TEST(res["?who"].at(2) == "transporter");
+    BOOST_TEST(res["?location"].at(2) == "room1");
 }

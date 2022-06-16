@@ -192,18 +192,36 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
         while (result == z3::sat) {
             auto m = s.get_model();
             st = "";
-            for (unsigned i = 0; i < m.size(); i++) {
-                z3::func_decl v = m[i];
+            if (m.size() == 1){
+                z3::func_decl v = m[0];
                 // this problem contains only constants
                 if (m.get_const_interp(v)) {
-//                    std::cout << v.name() << " = " << m.get_const_interp(v)
-//                              << "\n";
+                    std::cout << v.name() << " = " << m.get_const_interp(v)
+                              << "\n";
                     res[v.name().str()].push_back(
                         m.get_const_interp(v).to_string());
                     st += "(assert (not (= " + v.name().str() + " " +
                           m.get_const_interp(v).to_string() + ")))";
                 }
             }
+            else{
+                // (assert (not (and () () () )))
+                st += "(assert (not (and ";
+                for (unsigned i = 0; i < m.size(); i++) {
+                    z3::func_decl v = m[i];
+                    // this problem contains only constants
+                    if (m.get_const_interp(v)) {
+//                        std::cout << v.name() << " = " << m.get_const_interp(v)
+//                                  << "\n";
+                        res[v.name().str()].push_back(
+                            m.get_const_interp(v).to_string());
+                        st += "(= " + v.name().str() + " " +
+                              m.get_const_interp(v).to_string() + ") ";
+                    }
+                }
+                st += ")))";
+            }
+
             context_string += st;
             s.from_string(context_string.c_str());
             result = s.check();
