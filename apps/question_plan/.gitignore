@@ -1,0 +1,5 @@
+# subfolder for local ignore of data files
+
+*.csv
+*.tsv
+*.xlsx
