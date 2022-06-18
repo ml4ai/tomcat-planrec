@@ -353,15 +353,12 @@ string test_logic_infer11() {
         " (declare-fun l () Location)\n"
         " (declare-fun at (Role Location) Bool)\n"
         " (assert (at medic room3))\n"
-        " (assert (forall ((x Location)) (=> (not (= x room3)) (not (at medic "
-        "x)))))\n"
         " (assert (at engineer room1))\n"
-        " (assert (forall ((x Location)) (=> (not (= x room1)) (not (at "
-        "engineer x)))))\n"
         " (assert (at transporter room1))\n"
-        " (assert (forall ((x Location)) (=> (not (= x room1)) (not (at "
-        "transporter x)))))\n"
+        " (assert (forall ((x Role) (y Location)) (=> (not ( or (and (= x medic) (= y room3)) (and (= x engineer) (= y room1)) (and (= x transporter) (= y room1)))) (not (at "
+        "x y)))))\n"
         " (assert (at r room1))\n";
+//        " (assert (at medic l))\n";
 
     s.from_string(context.c_str());
     auto res = s.check();
