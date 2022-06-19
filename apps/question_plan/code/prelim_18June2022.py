@@ -3,8 +3,8 @@ Author: Salena T. Ashton
         PhD Student, School of Information
         University of Arizona
 
-Date Created: 19 June 2022
-Last Updated: 19 June 2022
+Date Created: 18 June 2022
+Last Updated: 18 June 2022
 
 Theory of Mind-based Cognitive Architecture for Teams (ToMCAT)
 Planning Work Group
@@ -14,18 +14,18 @@ School of Information, University of Arizona
 All code written by Salena Ashton and will be uploaded to the
     tomcat-planrec GitHub Repositiory
 
-TODO:As of 19 June 2022
+TODO:As of 18 June 2022
     * Convert date time to timestamp integer
     * Verify full meaning of 'raw text' before uploading data file
-    * 
+    * Write notes of todo's from page to here, then do them.
 
 
 
 '''
 ### Horizontal ruling for visual ease in reading output.
 
-hrule = ("\n" + " - "*30 + "\n")
-Hrule = ("\n" + " = "*30 + "\n")
+hrule = ("\n" + " - "*35 + "\n")
+Hrule = ("\n" + " = "*35 + "\n")
 print(hrule)
 print(Hrule)
 ###################################################################
@@ -39,15 +39,15 @@ import datetime
 
 
 rawData = pandas.read_csv("../data/doNotCommit_Cleaned.csv")
-# If not in csv format, use read_json(), read_html(), read_sql_table()
+### If not in csv format, use read_json(), read_html(), read_sql_table()
 print(type(rawData))
 
 
-# EXAMINE THE DATA
+### EXAMINE THE DATA
 print("Len() of data:", len(rawData))
 print("Shape of data:", rawData.shape)
 
-# Get rid of null values
+### Get rid of null values
 print("Shape of data before cleaning out cause verb nulls:", rawData.shape)
 rawData = rawData[rawData["obsNum"].notnull()]
 print("Shape of data AFTER cleaning out nulls:", rawData.shape)
@@ -69,22 +69,25 @@ print("From line 68: Head of Subset Data:\n", data.head())
 print(hrule, "From line 69: Shape of data:", data.shape, hrule)
 ###################################################################
 ### Getting to know the Data:
-#print(hrule, "\nData info():", data.info())
+print(hrule, "\nData info():", data.info())
 
 ### Not as helpful for my research question 
-#print(hrule, "Describe Data:\n", data.describe(), "\n")
+print(hrule, "Describe Data:\n", data.describe(), "\n")
 
 ### Describe using a parameter and numpy:
-#print(hrule, "Describe Data with Parameter:\n", data.describe(include=object))
+print(hrule, "Describe Data with Parameter:\n", data.describe(include=object))
 
 ### Print data types of columns:
-#print(hrule, "Data Types of Each Column:", data.dtypes)
+print(hrule, "Data Types of Each Column:", data.dtypes)
 
 ### Convert datetime to integer timestamp. Since the mission progresses from 900
     ### start time and ends at 000 seconds, and since players refer to time in
     ### terms of "time left," I have reflected this in the data format.
 ### Change object datatypes to floats, then convert to time integers
+
 '''
+### As of 18 June: this procedural code is now a function. Do not delete yet.
+
 data["timeStart"] = pandas.to_datetime(data["timeStart"])
 print(hrule, "Data Types of Each Column:", data.dtypes)
 
@@ -113,7 +116,22 @@ for i in data["timeStart"]:
 
 '''
 
+
+########################################################################
 def convert_datetime_integer(column):
+    '''
+    Purpose: Convert object or datatypes into integers.
+             Note that the dt() function often mentioned in tutorials is
+             depreciated and most solutions found online do not work.
+
+    Input:   Called from findColumn() and sends the
+             Selected column that has word 'time' in name.
+
+    Output:  Returns a column of total seconds as integers to the
+             findColumn() function.
+
+    To do:   Currently hard-coded to search for 'time' in name. Fix.
+    '''
 
     column = pandas.to_datetime(column)
 #    print(hrule, "Data Types of Each Column:", data.dtypes)
@@ -132,28 +150,32 @@ def convert_datetime_integer(column):
         seconds = a_timedelta.total_seconds()
 #        print(seconds, "should be a float")
 #        print(i, "should be hhmmss")
-#        print(seconds, "again, but should now be a string of ss.00")# yes
         seconds = int(seconds)
 #        print(seconds, "again, but should now be an integer of ss.00")# yes
-        # This next line does not replace!
-        #data.loc[i, 'timeStart'] = seconds#does not replace. adds and stacks
-        #data.loc['timeStart'] = seconds#does not replace
         tempCol.append(seconds)
 #        print(hrule)
 
-    return tempCol
-
-#############################################
-### Convert any time formats to integers
-#print(hrule, "From line 148: Data Types of Each Column:\n", data.dtypes)
-
-### Sometimes the time is viewed as an object. Convert.
+    return tempCol # returns fixed column to findColumn()
 
 
 
-
+########################################################################
 
 def findColumn(df):
+    '''
+    Purpose: Finds column names with the word 'time' and verifies that it
+             can be converted from any datatype to an integer to count seconds.
+
+    Input:   Takes in a dataframe and reads the name of each column head.
+
+    Process: Sends to convert_datatime_integer() function to convert. 
+
+    Output:  Returns a column of total seconds as integers to the
+             findColumn() function.
+
+    To do:   Currently hard-coded to search for 'time' in name. Fix.
+    '''
+
 
     ### Empty String to send later
     fixCol = ""
@@ -184,17 +206,21 @@ def findColumn(df):
             ### Insert this converted data as a new column of data frame:
             data.insert(columnCount, fixCol+"_Int", tempCol, True)
 
+            ### Save temporarily-altered dataframe to a csv file in working directory
             temp_df = pandas.DataFrame(df)
             temp_df.to_csv("../data/"+fixCol+"_temp_df_from_doNotCommit_Cleaned.csv")
 
-        ### Print statement to check before I created it into a function.
-        ### Don't delete this yet
-        #for j in data["timeStart"]:
-        #    print(j)
-        #print(Hrule, data["timeStart"])
+#####################################################################################
 
-        ### Save temporarily-altered dataframe to a csv file in working directory
 
+
+
+
+
+
+#####################################################################################
+#           Program Starts Here
+#####################################################################################
 findColumn(data)
 
 
@@ -203,7 +229,7 @@ findColumn(data)
 
 # USE THIS as an easy way to quit the program for now
 sys.exit()
-###################################################################
+#####################################################################################
 '''
 
 # Getting to know your data:
