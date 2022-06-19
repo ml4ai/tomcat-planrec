@@ -250,7 +250,7 @@ def alphabetizeObjects(column):
             label = label.replace(label[0], "", 1)
 #            print("Current toplevel label is:", label)
             modifier = modifier + label
-#            print("New modifier:", modifier)
+#            print("New modifier:", modifier, hrule)
             # Since we don't have a break for uppers, use length:
             return modifier
 
@@ -437,7 +437,7 @@ def getRawData(filename):
     pandas.set_option('display.precision', 1) # decimal place
 
     ### Subset dataframe to focus on conditional probabilities of labels
-    data = rawData[["regular", "critical", "score", "timeStart", "timeEnd",
+    data = rawData[["video", "obsNum", "regular", "critical", "score", "timeStart", "timeEnd",
     "question_verbatim", "htn", "abstractLabel", "causeLabel", "questionLabel",
     "effectLabel", "qWord", "qPhrase", "auxVerb", "actionVerb"]]
 
@@ -454,7 +454,14 @@ def getRawData(filename):
     print(hrule, "Describe Data with Parameter:\n", data.describe(include=object))
 
     ### Print data types of columns:
-    print(hrule, "Data Types of Each Column:", data.dtypes)
+    ### No need for floats in this data. Convert all floats to integers:
+    print(hrule, "Data Types of Each Column:\n", data.dtypes)
+    data["video"] = data["video"].astype(int)
+    data["obsNum"] = data["obsNum"].astype(int)
+    data["regular"] = data["regular"].astype(int)
+    data["critical"] = data["critical"].astype(int)
+    data["score"] = data["score"].astype(int)
+    print(hrule, "Data Types of Each Column:\n", data.dtypes)
 
     return data
 #####################################################################################
@@ -475,7 +482,6 @@ def cleanLabels(df, dirtyCol):
         print(d)
 
     print(hrule, "dirtyCol End from cleanLabels()", hrule)
-    time.sleep(2)
     ########################################################
 
 
@@ -498,7 +504,6 @@ def cleanLabels(df, dirtyCol):
         print(i)
 
     print(Hrule, "abcColumn End from cleanLabels()", Hrule)
-    time.sleep(2)
     ########################################################
 
     ### Verify against original dataset:
@@ -511,12 +516,16 @@ def cleanLabels(df, dirtyCol):
     print(hrule*3, "labelIndex:", labelIndex)
     labelIndex += 1
 
+
+    ### Remove original dirty column and insert cleaned/ alphabetized column:
     cleaned.insert(labelIndex, dirtyCol+"_abc", abcColumn, True)
+    cleaned.drop(dirtyCol, inplace = True, axis = 1)
+
     print("\n\nChecking dataframe outside of function and loop\n\t:", cleaned.head(30))
 
     ### Save temporarily-altered dataframe to a csv file in working directory
     temp_cleaned = pandas.DataFrame(cleaned)
-    temp_cleaned.to_csv("../data/temp_csv_folder/temp_CLEANED_ABC_Qlabels__from_doNotCommit_Cleaned.csv")
+    temp_cleaned.to_csv("../data/temp_csv_folder/temp_ABC_"+dirtyCol+"_from_doNotCommit_Cleaned.csv")
     return cleaned
 #####################################################################################
 
@@ -584,8 +593,16 @@ print(Hrule, "With new columns for time, Shape of cleaned data:", cleaned.shape)
 filename = "../data/doNotCommit_Cleaned.csv"
 myData = getRawData(filename)
 myData = cleanLabels(myData, "questionLabel")
+myData = cleanLabels(myData, "abstractLabel")
+myData = cleanLabels(myData, "htn")
+myData = cleanLabels(myData, "causeLabel")
+myData = cleanLabels(myData, "effectLabel")
 
+### Create copy of cleaned dataset ready for commit on GitHub. Remove HSR Data.
 
+noHSR = pandas.DataFrame(myData)
+noHSR.drop("question_verbatim", inplace = True, axis = 1)
+noHSR.to_csv("../data/temp_csv_folder/No-HSR_clean_abc_from-doNotCommit_cleaned.csv")
 
 
 
