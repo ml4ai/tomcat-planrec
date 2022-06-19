@@ -1,5 +1,10 @@
 '''
 --------------------------------------------------------------------------
+This code will not run until I upload the csv data.
+
+Program begins around line 410.
+--------------------------------------------------------------------------
+
 Author: Salena T. Ashton
         PhD Student, School of Information
         University of Arizona
@@ -11,15 +16,15 @@ Theory of Mind-based Cognitive Architecture for Teams (ToMCAT)
 Planning Work Group
 Adarsh Pyarelal, Head PI and Clayton T. Morrison, Co-PI
 School of Information, University of Arizona
-
 --------------------------------------------------------------------------
+
 Purpose: cleanTheData.py takes in annotations written in camel-case
     verbObjectObject form, time, and other features annotated from study 3
     data from ASIST's Minecraft SAR Environment.
 
 Functions in File:
     1. getRawData(filename)
-        * Reads in csv file. See note on line 1.
+        * Reads in csv file. See note on line 2.
         * Returns dataframe with features of interest
     2. cleanLabels(df, dirtyCol)
         * Calls out to 3 Functions:
@@ -38,8 +43,7 @@ This file creates temporary files (when uncommented).
 '''
 
 
-
-
+###################################################################
 ### Horizontal ruling for visual ease in reading output.
 hrule = ("\n" + " - "*35 + "\n")
 Hrule = ("\n" + " = "*35 + "\n")
@@ -51,7 +55,6 @@ import pandas
 import requests
 import time
 import datetime
-
 
 ########################################################################
 def convert_datetime_integer(column):
@@ -101,7 +104,6 @@ def findColumn(df):
     Output:  Returns a column of total seconds as integers to the
              findColumn() function.
     '''
-
     ### Empty String to send later
     fixCol = ""
     columnCount = 0
@@ -141,27 +143,21 @@ def findColumn(df):
 ### Replace labels as created by annotators with alphabetized labels
 def alphabetizeObjects(column):
     '''
-    Purpose:
-    Input:
-    Process:
-    Output:
+    Purpose: Independent annotators were given least-restrictive labeling
+             as long as they adhered to the procedures of Grounded Theory.
+             Because of this, some labels, like 'askLocationVictim' and
+             'askVictimLocation' register as two separate labels. This main
+             function corrects all labels to keep original verb, then it
+             alphabetizes the two objects. Not all labels have 2 objects.
+    Input:   dataframe column of labels to be cleaned
+    Process: getLabels() splits into parts of speech and alphabetizes objects.
+    Output:  returns parts of speech and cleaned labels for column.
+             removes old column and inserts new column automatically.
     '''
     def getLabels(myLabel):
-        '''
-        Purpose:
-        Input:
-        Process:
-        Output:
-        '''
 #        print("from getLabels():", myLabel)
 
         def getVerb(label):
-            '''
-            Purpose:
-            Input:
-            Process:
-            Output:
-            '''
 #            print("from getVerb()", label)
             verb = ""
             for j in label:
@@ -173,12 +169,6 @@ def alphabetizeObjects(column):
                     return verb, label
 
         def getNoun(label):
-            '''
-            Purpose:
-            Input:
-            Process:
-            Output:
-            '''
             # remove capital letter for noun:
             noun = label[0].lower()
             label = label.replace(label[0], "", 1)
@@ -198,12 +188,6 @@ def alphabetizeObjects(column):
                     return noun, label
 
         def getModifier(label):
-            '''
-            Purpose:
-            Input:
-            Process:
-            Output:
-            '''
             size = len(label)
             if size < 1:
 #                print("size:", size)
@@ -218,12 +202,6 @@ def alphabetizeObjects(column):
             return modifier
 
         def abcOrder(myV, myN, myM):
-            '''
-            Purpose:
-            Input:
-            Process:
-            Output:
-            '''
             abcLabel = ""
 #            print(myV, myN, myM)
             if myM=="":
@@ -306,6 +284,13 @@ def alphabetizeObjects(column):
 ##################################################################################### |
 
 def getRawData(filename):
+    '''
+    Purpose:
+    Input:
+    Process:
+    Output:
+    '''
+
     rawData = pandas.read_csv(filename)
     ### If not in csv format, use read_json(), read_html(), read_sql_table()
     print(type(rawData))
@@ -362,11 +347,11 @@ def getRawData(filename):
 
 def cleanLabels(df, dirtyCol):
     '''
-    Purpose:
-    Input:   df = dataframe of columns to be cleanec
+    Purpose: converts datetime datatypes, cleans annotator labels
+             and cleans dataframes. Use for scalability.
+    Input:   df = dataframe of columns to be cleaned
              dirtyCol = column needing to be cleaned
-    Process:
-    Output:
+    Output:  dataframe ready for data snooping after cleaning
     '''
     ########################################################
     ### Verify the column passes in correctly:
@@ -420,14 +405,10 @@ def cleanLabels(df, dirtyCol):
     temp_cleaned = pandas.DataFrame(cleaned)
     temp_cleaned.to_csv("../data/temp_csv_folder/temp_ABC_"+dirtyCol+"_from_doNotCommit_Cleaned.csv")
     return cleaned
-#####################################################################################
-
-
 
 #####################################################################################
 #           Program Starts Here
 #####################################################################################
-
 
 filename = "../data/doNotCommit_HSR_raw.csv"
 myData = getRawData(filename)
@@ -438,7 +419,6 @@ myData = cleanLabels(myData, "causeLabel")
 myData = cleanLabels(myData, "effectLabel")
 
 ### For now, the data contain HSR raw text. This will not be uploaded.
-
 HSR = pandas.DataFrame(myData)
 HSR.to_csv("../data/doNotCommit_HSR_readyForUse.csv")
 
