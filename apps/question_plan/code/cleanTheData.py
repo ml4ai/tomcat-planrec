@@ -45,8 +45,8 @@ This file creates temporary files (when uncommented).
 
 ###################################################################
 ### Horizontal ruling for visual ease in reading output.
-hrule = ("\n" + " - "*35 + "\n")
-Hrule = ("\n" + " = "*35 + "\n")
+hrule = ("\n" + "-"*76 + "\n")
+Hrule = ("\n" + "="*76 + "\n")
 ###################################################################
 
 import sys
@@ -116,7 +116,7 @@ def findColumn(df):
         columnCount += 1
         if "time" in i:
             fixCol = i
-#            print(Hrule, "Name of current fixCol=", fixCol)
+#            print(hrule, "Name of current fixCol=", fixCol)
 
             ### Send the column to be fixed to the function:
             tempCol = []
@@ -130,7 +130,7 @@ def findColumn(df):
             df.drop(fixCol, inplace = True, axis = 1)
 
             ### Check Dataframe within this function and loop
-            print("\n\nChecking dataframe within this function and loop\n\t:", df.head(10))
+            print(hrule, "Checking dataframe with updated", fixCol, "Column:\n", df.head())
 
             ### Save temporarily-altered dataframe to a csv file in working directory
             temp_df = pandas.DataFrame(df)
@@ -293,18 +293,13 @@ def getRawData(filename):
 
     rawData = pandas.read_csv(filename)
     ### If not in csv format, use read_json(), read_html(), read_sql_table()
-    print(type(rawData))
-
 
     ### EXAMINE THE DATA
-    print("Len() of data:", len(rawData))
-    print("Shape of data:", rawData.shape)
+    print("Shape of raw data:", rawData.shape)
 
     ### Get rid of null values
-    print("Shape of data before cleaning out cause verb nulls:", rawData.shape)
     rawData = rawData[rawData["obsNum"].notnull()]
     print("Shape of data AFTER cleaning out nulls:", rawData.shape)
-    print(Hrule)
 
     ### Set up display for convenience in reading output:
     pandas.set_option('display.max_rows', 40)
@@ -319,21 +314,20 @@ def getRawData(filename):
     "question_verbatim", "htn", "abstractLabel", "causeLabel", "questionLabel",
     "effectLabel", "qWord", "qPhrase", "auxVerb", "actionVerb"]]
 
-    print("From line 68: Head of Subset Data:\n", data.head())
-    print(hrule, "From line 69: Shape of data:", data.shape, hrule)
+    print("Shape of selected-feature data:", data.shape, hrule)
     ###################################################################
     ### Getting to know the Data:
-    print(hrule, "\nData info():", data.info())
+    print(hrule, "\nData info():\n", data.info())
 
     ### Not as helpful for my research question 
-    print(hrule, "Describe Data:\n", data.describe(), "\n")
+    print(hrule, "\nDescribe Data:\n", data.describe(), "\n")
 
     ### Describe using a parameter and numpy:
-    print(hrule, "Describe Data with Parameter:\n", data.describe(include=object))
+    print(hrule, "\nDescribe Data with Parameter:\n", data.describe(include=object))
 
     ### Print data types of columns:
     ### No need for floats in this data. Convert all floats to integers:
-    print(hrule, "Data Types of Each Column:\n", data.dtypes)
+    print(hrule, "\nData Types of Each Column:\n", data.dtypes)
     data["video"] = data["video"].astype(int)
     data["obsNum"] = data["obsNum"].astype(int)
     data["regular"] = data["regular"].astype(int)
@@ -354,20 +348,21 @@ def cleanLabels(df, dirtyCol):
     Output:  dataframe ready for data snooping after cleaning
     '''
     ########################################################
-    ### Verify the column passes in correctly:
-    print(hrule, "verify column passes in correctly:", hrule)
-    for d in dirtyCol:
-        print(d)
+    ### Uncomment to Verify the column passes in correctly:
 
-    print(hrule, "dirtyCol End from cleanLabels()", hrule)
+    #print(hrule, "verify column passes in correctly:", hrule)
+    #for d in dirtyCol:
+    #    print(d)
+
+    #print(hrule, "dirtyCol End from cleanLabels()", hrule)
     ########################################################
 
 
     ### Reinspect and Describe using a parameter and numpy:
     cleaned = df.copy(deep=True)
-    print(Hrule, "Shape of cleaned data:", cleaned.shape)
+    print(hrule, "Shape of cleaned data:", cleaned.shape)
     cleaned = findColumn(cleaned)
-    print(Hrule, "With new columns for time, Shape of cleaned data:", cleaned.shape)
+    print(hrule, "With new columns for time, Shape of cleaned data:", cleaned.shape)
 
 
     ########################################################
@@ -375,23 +370,24 @@ def cleanLabels(df, dirtyCol):
     abcColumn = []
     abcColumn = alphabetizeObjects(cleaned[dirtyCol])
 
-    ### Check to see if things are passing in this function okay:
-    print("Check to see if things are passing in this function okay:\n")
-    print("Sending dirtyCol to alphabetizingObjects...")
-    for i in abcColumn:
-        print(i)
+    ### Uncomment to Verify the column passes in correctly:
 
-    print(Hrule, "abcColumn End from cleanLabels()", Hrule)
+    #print("Check to see if things are passing in this function okay:\n")
+    #print("Sending dirtyCol to alphabetizingObjects...")
+    #for i in abcColumn:
+    #    print(i)
+
+    #print(hrule, "abcColumn End from cleanLabels()", hrule)
     ########################################################
 
-    ### Verify against original dataset:
-    for a in abcColumn:
-        print("From outer most edge, ready to put back in dataframe:", a)
+    ### Uncomment to Verify the column passes in correctly:
+    #for a in abcColumn:
+    #    print("From outer most edge, ready to put back in dataframe:", a)
 
     ### Get column Index of labels to be cleaned so I can place the new column
         ### next to it:
     labelIndex = cleaned.columns.get_loc(dirtyCol)
-    print(hrule*3, "labelIndex:", labelIndex)
+    #print(hrule*3, "labelIndex:", labelIndex)
     labelIndex += 1
 
 
@@ -399,7 +395,7 @@ def cleanLabels(df, dirtyCol):
     cleaned.insert(labelIndex, dirtyCol+"s", abcColumn, True)
     cleaned.drop(dirtyCol, inplace = True, axis = 1)
 
-    print("\n\nChecking dataframe outside of function and loop\n\t:", cleaned.head(30))
+    print(hrule, "Dataframe with Updated", dirtyCol+"s Column:"+"\n\n", cleaned.head())
 
     ### Save temporarily-altered dataframe to a csv file in working directory
     temp_cleaned = pandas.DataFrame(cleaned)
@@ -409,18 +405,30 @@ def cleanLabels(df, dirtyCol):
 #####################################################################################
 #           Program Starts Here
 #####################################################################################
+def main(filename):
+    '''
+    Purpose: Clean data, whether called from this file or another file.
+    '''
+    myData = getRawData(filename)
+    myData = cleanLabels(myData, "questionLabel")
+    myData = cleanLabels(myData, "abstractLabel")
+    myData = cleanLabels(myData, "htn")
+    myData = cleanLabels(myData, "causeLabel")
+    myData = cleanLabels(myData, "effectLabel")
+    HSR = pandas.DataFrame(myData)
+    HSR.to_csv("../data/doNotCommit_HSR_readyForUse.csv")
+    return myData
 
-filename = "../data/doNotCommit_HSR_raw.csv"
-myData = getRawData(filename)
-myData = cleanLabels(myData, "questionLabel")
-myData = cleanLabels(myData, "abstractLabel")
-myData = cleanLabels(myData, "htn")
-myData = cleanLabels(myData, "causeLabel")
-myData = cleanLabels(myData, "effectLabel")
 
-### For now, the data contain HSR raw text. This will not be uploaded.
-HSR = pandas.DataFrame(myData)
-HSR.to_csv("../data/doNotCommit_HSR_readyForUse.csv")
+### Read in the Data:
+file = "../data/doNotCommit_HSR_raw.csv"
+
+### Start Cleaning Process from main()
+myCleanedData = main(file)
+
+### Verify
+print(hrule, "\nChecking myCleanedData:\n\n", myCleanedData.head(10), hrule)
+
 
 #####################################################################################
 #   End of Program
