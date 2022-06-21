@@ -26,6 +26,18 @@ Functions in File:
        cleaned with this file. salena at email dot arizona dot edu for questions.
     2. asdf
 --------------------------------------------------------------------------
+
+
+Sources used considerably while learning to use Pandas, though none of their
+code was used directly for the development of this program:
+
+    https://towardsdatascience.com/8-ways-to-filter-a-pandas-dataframe-by-a-partial-string-or-pattern-49f43279c50f
+
+    https://re-thought.com/pandas-value_counts/
+
+    https://towardsdatascience.com/9-pandas-value-counts-tricks-to-improve-your-data-analysis-7980a2b46536
+
+
 '''
 
 ###################################################################
@@ -88,8 +100,9 @@ def valCount_col(col, num):
 ### Group-by using a function
 def groupBy_df(df, num):
     '''
-    Do not use a subsetting function. This is groupby that returns concept
-    hierarchies, not necessarily a subset. 
+    Do not use a subsetting function. This is groupby that returns a
+    wide-verses-long dataframe, which I like for the investigation of concept
+    hierarchies, not necessarily a subset.
 
     For subsetting, use the sub-set_df() function.
 
@@ -150,41 +163,46 @@ def intent_probability(df, num):
     Purpose: Takes in any data frame and returns all rows that have label instances of
              more than value of 'num'.
 
-             Because of the many 1-to-1 labels, we can filter for label instances that take
-             place 1, 2, 3 or 4 times. Below we create subsets of the data for the number of
-             instances per label, respectively. Each subset creates a value count, grouped
-             by abstractLabels, then by question labels. A second subset takes the first
-             subset and returns a normalized count.
-
-    Input:   dataframe, number of instances to filter labels by
-    Output:  dataframe subset by value count, dataframe subset by normalized count
+    Input:   dataframe, number of rows to display
+    Output:
 
     '''
     print(Hrule, "start of intent_probability()", hrule)
     print(df.shape, "before subsetting\n")
+    print(hrule, "\nUse Abstractions to Capture Intention of Player.\n"
+            "This label captures the question utterance at a higher level and\n"
+            "considers the cause and effect of such a question utterance.\n")
 
-    ### Remember to return a copy of the dataframe without value counts
-        # or normalized counts. Below are the other respective versions.
-
-    ### Create Separate DataFrame that includes value counts
-    ### Make deep copy or else the rest of this code won't work because the
-        # value_counts() turns the data into series.
-    # Convert resulting series to a dataframe before returning
-
+    ### Make deep copy of dataframe and extract abstraction labels
     df_norm = df.copy(deep = True)
-    print(df_norm.shape, "df_norm after deep copy\n")
     df_norm = df_norm["abstractLabels"].value_counts(normalize=True).head(num)
-
+    # Turn into a dataframe since value_counts() converts to a series.
     dfnf = df_norm.to_frame()
-    print(dfnf.dtypes)
+
+    ### Conversions need to be reshaped. Abstractions need to be taken from
+        # row names into their own column. Define as Intention.
+        # Define normalized value counts as probability of marginal probability
+        # of the intention being the intention, regardless of question asked.
+        # Source for help: https://stackoverflow.com/questions/25457920/convert-row-names-into-a-column-in-pandas
 
     dfnf.index.name = 'newhead'
     dfnf.reset_index(inplace=True)
-    dfnf.columns =['Intention', 'Probability']
+    dfnf.columns =['intention', 'probability']
+    print(hrule, dfnf)
+    print(hrule, "Verify shape and data types of subdataframe:\n", 
+            "\nShape:", dfnf.shape, "\nDataTypes:\n", dfnf.dtypes)
 
-    print(dfnf)
-    print(hrule, "after resetting", dfnf.shape)
-    print(dfnf.dtypes)
+
+    ### Filter subset of data into sparse and common, based on probability
+    sparse = dfnf.copy(deep = True)
+    sparse = sparse[sparse.probability <= 0.01]
+    print(hrule, "Sparse:\n", sparse)
+
+    common = dfnf.copy(deep = True)
+    common = common[common.probability >= 0.1]
+    print(hrule, "Common:\n", common)
+#df = df[df.column_name != value]
+
 
     print(hrule, "end of intent_probability()", Hrule)
 
@@ -314,13 +332,6 @@ def subsumeLabels(df):
    # print(df_sparse_to_subsume.head())
 
 
-    ### Give names to columns of this dataframe:
-    #df_sparse_to_subsume.columns = ["abstractLabels", "questionLabels", "Probability"]
-
-    ### Turn the resulting series back into a dataframe
-    #df_norm = df_norm.to_frame()
-    #df.columns =['Intention', 'Probability']
-    #print(df_norm)
 #df = df[df.column_name != value]
     ### Filter all rows where the normalized value is less than 1 %
 ###############################################################################
