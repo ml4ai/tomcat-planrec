@@ -1,4 +1,4 @@
-
+#TODO: line 352
 '''
 --------------------------------------------------------------------------
 This code will not run from the tomcat-planrec repo until I upload the csv data.
@@ -38,13 +38,11 @@ code was used directly for the development of this program:
     https://towardsdatascience.com/9-pandas-value-counts-tricks-to-improve-your-data-analysis-7980a2b46536
 
 
+Sources to consider down the road:
+    * Converting wide <-> long data for analysis vs visualization
+        * https://www.statology.org/long-vs-wide-data/
 '''
 
-###################################################################
-### Horizontal ruling for visual ease in reading output.
-hrule = ("\n" + "-"*76 + "\n")
-Hrule = ("\n" + "="*76 + "\n")
-###################################################################
 
 import sys
 import numpy
@@ -66,39 +64,34 @@ def unique(df):
     for d in df:
         print(hrule, d, hrule)
         print(df[d].unique())
-        print(Hrule)
 ###############################################################################
 
-def valCount_df(df, num):
+def valCount_df(df, HEAD):
     '''
     Counts of all values for all columns of dataframe. 
-    'num' indicates the number of rows to be displayed in dataframe.
+    'HEAD' indicates the number of rows to be displayed in dataframe.
     '''
-
-    count = 0
     print(Hrule)
 
     for d in df:
         print("\n", d)
-        print(df[d].value_counts().head(num))
-        count += 1 
-        print("-"*10, "Total Counts =", count, "-"*10, "\n")
+        print(df[d].value_counts().head(HEAD))
 
 
 
-def valCount_col(col, num):
+def valCount_col(col, HEAD):
     '''
     Counts all of the values for a specific column in a data frame.
-    'num' indicates the number of rows to be displaced in this output.
+    'HEAD' indicates the number of rows to be displaced in this output.
     '''
-    print(hrule, col.value_counts().head(num),
-            hrule, col.value_counts(normalize = True).head(num))
+    print(hrule, col.value_counts().head(HEAD),
+            hrule, col.value_counts(normalize = True).head(HEAD))
 
 
 ###############################################################################
 
 ### Group-by using a function
-def groupBy_df(df, num):
+def cond_prob_df(df, colA, colB, HEAD, title):
     '''
     Do not use a subsetting function. This is groupby that returns a
     wide-verses-long dataframe, which I like for the investigation of concept
@@ -107,7 +100,7 @@ def groupBy_df(df, num):
     For subsetting, use the sub-set_df() function.
 
     Purpose: Takes in any data frame and returns all rows that have label instances of
-             more than value of 'num'.
+             more than value of 'HEAD'.
 
              Because of the many 1-to-1 labels, we can filter for label instances that take
              place 1, 2, 3 or 4 times. Below we create subsets of the data for the number of
@@ -119,15 +112,20 @@ def groupBy_df(df, num):
     Output:  dataframe subset by value count, dataframe subset by normalized count
 
     '''
-    print(Hrule, "start of groupBy_df()", hrule)
-    print(df.shape, "before subsetting\n")
-    df = df.groupby("questionLabels").filter(lambda g: (g.name != 0) and
-            (g.questionLabels.size > num))
+    #print(Hrule, "start of cond_prob_df()")
+    #print(df.shape, "before subsetting\n")
+    '''
+    DECIDE IF I WANT TO CONSIDER FREQUENCY FOR LABELS. I STILL DON'T THINK THAT
+    I DO.
 
-    df = df.groupby("abstractLabels").filter(lambda g: (g.name != 0) and
-            (g.questionLabels.size > num))
+    df = df.groupby(colB).filter(lambda g: (g.name != 0) and
+            (g.colB.size > HEAD))
 
-    print(df.shape, "after subsetting\n")
+    df = df.groupby(colA).filter(lambda g: (g.name != 0) and
+            (g.colA.size > HEAD))
+    '''
+
+    #print(df.shape, "after subsetting\n")
 
     ### Remember to return a copy of the dataframe without value counts
         # or normalized counts. Below are the other respective versions.
@@ -139,29 +137,34 @@ def groupBy_df(df, num):
 
     df_val = df.copy(deep = True)
     df_norm = df.copy(deep = True)
-    print(df_norm.shape, "after subsetting and deep copy\n")
+    #print(df_norm.shape, "after subsetting and deep copy\n")
 
-    df_val = df_val.groupby("abstractLabels")["questionLabels"].value_counts().head(400)
+    df_val = df_val.groupby(colA)[colB].value_counts()
     df_val = df_val.to_frame()
     #df_val = pandas.DataFrame(df_val)
 
-    df_norm = df_norm.groupby("abstractLabels")["questionLabels"].value_counts(normalize
-            = True).head(400)
-    print(df_norm.shape, "after subsetting and deep copy and groupby\n")
+    df_norm = df_norm.groupby(colA)[colB].value_counts(normalize
+            = True)
+    #print(df_norm.shape, "after subsetting and deep copy and groupby\n")
 
     #df_norm = df_norm.to_frame()
     df_norm = pandas.DataFrame(df_norm)
-    print(df_norm.shape, "after subsetting and deep copy, groupby and df\n")
-    print(hrule, "end of groupBy_df()", Hrule)
+    #print(df_norm.shape, "after subsetting and deep copy, groupby and df\n")
+
+
+
+    print(Hrule, "\nConditional Probability of", title, "\n\n\t", colA, "and",
+            colB, "\n", df_norm, "\n\n", hrule)
+
     return df, df_val, df_norm
 
 ###############################################################################
 ###############################################################################
 
-def marginal_probability(df, column, newColumn, num):
+def marginal_probability(df, column, newColumn, HEAD):
     '''
     Purpose: Takes in any data frame and returns all rows that have label instances of
-             more than value of 'num'.
+             more than value of 'HEAD'.
 
     Input:   dataframe, number of rows to display
     Output: dfnf= DataFrame that is Normalized and formatted as Frame
@@ -169,7 +172,8 @@ def marginal_probability(df, column, newColumn, num):
             common = all rows in dfnf whose normalized values > 0.1
 
     '''
-#    print(Hrule, "start of intent_probability()", hrule)
+    print(Hrule)
+#    print(hrule, "start of intent_probability()", hrule)
 #    print(df.shape, "before subsetting\n")
 #    print(hrule, "\nUse Abstractions to Capture Intention of Player.\n"
 #            "This label captures the question utterance at a higher level and\n"
@@ -177,7 +181,7 @@ def marginal_probability(df, column, newColumn, num):
 
     ### Make deep copy of dataframe and extract abstraction labels
     df_norm = df.copy(deep = True)
-    df_norm = df_norm[column].value_counts(normalize=True).head(num)
+    df_norm = df_norm[column].value_counts(normalize=True).head(HEAD)
     # Turn into a dataframe since value_counts() converts to a series.
     dfnf = df_norm.to_frame()
 
@@ -196,7 +200,7 @@ def marginal_probability(df, column, newColumn, num):
 
     ### Attempt to get POS from Abstract Labels
     dfnf = ctd.cleanLabels(dfnf, newColumn)
-#    print(Hrule, dfnf, Hrule)
+#    print(hrule, dfnf, hrule)
 
     ### Filter subset of data into sparse and common, based on probability
     sparse = dfnf.copy(deep = True)
@@ -207,7 +211,7 @@ def marginal_probability(df, column, newColumn, num):
     common = common[common.probability >= 0.1]
 #    print(hrule, "Common:\n", common)
 
-#    print(hrule, "end of intent_probability()", Hrule)
+#    print(hrule, "end of intent_probability()", hrule)
 
     return dfnf, sparse, common
 
@@ -229,11 +233,11 @@ def plot_df_fill(df, a, b, c):
 
 
 def contingency_tables(df, colA, colB):
-    print(hrule, "ready for subsuming\n", df, hrule)
+
     df_table = pandas.crosstab(index=df[colA],
             columns=df[colB], margins = True)
 
-    print(hrule, "Contingency Table\n", df_table, Hrule)
+    print(Hrule, "Contingency Table\n\n", df_table, hrule)
 
     ### This shows some spelling errors. For now, I have corrected them in 
         # the raw csv file, ran cleanTheData.py, and then it comes through here
@@ -266,19 +270,8 @@ def main(data):
 
     Get a feel for categorical Data. 
     '''
-    groupBy_catData_df, groupBy_Data_df_val, groupBy_catData_df_norm = groupBy_df(catData, 0)
-    #groupBy_subCat1_df, groupBy_Cat1_df_val, groupBy_Cat1_df_norm = groupBy_df(catData, 1)
-    #groupBy_subCat2_df, groupBy_Cat2_df_val, groupBy_Cat2_df_norm = groupBy_df(catData, 2)
-    #groupBy_subCat3_df, groupBy_Cat3_df_val, groupBy_Cat3_df_norm = groupBy_df(catData, 3)
-    #groupBy_subCat4_df, groupBy_Cat4_df_val, groupBy_Cat4_df_norm = groupBy_df(catData, 4)
-    #cont_table(subCat3_df)
 
-
-    ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### 
-    ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### 
-    ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### 
-
-    print(Hrule, "What Intentions Exist?", hrule)
+    print(Hrule, "What Intentions Exist?")
     #valCount_col(catData["abstractLabels"], 200)
 
     '''
@@ -299,24 +292,37 @@ def main(data):
     '''
     ### First send abstract labels to find mid-level intentions and probabilities.
     abs_dfnf, abs_sparse, abs_common = marginal_probability(catData, "abstractLabels", "intention", 400)
-    print(hrule, "From outer edge:\n, abs_sparse:\n", abs_sparse) # To test return
+    print(hrule, "\tabs_sparse:\n", abs_sparse.head()) # To test return
+    print(hrule, "\tabs_dfnf:\n", abs_dfnf.head()) # To test return
 
     ### Second send in question laels to find ground-level intent and probability.
     q_dfnf, q_sparse, q_common = marginal_probability(catData, "questionLabels",
     "primitiveQuestion", 400)
-    print(hrule, "From outer edge:\n, q_sparse:\n", q_sparse) # To test return
+    print(hrule, "\t q_sparse:\n", q_sparse.head()) # To test return
+    print(hrule, "\t q_dfnf:\n", q_dfnf.head()) # To test return
 
     ### Now look at sparse, normalized categorical labels to see what to combine:
-    print(Hrule, "Sparse Contingency Matrices for Purpose of Subsuming Labels",
+    print(hrule, "Sparse Contingency Matrices for Purpose of Subsuming Labels",
             hrule)
 
     contingency_tables(abs_sparse, "intentions_v", "intentions_nm")
     contingency_tables(q_sparse, "primitiveQuestions_v", "primitiveQuestions_nm")
 
+    ### Now print conditional probabilities
+    #TODO: Decide whether I should use different variables. Not sure for now.
+    condProb_cat, condProb_val, condProb_cat_norm = cond_prob_df(catData,
+            "abstractLabels", "questionLabels", 0, "Abstract Labels that Show Intention")
+
+    ### Conditional Probabilities of Sparse Labels:
+    condProb_absSparse, condProb_absSparse_val, condProb_absSparse_norm = cond_prob_df(abs_sparse,
+            "intentions_v", "intentions_nm", 0, "Sparse Abstract Labels that Show Intention")
+
+#TODO:
     '''
     21 June: subsume confirm into clarify. Do at ground level of main dataframe.
     For now, just run the program a few times?
     '''
+    print(Hrule, "\t\t\tEnd of Program", Hrule)
     return data # to rerun program from base level
 
 
@@ -324,6 +330,15 @@ def main(data):
 ##### PROGRAM STARTS HERE
 ###############################################################################
 
+###################################################################
+### Horizontal ruling for visual ease in reading output.
+hrule = ("\n" + "-"*76 + "\n")
+Hrule = ("\n" + "#"*76 + "\n")
+
+### Set number of rows to display in output:
+HEAD = 20
+
+###################################################################
 ### Use this block to clean data before using this file, else use next block.
 '''
 ### Read in the Data:
@@ -331,7 +346,7 @@ file = "../data/doNotCommit_HSR_raw.csv"
 ### Start Cleaning Process from main()
 data = ctd.main(file)
 ### Verify
-print(Hrule, "\nChecking myCleanedData:\n\n", data.head(10), Hrule)
+print(hrule, "\nChecking myCleanedData:\n\n", data.head(10), hrule)
 '''
 
 ### Read in the data
@@ -347,8 +362,11 @@ main(rawData)
     # Source: https://sparkbyexamples.com/pandas/pandas-replace-substring-in-dataframe/
 
 ### replace "confirm" with "clarify"
-rawData = rawData.replace('confirm','clarify', regex=True)
+#TODO: Should confirm remain in question and NOT abstract??? Start here.
+    #### rawData = rawData.replace('confirm','clarify', regex=True)
+
 main(rawData)
+
 
 ###############################################################################
 ###############################################################################
