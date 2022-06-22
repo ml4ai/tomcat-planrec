@@ -30,7 +30,7 @@ Functions in File:
         * Calls out to 3 Functions:
     3.     * convert_datetime_integer(column)
              * converts timestamps to total seconds
-    4.     * findColumn(df)
+    4.     * find_time_column(df)
              * locates other columns that need conversions
     5.     * alphabetizeObjects(column)
              * splits parts of speech, checks for missing modifiers,
@@ -66,10 +66,10 @@ def convert_datetime_integer(column):
     Purpose: Convert object or datatypes into integers.
              Note that the dt() function often mentioned in tutorials is
              depreciated and most solutions found online do not work.
-    Input:   Called from findColumn() and sends the
+    Input:   Called from find_time_column() and sends the
              Selected column that has word 'time' in name.
     Output:  Returns a column of total seconds as integers to the
-             findColumn() function.
+             find_time_column() function.
     '''
 
     column = pandas.to_datetime(column)
@@ -89,20 +89,20 @@ def convert_datetime_integer(column):
         tempCol.append(seconds)
 #        print(hrule)
 
-    return tempCol # returns fixed column to findColumn()
+    return tempCol # returns fixed column to find_time_column()
 
 
 
 ########################################################################
 
-def findColumn(df):
+def find_time_column(df):
     '''
     Purpose: Finds column names with the word 'time' and verifies that it
              can be converted from any datatype to an integer to count seconds.
     Input:   Takes in a dataframe and reads the name of each column head.
     Process: Sends to convert_datatime_integer() function to convert. 
     Output:  Returns a column of total seconds as integers to the
-             findColumn() function.
+             find_time_column() function.
     '''
     ### Empty String to send later
     fixCol = ""
@@ -130,7 +130,7 @@ def findColumn(df):
             df.drop(fixCol, inplace = True, axis = 1)
 
             ### Check Dataframe within this function and loop
-            print(hrule, "Checking dataframe with updated", fixCol, "Column:\n", df.head())
+            #print(hrule, "Checking dataframe with updated", fixCol, "Column:\n", df.head())
 
             ### Save temporarily-altered dataframe to a csv file in working directory
             temp_df = pandas.DataFrame(df)
@@ -242,6 +242,7 @@ def alphabetizeObjects(column):
 
 
         myVerb = ""
+        nm = ""
         myNoun = ""
         myMod = ""
         myABC = ""
@@ -258,6 +259,7 @@ def alphabetizeObjects(column):
 
     allNouns = []
     allVerbs = []
+    allNM = []
     allModifiers = []
     newColumn = []
 
@@ -266,6 +268,11 @@ def alphabetizeObjects(column):
         token = str(i)
  #       print("Token:", token)
         v, n, m, c = getLabels(token)
+        if len(m) > 0:
+            M = m[0].upper()
+            m = M+m[1:]
+        nm = (n+m)
+        allNM.append(nm)
         allVerbs.append(v)
         allNouns.append(n)
         allModifiers.append(m)
@@ -277,7 +284,7 @@ def alphabetizeObjects(column):
 #    print(hrule, "NewColumn of myABC Labels:\n")
 #    for c in newColumn:
 #        print(c)
-    return newColumn
+    return newColumn, allVerbs, allNM
 
 
 
@@ -313,27 +320,27 @@ def getRawData(filename):
     data = rawData[["video", "obsNum", "regular", "critical", "score", "timeStart", "timeEnd",
     "question_verbatim", "htn", "abstractLabel", "causeLabel", "questionLabel",
     "effectLabel", "qWord", "qPhrase", "auxVerb", "actionVerb"]]
-
-    print("Shape of selected-feature data:", data.shape, hrule)
+#
+#    print("Shape of selected-feature data:", data.shape, hrule)
     ###################################################################
     ### Getting to know the Data:
-    print(hrule, "\nData info():\n", data.info())
+    #print(hrule, "\nData info():\n", data.info())
 
     ### Not as helpful for my research question 
-    print(hrule, "\nDescribe Data:\n", data.describe(), "\n")
+ #   print(hrule, "\nDescribe Data:\n", data.describe(), "\n")
 
     ### Describe using a parameter and numpy:
-    print(hrule, "\nDescribe Data with Parameter:\n", data.describe(include=object))
+ #   print(hrule, "\nDescribe Data with Parameter:\n", data.describe(include=object))
 
     ### Print data types of columns:
     ### No need for floats in this data. Convert all floats to integers:
-    print(hrule, "\nData Types of Each Column:\n", data.dtypes)
+    #print(hrule, "\nData Types of Each Column:\n", data.dtypes)
     data["video"] = data["video"].astype(int)
     data["obsNum"] = data["obsNum"].astype(int)
     data["regular"] = data["regular"].astype(int)
     data["critical"] = data["critical"].astype(int)
     data["score"] = data["score"].astype(int)
-    print(hrule, "Data Types of Each Column:\n", data.dtypes)
+    #print(hrule, "Data Types of Each Column:\n", data.dtypes)
 
     return data
 #####################################################################################
@@ -360,15 +367,15 @@ def cleanLabels(df, dirtyCol):
 
     ### Reinspect and Describe using a parameter and numpy:
     cleaned = df.copy(deep=True)
-    print(hrule, "Shape of cleaned data:", cleaned.shape)
-    cleaned = findColumn(cleaned)
-    print(hrule, "With new columns for time, Shape of cleaned data:", cleaned.shape)
+    #print(hrule, "Shape of cleaned data:", cleaned.shape)
+    cleaned = find_time_column(cleaned)
+    #print(hrule, "With new columns for time, Shape of cleaned data:", cleaned.shape)
 
 
     ########################################################
     ### Create a new column to alphabatize verbObjectObject:
     abcColumn = []
-    abcColumn = alphabetizeObjects(cleaned[dirtyCol])
+    abcColumn, allV, allNM = alphabetizeObjects(cleaned[dirtyCol])
 
     ### Uncomment to Verify the column passes in correctly:
 
@@ -395,7 +402,24 @@ def cleanLabels(df, dirtyCol):
     cleaned.insert(labelIndex, dirtyCol+"s", abcColumn, True)
     cleaned.drop(dirtyCol, inplace = True, axis = 1)
 
-    print(hrule, "Dataframe with Updated", dirtyCol+"s Column:"+"\n\n", cleaned.head())
+    if "questionLabel" in dirtyCol:
+        cleaned.insert(labelIndex, dirtyCol+"s_nm", allNM, True)
+        cleaned.insert(labelIndex, dirtyCol+"s_v", allV, True)
+
+    if "abstractLabel" in dirtyCol:
+        cleaned.insert(labelIndex, dirtyCol+"s_nm", allNM, True)
+        cleaned.insert(labelIndex, dirtyCol+"s_v", allV, True)
+
+    if "intention" in dirtyCol:
+        cleaned.insert(labelIndex, dirtyCol+"s_nm", allNM, True)
+        cleaned.insert(labelIndex, dirtyCol+"s_v", allV, True)
+
+    if "primitiveQuestion" in dirtyCol:
+        cleaned.insert(labelIndex, dirtyCol+"s_nm", allNM, True)
+        cleaned.insert(labelIndex, dirtyCol+"s_v", allV, True)
+
+
+#    print(hrule, "Dataframe with Updated", dirtyCol+"s Column:"+"\n\n", cleaned.head())
 
     ### Save temporarily-altered dataframe to a csv file in working directory
     temp_cleaned = pandas.DataFrame(cleaned)
@@ -410,11 +434,11 @@ def main(filename):
     Purpose: Clean data, whether called from this file or another file.
     '''
     myData = getRawData(filename)
-    myData = cleanLabels(myData, "questionLabel")
     myData = cleanLabels(myData, "abstractLabel")
     myData = cleanLabels(myData, "htn")
     myData = cleanLabels(myData, "causeLabel")
     myData = cleanLabels(myData, "effectLabel")
+    myData = cleanLabels(myData, "questionLabel")
     HSR = pandas.DataFrame(myData)
     HSR.to_csv("../data/doNotCommit_HSR_readyForUse.csv")
     return myData
@@ -427,7 +451,7 @@ file = "../data/doNotCommit_HSR_raw.csv"
 myCleanedData = main(file)
 
 ### Verify
-print(hrule, "\nChecking myCleanedData:\n\n", myCleanedData.head(10), hrule)
+#print(hrule, "\nChecking myCleanedData:\n\n", myCleanedData.head(10), hrule)
 
 
 #####################################################################################

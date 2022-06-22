@@ -158,24 +158,26 @@ def groupBy_df(df, num):
 ###############################################################################
 ###############################################################################
 
-def intent_probability(df, num):
+def marginal_probability(df, column, newColumn, num):
     '''
     Purpose: Takes in any data frame and returns all rows that have label instances of
              more than value of 'num'.
 
     Input:   dataframe, number of rows to display
-    Output:
+    Output: dfnf= DataFrame that is Normalized and formatted as Frame
+            sparse = all rows in dfnf whose normalized values <= 0.01
+            common = all rows in dfnf whose normalized values > 0.1
 
     '''
-    print(Hrule, "start of intent_probability()", hrule)
-    print(df.shape, "before subsetting\n")
-    print(hrule, "\nUse Abstractions to Capture Intention of Player.\n"
-            "This label captures the question utterance at a higher level and\n"
-            "considers the cause and effect of such a question utterance.\n")
+#    print(Hrule, "start of intent_probability()", hrule)
+#    print(df.shape, "before subsetting\n")
+#    print(hrule, "\nUse Abstractions to Capture Intention of Player.\n"
+#            "This label captures the question utterance at a higher level and\n"
+#            "considers the cause and effect of such a question utterance.\n")
 
     ### Make deep copy of dataframe and extract abstraction labels
     df_norm = df.copy(deep = True)
-    df_norm = df_norm["abstractLabels"].value_counts(normalize=True).head(num)
+    df_norm = df_norm[column].value_counts(normalize=True).head(num)
     # Turn into a dataframe since value_counts() converts to a series.
     dfnf = df_norm.to_frame()
 
@@ -187,48 +189,30 @@ def intent_probability(df, num):
 
     dfnf.index.name = 'newhead'
     dfnf.reset_index(inplace=True)
-    dfnf.columns =['intention', 'probability']
-    print(hrule, dfnf)
-    print(hrule, "Verify shape and data types of subdataframe:\n", 
-            "\nShape:", dfnf.shape, "\nDataTypes:\n", dfnf.dtypes)
+    dfnf.columns =[newColumn, 'probability']
+#    print(hrule, dfnf)
+#    print(hrule, "Verify shape and data types of subdataframe:\n", 
+#            "\nShape:", dfnf.shape, "\nDataTypes:\n", dfnf.dtypes)
 
+    ### Attempt to get POS from Abstract Labels
+    dfnf = ctd.cleanLabels(dfnf, newColumn)
+#    print(Hrule, dfnf, Hrule)
 
     ### Filter subset of data into sparse and common, based on probability
     sparse = dfnf.copy(deep = True)
     sparse = sparse[sparse.probability <= 0.01]
-    print(hrule, "Sparse:\n", sparse)
+#    print(hrule, "Sparse:\n", sparse)
 
     common = dfnf.copy(deep = True)
     common = common[common.probability >= 0.1]
-    print(hrule, "Common:\n", common)
-#df = df[df.column_name != value]
+#    print(hrule, "Common:\n", common)
 
+#    print(hrule, "end of intent_probability()", Hrule)
 
-    print(hrule, "end of intent_probability()", Hrule)
-
-#    return df, df_val, df_norm
-
-###############################################################################
-##########################################################
-
-def cont_table(df):
-    '''
-    Create Contingency Chart and Calculate Conditional Probabilities of
-    Question Labels, given the Abstract Label
-    '''
-    df_table = pandas.crosstab(index=df["abstractLabels"], columns=df["questionLabels"], margins = True)
-
-    print(hrule, "Contingency Table\n", df_table, Hrule)
-
-    return df_table
+    return dfnf, sparse, common
 
 ###############################################################################
 
-
-
-
-
-###############################################################################
 
 def print_df(df):
     print(hrule, df, hrule)
@@ -241,7 +225,99 @@ def plot_df_fill(df, a, b, c):
     print(figure)
 
 
+###############################################################################
 
+
+def contingency_tables(df, colA, colB):
+    print(hrule, "ready for subsuming\n", df, hrule)
+    df_table = pandas.crosstab(index=df[colA],
+            columns=df[colB], margins = True)
+
+    print(hrule, "Contingency Table\n", df_table, Hrule)
+
+    ### This shows some spelling errors. For now, I have corrected them in 
+        # the raw csv file, ran cleanTheData.py, and then it comes through here
+        # just fine. In the future, if I continue to do this, I'll use a CASDAQ
+        # to avoid annotation typos.
+
+###############################################################################
+
+def main(data):
+    ### Set some display options
+    pandas.set_option('display.max_rows', 400)
+    pandas.set_option('display.float_format', '{:.2}'.format)
+    #print(hrule, "Describe Numerical Data:\n", data.describe(), hrule)
+    #print(hrule, "Describe Categorial Data:\n", data.describe(include=object), hrule)
+
+    ### Subset the Data
+    numData = data[["video", "obsNum", "regular", "critical", "score",
+                    "StartSeconds"]]
+    catData = data[["question_verbatim", "htns", "abstractLabels",
+                    "abstractLabels_v", "abstractLabels_nm", "causeLabels",
+                    "questionLabels", "questionLabels_v", "questionLabels_nm",
+                    "effectLabels", "qWord", "qPhrase", "auxVerb", "actionVerb"]]
+
+
+    '''
+    This next line shows entropy for all instances of labels for questions and
+    abstractions. This is not helpful for generalizations but can still be used for
+    investigating variation, probability given other joint conditions, and when
+    granularity does or does not matter.
+
+    Get a feel for categorical Data. 
+    '''
+    groupBy_catData_df, groupBy_Data_df_val, groupBy_catData_df_norm = groupBy_df(catData, 0)
+    #groupBy_subCat1_df, groupBy_Cat1_df_val, groupBy_Cat1_df_norm = groupBy_df(catData, 1)
+    #groupBy_subCat2_df, groupBy_Cat2_df_val, groupBy_Cat2_df_norm = groupBy_df(catData, 2)
+    #groupBy_subCat3_df, groupBy_Cat3_df_val, groupBy_Cat3_df_norm = groupBy_df(catData, 3)
+    #groupBy_subCat4_df, groupBy_Cat4_df_val, groupBy_Cat4_df_norm = groupBy_df(catData, 4)
+    #cont_table(subCat3_df)
+
+
+    ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### 
+    ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### 
+    ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### 
+
+    print(Hrule, "What Intentions Exist?", hrule)
+    #valCount_col(catData["abstractLabels"], 200)
+
+    '''
+    Compare Information Entropy-- a lot of these labels degenerate into one-to-one
+    information that is not helpful. Is this because of the labels themselves or
+    because there isn't enough data?
+
+    #TODO: Annotate another set of videos after pre-registration results are
+    completed
+
+    Get marginal probabilities of labels:
+        First send abstract labels to find mid-level intentions and probabilities.
+        Second send in question laels to find ground-level intent and probability.
+        Then feed them into a contingency table to see frequencies.
+
+        As of 21 June, simply write notes in comments, in this document, about why
+        I am going to subsume certain labels.
+    '''
+    ### First send abstract labels to find mid-level intentions and probabilities.
+    abs_dfnf, abs_sparse, abs_common = marginal_probability(catData, "abstractLabels", "intention", 400)
+    print(hrule, "From outer edge:\n, abs_sparse:\n", abs_sparse) # To test return
+
+    ### Second send in question laels to find ground-level intent and probability.
+    q_dfnf, q_sparse, q_common = marginal_probability(catData, "questionLabels",
+    "primitiveQuestion", 400)
+    print(hrule, "From outer edge:\n, q_sparse:\n", q_sparse) # To test return
+
+    ### Now look at sparse, normalized categorical labels to see what to combine:
+    print(Hrule, "Sparse Contingency Matrices for Purpose of Subsuming Labels",
+            hrule)
+
+    contingency_tables(abs_sparse, "intentions_v", "intentions_nm")
+    contingency_tables(q_sparse, "primitiveQuestions_v", "primitiveQuestions_nm")
+
+    '''
+    21 June: subsume confirm into clarify. Do at ground level of main dataframe.
+    For now, just run the program a few times?
+    '''
+    return data # to rerun program from base level
 
 
 ###############################################################################
@@ -259,87 +335,20 @@ print(Hrule, "\nChecking myCleanedData:\n\n", data.head(10), Hrule)
 '''
 
 ### Read in the data
-data = pandas.read_csv("../data/doNotCommit_HSR_readyForUse.csv")
+rawData = pandas.read_csv("../data/doNotCommit_HSR_readyForUse.csv")
 
-###############################################################################
-
-### Examine Data 
-
-### Set some display options
-pandas.set_option('display.max_rows', 400)
-pandas.set_option('display.float_format', '{:.2}'.format)
-#print(hrule, "Describe Numerical Data:\n", data.describe(), hrule)
-#print(hrule, "Describe Categorial Data:\n", data.describe(include=object), hrule)
-
-### Subset the Data
-numData = data[["video", "obsNum", "regular", "critical", "score",
-                "StartSeconds"]]
-catData = data[["question_verbatim", "htns", "abstractLabels", "causeLabels",
-                "questionLabels", "effectLabels", "qWord", "qPhrase", "auxVerb", "actionVerb"]]
-
-### Get a feel for categorical Data:
-#valCount(catData, 200)
-
-### Send a subset dataframe, not subset value_counts or normalized frame
-'''
-This next line shows entropy for all instances of labels for questions and
-abstractions. This is not helpful for generalizations but can still be used for
-investigating variation, probability given other joint conditions, and when
-granularity does or does not matter.
-'''
-#print(hrule, "All instances:\n", catData.groupby("abstractLabels")["questionLabels"].value_counts().head(200))
-groupBy_catData_df, groupBy_Data_df_val, groupBy_catData_df_norm = groupBy_df(catData, 0)
-#groupBy_subCat1_df, groupBy_Cat1_df_val, groupBy_Cat1_df_norm = groupBy_df(catData, 1)
-#groupBy_subCat2_df, groupBy_Cat2_df_val, groupBy_Cat2_df_norm = groupBy_df(catData, 2)
-#groupBy_subCat3_df, groupBy_Cat3_df_val, groupBy_Cat3_df_norm = groupBy_df(catData, 3)
-#groupBy_subCat4_df, groupBy_Cat4_df_val, groupBy_Cat4_df_norm = groupBy_df(catData, 4)
-#cont_table(subCat3_df)
+### Run the program the first time.
+main(rawData)
 
 
-##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### 
- ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### 
-  ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### 
+### Since I want to find a way to use probabilities and tables to see what
+    # be subsumed, I need to do at base level. For now, I'll rerun main after
+    # I replace all substrings with desired replacements.
+    # Source: https://sparkbyexamples.com/pandas/pandas-replace-substring-in-dataframe/
 
-print(Hrule, "What Intentions Exist?", hrule)
-#valCount_col(catData["abstractLabels"], 200)
+### replace "confirm" with "clarify"
+rawData = rawData.replace('confirm','clarify', regex=True)
+main(rawData)
 
-'''
-Compare Information Entropy-- a lot of these labels degenerate into one-to-one
-information that is not helpful. Is this because of the labels themselves or
-because there isn't enough data?
-
-#TODO: Annotate another set of videos after pre-registration results are
-completed
-
-# TODO: Subsume some of these labels
-'''
-
-
-def subsumeLabels(df):
-    print(hrule, "ready for subsuming\n", df, hrule)
-    '''
-    Many of these are above probability > 10% and several are at 100%
-
-    First subsume anything less than 10% with filtering into a new
-    dataframe to find the rules, then replace with a replace function.
-    '''
-    #temp_cleaned.to_csv("../data/temp_csv_folder/temp_ABC_"+dirtyCol+"_from_doNotCommit_Cleaned.csv")
-
-   # df_sparse_to_subsume = pandas.DataFrame(df)
-   # print(type(df))
-   # print(type(df_sparse_to_subsume))
-   # print(df_sparse_to_subsume.shape)
-   # print(df_sparse_to_subsume.head())
-
-
-#df = df[df.column_name != value]
-    ### Filter all rows where the normalized value is less than 1 %
-###############################################################################
-
-
-
-
-intent_probability(catData, 400)
-###############################################################################
 ###############################################################################
 ###############################################################################
