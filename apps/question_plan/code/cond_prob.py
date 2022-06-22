@@ -143,18 +143,18 @@ def cond_prob_df(df, colA, colB, HEAD, title):
     df_val = df_val.to_frame()
     #df_val = pandas.DataFrame(df_val)
 
-    df_norm = df_norm.groupby(colA)[colB].value_counts(normalize
-            = True)
-    #print(df_norm.shape, "after subsetting and deep copy and groupby\n")
+    df_norm = df_norm.groupby(colA).value_counts(normalize = True).to_frame()
+    df_norm.reset_index(inplace = True)
+    df_norm.rename(columns={ df_norm.columns[3]: "marg_prob" }, inplace = True)
+    df_norm.rename(columns={ df_norm.columns[4]: "cond_prob" }, inplace = True)
 
-    #df_norm = df_norm.to_frame()
-    df_norm = pandas.DataFrame(df_norm)
+
     #print(df_norm.shape, "after subsetting and deep copy, groupby and df\n")
 
 
 
-    print(Hrule, "\nConditional Probability of", title, "\n\n\t", colA, "and",
-            colB, "\n", df_norm, "\n\n", hrule)
+    print(Hrule, "\n\tConditional Probability of\n", title, "\n", hrule, df_norm, "\n\n", hrule)
+    print(df_norm.shape, "after subsetting and deep copy and groupby\n")
 
     return df, df_val, df_norm
 
@@ -256,7 +256,7 @@ def main(data):
     ### Subset the Data
     numData = data[["video", "obsNum", "regular", "critical", "score",
                     "StartSeconds"]]
-    catData = data[["question_verbatim", "htns", "abstractLabels",
+    catData = data[["htns", "abstractLabels",
                     "abstractLabels_v", "abstractLabels_nm", "causeLabels",
                     "questionLabels", "questionLabels_v", "questionLabels_nm",
                     "effectLabels", "qWord", "qPhrase", "auxVerb", "actionVerb"]]
