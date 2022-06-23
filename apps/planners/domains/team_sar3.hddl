@@ -1,11 +1,96 @@
 (define (domain teamSAR)
   (:types
-    human location - object
-    medic engineer transporter - human
+    human location block - object
+    rescuer victim - human
+    medic engineer transporter - rescuer
   )
 
   (:predicates
     (at ?p - human ?l - location)
-    ()
+    (holds ?p - rescuer ?v - victim)
+    (holding_vic ?p - rescuer)
+    (stabilized ?v - victim)
+    (broken ?b - block ?l - location)
+  )
+
+  (:f-predicates
+    (can_see_reg_vic ?p - rescuer)
+    (can_see_crit_vic ?p - rescuer)
+    (can_stabilize_vic ?m - medic ?v - victim)
+    (can_wake_vic ?m - medic ?t - rescuer ?v - victim)
+    (can_pickup_vic ?p - rescuer ?v - victim)
+    (can_break_block ?e - engineer ?b - block)
+  )
+
+  (:action stabilize
+    :parameters (?m - medic ?v - victim ?l - location)
+    :precondition (and
+                    (at ?m ?l)
+                  )
+    :effect (and
+              (stabilized ?v)
+              (at ?v ?l)
+            )
+  )
+
+  (:action wake_crit
+    :parameters (?m - medic ?t - rescuer ?v - victim ?l - location)
+    :precondition (and
+                    (at ?m ?l)
+                    (at ?t ?l)
+                  )
+    :effect (and
+              (awake_crit ?v ?l)
+              (at ?v ?l)
+            )
+  )
+
+  (:action move
+    :parameters (?h - rescuer ?old_l - location ?new_l - location)
+    :precondition (and
+                    (at ?h ?old_l) 
+                  )
+    :effect (and
+              (not (at ?h ?old_l))
+              (at ?h ?new_l)
+            )
+  )
+
+  (:action break_block
+    :parameters (?e - engineer ?b - block ?l - location)
+    :precondition (and
+                    (at ?e ?l)
+                  )
+    :effect (and
+              (broken ?b ?l)
+            )
+  )
+
+  (:action pickup_vic
+    :parameters (?h - rescuer ?v - victim ?l - location)
+    :precondition (and
+                    (at ?h ?l)
+                    (imply (awake_crit ?v ?l) (stabilized_vic ?v ?l))
+                    (not (holding_vic ?h))
+                  )
+    :effect (and
+              (holding_vic ?h)
+              (holds ?h ?v)
+              (not (at ?v ?l))
+            ) 
+  )
+
+  (:action put_down_vic
+    :parameters (?h - rescuer ?v - victim ?l - location)
+    :precondition (and
+                    (at ?h ?l)
+                    (holding_vic ?h)
+                    (holds ?h ?v)
+                  )
+    :effect (and
+              (not (holding_vic ?h))
+              (not (holds ?h ?v))
+              (at ?v ?l)
+            )
   )
 )
