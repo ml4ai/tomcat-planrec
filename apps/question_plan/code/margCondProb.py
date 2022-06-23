@@ -211,11 +211,15 @@ def marginal_probability(df, column, newColumn, HEAD):
 
 ###############################################################################
 
-
-def print_df(df):
-    print(hrule, df, hrule)
-
 def plot_df_fill(df, a, b, c):
+    '''
+    This function uses R's ggplot() grammar, built on matplotlib
+
+    Input: dataframe, independent variable, dependent variable, categorical var
+    Output: any visualization that uses "fill" instead of "color"
+    '''
+    #TODO: make this more functional for choice in tile, bar, col
+    #TODO: duplicate this function for color command: point, line, area
     figure = (ggplot(df,
                     aes(a, b,
                         fill = c)) +
@@ -305,11 +309,26 @@ def main(data):
 
     print(hrule)
 
-    ### Conditional Probabilities of Sparse Labels:
+    ### Conditional Probabilities of Labels:
+    ### Send dataframe with marginal probability to get conditional with
+        ### marginal in same frame.
+    condProb_q, condProb_q_norm = cond_prob_df(q_dfnf,
+            "primitiveQuestions_v", "primitiveQuestions_nm", 0, "Questin Labels that Capture Action or Intention")
+    ### Rearrange columns for easier reading:
+    #TODO: automate the rearrangement of columns like this in function
+    condProb_q_norm = condProb_q_norm[['primitiveQuestions',
+        'primitiveQuestions_v', 'primitiveQuestions_nm', 'marg_prob',
+        'cond_prob']]
+    print(hrule, condProb_q_norm)
+
+
+    ### Send dataframe with marginal probability to get conditional with
+        ### marginal in same frame.
     condProb_abs, condProb_abs_norm = cond_prob_df(abs_dfnf,
             "intentions_v", "intentions_nm", 0, "Abstract Labels that Show Intention")
-    print(hrule, "columns of condProb_abs_norm\n", condProb_abs_norm.columns, hrule)
-    print(condProb_abs_norm)
+    ### Rearrange columns
+    condProb_abs_norm = condProb_abs_norm[['intentions','intentions_v', 'intentions_nm', 'marg_prob', 'cond_prob']]
+    print(hrule, condProb_abs_norm)
 
 #TODO:
     '''
@@ -325,8 +344,8 @@ def main(data):
 
 ###################################################################
 ### Horizontal ruling for visual ease in reading output.
-hrule = ("\n" + "-"*76 + "\n")
-Hrule = ("\n" + "#"*76 + "\n")
+hrule = ("\n" + "-"*80 + "\n")
+Hrule = ("\n" + "#"*80 + "\n")
 
 ### Set number of rows to display in output:
 HEAD = 20
