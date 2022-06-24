@@ -139,7 +139,7 @@ def cond_prob_df(df, colA, colB, HEAD, title):
 
     df_norm = df_norm.groupby(colA).value_counts(normalize = True).to_frame()
     df_norm.reset_index(inplace = True)
-    df_norm.rename(columns={ df_norm.columns[3]: "marg_prob" }, inplace = True)
+    df_norm.rename(columns={ df_norm.columns[3]: "probability" }, inplace = True)
     df_norm.rename(columns={ df_norm.columns[4]: "cond_prob" }, inplace = True)
 
 
@@ -148,7 +148,7 @@ def cond_prob_df(df, colA, colB, HEAD, title):
 
 
 #    print(Hrule, "\n\tConditional Probability of\n", title, "\n", hrule, df_norm, "\n\n", hrule)
-    print(df_norm.shape, "after subsetting and deep copy and groupby\n")
+    print(df_norm.shape, "after subsetting and deep copy and groupby", hrule)
 
     return df, df_norm
 
@@ -168,7 +168,7 @@ def marginal_probability(df, column, newColumn, HEAD):
     '''
     print(Hrule)
 #    print(hrule, "start of intent_probability()", hrule)
-#    print(df.shape, "before subsetting\n")
+    print(df.shape, "before subsetting\n")
 #    print(hrule, "\nUse Abstractions to Capture Intention of Player.\n"
 #            "This label captures the question utterance at a higher level and\n"
 #            "considers the cause and effect of such a question utterance.\n")
@@ -194,7 +194,7 @@ def marginal_probability(df, column, newColumn, HEAD):
 
     ### Attempt to get POS from Abstract Labels
     dfnf = ctd.cleanLabels(dfnf, newColumn)
-#    print(hrule, dfnf, hrule)
+    print(hrule, dfnf, hrule)
 
     ### Filter subset of data into sparse and common, based on probability
     sparse = dfnf.copy(deep = True)
@@ -305,8 +305,6 @@ def main(data):
     #condProb_cat, condProb_cat_norm = cond_prob_df(catData,
     #        "abstractLabels", "questionLabels", 0, "Abstract Labels that Show Intention")
 
-
-
     print(hrule)
 
     ### Conditional Probabilities of Labels:
@@ -317,7 +315,7 @@ def main(data):
     ### Rearrange columns for easier reading:
     #TODO: automate the rearrangement of columns like this in function
     condProb_q_norm = condProb_q_norm[['primitiveQuestions',
-        'primitiveQuestions_v', 'primitiveQuestions_nm', 'marg_prob',
+        'primitiveQuestions_v', 'primitiveQuestions_nm', 'probability',
         'cond_prob']]
     print(hrule, condProb_q_norm)
 
@@ -327,14 +325,79 @@ def main(data):
     condProb_abs, condProb_abs_norm = cond_prob_df(abs_dfnf,
             "intentions_v", "intentions_nm", 0, "Abstract Labels that Show Intention")
     ### Rearrange columns
-    condProb_abs_norm = condProb_abs_norm[['intentions','intentions_v', 'intentions_nm', 'marg_prob', 'cond_prob']]
+    condProb_abs_norm = condProb_abs_norm[['intentions','intentions_v', 'intentions_nm', 'probability', 'cond_prob']]
     print(hrule, condProb_abs_norm)
 
-#TODO:
-    '''
-    21 June: subsume confirm into clarify. Do at ground level of main dataframe.
-    For now, just run the program a few times?
-    '''
+#######################################################################################################
+    ### Print marginal probabilities
+    print(hrule, "Abstract Labels Marginal Probability\n",
+            catData["abstractLabels"].value_counts(normalize = True).head(200))
+
+
+    print(hrule, "Question Labels Marginal Probability\n",
+            catData["questionLabels"].value_counts(normalize = True).head(200))
+
+    #### Print Conditional Probabilities
+    aq = catData[["abstractLabels", "questionLabels"]]
+    print(aq.head(5))
+    print(hrule, "P(a | q)\n\n",
+            aq.groupby("abstractLabels").value_counts(normalize = True).head(200))
+
+    print(hrule, "P(q | a)\n\n",
+            aq.groupby("questionLabels").value_counts(normalize = True).head(200))
+
+#######################################################################################################
+    ### Print Components in order to find Likelihoods
+    comps = catData[["abstractLabels", "abstractLabels_v", "abstractLabels_nm",
+        "questionLabels", "questionLabels_v", "questionLabels_nm"]]
+    print(comps.head(5), hrule)
+
+    print(hrule, "P(abstractLabels_v)\n",
+            hrule, comps["abstractLabels_v"].value_counts(normalize = True).head(200))
+    print(hrule, "P(abstractLabels_nm)\n",
+            hrule, comps["abstractLabels_nm"].value_counts(normalize = True).head(200))
+    print(hrule, "P(questionLabels_v)\n",
+            hrule, comps["questionLabels_v"].value_counts(normalize = True).head(200))
+    print(hrule, "P(questionLabels_nm)\n",
+            hrule, comps["questionLabels_nm"].value_counts(normalize = True).head(200))
+
+
+    #### Conditional Probabilities of Components
+    print(hrule, "P(a_v | a_nm)\n",
+            comps.groupby("abstractLabels_nm").value_counts(normalize =
+                True).head(200))
+    print(hrule, "P(a_nm | a_v)")
+    print(hrule, "P(q_v | q_nm)")
+    print(hrule, "P(q_nm | q_v)")
+    print(hrule, "P(a_v |q_v )")
+    print(hrule, "P(q_v |a_v )")
+    print(hrule, "P(a_nm |q_nm )")
+    print(hrule, "P(q_nm |a_nm )")
+
+
+#######################################################################################################
+    ### Print Probabilites of questions and questions phrases or question words
+    q = catData[["questionLabels", "questionLabels_v", "questionLabels_nm",
+        "qWord", "qPhrase", "actionVerb"]]
+    print(q.head(5))
+
+    ### Marginal
+    print(hrule,"P(qWord)\n\n", q["qWord"].value_counts(normalize =
+        True).head(200))
+    print(hrule,"P(qPhrase)\n\n", q["qPhrase"].value_counts(normalize =
+        True).head(200))
+
+
+
+
+#######################################################################################################
+
+
+    #df_norm = df_norm.groupby(colA).value_counts(normalize = True).to_frame()
+    #df_norm.reset_index(inplace = True)
+    #df_norm.rename(columns={ df_norm.columns[3]: "probability" }, inplace = True)
+    #df_norm.rename(columns={ df_norm.columns[4]: "cond_prob" }, inplace = True)
+
     return data # to rerun program from base level
 
 
