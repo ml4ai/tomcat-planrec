@@ -9,6 +9,7 @@
 #include "unification.h"
 #include "util.h"
 #include "z3++.h"
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <string>
@@ -28,34 +29,35 @@ struct KnowledgeBase {
     map<std::string, std::string> symbols;
     // predicate: predicate data_type1 data_type2
     map<std::string, vector<std::string>> predicates;
-    vector<std::string> context;
+    // The true facts updating from the message bus
+    map<std::string, vector<vector<std::string>>> facts;
+    // The operations defined by the HDDL domain representation
+    vector<std::string> domain_context;
 };
 
-void initialize_data_types(KnowledgeBase& kb,
-                           const std::string& data_type_name,
-                           vector<std::string> data_type_candidates) {
+void initialize_data_type(KnowledgeBase& kb,
+                          const std::string& data_type_name,
+                          vector<std::string> data_type_candidates) {
     if (kb.data_types.count(data_type_name) == 0) {
         kb.data_types[data_type_name] = data_type_candidates;
     }
-    //    std::cout << "Already exist." << endl;
 }
 
-void initialize_symbols(KnowledgeBase& kb,
-                        const std::string& symbol_name,
-                        std::string symbol_type) {
+void initialize_symbol(KnowledgeBase& kb,
+                       const std::string& symbol_name,
+                       std::string symbol_type) {
     if (kb.symbols.count(symbol_name) == 0) {
         kb.symbols[symbol_name] = symbol_type;
     }
-    //    std::cout << "Already exist." << endl;
 }
 
-void initialize_predicates(KnowledgeBase& kb,
-                           const std::string& predicate_name,
-                           vector<std::string> predicate_var_types) {
+void initialize_predicate(KnowledgeBase& kb,
+                          const std::string& predicate_name,
+                          vector<std::string> predicate_var_types) {
     if (kb.predicates.count(predicate_name) == 0) {
         kb.predicates[predicate_name] = predicate_var_types;
+        kb.facts[predicate_name] = {};
     }
-    //    std::cout << "Already exist." << endl;
 }
 
 std::tuple<std::string, vector<std::string>> parse_predicate(std::string pred) {
@@ -74,47 +76,8 @@ std::tuple<std::string, vector<std::string>> parse_predicate(std::string pred) {
     return {predicate, symbols};
 }
 
-void tell(KnowledgeBase& kb,
-          const std::string& lit,
-          const vector<int>& cw_key = {0}) {
-    auto lit_ = lit.substr(1, lit.length() - 2);
-    kb.context.push_back(lit_);
-
-    // add the closed world sentence
-    if (!cw_key.empty()) {
-        auto [pred, args] = parse_predicate(lit_);
-
-        std::string cw_sen;
-        std::string new_pred;
-        int var_counter = 0;
-        for (int i = 0; i < args.size(); i++) {
-            auto date_types = kb.predicates[pred];
-            if (std::find(cw_key.begin(), cw_key.end(), i) == cw_key.end()) {
-                cw_sen = "forall ((cw_var_" + to_string(var_counter) + " " +
-                         date_types[i] + ")) (=> (not (= cw_var_" +
-                         to_string(var_counter) + " " + args[i] + ")) (not (";
-                new_pred = "";
-                if (!args.empty()) {
-                    new_pred += pred + " ";
-                }
-                for (int j = 0; j < args.size(); j++) {
-                    if (i != j) {
-                        new_pred += args[j] + " ";
-                    }
-                    else {
-                        new_pred += "cw_var_" + to_string(var_counter) + " ";
-                    }
-                }
-                cw_sen += new_pred + ")))";
-                kb.context.push_back(cw_sen);
-                var_counter++;
-            }
-        }
-    }
-}
-
-std::string get_context(KnowledgeBase& kb) {
-    std::string context_string;
+std::string get_smt(KnowledgeBase& kb) {
+    std::string smt_string;
     std::string con;
     for (const auto& dt : kb.data_types) {
         con = "(declare-datatype ";
@@ -123,14 +86,14 @@ std::string get_context(KnowledgeBase& kb) {
             con += "(" + var + ") ";
         }
         con += "))";
-        context_string += con;
+        smt_string += con;
         con = "";
     }
 
     for (const auto& sym : kb.symbols) {
         con = "(declare-fun ";
         con += sym.first + "() " + sym.second + ")";
-        context_string += con;
+        smt_string += con;
         con = "";
     }
 
@@ -141,16 +104,62 @@ std::string get_context(KnowledgeBase& kb) {
             con += var + " ";
         }
         con += ") Bool)";
-        context_string += con;
+        smt_string += con;
         con = "";
     }
 
-    for (const auto& cont : kb.context) {
-        con = "(assert (" + cont + "))";
-        context_string += con;
+    for (const auto& f : kb.facts) {
+        for (const auto& arg_set : f.second) {
+            con = "(assert (" + f.first;
+            for (const auto& arg : arg_set) {
+                con += " " + arg;
+            }
+            con += "))";
+            smt_string += con;
+            con = "";
+        }
+        // add the closed world condition
+        con = "(assert (forall (";
+        for (int i = 0; i < kb.predicates[f.first].size(); i++) {
+            con += "(cw_var_" + to_string(i) + " " + kb.predicates[f.first][i] +
+                   ")";
+        }
+        con += ")";
+        if (f.second.empty()) {
+            con += "(not (" + f.first;
+            for (int i = 0; i < kb.predicates[f.first].size(); i++) {
+                con += " cw_var_" + to_string(i);
+            }
+            con += ")))))";
+            smt_string += con;
+            con = "";
+        }
+        else {
+            con += "(=> (not (or (and";
+            for (const auto& arg_set_ : f.second) {
+                for (int i = 0; i < arg_set_.size(); i++) {
+                    con += " (= cw_var_" + to_string(i);
+                    con += arg_set_[i] + ")";
+                }
+            }
+            con += ")";
+            con += "(not (" + f.first;
+            for (int i = 0; i < kb.predicates[f.first].size(); i++) {
+                con += " cw_var_" + to_string(i);
+            }
+            con += ")))))))";
+            smt_string += con;
+            con = "";
+        }
+    }
+
+    for (const auto& df : kb.domain_context) {
+        con = "(assert (" + df + "))";
+        smt_string += con;
         con = "";
     }
-    return context_string;
+
+    return smt_string;
 }
 
 map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
@@ -159,7 +168,7 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
     z3::solver s(c);
     map<std::string, vector<std::string>> res;
     auto query_ = query.substr(1, query.length() - 2);
-    auto context_string = get_context(kb);
+    auto smt_string = get_smt(kb);
     if (query_.find('?') != std::string::npos) {
         auto [pred, args] = parse_predicate(query_);
         auto date_type = kb.predicates[pred];
@@ -168,12 +177,12 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
                 // " (declare-fun r () Role)\n"
                 std::string var_string =
                     "(declare-fun " + args[i] + " () " + date_type[i] + " )";
-                context_string += var_string;
+                smt_string += var_string;
             }
         }
-        context_string += "(assert (" + query_ + "))";
+        smt_string += "(assert (" + query_ + "))";
         // search all solutions
-        s.from_string(context_string.c_str());
+        s.from_string(smt_string.c_str());
         auto result = s.check();
 
         //    model m = s.get_model();
@@ -212,14 +221,14 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
                 st += ")))";
             }
 
-            context_string += st;
-            s.from_string(context_string.c_str());
+            smt_string += st;
+            s.from_string(smt_string.c_str());
             result = s.check();
         }
     }
     else {
-        context_string += "(assert (not (" + query_ + ")))";
-        s.from_string(context_string.c_str());
+        smt_string += "(assert (not (" + query_ + ")))";
+        s.from_string(smt_string.c_str());
 
         switch (s.check()) {
         case z3::unsat:
@@ -234,6 +243,117 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
         }
     }
     return res;
+}
+
+void add_predicate(KnowledgeBase& kb,
+                   const std::string& predicate,
+                   const vector<int>& cw_key = {0}) {
+    kb.context.push_back(predicate);
+
+    // add the closed world sentence
+    if (!cw_key.empty()) {
+        auto [pred, args] = parse_predicate(predicate);
+
+        std::string cw_sen;
+        std::string new_pred;
+        int var_counter = 0;
+        for (int i = 0; i < args.size(); i++) {
+            auto date_types = kb.predicates[pred];
+            if (std::find(cw_key.begin(), cw_key.end(), i) == cw_key.end()) {
+                cw_sen = "forall ((cw_var_" + to_string(var_counter) + " " +
+                         date_types[i] + ")) (=> (not (= cw_var_" +
+                         to_string(var_counter) + " " + args[i] + ")) (not (";
+                new_pred = "";
+                if (!args.empty()) {
+                    new_pred += pred + " ";
+                }
+                for (int j = 0; j < args.size(); j++) {
+                    if (i != j) {
+                        new_pred += args[j] + " ";
+                    }
+                    else {
+                        new_pred += "cw_var_" + to_string(var_counter) + " ";
+                    }
+                }
+                cw_sen += new_pred + ")))";
+                kb.context.push_back(cw_sen);
+                var_counter++;
+            }
+        }
+    }
+}
+
+void tell(KnowledgeBase& kb, const std::string& lit, int cw_var_idx = -1) {
+    auto lit_ = lit.substr(1, lit.length() - 2);
+    if (kb.context.empty()) {
+        add_predicate(kb, lit_);
+        return;
+    }
+    // check if exists in kb
+    auto res = ask(kb, lit);
+    if (res["assertion"].at(0) == "sat") {
+        return;
+    }
+    else {
+        auto [pred, args] = parse_predicate(lit_);
+        auto query = "(" + pred;
+        for (int i = 0; i < args.size(); i++) {
+            if (find(cw_key.begin(), cw_key.end(), i) == cw_key.end()) {
+                query += " ?var_" + to_string(i);
+            }
+            else {
+                query += " " + args[i];
+            }
+        }
+        query += ")";
+        auto res_ = ask(kb, query);
+        if (res_.empty()) {
+            add_predicate(kb, lit_);
+        }
+        else {
+            for (int i = 0; i < args.size(); i++) {
+            std:
+                string tmp_pred = pred;
+                for (int j = 0; j < args.size(); j++) {
+                    tmp_pred += " " + res_[args[i]][j] + " ";
+                }
+            }
+        }
+    }
+
+    kb.context.push_back(lit_);
+
+    // add the closed world sentence
+    if (!cw_key.empty()) {
+        auto [pred, args] = parse_predicate(lit_);
+
+        std::string cw_sen;
+        std::string new_pred;
+        int var_counter = 0;
+        for (int i = 0; i < args.size(); i++) {
+            auto date_types = kb.predicates[pred];
+            if (std::find(cw_key.begin(), cw_key.end(), i) == cw_key.end()) {
+                cw_sen = "forall ((cw_var_" + to_string(var_counter) + " " +
+                         date_types[i] + ")) (=> (not (= cw_var_" +
+                         to_string(var_counter) + " " + args[i] + ")) (not (";
+                new_pred = "";
+                if (!args.empty()) {
+                    new_pred += pred + " ";
+                }
+                for (int j = 0; j < args.size(); j++) {
+                    if (i != j) {
+                        new_pred += args[j] + " ";
+                    }
+                    else {
+                        new_pred += "cw_var_" + to_string(var_counter) + " ";
+                    }
+                }
+                cw_sen += new_pred + ")))";
+                kb.context.push_back(cw_sen);
+                var_counter++;
+            }
+        }
+    }
 }
 
 // This is part of my permutation algorithm for permuting the literals to get

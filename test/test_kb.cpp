@@ -22,13 +22,14 @@ using namespace fol;
 BOOST_AUTO_TEST_CASE(test_kb) {
     KnowledgeBase kb;
 
-    initialize_data_types(kb, "Role", {"medic", "transporter", "engineer"});
-    initialize_data_types(kb, "Location", {"room1", "room2", "room3"});
-    initialize_predicates(kb, "at", {"Role", "Location"});
+    initialize_data_type(kb, "Role", {"medic", "transporter", "engineer"});
+    initialize_data_type(kb, "Location", {"room1", "room2", "room3"});
+    initialize_predicate(kb, "at", {"Role", "Location"});
     tell(kb, "(at medic room1)");
     tell(kb, "(at transporter room1)");
     tell(kb, "(at engineer room3)");
-    auto context = get_context(kb);
+//    tell(kb, "(at medic room3)");
+    auto context = get_smt(kb);
     cout << context << endl;
     auto res = ask(kb, "(at engineer room2)");
     BOOST_TEST(res["assertion"].at(0) == "unsat");
