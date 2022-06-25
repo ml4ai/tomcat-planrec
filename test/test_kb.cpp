@@ -27,13 +27,23 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     initialize_predicate(kb, "at", {"Role", "Location"});
     tell(kb, "(at medic room1)");
     tell(kb, "(at transporter room1)");
+    tell(kb, "(at engineer room1)");
+    tell(kb, "(at medic room2)");
+    tell(kb, "(at transporter room3)");
+    tell(kb, "(at medic room1)");
+    tell(kb, "(at transporter room1)");
     tell(kb, "(at engineer room3)");
-//    tell(kb, "(at medic room3)");
     auto context = get_smt(kb);
     cout << context << endl;
     auto res = ask(kb, "(at engineer room2)");
     BOOST_TEST(res["assertion"].at(0) == "unsat");
     res = ask(kb, "(at engineer room3)");
+    BOOST_TEST(res["assertion"].at(0) == "sat");
+    res = ask(kb, "(and (at medic room1) (at transporter room1))");
+    BOOST_TEST(res["assertion"].at(0) == "sat");
+    res = ask(kb, "(and (at medic room1) (at transporter room3))");
+    BOOST_TEST(res["assertion"].at(0) == "unsat");
+    res = ask(kb, "(or (at medic room1) (at transporter room3))");
     BOOST_TEST(res["assertion"].at(0) == "sat");
     res = ask(kb, "(at engineer ?location)");
     BOOST_TEST(res["?location"].at(0) == "room3");
@@ -43,8 +53,8 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     res = ask(kb, "(at ?who ?location)");
     BOOST_TEST(res["?who"].at(0) == "medic");
     BOOST_TEST(res["?location"].at(0) == "room1");
-    BOOST_TEST(res["?who"].at(1) == "engineer");
-    BOOST_TEST(res["?location"].at(1) == "room3");
-    BOOST_TEST(res["?who"].at(2) == "transporter");
-    BOOST_TEST(res["?location"].at(2) == "room1");
+    BOOST_TEST(res["?who"].at(1) == "transporter");
+    BOOST_TEST(res["?location"].at(1) == "room1");
+    BOOST_TEST(res["?who"].at(2) == "engineer");
+    BOOST_TEST(res["?location"].at(2) == "room3");
 }
