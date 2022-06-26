@@ -5,6 +5,8 @@
 #include "plan_trace.h"
 #include <istream>
 #include "cppMCTSplanrec.h"
+#include "cppMCTSpredict.h"
+#include "typedefs.h"
 #include "plangrapher.h"
 #include <boost/program_options.hpp>
 #include <chrono>
@@ -16,10 +18,7 @@ using namespace std::chrono;
 using namespace std;
 
 int main(int argc, char* argv[]) {
-  bool use_t = false; 
   int N = -1;
-  int start = 0;
-  int end = 0;
   int R = 30;
   double e = 0.4;
   double alpha = 0.05;
@@ -36,7 +35,6 @@ int main(int argc, char* argv[]) {
       ("exp_param,e",po::value<double>(),"The exploration parameter for the plan recognition algorithm (double)")
       ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CPM (default)")
       ("trace_size,N", po::value<int>(), "Sets trace size of N from beginning (int)")
-      ("trace_segment,T", po::value<std::vector<int> >()->multitoken(), "Sets trace segments size by mission times (int int). Ignored if trace_size is set.")
       ("file,f",po::value<std::string>(),"file to parse (string)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
       ("cpm_json,j",po::value<std::string>(),"json file to parse CPM (string)")
@@ -66,17 +64,6 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("trace_size")) {
       N = vm["trace_size"].as<int>();
-    } else {
-      if (vm.count("trace_segment")) {
-        const std::vector<int>& s = vm["trace_segment"].as<std::vector<int>>(); 
-        use_t = true;
-        start = s[0];
-        end = s[1];
-        if (start >= end) {
-          std::cout << "Start time must be less than end time" << std::endl; 
-          return 0;
-        }
-      }
     }
 
     if (vm.count("aux_r")) {
@@ -187,15 +174,8 @@ int main(int argc, char* argv[]) {
 
     parse_data p;
 
-    if (use_t) {
-      std::pair<int,int> T = std::make_pair(start,end);
-      p = team_sar_parser(infile,state1, domain, T);
-    }
-    else {
-      p = team_sar_parser(infile,state1, domain, N);
-    }
+    p = team_sar_parser(infile,state1, domain, N,true);
 
-    
     p.initial_state.action_tracker = p.action_tracker;
     p.initial_state.loc_tracker = p.loc_tracker;
 
@@ -205,7 +185,6 @@ int main(int argc, char* argv[]) {
       {Task("SAR", Args({{"agent3", p.initial_state.agents[2]},
                          {"agent2", p.initial_state.agents[1]},
                          {"agent1", p.initial_state.agents[0]}}),{"agent1","agent2","agent3"},{p.initial_state.agents[0],p.initial_state.agents[1],p.initial_state.agents[2]})}};
-    auto start_time = high_resolution_clock::now();
     auto pt = cppMCTSplanrec(p.team_plan,
                           p.initial_state,
                           tasks,
@@ -216,10 +195,18 @@ int main(int argc, char* argv[]) {
                           alpha,
                           2021,
                           aux_R);
-    auto stop_time = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop_time - start_time);
-    cout << "Plan Recognition Time: " << duration.count()/1000000.0 << " seconds" << endl;
-    json tree = generate_plan_trace_tree(pt.t,pt.root,true,"team_sar_pred_exp.json");
-    generate_graph_from_json(tree, "team_sar_pred_exp_graph.png");
+    auto e_node = pt.t.nodes[pt.end];
+    e_node.state.plan_rec = false;
+    for (auto a : e_node.state.agents) {
+      e_node.state.action_tracker[a] = {};
+      e_node.state.loc_tracker[a] = {};
+      //e_node.state.time[a] = time[a];
+    }
+    cppMCTSpredict(e_node.state,e_node.tasks,domain,cpm,R,e,alpha,4021,aux_R);
+    
+    std::cout << "Ground Truth:" << std::endl;
+    for (auto const &a : p.initial_state.agents) {
+      std::cout << p.gt[a].action << std::endl;
+    }
     return EXIT_SUCCESS;
 }

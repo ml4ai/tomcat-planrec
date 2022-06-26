@@ -28,3 +28,9 @@ add_executable(team_comp_sar_planrec_from_data team_comp_sar_planrec_from_data.c
 target_include_directories(team_comp_sar_planrec_from_data PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIR}
     ../../lib/cpphop)
 target_link_libraries(team_comp_sar_planrec_from_data PRIVATE ${GRAPHVIZ_LIBS} Boost::program_options nlohmann_json::nlohmann_json)
+
+# Eval testing
+add_executable(team_comp_sar_planrec_eval team_comp_sar_planrec_eval.cpp)
+target_include_directories(team_comp_sar_planrec_eval PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIR}
+    ../../lib/cpphop)
+target_link_libraries(team_comp_sar_planrec_eval PRIVATE ${GRAPHVIZ_LIBS} Boost::program_options nlohmann_json::nlohmann_json)

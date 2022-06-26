@@ -13,9 +13,10 @@ using json = nlohmann::json;
 using namespace std;
 
 int main(int argc, char* argv[]) {
+  int plan_size = -1;
   int R = 30;
   double e = 0.4;
-  double alpha = 0.5;
+  double alpha = 0.05;
   int aux_R = 10;
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
   std::string cpm_json;
@@ -24,6 +25,7 @@ int main(int argc, char* argv[]) {
     desc.add_options()
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
+      ("plan_size,s",po::value<int>(),"Number of actions to return (int), default value of -1 returns full plan")
       ("exp_param,e",po::value<double>(),"The exploration parameter for the planner (double)")
       ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CFM (default)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
@@ -42,6 +44,10 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("resource_cycles")) {
       R = vm["resource_cycles"].as<int>();
+    }
+
+    if (vm.count("plan_size")) {
+      plan_size = vm["plan_size"].as<int>();
     }
 
     if (vm.count("exp_param")) {
@@ -106,9 +112,6 @@ int main(int argc, char* argv[]) {
         state1.dist_from_change_zone[d] = di.get<int>();
     }
 
-    for (auto& mrz : g["multi_room_zones"]) {
-      state1.multi_room_zones.push_back(mrz.get<std::string>());
-    }
     for (auto& r : g["rooms"]) {
       state1.rooms.push_back(r.get<std::string>());
     }
@@ -174,7 +177,7 @@ int main(int argc, char* argv[]) {
 
     Tasks tasks = {
         {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-    auto pt = cppMCTShop(state1, tasks, domain, cpm,R,e,alpha,4021,aux_R);
+    auto pt = cppMCTShop(state1, tasks, domain, cpm,R,plan_size,e,alpha,4021,aux_R);
 
     json j_tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_comp_sar_trace_tree.json");
     generate_graph_from_json(j_tree, "team_comp_sar_tree_graph.png");

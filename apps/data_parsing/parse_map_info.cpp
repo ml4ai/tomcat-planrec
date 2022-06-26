@@ -81,10 +81,6 @@ int main(int argc, char* argv[]) {
 
   g["no_victim_zones"].push_back("sga");
 
-  g["no_victim_zones"].push_back("ew");
-
-  g["no_victim_zones"].push_back("UNKNOWN");
-
   g["multi_room_zones"].push_back("cf");
 
   g["multi_room_zones"].push_back("kit");
