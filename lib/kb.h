@@ -20,7 +20,6 @@
 using namespace std;
 using namespace fol;
 
-// base data structs of the knowledge base to be populated using tell()
 struct KnowledgeBase {
     // date_type: {candidate1, candidate2, ...}
     map<std::string, vector<std::string>> data_types;
@@ -196,15 +195,12 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
         // search all solutions
         s.from_string(smt_string.c_str());
         auto result = s.check();
-
-        //    model m = s.get_model();
         std::string st = "";
         while (result == z3::sat) {
             auto m = s.get_model();
             st = "";
             if (m.size() == 1) {
                 z3::func_decl v = m[0];
-                // this problem contains only constants
                 if (m.get_const_interp(v)) {
                     std::cout << v.name() << " = " << m.get_const_interp(v)
                               << "\n";
@@ -215,15 +211,10 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
                 }
             }
             else {
-                // (assert (not (and () () () )))
                 st += "(assert (not (and ";
                 for (unsigned i = 0; i < m.size(); i++) {
                     z3::func_decl v = m[i];
-                    // this problem contains only constants
                     if (m.get_const_interp(v)) {
-                        //                        std::cout << v.name() << " = "
-                        //                        << m.get_const_interp(v)
-                        //                                  << "\n";
                         res[v.name().str()].push_back(
                             m.get_const_interp(v).to_string());
                         st += "(= " + v.name().str() + " " +

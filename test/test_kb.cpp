@@ -50,6 +50,10 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     BOOST_TEST(res["assertion"].at(0) == "sat");
     res = ask(kb, "(and (at medic room1) (at transporter room1) (vt v2 a))");
     BOOST_TEST(res["assertion"].at(0) == "unsat");
+    res = ask(kb,
+              "(or (and (at medic room1) (at transporter room1) (vt v1 a)) "
+              "(and (at medic room1) (at transporter room1) (vt v2 a)))");
+    BOOST_TEST(res["assertion"].at(0) == "sat");
     res = ask(kb, "(at engineer ?location)");
     BOOST_TEST(res["?location"].at(0) == "room3");
     res = ask(kb, "(vt v2 ?type)");
