@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
   double e = 0.4;
   int aux_R = 10;
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
+  std::string fov_file = "fov.json";
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -66,9 +67,9 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
 
-    std::ifstream f(map_json);
+    std::ifstream m(map_json);
     json g;
-    f >> g;
+    m >> g;
   
     auto state1 = TeamSARState();
     std::string agent1 = "A1";
@@ -145,6 +146,20 @@ int main(int argc, char* argv[]) {
 
     state1.c_max = 5;
     state1.r_max = 50;
+
+    std::ifstream f(fov_file);
+    json j_fov;
+    f >> j_fov;
+    state1.fov_tracker = {};
+    for (auto& element : j_fov) {
+      std::unordered_map<std::string,std::unordered_map<std::string,int>> entry = {};
+      for (auto& [k1,v1] : element.items()) {
+        for (auto& [k2,v2] : v1.items()) {
+          entry[k1][k2] = v2.get<int>();
+        }
+      }
+      state1.fov_tracker.push_back(entry);
+    }
 
     auto domain = TeamSARDomain();
 
