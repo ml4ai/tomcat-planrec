@@ -28,7 +28,6 @@ json_node gptt(Tree<State,Selector>& t, int v) {
   }
 
   j["task"] = task2string(t[v].tasks.back());
-  j["likelihood"] = t[v].likelihood;
   j["pre-state"] = t[v].state.to_json();
   
   int w = t[v].successors.back();
@@ -126,7 +125,6 @@ json_node gptt(pTree<State>& t, int v) {
   }
 
   j["task"] = task2string(t.nodes[v].tasks.back());
-  j["likelihood"] = t.nodes[v].likelihood;
   j["pre-state"] = t.nodes[v].state.to_json();
   
   int w = t.nodes[v].successors.back();
@@ -224,7 +222,6 @@ json_node gptt(prTree<State>& t, int v) {
   }
 
   j["task"] = task2string(t.nodes[v].tasks.back());
-  j["likelihood"] = t.nodes[v].likelihood;
   j["pre-state"] = t.nodes[v].state.to_json();
   
   int w = t.nodes[v].successors.back();
