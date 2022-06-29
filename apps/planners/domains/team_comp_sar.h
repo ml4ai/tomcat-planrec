@@ -4028,6 +4028,7 @@ class TeamSARState {
     bool plan_rec = false;
     int seed = 100;
 
+
     nlohmann::json to_json() {
       return nlohmann::json{{"agents", this->agents},
                {"zones",this->zones},
@@ -4275,6 +4276,11 @@ class TeamSARDomain {
                           {choose_Medical_Specialist,
                            choose_Hazardous_Material_Specialist,
                            choose_Search_Specialist}}});
+
+    //score function
+    int score(TeamSARState state) {
+      return state.r_triage_total*10 + state.c_triage_total*50; 
+    }
 
     TeamSARDomain() {
       std::cout << "Operators: ";
