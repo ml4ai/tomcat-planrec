@@ -16,10 +16,8 @@ int main(int argc, char* argv[]) {
   int plan_size = -1;
   int R = 30;
   double e = 0.4;
-  double alpha = 0.05;
   int aux_R = 10;
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
-  std::string cpm_json;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -27,9 +25,7 @@ int main(int argc, char* argv[]) {
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
       ("plan_size,s",po::value<int>(),"Number of actions to return (int), default value of -1 returns full plan")
       ("exp_param,e",po::value<double>(),"The exploration parameter for the planner (double)")
-      ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CFM (default)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
-      ("cpm_json,j",po::value<std::string>(),"json file to parse CPM (string)")
       ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
     ;
 
@@ -54,16 +50,8 @@ int main(int argc, char* argv[]) {
       e = vm["exp_param"].as<double>();
     }
 
-    if (vm.count("alpha")) {
-      alpha = vm["alpha"].as<double>();
-    }
-
     if (vm.count("aux_r")) {
       aux_R = vm["aux_r"].as<int>();
-    }
-
-    if (vm.count("cpm_json")) {
-      cpm_json = vm["cpm_json"].as<std::string>();
     }
 
     if (vm.count("map_json")) {
@@ -159,26 +147,10 @@ int main(int argc, char* argv[]) {
     state1.r_max = 50;
 
     auto domain = TeamSARDomain();
-    
-    CPM cpm = {};
-
-    if (cpm_json != "") {
-      std::ifstream i(cpm_json); 
-      json j;
-      i >> j;
-      for (auto& [k1, v1] : j.items()) {
-        for (auto& [k2,v2] : v1.items()) {
-          for (auto& [k3, v3] : v2.items()) {
-            cpm[k1][k2][k3] = v3;
-          }
-        }
-      }
-    }
 
     Tasks tasks = {
         {Task("SAR", Args({{"agent3", agent3},{"agent2", agent2},{"agent1",agent1}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
-    auto pt = cppMCTShop(state1, tasks, domain, cpm,R,plan_size,e,alpha,4021,aux_R);
-
+    auto pt = cppMCTShop(state1, tasks, domain, R, plan_size, e, 4021, aux_R);
     json j_tree = generate_plan_trace_tree(pt.first,pt.second,true,"team_comp_sar_trace_tree.json");
     generate_graph_from_json(j_tree, "team_comp_sar_tree_graph.png");
     generate_plan_trace(pt.first,pt.second,true,"team_comp_sar_trace.json");
