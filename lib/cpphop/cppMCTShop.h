@@ -293,6 +293,9 @@ cseek_planMCTS(pTree<State>& t,
   std::mt19937 gen(seed);
   std::negative_binomial_distribution<int> nbd(50,0.75);
   while (!t.nodes[v].tasks.empty()) {
+    for (auto const &a: t.nodes[v].state.agents) {
+      std::cout << t.nodes[v].state.time[a] << std::endl;
+    }
     int aux = aux_R;
     int hzn = nbd(gen);
     for (int i = 0; i < R; i++) {
