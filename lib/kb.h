@@ -21,7 +21,7 @@ using namespace std;
 using namespace fol;
 
 struct KnowledgeBase {
-    // date_type: {candidate1, candidate2, ...}
+    // data_type: {candidate1, candidate2, ...}
     map<std::string, vector<std::string>> data_types;
     // symbol: data_type
     map<std::string, std::string> symbols;
@@ -182,12 +182,12 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
     auto smt_string = get_smt(kb);
     if (query_.find('?') != std::string::npos) {
         auto [pred, args] = parse_predicate(query_);
-        auto date_type = kb.predicates[pred];
+        auto data_type = kb.predicates[pred];
         for (int i = 0; i < args.size(); i++) {
             if (args[i].find('?') != std::string::npos) {
                 // " (declare-fun r () Role)\n"
                 std::string var_string =
-                    "(declare-fun " + args[i] + " () " + date_type[i] + " )";
+                    "(declare-fun " + args[i] + " () " + data_type[i] + " )";
                 smt_string += var_string;
             }
         }
@@ -202,8 +202,9 @@ map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
             if (m.size() == 1) {
                 z3::func_decl v = m[0];
                 if (m.get_const_interp(v)) {
-                    std::cout << v.name() << " = " << m.get_const_interp(v)
-                              << "\n";
+                    //                    std::cout << v.name() << " = " <<
+                    //                    m.get_const_interp(v)
+                    //                              << "\n";
                     res[v.name().str()].push_back(
                         m.get_const_interp(v).to_string());
                     st += "(assert (not (= " + v.name().str() + " " +
@@ -266,7 +267,8 @@ bool is_predicate(KnowledgeBase& kb, std::string str) {
 
 void tell(KnowledgeBase& kb,
           const std::string& knowledge,
-          int cw_var_idx = -1) {
+          int cw_var_idx = -1,
+          bool unique = true) {
     auto knowledge_ = knowledge.substr(1, knowledge.length() - 2);
     // check if it exists in kb
     auto res = ask(kb, knowledge);
@@ -278,38 +280,43 @@ void tell(KnowledgeBase& kb,
             kb.domain_context.insert(knowledge);
         }
         else {
-            auto [pred, args] = parse_predicate(knowledge_);
-            if (cw_var_idx == -1) {
-                cw_var_idx = args.size() - 1;
-            }
-            auto query = "(" + pred;
-            for (int i = 0; i < args.size(); i++) {
-                if (i != cw_var_idx) {
-                    query += " " + args[i];
+            if (unique) {
+                auto [pred, args] = parse_predicate(knowledge_);
+                if (cw_var_idx == -1) {
+                    cw_var_idx = args.size() - 1;
+                }
+                auto query = "(" + pred;
+                for (int i = 0; i < args.size(); i++) {
+                    if (i != cw_var_idx) {
+                        query += " " + args[i];
+                    }
+                    else {
+                        query += " ?var";
+                    }
+                }
+                query += ")";
+                auto res_ = ask(kb, query);
+                if (res_.empty()) {
+                    add_fact(kb, knowledge_);
                 }
                 else {
-                    query += " ?var";
+                    for (const auto& r : res_["?var"]) {
+                        vector<std::string> removed_set{};
+                        for (int i = 0; i < args.size(); i++) {
+                            if (i != cw_var_idx) {
+                                removed_set.push_back(args[i]);
+                            }
+                            else {
+                                removed_set.push_back(r);
+                            }
+                        }
+                        kb.facts[pred].erase(removed_set);
+                    }
+                    kb.facts[pred].insert(args);
                 }
-            }
-            query += ")";
-            auto res_ = ask(kb, query);
-            if (res_.empty()) {
-                add_fact(kb, knowledge_);
             }
             else {
-                for (const auto& r : res_["?var"]) {
-                    vector<std::string> removed_set{};
-                    for (int i = 0; i < args.size(); i++) {
-                        if (i != cw_var_idx) {
-                            removed_set.push_back(args[i]);
-                        }
-                        else {
-                            removed_set.push_back(r);
-                        }
-                    }
-                    kb.facts[pred].erase(removed_set);
-                }
-                kb.facts[pred].insert(args);
+                add_fact(kb, knowledge_);
             }
         }
     }
