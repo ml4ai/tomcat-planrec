@@ -1,7 +1,5 @@
 #define BOOST_TEST_MODULE TestKB
 
-#include "fol/Constant.h"
-#include "fol/Variable.h"
 #include "kb.h"
 #include <boost/test/included/unit_test.hpp>
 
