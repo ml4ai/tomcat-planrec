@@ -142,28 +142,24 @@ string get_smt(KnowledgeBase& kb) {
     return smt_string;
 }
 
-map<string, vector<string>> ask(KnowledgeBase& kb, const string& query) {
+bool ask(KnowledgeBase& kb, const string& query) {
     z3::context c;
     z3::solver s(c);
     map<string, vector<string>> res;
     auto query_ = query.substr(1, query.length() - 2);
     auto smt_string = get_smt(kb);
-    // Check if a question mark exists in the query string
     smt_string += "(assert (not (" + query_ + ")))";
     s.from_string(smt_string.c_str());
 
-    switch (s.check()) {
-    case z3::unsat:
-        res["assertion"] = {"sat"};
-        return res;
-    case z3::sat:
-        res["assertion"] = {"unsat"};
-        return res;
-    case z3::unknown:
-        res["assertion"] = {"unknown"};
-        return res;
-    }
-    return res;
+    //switch (s.check()) {
+        //case z3::unsat:
+            //return "sat";
+        //case z3::sat:
+            //return "unsat";
+        //case z3::unknown:
+            //return "unknown";
+    return (s.check() == z3::unsat);
+    //return (s.check() == z3::unsat)?true:false;
 }
 
 map<string, vector<string>> ask_vars(KnowledgeBase& kb, const string& query) {
@@ -245,8 +241,7 @@ void tell(KnowledgeBase& kb,
           bool unique) {
     auto knowledge_ = knowledge.substr(1, knowledge.length() - 2);
     // Check if it exists in kb
-    auto res = ask(kb, knowledge);
-    if (res["assertion"].at(0) == "sat") {
+    if (ask(kb, knowledge)) {
         return;
     }
     else {

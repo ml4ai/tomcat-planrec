@@ -39,8 +39,7 @@ std::tuple<std::string, std::vector<std::string>> parse_predicate(std::string pr
 
 std::string get_smt(KnowledgeBase& kb);
 
-std::map<std::string, std::vector<std::string>> ask(KnowledgeBase& kb,
-                                          const std::string& query);
+bool ask(KnowledgeBase& kb, const std::string& query);
 
 std::map<std::string, std::vector<std::string>> ask_vars(KnowledgeBase& kb,
                                           const std::string& query);

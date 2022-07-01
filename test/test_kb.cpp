@@ -34,25 +34,17 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     auto context = get_smt(kb);
     cout << "SMT string: " << endl;
     cout << context << endl;
-    auto res = ask(kb, "(at engineer room2)");
-    BOOST_TEST(res["assertion"].at(0) == "unsat");
-    res = ask(kb, "(at engineer room3)");
-    BOOST_TEST(res["assertion"].at(0) == "sat");
-    res = ask(kb, "(and (at medic room1) (at transporter room1))");
-    BOOST_TEST(res["assertion"].at(0) == "sat");
-    res = ask(kb, "(and (at medic room1) (at transporter room3))");
-    BOOST_TEST(res["assertion"].at(0) == "unsat");
-    res = ask(kb, "(or (at medic room1) (at transporter room3))");
-    BOOST_TEST(res["assertion"].at(0) == "sat");
-    res = ask(kb, "(and (at medic room1) (at transporter room1) (vt v1 a))");
-    BOOST_TEST(res["assertion"].at(0) == "sat");
-    res = ask(kb, "(and (at medic room1) (at transporter room1) (vt v2 a))");
-    BOOST_TEST(res["assertion"].at(0) == "unsat");
-    res = ask(kb,
+    BOOST_TEST(!ask(kb, "(at engineer room2)"));
+    BOOST_TEST(ask(kb, "(at engineer room3)"));
+    BOOST_TEST(ask(kb, "(and (at medic room1) (at transporter room1))"));
+    BOOST_TEST(!ask(kb, "(and (at medic room1) (at transporter room3))"));
+    BOOST_TEST(ask(kb, "(or (at medic room1) (at transporter room3))"));
+    BOOST_TEST(ask(kb, "(and (at medic room1) (at transporter room1) (vt v1 a))"));
+    BOOST_TEST(!ask(kb, "(and (at medic room1) (at transporter room1) (vt v2 a))"));
+    BOOST_TEST(ask(kb,
               "(or (and (at medic room1) (at transporter room1) (vt v1 a)) "
-              "(and (at medic room1) (at transporter room1) (vt v2 a)))");
-    BOOST_TEST(res["assertion"].at(0) == "sat");
-    res = ask_vars(kb, "(at engineer ?location)");
+              "(and (at medic room1) (at transporter room1) (vt v2 a)))"));
+    auto res = ask_vars(kb, "(at engineer ?location)");
     BOOST_TEST(res["?location"].at(0) == "room3");
     res = ask_vars(kb, "(vt v2 ?type)");
     BOOST_TEST(res["?type"].at(0) == "c");
