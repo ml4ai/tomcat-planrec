@@ -1,49 +1,51 @@
 #include "kb.h"
 
+using namespace std;
+
 void initialize_data_type(KnowledgeBase& kb,
-                          const std::string& data_type_name,
-                          std::vector<std::string> data_type_candidates) {
+                          const string& data_type_name,
+                          vector<string> data_type_candidates) {
     if (kb.data_types.count(data_type_name) == 0) {
         kb.data_types[data_type_name] = data_type_candidates;
     }
 }
 
 void initialize_symbol(KnowledgeBase& kb,
-                       const std::string& symbol_name,
-                       std::string symbol_type) {
+                       const string& symbol_name,
+                       string symbol_type) {
     if (kb.symbols.count(symbol_name) == 0) {
         kb.symbols[symbol_name] = symbol_type;
     }
 }
 
 void initialize_predicate(KnowledgeBase& kb,
-                          const std::string& predicate_name,
-                          std::vector<std::string> predicate_var_types) {
+                          const string& predicate_name,
+                          vector<string> predicate_var_types) {
     if (kb.predicates.count(predicate_name) == 0) {
         kb.predicates[predicate_name] = predicate_var_types;
         kb.facts[predicate_name] = {};
     }
 }
 
-std::tuple<std::string, std::vector<std::string>> parse_predicate(std::string pred) {
-    std::vector<std::string> symbols{};
+tuple<string, vector<string>> parse_predicate(string pred) {
+    vector<string> symbols{};
     size_t pos = 0;
-    std::string space_delimiter = " ";
-    while ((pos = pred.find(space_delimiter)) != std::string::npos) {
+    string space_delimiter = " ";
+    while ((pos = pred.find(space_delimiter)) != string::npos) {
         symbols.push_back(pred.substr(0, pos));
         pred.erase(0, pos + space_delimiter.length());
     }
     if (!pred.empty()) {
         symbols.push_back(pred);
     }
-    std::string predicate = symbols.at(0);
+    string predicate = symbols.at(0);
     symbols.erase(symbols.begin());
     return {predicate, symbols};
 }
 
-std::string get_smt(KnowledgeBase& kb) {
-    std::string smt_string;
-    std::string con;
+string get_smt(KnowledgeBase& kb) {
+    string smt_string;
+    string con;
     for (const auto& dt : kb.data_types) {
         con = "(declare-datatype ";
         con += dt.first + " (";
@@ -86,14 +88,14 @@ std::string get_smt(KnowledgeBase& kb) {
         // add the closed world condition
         con = "(assert (forall (";
         for (int i = 0; i < kb.predicates[f.first].size(); i++) {
-            con += "(cw_var_" + std::to_string(i) + " " + kb.predicates[f.first][i] +
+            con += "(cw_var_" + to_string(i) + " " + kb.predicates[f.first][i] +
                    ")";
         }
         con += ")";
         if (f.second.empty()) {
             con += "(not (" + f.first;
             for (int i = 0; i < kb.predicates[f.first].size(); i++) {
-                con += " cw_var_" + std::to_string(i);
+                con += " cw_var_" + to_string(i);
             }
             con += "))))";
             smt_string += con;
@@ -109,7 +111,7 @@ std::string get_smt(KnowledgeBase& kb) {
             for (const auto& arg_set_ : f.second) {
                 con += " (and";
                 for (int i = 0; i < arg_set_.size(); i++) {
-                    con += " (= cw_var_" + std::to_string(i);
+                    con += " (= cw_var_" + to_string(i);
                     con += " " + arg_set_[i] + ")";
                 }
                 con += ")";
@@ -123,7 +125,7 @@ std::string get_smt(KnowledgeBase& kb) {
 
             con += " (not (" + f.first;
             for (int i = 0; i < kb.predicates[f.first].size(); i++) {
-                con += " cw_var_" + std::to_string(i);
+                con += " cw_var_" + to_string(i);
             }
             con += ")))))";
             smt_string += con;
@@ -140,20 +142,19 @@ std::string get_smt(KnowledgeBase& kb) {
     return smt_string;
 }
 
-std::map<std::string, std::vector<std::string>> ask(KnowledgeBase& kb,
-                                          const std::string& query) {
+map<string, vector<string>> ask(KnowledgeBase& kb, const string& query) {
     z3::context c;
     z3::solver s(c);
-    std::map<std::string, std::vector<std::string>> res;
+    map<string, vector<string>> res;
     auto query_ = query.substr(1, query.length() - 2);
     auto smt_string = get_smt(kb);
-    if (query_.find('?') != std::string::npos) {
+    if (query_.find('?') != string::npos) {
         auto [pred, args] = parse_predicate(query_);
         auto data_type = kb.predicates[pred];
         for (int i = 0; i < args.size(); i++) {
-            if (args[i].find('?') != std::string::npos) {
+            if (args[i].find('?') != string::npos) {
                 // " (declare-fun r () Role)\n"
-                std::string var_string =
+                string var_string =
                     "(declare-fun " + args[i] + " () " + data_type[i] + " )";
                 smt_string += var_string;
             }
@@ -162,14 +163,14 @@ std::map<std::string, std::vector<std::string>> ask(KnowledgeBase& kb,
         // search all solutions
         s.from_string(smt_string.c_str());
         auto result = s.check();
-        std::string st = "";
+        string st = "";
         while (result == z3::sat) {
             auto m = s.get_model();
             st = "";
             if (m.size() == 1) {
                 z3::func_decl v = m[0];
                 if (m.get_const_interp(v)) {
-                    //                    std::cout << v.name() << " = " <<
+                    //                    cout << v.name() << " = " <<
                     //                    m.get_const_interp(v)
                     //                              << "\n";
                     res[v.name().str()].push_back(
@@ -216,12 +217,12 @@ std::map<std::string, std::vector<std::string>> ask(KnowledgeBase& kb,
     return res;
 }
 
-void add_fact(KnowledgeBase& kb, const std::string& predicate) {
+void add_fact(KnowledgeBase& kb, const string& predicate) {
     auto [pred, args] = parse_predicate(predicate);
     kb.facts[pred].insert(args);
 }
 
-bool is_predicate(KnowledgeBase& kb, std::string str) {
+bool is_predicate(KnowledgeBase& kb, string str) {
     auto [pred, args] = parse_predicate(str);
     if (kb.predicates.count(pred) == 0) {
         return false;
@@ -233,7 +234,7 @@ bool is_predicate(KnowledgeBase& kb, std::string str) {
 }
 
 void tell(KnowledgeBase& kb,
-          const std::string& knowledge,
+          const string& knowledge,
           int cw_var_idx,
           bool unique) {
     auto knowledge_ = knowledge.substr(1, knowledge.length() - 2);
@@ -268,7 +269,7 @@ void tell(KnowledgeBase& kb,
                 }
                 else {
                     for (const auto& r : res_["?var"]) {
-                        std::vector<std::string> removed_set{};
+                        vector<string> removed_set{};
                         for (int i = 0; i < args.size(); i++) {
                             if (i != cw_var_idx) {
                                 removed_set.push_back(args[i]);
