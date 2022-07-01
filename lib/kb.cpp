@@ -224,71 +224,53 @@ map<string, vector<string>> ask_vars(KnowledgeBase& kb, const string& query) {
     map<string, vector<string>> res;
     auto query_ = query.substr(1, query.length() - 2);
     auto smt_string = get_smt(kb);
-    if (query_.find('?') != string::npos) {
-        auto [pred, args] = parse_predicate(query_);
-        auto data_type = kb.predicates[pred];
-        for (int i = 0; i < args.size(); i++) {
-            if (args[i].find('?') != string::npos) {
-                // " (declare-fun r () Role)\n"
-                string var_string =
-                    "(declare-fun " + args[i] + " () " + data_type[i] + " )";
-                smt_string += var_string;
-            }
-        }
-        smt_string += "(assert (" + query_ + "))";
-        // search all solutions
-        s.from_string(smt_string.c_str());
-        auto result = s.check();
-        string st = "";
-        while (result == z3::sat) {
-            auto m = s.get_model();
-            st = "";
-            if (m.size() == 1) {
-                z3::func_decl v = m[0];
-                if (m.get_const_interp(v)) {
-                    //                    cout << v.name() << " = " <<
-                    //                    m.get_const_interp(v)
-                    //                              << "\n";
-                    res[v.name().str()].push_back(
-                        m.get_const_interp(v).to_string());
-                    st += "(assert (not (= " + v.name().str() + " " +
-                          m.get_const_interp(v).to_string() + ")))";
-                }
-            }
-            else {
-                st += "(assert (not (and ";
-                for (unsigned i = 0; i < m.size(); i++) {
-                    z3::func_decl v = m[i];
-                    if (m.get_const_interp(v)) {
-                        res[v.name().str()].push_back(
-                            m.get_const_interp(v).to_string());
-                        st += "(= " + v.name().str() + " " +
-                              m.get_const_interp(v).to_string() + ") ";
-                    }
-                }
-                st += ")))";
-            }
-
-            smt_string += st;
-            s.from_string(smt_string.c_str());
-            result = s.check();
+    auto [pred, args] = parse_predicate(query_);
+    auto data_type = kb.predicates[pred];
+    for (int i = 0; i < args.size(); i++) {
+        if (args[i].find('?') != string::npos) {
+            // " (declare-fun r () Role)\n"
+            string var_string =
+                "(declare-fun " + args[i] + " () " + data_type[i] + " )";
+            smt_string += var_string;
         }
     }
-    else {
-        smt_string += "(assert (not (" + query_ + ")))";
-        s.from_string(smt_string.c_str());
-
-        switch (s.check()) {
-        case z3::unsat:
-            res["assertion"] = {"sat"};
-            return res;
-        case z3::sat:
-            res["assertion"] = {"unsat"};
-            return res;
-        case z3::unknown:
-            res["assertion"] = {"unknown"};
-            return res;
+    smt_string += "(assert (" + query_ + "))";
+    // search all solutions
+    s.from_string(smt_string.c_str());
+    auto result = s.check();
+    string st = "";
+    while (result == z3::sat) {
+        auto m = s.get_model();
+        st = "";
+        if (m.size() == 1) {
+            z3::func_decl v = m[0];
+            if (m.get_const_interp(v)) {
+                //                    cout << v.name() << " = " <<
+                //                    m.get_const_interp(v)
+                //                              << "\n";
+                res[v.name().str()].push_back(
+                    m.get_const_interp(v).to_string());
+                st += "(assert (not (= " + v.name().str() + " " +
+                      m.get_const_interp(v).to_string() + ")))";
+            }
         }
+        else {
+            st += "(assert (not (and ";
+            for (unsigned i = 0; i < m.size(); i++) {
+                z3::func_decl v = m[i];
+                if (m.get_const_interp(v)) {
+                    res[v.name().str()].push_back(
+                        m.get_const_interp(v).to_string());
+                    st += "(= " + v.name().str() + " " +
+                          m.get_const_interp(v).to_string() + ") ";
+                }
+            }
+            st += ")))";
+        }
+
+        smt_string += st;
+        s.from_string(smt_string.c_str());
+        result = s.check();
     }
     return res;
 }
