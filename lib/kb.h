@@ -17,25 +17,24 @@
 #include <variant>
 #include <vector>
 
-using namespace std;
 using namespace fol;
 
 struct KnowledgeBase {
     // data_type: {candidate1, candidate2, ...}
-    map<std::string, vector<std::string>> data_types;
+    std::map<std::string, std::vector<std::string>> data_types;
     // symbol: data_type
-    map<std::string, std::string> symbols;
+    std::map<std::string, std::string> symbols;
     // predicate: predicate data_type1 data_type2
-    map<std::string, vector<std::string>> predicates;
+    std::map<std::string, std::vector<std::string>> predicates;
     // The true facts updating from the message bus
-    map<std::string, set<vector<std::string>>> facts;
+    std::map<std::string, std::set<std::vector<std::string>>> facts;
     // The operations defined by the HDDL domain representation
-    set<std::string> domain_context;
+    std::set<std::string> domain_context;
 };
 
 void initialize_data_type(KnowledgeBase& kb,
                           const std::string& data_type_name,
-                          vector<std::string> data_type_candidates) {
+                          std::vector<std::string> data_type_candidates) {
     if (kb.data_types.count(data_type_name) == 0) {
         kb.data_types[data_type_name] = data_type_candidates;
     }
@@ -51,15 +50,15 @@ void initialize_symbol(KnowledgeBase& kb,
 
 void initialize_predicate(KnowledgeBase& kb,
                           const std::string& predicate_name,
-                          vector<std::string> predicate_var_types) {
+                          std::vector<std::string> predicate_var_types) {
     if (kb.predicates.count(predicate_name) == 0) {
         kb.predicates[predicate_name] = predicate_var_types;
         kb.facts[predicate_name] = {};
     }
 }
 
-std::tuple<std::string, vector<std::string>> parse_predicate(std::string pred) {
-    vector<std::string> symbols{};
+std::tuple<std::string, std::vector<std::string>> parse_predicate(std::string pred) {
+    std::vector<std::string> symbols{};
     size_t pos = 0;
     std::string space_delimiter = " ";
     while ((pos = pred.find(space_delimiter)) != string::npos) {
@@ -173,11 +172,11 @@ std::string get_smt(KnowledgeBase& kb) {
     return smt_string;
 }
 
-map<std::string, vector<std::string>> ask(KnowledgeBase& kb,
+std::map<std::string, std::vector<std::string>> ask(KnowledgeBase& kb,
                                           const std::string& query) {
     z3::context c;
     z3::solver s(c);
-    map<std::string, vector<std::string>> res;
+    std::map<std::string, std::vector<std::string>> res;
     auto query_ = query.substr(1, query.length() - 2);
     auto smt_string = get_smt(kb);
     if (query_.find('?') != std::string::npos) {
@@ -301,7 +300,7 @@ void tell(KnowledgeBase& kb,
                 }
                 else {
                     for (const auto& r : res_["?var"]) {
-                        vector<std::string> removed_set{};
+                        std::vector<std::string> removed_set{};
                         for (int i = 0; i < args.size(); i++) {
                             if (i != cw_var_idx) {
                                 removed_set.push_back(args[i]);
