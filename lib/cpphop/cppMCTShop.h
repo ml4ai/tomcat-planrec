@@ -48,16 +48,6 @@ struct pTree {
     }
     return;
   }
-
-  void delete_nodes(int root_id) {
-    if (!nodes[root_id].successors.empty()) {
-      for (auto const &x : nodes[root_id].successors) {
-        delete_nodes(x);
-      }
-    }
-    delete_node(root_id);
-    return;
-  }
 };
 
 template <class State>
@@ -283,19 +273,16 @@ cseek_planMCTS(pTree<State>& t,
                  int seed = 4021,
                  int aux_R = 10) {
 
-  pTree<State> m;
-  pNode<State> n_node;
-  n_node.state = t.nodes[v].state;
-  n_node.tasks = t.nodes[v].tasks;
-  n_node.depth = t.nodes[v].depth;
-  n_node.cplan = t.nodes[v].cplan;
-  int w = m.add_node(n_node);
   std::mt19937 gen(seed);
   std::negative_binomial_distribution<int> nbd(50,0.75);
   while (!t.nodes[v].tasks.empty()) {
-    for (auto const &a: t.nodes[v].state.agents) {
-      std::cout << t.nodes[v].state.time[a] << std::endl;
-    }
+    pTree<State> m;
+    pNode<State> n_node;
+    n_node.state = t.nodes[v].state;
+    n_node.tasks = t.nodes[v].tasks;
+    n_node.depth = t.nodes[v].depth;
+    n_node.cplan = t.nodes[v].cplan;
+    int w = m.add_node(n_node);
     int aux = aux_R;
     int hzn = nbd(gen);
     for (int i = 0; i < R; i++) {
@@ -348,14 +335,6 @@ cseek_planMCTS(pTree<State>& t,
         }
     }
 
-    for (auto const &s : m.nodes[w].successors) {
-      if (s != arg_max) {
-        m.delete_nodes(s);
-      }
-    }
-    m.delete_node(w);
-    m.nodes[arg_max].pred = -1;
-
     pNode<State> k;
     k.state = m.nodes[arg_max].state;
     k.tasks = m.nodes[arg_max].tasks;
@@ -372,10 +351,7 @@ cseek_planMCTS(pTree<State>& t,
       
     bool plan_break = false;
     while (m.nodes[arg_max].successors.size() == 1) {
-      int new_arg_max = m.nodes[arg_max].successors.front();
-      m.delete_node(arg_max);
-      m.nodes[new_arg_max].pred = -1;
-      arg_max = new_arg_max;
+      arg_max = m.nodes[arg_max].successors.front();
 
       pNode<State> j;
       j.state = m.nodes[arg_max].state;
@@ -396,7 +372,6 @@ cseek_planMCTS(pTree<State>& t,
     if (plan_break) {
       break;
     }
-    w = arg_max;
     seed++;
   }
   std::cout << "Plan found at depth " << t.nodes[v].depth;
