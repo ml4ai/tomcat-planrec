@@ -52,19 +52,19 @@ BOOST_AUTO_TEST_CASE(test_kb) {
               "(or (and (at medic room1) (at transporter room1) (vt v1 a)) "
               "(and (at medic room1) (at transporter room1) (vt v2 a)))");
     BOOST_TEST(res["assertion"].at(0) == "sat");
-    res = ask(kb, "(at engineer ?location)");
+    res = ask_vars(kb, "(at engineer ?location)");
     BOOST_TEST(res["?location"].at(0) == "room3");
-    res = ask(kb, "(vt v2 ?type)");
+    res = ask_vars(kb, "(vt v2 ?type)");
     BOOST_TEST(res["?type"].at(0) == "c");
-    res = ask(kb, "(vt v2 ?type)");
+    res = ask_vars(kb, "(vt v2 ?type)");
     BOOST_TEST(res["?type"].at(0) != "b");
-    res = ask(kb, "(vt ?vic a)");
+    res = ask_vars(kb, "(vt ?vic a)");
     BOOST_TEST(res["?vic"].at(0) == "v1");
     BOOST_TEST(res["?vic"].at(1) == "v3");
-    res = ask(kb, "(at ?who room1)");
+    res = ask_vars(kb, "(at ?who room1)");
     BOOST_TEST(res["?who"].at(0) == "medic");
     BOOST_TEST(res["?who"].at(1) == "transporter");
-    res = ask(kb, "(at ?who ?location)");
+    res = ask_vars(kb, "(at ?who ?location)");
     BOOST_TEST(res["?who"].at(0) == "medic");
     BOOST_TEST(res["?location"].at(0) == "room1");
     BOOST_TEST(res["?who"].at(1) == "transporter");

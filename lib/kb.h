@@ -42,6 +42,10 @@ std::string get_smt(KnowledgeBase& kb);
 std::map<std::string, std::vector<std::string>> ask(KnowledgeBase& kb,
                                           const std::string& query);
 
+std::map<std::string, std::vector<std::string>> ask_vars(KnowledgeBase& kb,
+                                          const std::string& query);
+
+
 void add_fact(KnowledgeBase& kb, const std::string& predicate);
 
 bool is_predicate(KnowledgeBase& kb, std::string str);
