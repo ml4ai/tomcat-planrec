@@ -155,7 +155,7 @@ def alphabetizeObjects(column):
              removes old column and inserts new column automatically.
     '''
     def getLabels(myLabel):
-#        print("from getLabels():", myLabel)
+#        print(hrule, "from getLabels():", myLabel)
 
         def getVerb(label):
 #            print("from getVerb()", label)
@@ -169,6 +169,7 @@ def alphabetizeObjects(column):
                     return verb, label
 
         def getNoun(label):
+#            print("from getNoun()", label)
             # remove capital letter for noun:
             noun = label[0].lower()
             label = label.replace(label[0], "", 1)
@@ -203,7 +204,7 @@ def alphabetizeObjects(column):
 
         def abcOrder(myV, myN, myM):
             abcLabel = ""
-#            print(myV, myN, myM)
+            #print(myV, myN, myM)
             if myM=="":
                 first = myN[0].upper()
 #                print(first)
@@ -440,12 +441,13 @@ def main(filename):
     myData = cleanLabels(myData, "effectLabel")
     myData = cleanLabels(myData, "questionLabel")
     HSR = pandas.DataFrame(myData)
-    HSR.to_csv("../data/doNotCommit_HSR_readyForUse.csv")
+    HSR.to_csv("../data/doNotCommit2_HSR_readyForUse.csv")
+#    print(hrule, "saving to readyForUse file...\n")
     return myData
 
 
 ### Read in the Data:
-file = "../data/doNotCommit_HSR_raw.csv"
+file = "../data/doNotCommit2_HSR_raw.csv"
 
 ### Start Cleaning Process from main()
 myCleanedData = main(file)
