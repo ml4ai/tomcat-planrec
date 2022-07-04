@@ -122,7 +122,7 @@ def main(data):
         df[col] = df[col].replace(old, new, regex=True)
         return df
 
-    def get_joint_probability(df, colA, colB):
+    def get_joint_probability(df, colA):
         # Groups by the conditioning element but returns only the JOINT
         # probability of the feature of interest.
         print(Hrule)
@@ -131,12 +131,7 @@ def main(data):
         dfa.columns = [colA, 'joint_probability']
         print(dfa, hrule)
 
-        dfb = df[colB].value_counts(normalize = True).sort_values().to_frame()
-        dfb.reset_index(inplace = True)
-        dfb.columns = [colB, 'joint_probability']
-        print(dfb)
-        print(hrule)
-        return dfa, dfb
+        return dfa
 
     def get_conditional_probability(df, colA, colB):
         print(Hrule, "P(", colB, "|", colA, ")\n")
@@ -153,78 +148,100 @@ def main(data):
     q = catData[["questionLabels", "questionLabels_v", "questionLabels_nm",
         "qWord", "qPhrase", "actionVerb"]]
 
+    ### Current subset of interest:
     testdf = catData[['questionLabels', 'qPhrase']]
-    jointdfa, jointdfb = get_joint_probability(testdf, 'questionLabels', 'qPhrase')
+    jointdfa = get_joint_probability(testdf, 'questionLabels')
     cond1df = get_conditional_probability(testdf, 'questionLabels', 'qPhrase')
     cond2df = get_conditional_probability(testdf, 'qPhrase', 'questionLabels')
 
 
-    ### Investigate any Joint Probabilities < 0.05 to fix Entropy:
+    ### Obtain count of joint probabilities, regardless of feature values
     see_joint = jointdfa.groupby('joint_probability').size().to_frame()
     see_joint.reset_index(inplace = True)
     see_joint.columns = ["prob", "count"]
     print(see_joint)
     print(see_joint.shape)
-    rowCount = see_joint.shape[0]
-    colCount = see_joint.shape[1]
 
-    pyplot.scatter(see_joint["prob"], see_joint["count"])
-    pyplot.xlabel("Joint Probability of Label")
-    pyplot.ylabel("Count of Joint Probability Occurrences")
-    pyplot.title("Investigation of Joint Probability Granularity")
-    pyplot.show()
+
+    def plotPrelim(df, x, y, title = "Investigation of Joint Probability Count Granularity"):
+        rowCount = df.shape[0]
+        colCount = df.shape[1]
+        pyplot.scatter(x, y)
+        pyplot.xlabel("Joint Probability of Label")
+        pyplot.ylabel("Count of Joint Probability Occurrences")
+        pyplot.title(title)
+        pyplot.show()
+
+
+    def replaceTerms(df):
+        '''
+        Replaces certain terms in the data to reduce granularity of labels.
+        Commented-out commands have less impact in reducing number of labels
+        that have the joint probability <= 0.0052 (count = 1 for this dataset).
+        '''
+    #    df = replaceSubstring_Global(df, "Room", "Location")
+    #    df = replaceSubstring_Global(df, "notice", "prioritize")
+        df = replaceSubstring_Global(df, "confirm", "clarify")
+        df = replaceSubstring_Global(df, "Marker", "Mark")
+        df = replaceSubstring_Global(df, "askPlan", "collaborate")
+        df = replaceSubstring_Global(df, "CapabilitiesRole",
+                "Collaborationcollaborate")
+        df = replaceSubstring_Global(df, "Knowledge", "Information")
+        df = replaceSubstring_Global(df, "Teammate", "")
+        df = replaceSubstring_Global(df, "Stabilized", "Victim")
+        df = replaceSubstring_Global(df, "Stabilize", "Victim")
+    #    df = replaceSubstring_Global(df, "direct", "suggest")
+        df = replaceSubstring_Global(df, "askBreak", "request")
+        df = replaceSubstring_Global(df, "Collaborationcollaborate",
+                "Collaboration")
+        df = replaceSubstring_Global(df, "wakeCritical", "collaborateCriticalWake")
+        return df
+
 
     ### See how the data change label objects are less granular:
-    rtestdf = testdf.copy(deep = True)
-    joint_rdf, joint_rdfb = get_joint_probability(rtestdf, 'questionLabels', 'qPhrase')
+    ### Copy subset of data
+    rtestdf = replaceTerms(testdf)
+
+    joint_rdf= get_joint_probability(rtestdf, 'questionLabels')
     see_rdf = joint_rdf.groupby('joint_probability').size().to_frame()
     see_rdf.reset_index(inplace = True)
     see_rdf.columns = ['newProb', 'newCount']
     print("\nsee_rdf\n", see_rdf)
 
-    rtestdf = replaceSubstring_Global(rtestdf, "Room", "Location")
-    rtestdf = replaceSubstring_Global(rtestdf, "notice", "prioritize")
-    rtestdf = replaceSubstring_Global(rtestdf, "confirm", "clarify")
-    rtestdf = replaceSubstring_Global(rtestdf, "Marker", "Mark")
-    rtestdf = replaceSubstring_Global(rtestdf, "askPlan", "collaborate")
-    rtestdf = replaceSubstring_Global(rtestdf, "CapabilitiesRole",
-            "Collaborationcollaborate")
-    rtestdf = replaceSubstring_Global(rtestdf, "Knowledge", "Information")
-    rtestdf = replaceSubstring_Global(rtestdf, "Teammate", "")
-    rtestdf = replaceSubstring_Global(rtestdf, "Stabilized", "Victim")
-    rtestdf = replaceSubstring_Global(rtestdf, "Stabilize", "Victim")
-    rtestdf = replaceSubstring_Global(rtestdf, "direct", "suggest")
-    rtestdf = replaceSubstring_Global(rtestdf, "askBreak", "request")
-    rtestdf = replaceSubstring_Global(rtestdf, "Collaborationcollaborate",
-            "Collaboration")
-    rtestdf = replaceSubstring_Global(rtestdf, "wakeCritical", "collaborateCriticalWake")
+    ### Now plot the granular and combined granular:
+#    plotPrelim(see_joint, see_joint["prob"], see_joint["count"])
 
-    joint_rdf, joint_rdfb = get_joint_probability(rtestdf, 'questionLabels', 'qPhrase')
-    see_rdf = joint_rdf.groupby('joint_probability').size().to_frame()
-    see_rdf.reset_index(inplace = True)
-    see_rdf.columns = ['newProb', 'newCount']
-    print("\nsee_rdf\n", see_rdf)
-
-    pyplot.scatter(see_rdf["newProb"], see_rdf["newCount"])
-    pyplot.xlabel("Joint Probability of Label")
-    pyplot.ylabel("Count of Joint Probability Occurrences")
-    pyplot.title("Investigation of COMBINED Joint Probability Granularity")
-    pyplot.show()
-
-    ### Now filter for the sparse data to see what granularity can be addressed
+    ### For the question Labels for uncombined, granular labels
     sparse = jointdfa[jointdfa.joint_probability <= 0.01]
-    print(hrule, "Sparse Labels\n\n", sparse.head(200))
+    print(hrule, "Sparse Question Labels: Granular\n\n", sparse.head(200))
 
-
-    ### Now filter once again for sparse data with less-granular
-    gran_sparse = joint_rdf[joint_rdf.joint_probability <= 0.01]
-    print(hrule, "Sparse Labels in Less Granular\n\n", gran_sparse.head(200))
-
-    #TODO:Start here. I want to get rid of some of these 0.0052 prob labels
-    cond2df = get_conditional_probability(joint_rdfb, 'qPhrase', 'questionLabels')
-    sys.exit()
+    ### For the question Labels for combined, less granular labels
+    asparse = joint_rdf[joint_rdf.joint_probability <= 0.01]
+    print(hrule, "Sparse Question Labels: Combined\n\n", asparse.head(200))
 
     return data # end of main()
+##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### #####
+
+def HSR_main(df):
+    '''
+    This is the second part of the program that works with HSR Data
+    '''
+
+    print(Hrule, "HSR DATA\n")
+    for d in df.columns:
+        print(d)
+
+
+
+
+
+
+
+
+
+
+
+
 
 '''
 def cramer(q):
@@ -286,6 +303,7 @@ print(hrule, "\nChecking head(3) of myCleanedData:\n\n", data.head(3), hrule)
 
 ### Run the program the first time.
 main(data)
+HSR_main(data)
 
 print(Hrule, "\t\t\tEnd of Program", Hrule)
 
