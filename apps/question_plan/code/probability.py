@@ -1,3 +1,5 @@
+#TODO:
+    # START AT LINE 223
 '''
 --------------------------------------------------------------------------
 This code will not run from the tomcat-planrec repo until I upload the csv data.
@@ -124,19 +126,24 @@ def main(data):
         # Groups by the conditioning element but returns only the JOINT
         # probability of the feature of interest.
         print(Hrule)
-        df1 = df.groupby(colA).value_counts(normalize = True).head(200).to_frame()
-        df1.reset_index(inplace = True)
-        df1.columns = [colA, colB, 'joint_probability']
-        print(df1.head(10))
+        dfa = df[colA].value_counts(normalize = True).sort_values().to_frame()
+        dfa.reset_index(inplace = True)
+        dfa.columns = [colA, 'joint_probability']
+        print(dfa, hrule)
+
+        dfb = df[colB].value_counts(normalize = True).sort_values().to_frame()
+        dfb.reset_index(inplace = True)
+        dfb.columns = [colB, 'joint_probability']
+        print(dfb)
         print(hrule)
-        return df1
+        return dfa, dfb
 
     def get_conditional_probability(df, colA, colB):
         print(Hrule, "P(", colB, "|", colA, ")\n")
-        df1 = df.groupby("qPhrase").value_counts(normalize = True).head(10).to_frame()
+        df1 = df.groupby(colA).value_counts(normalize = True).to_frame()
         df1.reset_index(inplace = True)
         df1.columns = [colA, colB, "conditional_probability"]
-        print(df1.head(10))
+        print(df1)
         print(hrule)
         return df1
 
@@ -145,39 +152,77 @@ def main(data):
     ### Print Probabilites of questions and questions phrases or question words
     q = catData[["questionLabels", "questionLabels_v", "questionLabels_nm",
         "qWord", "qPhrase", "actionVerb"]]
-    print(q.head(10))
 
-    print(hrule,"\nProbability of Question Phrase\n\n", q["qPhrase"].value_counts(normalize =
-        True).head(10), "\n")
-## delete when done: def get_cond_prob(df, colA, colB, HEAD, title):
-## delete when done: def get_joint_prob(df, column, newColumn, HEAD):
-
-    testdf = catData[['questionLabels_v', 'qPhrase']]
-    jointdf = get_joint_probability(testdf, 'questionLabels_v', 'qPhrase')
-    get_conditional_probability(testdf, 'questionLabels_v', 'qPhrase')
+    testdf = catData[['questionLabels', 'qPhrase']]
+    jointdfa, jointdfb = get_joint_probability(testdf, 'questionLabels', 'qPhrase')
+    cond1df = get_conditional_probability(testdf, 'questionLabels', 'qPhrase')
+    cond2df = get_conditional_probability(testdf, 'qPhrase', 'questionLabels')
 
 
     ### Investigate any Joint Probabilities < 0.05 to fix Entropy:
-    see_joint = jointdf.groupby('joint_probability').size().to_frame()
+    see_joint = jointdfa.groupby('joint_probability').size().to_frame()
     see_joint.reset_index(inplace = True)
     see_joint.columns = ["prob", "count"]
     print(see_joint)
-    print(see_joint.shape, see_joint.dtypes)
+    print(see_joint.shape)
+    rowCount = see_joint.shape[0]
+    colCount = see_joint.shape[1]
+
     pyplot.scatter(see_joint["prob"], see_joint["count"])
     pyplot.xlabel("Joint Probability of Label")
     pyplot.ylabel("Count of Joint Probability Occurrences")
     pyplot.title("Investigation of Joint Probability Granularity")
     pyplot.show()
-    sys.exit()
 
     ### See how the data change label objects are less granular:
-    rtestdf = replaceSubstring_Global(testdf, "Room", "Location")
+    rtestdf = testdf.copy(deep = True)
+    joint_rdf, joint_rdfb = get_joint_probability(rtestdf, 'questionLabels', 'qPhrase')
+    see_rdf = joint_rdf.groupby('joint_probability').size().to_frame()
+    see_rdf.reset_index(inplace = True)
+    see_rdf.columns = ['newProb', 'newCount']
+    print("\nsee_rdf\n", see_rdf)
+
+    rtestdf = replaceSubstring_Global(rtestdf, "Room", "Location")
     rtestdf = replaceSubstring_Global(rtestdf, "notice", "prioritize")
     rtestdf = replaceSubstring_Global(rtestdf, "confirm", "clarify")
+    rtestdf = replaceSubstring_Global(rtestdf, "Marker", "Mark")
+    rtestdf = replaceSubstring_Global(rtestdf, "askPlan", "collaborate")
+    rtestdf = replaceSubstring_Global(rtestdf, "CapabilitiesRole",
+            "Collaborationcollaborate")
     rtestdf = replaceSubstring_Global(rtestdf, "Knowledge", "Information")
+    rtestdf = replaceSubstring_Global(rtestdf, "Teammate", "")
+    rtestdf = replaceSubstring_Global(rtestdf, "Stabilized", "Victim")
+    rtestdf = replaceSubstring_Global(rtestdf, "Stabilize", "Victim")
+    rtestdf = replaceSubstring_Global(rtestdf, "direct", "suggest")
+    rtestdf = replaceSubstring_Global(rtestdf, "askBreak", "request")
+    rtestdf = replaceSubstring_Global(rtestdf, "Collaborationcollaborate",
+            "Collaboration")
     rtestdf = replaceSubstring_Global(rtestdf, "wakeCritical", "collaborateCriticalWake")
-    get_joint_probability(rtestdf, 'questionLabels_v', 'qPhrase')
-    get_conditional_probability(rtestdf, 'questionLabels_v', 'qPhrase')
+
+    joint_rdf, joint_rdfb = get_joint_probability(rtestdf, 'questionLabels', 'qPhrase')
+    see_rdf = joint_rdf.groupby('joint_probability').size().to_frame()
+    see_rdf.reset_index(inplace = True)
+    see_rdf.columns = ['newProb', 'newCount']
+    print("\nsee_rdf\n", see_rdf)
+
+    pyplot.scatter(see_rdf["newProb"], see_rdf["newCount"])
+    pyplot.xlabel("Joint Probability of Label")
+    pyplot.ylabel("Count of Joint Probability Occurrences")
+    pyplot.title("Investigation of COMBINED Joint Probability Granularity")
+    pyplot.show()
+
+    ### Now filter for the sparse data to see what granularity can be addressed
+    sparse = jointdfa[jointdfa.joint_probability <= 0.01]
+    print(hrule, "Sparse Labels\n\n", sparse.head(200))
+
+
+    ### Now filter once again for sparse data with less-granular
+    gran_sparse = joint_rdf[joint_rdf.joint_probability <= 0.01]
+    print(hrule, "Sparse Labels in Less Granular\n\n", gran_sparse.head(200))
+
+    #TODO:Start here. I want to get rid of some of these 0.0052 prob labels
+    cond2df = get_conditional_probability(joint_rdfb, 'qPhrase', 'questionLabels')
+    sys.exit()
 
     return data # end of main()
 
