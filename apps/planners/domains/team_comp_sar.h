@@ -4314,7 +4314,7 @@ class TeamSARDomain {
 
     //score function
     int score(TeamSARState state) {
-      return state.r_triage_total*10 + state.c_triage_total*50; 
+      return state.r_triage_total*10 + state.c_triage_total*50 + state.team_comp.size()*10; 
     }
 
     TeamSARDomain() {
