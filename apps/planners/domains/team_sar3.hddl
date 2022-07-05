@@ -10,16 +10,35 @@
     (holds ?p - rescuer ?v - victim)
     (holding_vic ?p - rescuer)
     (stabilized ?v - victim)
+    (awake_crit ?v - victim)
     (broken ?b - block ?l - location)
+    (zone_a ?l - location)
+    (zone_b ?l - location)
+    (zone_c ?l - location)
+    (rescue_a ?v - victim)
+    (rescue_b ?v - victim)
+    (rescue_c ?v - victim)
+    (knowledge_of_type_a ?p - rescuer ?v - victim)
+    (knowledge_of_type_b ?p - rescuer ?v - victim)
+    (knowledge_of_type_c ?p - rescuer ?v - victim)
+    (has_sensor_for ?l ?s_l - location)
+    (knowledge_of_regs ?p - rescuer ?l - location)
+    (knowledge_of_crit ?p - rescuer ?l - location)
   )
 
   (:f-predicates
     (can_see_reg_vic ?p - rescuer)
+    (can_diagnose_vic ?m - medic ?v - victim)
     (can_see_crit_vic ?p - rescuer)
     (can_stabilize_vic ?m - medic ?v - victim)
     (can_wake_vic ?m - medic ?t - rescuer ?v - victim)
     (can_pickup_vic ?p - rescuer ?v - victim)
     (can_break_block ?e - engineer ?b - block)
+    (type_a ?v - victim)
+    (type_b ?v - victim)
+    (type_c ?v - victim)
+    (sense_regs ?l - location)
+    (sense_crit ?l - location)
   )
 
   (:action stabilize
@@ -40,13 +59,15 @@
                     (at ?t ?l)
                   )
     :effect (and
-              (awake_crit ?v ?l)
+              (awake_crit ?v)
               (at ?v ?l)
+              (knowledge_of_type_c ?m ?v)
+              (knowledge_of_type_c ?t ?v)
             )
   )
 
   (:action move
-    :parameters (?h - rescuer ?old_l - location ?new_l - location)
+    :parameters (?h - rescuer ?old_l ?new_l - location)
     :precondition (and
                     (at ?h ?old_l) 
                   )
@@ -70,7 +91,7 @@
     :parameters (?h - rescuer ?v - victim ?l - location)
     :precondition (and
                     (at ?h ?l)
-                    (imply (awake_crit ?v ?l) (stabilized_vic ?v ?l))
+                    (imply (awake_crit ?v) (stabilized ?v))
                     (not (holding_vic ?h))
                   )
     :effect (and
@@ -91,6 +112,49 @@
               (not (holding_vic ?h))
               (not (holds ?h ?v))
               (at ?v ?l)
+            )
+  )
+
+  (:action rescue_vic
+    :parameters (?h - rescuer ?v - victim ?l - location)
+    :precondition (and
+                    (at ?h ?l)
+                    (holding_vic ?h)
+                    (holds ?h ?v)
+                    (or (and (type_a ?v) (zone_a ?l))
+                        (and (type_b ?v) (zone_b ?l))
+                        (and (type_c ?v) (zone_c ?l))
+                    )
+                  )
+    :effect (and
+              (at ?v ?l)
+              (when (type_a ?v) (rescue_a ?v))
+              (when (type_b ?v) (rescue_b ?v))
+              (when (type_c ?v) (rescue_c ?v))
+            )
+  )
+
+  (:action diagnose_vic
+    :parameters (?m - medic ?v - victim ?l - location)
+    :precondition (and
+                    (at ?m ?l)
+                  )
+    :effect (and
+              (when (type_a ?v) (knowledge_of_type_a ?m ?v))
+              (when (type_b ?v) (knowledge_of_type_b ?m ?v))
+              (when (type_c ?v) (knowledge_of_type_c ?m ?v))
+            )
+  )
+
+  (:action detect_vics
+    :parameters (?t - transporter ?l ?s_l - location)
+    :preconditions (and
+                     (at ?t ?l)
+                     (has_sensor_for ?l ?s_l)
+                   )
+    :effect (and
+              (when (sense_regs ?s_l) (knowledge_of_regs ?t ?s_l)) 
+              (when (sense_crit ?s_l) (knowledge_of_crit ?t ?s_l))
             )
   )
 )
