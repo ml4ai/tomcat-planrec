@@ -8,7 +8,7 @@ Author: Salena T. Ashton
         University of Arizona
 
 Date Created: 20 June 2022
-Last Updated: 3 July 2022
+Last Updated: 4 July 2022
 
 Theory of Mind-based Cognitive Architecture for Teams (ToMCAT)
 Planning Work Group
@@ -117,8 +117,25 @@ def replaceTerms(df):
     Replaces certain terms in the data to reduce granularity of labels.
     Commented-out commands have less impact in reducing number of labels
     that have the joint probability <= 0.0052 (count = 1 for this dataset).
+
+    The following Code investigates the difference of intention of a specific
+    area verses a general area.
+
+    area, location, rooms (plural) were coded as 'location'
+    room was coded as room, if a specific room
+
+    After dividing up the data subsets, I cannot justify this granularity
+    between 'room' or 'location' for my research questions, though it may be of
+    interest to Liang. 
+
+    Therefore, I will keep this code and the original raw data, cleaned data,
+    for others to use. However, I will engage the following replacement  of
+    'room' --> 'location'
+    for the remainder of this program.
     '''
-#    df = replaceSubstring_Global(df, "Room", "Location")
+    df = replaceSubstring_Global(df, "Room", "Location")
+    df = replaceSubstring_Global(df, "LocationInformation", "Location")
+    df = replaceSubstring_Global(df, "InformationThreatroom", "Threatroom")
 #    df = replaceSubstring_Global(df, "notice", "prioritize")
     df = replaceSubstring_Global(df, "confirm", "clarify")
     df = replaceSubstring_Global(df, "Marker", "Mark")
@@ -126,24 +143,27 @@ def replaceTerms(df):
     df = replaceSubstring_Global(df, "CapabilitiesRole",
             "Collaborationcollaborate")
     df = replaceSubstring_Global(df, "Knowledge", "Information")
-    df = replaceSubstring_Global(df, "Teammate", "")
+    df = replaceSubstring_Global(df, "Unique", "")
     df = replaceSubstring_Global(df, "Stabilized", "Victim")
-    df = replaceSubstring_Global(df, "Stabilize", "Victim")
 #    df = replaceSubstring_Global(df, "direct", "suggest")
-    df = replaceSubstring_Global(df, "askBreak", "request")
     df = replaceSubstring_Global(df, "Collaborationcollaborate",
             "Collaboration")
     df = replaceSubstring_Global(df, "wakeCritical", "collaborateCriticalWake")
     return df
 
 ###############################################################################
-def plotPrelim(df, x, y, title = "Investigation of Joint Probability Count Granularity"):
+def scatterPlot(df, x, y, title = "Investigation of Joint Probability Count Granularity"):
     rowCount = df.shape[0]
     colCount = df.shape[1]
     pyplot.scatter(x, y)
     pyplot.xlabel("Joint Probability of Label")
     pyplot.ylabel("Count of Joint Probability Occurrences")
     pyplot.title(title)
+    pyplot.show()
+
+
+def histPlot(col, title = "Joint Probability Count"):
+    pyplot.hist(col)
     pyplot.show()
 
 ###############################################################################
@@ -205,7 +225,8 @@ def main(data):
     print("\nsee_rdf\n", see_rdf)
 
     ### Now plot the granular and combined granular:
-#    plotPrelim(see_joint, see_joint["prob"], see_joint["count"])
+    scatterPlot(see_joint, see_joint["prob"], see_joint["count"])
+    histPlot(jointdfa["joint_probability"])
 
     ### For the question Labels for uncombined, granular labels
     sparse = jointdfa[jointdfa.joint_probability <= 0.01]
@@ -215,7 +236,7 @@ def main(data):
     asparse = joint_rdf[joint_rdf.joint_probability <= 0.01]
     print(hrule, "Sparse Question Labels: Combined\n\n", asparse.head(200))
 
-    return data# end of main()
+    return data, rData# end of main()
 ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### ##### #####
 
 def HSR_main(df):
@@ -252,35 +273,12 @@ def HSR_main(df):
     pandas.set_option('display.width', 200)
 
 
+    ### These are not included in replaceTerms because they delete instead.
+    df = replaceSubstring_Global(df, "Teammate", "")
+    df = replaceSubstring_Global(df, "\?", "")
 
     df = df[['obsNum', 'score', 'StartSeconds', 'question_verbatim',
             'abstractLabels', 'questionLabels', 'qPhrase', 'actionVerb']]
-    df = replaceSubstring_Global(df, "Teammate", "")
-    df = replaceSubstring_Global(df, "confirm", "clarify")
-    df = replaceSubstring_Global(df, "\?", "")
-    df = replaceSubstring_Global(df, "Knowledge", "Information")
-
-
-
-
-    '''
-    The following Code investigates the difference of intention of a specific
-    area verses a general area.
-
-    area, location, rooms (plural) were coded as 'location'
-    room was coded as room, if a specific room
-
-    After dividing up the data subsets, I cannot justify this granularity
-    between 'room' or 'location' for my research questions, though it may be of
-    interest to Liang. 
-
-    Therefore, I will keep this code and the original raw data, cleaned data,
-    for others to use. However, I will engage the following replacement  of
-    'room' --> 'location'
-    for the remainder of this program.
-    '''
-    df = replaceSubstring_Global(df, "Room", "Location")
-
 
 
 
@@ -322,41 +320,6 @@ def HSR_main(df):
     sys.exit()
     joint_area = get_joint_probability(area, 'questionLabels')
     cond_area = get_conditional_probability(area, 'questionLabels', 'qPhrase')
-
-
-
-
-
-
-
-
-
-
-
-
-    print(df['questionLabels_nm'].value_counts())
-    rdata = replaceTerms(df)
-    print(rdata['questionLabels_nm'].value_counts())
-
-    ### Use one-hot encoding to find correlations between labels and 
-        # word utterances from raw text
-    o_qnm = pandas.get_dummies(rdata[['questionLabels_nm']])
-    o_qW = pandas.get_dummies(rdata[['qWord']])
-
-    X = pandas.concat([o_qW, o_qnm], axis = 1)
-    y = df['score']
-    regression = linear_model.LinearRegression()
-    myReg = regression.fit(X, y)
-    print(X.head(10))
-    print(y.head(10))
-
-    ### Correlate this 
-
-
-
-
-
-
 
 '''
 def cramer(q):
@@ -415,10 +378,42 @@ data = pandas.read_csv(file)
 print(hrule, "\nChecking head(3) of myCleanedData:\n\n", data.head(3), hrule)
 
 
-rdata = data.copy(deep = True) # To become a less-granular dataframe.
-### Run the program the first time.
-main(data)
-HSR_main(data)
+'''
+Run the program through main(), which will not return any HSR data.
+    data: granular labels are never categorized
+    rdata: labels are categorized into larger concept labels because
+           there is no empirical justification to keep them at that level of
+           granularity.
+
+use HSR_main() for raw text of human participants, but be sure to replace
+labels and clean labels first.
+'''
+
+#main(data)
+
+### Replace granularity, save as a new csv file
+rdata = replaceTerms(data)
+### Now clean this data again
+def reclean(df, col, newCol):
+    df = ctd.cleanLabels(df, col)
+    df = df.rename(columns={col: newCol})
+    return df
+
+reclean(rdata, "abstractLabels", "abstractLabels")
+reclean(rdata, "causeLabels", "causeLabels")
+reclean(rdata, "questionLabels", "questionLabels")
+reclean(rdata, "effectLabels", "effectLabels")
+
+# Saved the replaced Labels in a new csv file
+rdata = pandas.DataFrame(rdata)
+rFile = "../data/doNotCommit2_HSR_replacedTerms_raw.csv"
+rdata.to_csv(rFile)
+
+### Verify
+print(hrule, "\nChecking head(10) of myCleanedData:\n\n", rdata.head(10), hrule)
+
+
+HSR_main(rdata)
 
 print(Hrule, "\t\t\tEnd of Program", Hrule)
 
