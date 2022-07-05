@@ -143,7 +143,8 @@ def replaceTerms(df):
     df = replaceSubstring_Global(df, "CapabilitiesRole",
             "Collaborationcollaborate")
     df = replaceSubstring_Global(df, "Knowledge", "Information")
-    df = replaceSubstring_Global(df, "Unique", "")
+    df = replaceSubstring_Global(df, "clarifyInformation", "clarify")
+    df = replaceSubstring_Global(df, "askInformationLocation", 'askLocation')
     df = replaceSubstring_Global(df, "Stabilized", "Victim")
 #    df = replaceSubstring_Global(df, "direct", "suggest")
     df = replaceSubstring_Global(df, "Collaborationcollaborate",
@@ -317,9 +318,22 @@ def HSR_main(df):
     print(hrule, "conditional probability of subset where \'room\' is spoken\n\n")
     cond_room = get_conditional_probability(room, 'questionLabels', 'qPhrase')
 
-    sys.exit()
+    roomCritical = room['questionLabels'].str.contains('critical', case = False)
+    roomCritical = room[roomCritical]
+    print(roomCritical)
+
+    print(Hrule, "Notice patterns when \'room\' is spoken", hrule)
+    print("Describe df Categorial Data:\n", df.describe(include=object), hrule)
+    print("Describe room Categorial Data:\n", room.describe(include=object), hrule)
+    print("Describe room + critical Categorial Data:\n", roomCritical.describe(include=object), hrule)
+
+
+
+    print(Hrule, "Flipped Conditions\n")
     joint_area = get_joint_probability(area, 'questionLabels')
     cond_area = get_conditional_probability(area, 'questionLabels', 'qPhrase')
+
+    return df
 
 '''
 def cramer(q):
@@ -345,6 +359,7 @@ def cramer(q):
     V = numpy.sqrt((X2/n)/minDim)
     print(V)
 '''
+
 ###############################################################################
 ##### PROGRAM STARTS HERE
 ###############################################################################
@@ -388,8 +403,8 @@ Run the program through main(), which will not return any HSR data.
 use HSR_main() for raw text of human participants, but be sure to replace
 labels and clean labels first.
 '''
-
-#main(data)
+### START HERE
+main(data)
 
 ### Replace granularity, save as a new csv file
 rdata = replaceTerms(data)
@@ -406,7 +421,7 @@ reclean(rdata, "effectLabels", "effectLabels")
 
 # Saved the replaced Labels in a new csv file
 rdata = pandas.DataFrame(rdata)
-rFile = "../data/doNotCommit2_HSR_replacedTerms_raw.csv"
+rFile = "../data/doNotCommit2_HSR_replacedTerms_readyToUse.csv"
 rdata.to_csv(rFile)
 
 ### Verify
@@ -414,6 +429,7 @@ print(hrule, "\nChecking head(10) of myCleanedData:\n\n", rdata.head(10), hrule)
 
 
 HSR_main(rdata)
+
 
 print(Hrule, "\t\t\tEnd of Program", Hrule)
 
