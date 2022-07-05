@@ -151,15 +151,7 @@ bool ask(KnowledgeBase& kb, const string& query) {
     smt_string += "(assert (not (" + query_ + ")))";
     s.from_string(smt_string.c_str());
 
-    //switch (s.check()) {
-        //case z3::unsat:
-            //return "sat";
-        //case z3::sat:
-            //return "unsat";
-        //case z3::unknown:
-            //return "unknown";
     return (s.check() == z3::unsat);
-    //return (s.check() == z3::unsat)?true:false;
 }
 
 map<string, vector<string>> ask_vars(KnowledgeBase& kb, const string& query) {
