@@ -132,6 +132,18 @@ def replaceTerms(df):
     for others to use. However, I will engage the following replacement  of
     'room' --> 'location'
     for the remainder of this program.
+
+    Update: When using the bagOfWords() program, I evaluated the tf.d with and
+    without replacement of room into location. Results were not changed so this
+    is  another indication that this granularity does not matter for my
+    particular research question.
+
+    The same justification comes from bagOfWords() in replacing 'stabilized'
+    with 'victim.' the numbers are the same for the most significant word
+    utterances.
+
+
+    Update July 6, 2002.
     '''
     df = replaceSubstring_Global(df, "Room", "Location")
     df = replaceSubstring_Global(df, "LocationInformation", "Location")

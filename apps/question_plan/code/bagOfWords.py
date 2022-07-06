@@ -69,33 +69,33 @@ def bagOfWords(unsorted_df):
     Normally, we do not sort our data when analyzing but I will sort by video
     in order to compare different teams and different missions per team.
     '''
-    print(unsorted_df.head(10))
+#    print(unsorted_df.head(10))
     unsorted_df = unsorted_df[['video', 'obsNum', 'regular', 'critical', 'score',
         'question_verbatim', 'abstractLabels', 'questionLabels']]
     df = unsorted_df.sort_values(by=['video'])
-    print(df.head(113))
+#    print(df.head(113))
 
     ### Divide up the dataframe by teams:
     team1 = (df['video'] == 633) | (df['video'] == 634)
     team1 = df[team1]
-    print(hrule, "Team1\n", team1)
-    print(team1.shape, type(team1))
+#    print(hrule, "Team1\n", team1)
+#    print(team1.shape, type(team1))
 
     team2 = (df['video'] == 635) | (df['video'] == 636)
     team2 = df[team2]
-    print(hrule, "team2\n", team2)
+#    print(hrule, "team2\n", team2)
 
     team3 = (df['video'] == 637) | (df['video'] == 638)
     team3 = df[team3]
-    print(hrule, "Team3\n", team3, Hrule)
+#    print(hrule, "Team3\n", team3, Hrule)
 
     ### Divide up the dataframe by teams:
     def divideFrame(team):
         docs = team['question_verbatim'].to_frame()
         docs.reset_index(inplace = True)
         docs.drop(docs.columns[0], axis = 1, inplace = True)
-        #print(hrule, docs.shape, type(docs))
-        #print(docs)
+#        print(hrule, docs.shape, type(docs))
+#        print(docs.head(30))
         return docs
 
 
@@ -105,10 +105,10 @@ def bagOfWords(unsorted_df):
 
 
 ########### Bag of Words Using Scikit_Learn
-    pandas.set_option('display.max_columns', 200)
+    pandas.set_option('display.max_columns', 600)
     from sklearn.feature_extraction.text import CountVectorizer
     from sklearn.feature_extraction import text
-    print(Hrule, "\n\n from sklearn package:\n\n")
+#    print(Hrule, "\n\n from sklearn package:\n\n")
 
     # be sure to remove stop words
     ### customize stopwords
@@ -117,7 +117,8 @@ def bagOfWords(unsorted_df):
         'a5', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8',
         'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 
         'd1', 'd2', 'd3', 'e5', 'f4', 'g3', 'h1', 'h2', 'i2', 'i4', 'j1', 'j4',
-        'm1', 'm2', 'm3', 'l1', 'k2', 'hey', 'just', 'did'])
+        'm1', 'm2', 'm3', 'l1', 'k2', 'hey', 'just', 'did', '10', '11', '12',
+        '13', '14', '15', '16', '17', '18', '19', '20', 'english'])
     # In orer to slice lists for use, turn them to strings then lemmatize:
 
 
@@ -148,7 +149,7 @@ def bagOfWords(unsorted_df):
     print(df_bow_sklearn.head(200))
     '''
 
-    print(hrule, "End of bagOfWords()", Hrule)
+    print("End of bagOfWords()")
 
 
 ###############################################################################
@@ -200,8 +201,8 @@ def abstractLabel_subset(df, theIntent):
     #TODO: fix this bug.
     myIntent.drop(myIntent.columns[0], axis=1, inplace=True)
     myIntent = myIntent.sort_values(by=['video'])
-    print(hrule, "All observations that have the word \"", theIntent,
-            "\" in abstract labels.\n\n", myIntent.head(191))
+#    print(hrule, "All observations that have the word \"", theIntent,
+#            "\" in abstract labels.\n\n", myIntent.head(191))
     return myIntent
 
 ###############################################################################
@@ -228,13 +229,17 @@ print(hrule, "\nChecking head(3) of myCleanedData:\n\n", data.head(3), hrule)
 
 
 ### Uncomment to send the entire dataset to bagOfWords
-#bagOfWords(data)
+print(Hrule, "FOR ALL INTENTIONS\n")
+bagOfWords(data)
 
 ### Send a specific player intention to the bagOfWords(). In this case, we will
     ### Investigate the intention to 'carry' a victim or potential victim.
 
-    # First subset the dataset with all abstraction labels with the word carry:
-carryIntention = abstractLabel_subset(data, "carry")
+    # First subset the dataset with all abstraction labels with the word of
+      # interest for intentions, as captured in abstraction labels:
+intent = "critical"
+print(Hrule, "FOR THE INTENT:", intent, "\n")
+carryIntention = abstractLabel_subset(data, intent)
     # Now send to the bagOfWords() function:
 bagOfWords(carryIntention)
 
