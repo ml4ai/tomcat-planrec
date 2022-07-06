@@ -1,4 +1,5 @@
 #include "kb.h"
+#include "z3++.h"
 
 using namespace std;
 
