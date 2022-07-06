@@ -141,7 +141,6 @@ csimulation(int horizon,
            int seed) {
 
     int i = 0;
-    double int_score = domain.score(state);
     while (!tasks.empty() && i < horizon) {
       Task task = tasks.back();
 
@@ -186,18 +185,7 @@ csimulation(int horizon,
       message += " during simulation!";
       throw std::logic_error(message);
     }
-    double new_score = domain.score(state);
-    if (int_score == 0.0) {
-      if (new_score == 0.0) {
-        return 0.0;
-      }
-      return 1.0;
-    }
-    double p_inc = (new_score - int_score)/int_score;
-    if (p_inc > 1) {
-      return 1;
-    }
-    return p_inc;
+    return domain.score(state);
 }
 
 template <class State, class Domain>
