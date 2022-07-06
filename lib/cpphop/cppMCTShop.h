@@ -277,7 +277,7 @@ cseek_planMCTS(pTree<State>& t,
       int n = cselection(m,w,eps,seed);
       seed++;
       if (m.nodes[n].tasks.empty()) {
-          cbackprop(m,n,0.0);
+          cbackprop(m,n,domain.score(m.nodes[n].state));
       }
       else {
         if (m.nodes[n].sims == 0) {
