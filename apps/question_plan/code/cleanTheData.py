@@ -204,7 +204,7 @@ def alphabetizeObjects(column):
 
         def abcOrder(myV, myN, myM):
             abcLabel = ""
-            #print(myV, myN, myM)
+#            print(hrule, myV, myN, myM)
             if myM=="":
                 first = myN[0].upper()
 #                print(first)
@@ -216,7 +216,7 @@ def alphabetizeObjects(column):
 
             elif myN[0] > myM[0]:
 #                print("\nLabel to alphabetize:", myV, myN, myM)
-#                print("Oh no!",  myN[0], "<?>", myM[0])
+                print("Oh no!",  myN[0], "<?>", myM[0])
                 temp = myN
                 myN = myM
                 myM = temp

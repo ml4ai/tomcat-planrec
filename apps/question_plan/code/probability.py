@@ -160,12 +160,12 @@ def scatterPlot(df, x, y, title = "Investigation of Joint Probability Count Gran
     pyplot.xlabel("Joint Probability of Label")
     pyplot.ylabel("Count of Joint Probability Occurrences")
     pyplot.title(title)
-    pyplot.show()
+#    pyplot.show()
 
 
 def histPlot(col, title = "Joint Probability Count"):
     pyplot.hist(col)
-    pyplot.show()
+#    pyplot.show()
 
 ###############################################################################
 
