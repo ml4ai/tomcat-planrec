@@ -8,7 +8,7 @@ Author: Salena T. Ashton
         University of Arizona
 
 Date Created: 5 July 2022
-Last Updated: 5 July 2022
+Last Updated: 6 July 2022
 
 Dr. Adriana Picoral, Instructor INFO 692
 School of Information, University of Arizona
@@ -49,12 +49,15 @@ lemmatizer = WordNetLemmatizer()
 
 import probability as prob
 '''
-I personalized the tutorial found at
+I personalized and combined the tutorials found at:
 
-https://www.analyticsvidhya.com/blog/2021/08/a-friendly-guide-to-nlp-bag-of-words-with-python-example/
+    * https://www.analyticsvidhya.com/blog/2021/08/a-friendly-guide-to-nlp-bag-of-words-with-python-example/
+    * https://www.machinelearningplus.co/np.lemmatization-examples-python/
 
 for the purposes of this file.
 '''
+
+
 def bagOfWords(unsorted_df):
     pandas.set_option('display.max_rows', 400)
     pandas.set_option('display.float_format', '{:.2}'.format)
@@ -72,9 +75,11 @@ def bagOfWords(unsorted_df):
     df = unsorted_df.sort_values(by=['video'])
     print(df.head(113))
 
+    ### Divide up the dataframe by teams:
     team1 = (df['video'] == 633) | (df['video'] == 634)
     team1 = df[team1]
     print(hrule, "Team1\n", team1)
+    print(team1.shape, type(team1))
 
     team2 = (df['video'] == 635) | (df['video'] == 636)
     team2 = df[team2]
@@ -84,57 +89,19 @@ def bagOfWords(unsorted_df):
     team3 = df[team3]
     print(hrule, "Team3\n", team3, Hrule)
 
-    sys.exit()
-
-########### Bag of Words From Scratch:
-    utter = df['question_verbatim']
-
-    print(type(utter))
-
-    ### for scratch, Turn dataframe into a list
-    utter = list(utter)
-
-    ### For now, shorten the list:
-    myIntent = df['abstractLabels'].str.contains(theIntent, case = False)
-    docs1= utter[0:61]
-    docs2= utter[62:112]
-    docs3= utter[113:191]
+    ### Divide up the dataframe by teams:
+    def divideFrame(team):
+        docs = team['question_verbatim'].to_frame()
+        docs.reset_index(inplace = True)
+        docs.drop(docs.columns[0], axis = 1, inplace = True)
+        #print(hrule, docs.shape, type(docs))
+        #print(docs)
+        return docs
 
 
-    ### Create wordset. Start with a list, then use the union1d. Turning it
-        #  straight into a set will not work right.
-
-    wordset = []
-
-    ### Remove punctuations
-    for i in utter:
-        #print(i)
-        j = re.sub(r"[^a-zA-Z0-9]", " ", i.lower()).split()
-        #print(j, "\n")
-        wordset = numpy.union1d(wordset, j)
-
-    print(wordset)
-
-    ### Define the function to extract the features in each document:
-    def calc_bagOfWords(wordSet, doc):
-        '''
-        define dictionary with specified keys, which corresponds to the words
-        of the vocabulary and specified value is 0.
-        '''
-        print("\n\tdoc = ", doc, "\n")
-        tf_diz = dict.fromkeys(wordSet, 0)
-        for word in doc:
-            tf_diz[word] = doc.count(word)
-
-        return tf_diz
-
-    bow1 = calc_bagOfWords(wordset, utter[0])
-    bow2 = calc_bagOfWords(wordset, utter[1])
-    bow3 = calc_bagOfWords(wordset, utter[2])
-    bow4 = calc_bagOfWords(wordset, utter[3])
-    bow5 = calc_bagOfWords(wordset, utter[4])
-    df_bow = pandas.DataFrame([bow1, bow2, bow3, bow4, bow5])
-#    print(Hrule, "df_bow.head()", df_bow.head())
+    docs1= divideFrame(team1)
+    docs2= divideFrame(team2)
+    docs3= divideFrame(team3)
 
 
 ########### Bag of Words Using Scikit_Learn
@@ -155,14 +122,12 @@ def bagOfWords(unsorted_df):
 
 
     def stringLemma(doc):
+        doc = str(doc)
         docWords = nltk.word_tokenize(doc)
         docLem = ' '.join([lemmatizer.lemmatize(w) for w in docWords])
         return docLem
 
 
-    docs1 = str(docs1)
-    docs2 = str(docs2)
-    docs3 = str(docs3)
     doc1 = stringLemma(docs1)
     doc2 = stringLemma(docs2)
     doc3 = stringLemma(docs3)
@@ -174,12 +139,16 @@ def bagOfWords(unsorted_df):
     df_bow_sklearn = pandas.DataFrame(X.toarray(),columns=vectorizer.get_feature_names_out())
     print(df_bow_sklearn.head(200))
 
+    '''
     ### Then vectorize 2 by 2
     print(hrule, "For 2 by 2 ngram\n\n")
     vectorizer = CountVectorizer(stop_words = salena_stop_words, ngram_range=(2,2))
     X = vectorizer.fit_transform([doc1, doc2, doc3])
     df_bow_sklearn = pandas.DataFrame(X.toarray(),columns=vectorizer.get_feature_names_out())
     print(df_bow_sklearn.head(200))
+    '''
+
+    print(hrule, "End of bagOfWords()", Hrule)
 
 
 ###############################################################################
