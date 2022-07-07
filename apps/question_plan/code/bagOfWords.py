@@ -237,7 +237,7 @@ bagOfWords(data)
 
     # First subset the dataset with all abstraction labels with the word of
       # interest for intentions, as captured in abstraction labels:
-intent = "critical"
+intent = "stabilize"
 print(Hrule, "FOR THE INTENT:", intent, "\n")
 carryIntention = abstractLabel_subset(data, intent)
     # Now send to the bagOfWords() function:
