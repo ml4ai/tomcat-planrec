@@ -1,5 +1,5 @@
 #include "PercAgent.hpp"
-
+#include "../../lib/kb.h"
 #include "boost/json.hpp"
 #include <iostream>
 
@@ -88,7 +88,8 @@ void pretty_print(std::ostream& os,
 
 void PercAgent::process(mqtt::const_message_ptr msg) {
     json::object jv = json::parse(msg->to_string()).as_object();
-
+    std::string new_knowledge;
+    cout << msg->get_topic() << endl;
     // Uncomment the line below to print the message
     try {
         if (jv.at("data").as_object().contains("locations")) {
@@ -100,6 +101,25 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     .at("locations")
                     .at(jv.at("data").at("locations").as_array().size() - 1)
                     .at("id"));
+            new_knowledge = "(at ";
+            auto role = boost::json::value_to<std::string>(
+                jv.at("data").at("callsign"));
+            if (role == "Red") {
+                new_knowledge += "medic ";
+            }
+            else if (role == "Green") {
+                new_knowledge += "transporter ";
+            }
+            else {
+                new_knowledge += "engineer ";
+            }
+            new_knowledge += boost::json::value_to<std::string>(
+                jv.at("data")
+                    .at("locations")
+                    .at(jv.at("data").at("locations").as_array().size() - 1)
+                    .at("id"));
+            new_knowledge += ")";
+//            tell(this->kb, new_knowledge);
         }
     }
     catch (exception& exc) {
