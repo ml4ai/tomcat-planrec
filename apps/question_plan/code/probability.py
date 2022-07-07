@@ -140,12 +140,16 @@ def replaceTerms(df):
 
     The same justification comes from bagOfWords() in replacing 'stabilized'
     with 'victim.' the numbers are the same for the most significant word
-    utterances.
+    utterances. HOWEVER, because ASIST does not want us to use 'heal',
+    'triage', or 'save', as per the Study 3 Appendix AC, I have elected to use
+    the verb "STABILIZE" to heal any victim.
+
+    Therefore, I will not replace stabilize, but only 'stabilizeD'
 
 
     Update July 6, 2002.
     '''
-    df = replaceSubstring_Global(df, "Room", "Location")
+    df = replaceSubstring_Global(df, "Room", "Location") # see notes above
     df = replaceSubstring_Global(df, "LocationInformation", "Location")
     df = replaceSubstring_Global(df, "InformationThreatroom", "Threatroom")
 #    df = replaceSubstring_Global(df, "notice", "prioritize")
@@ -157,7 +161,7 @@ def replaceTerms(df):
     df = replaceSubstring_Global(df, "Knowledge", "Information")
     df = replaceSubstring_Global(df, "clarifyInformation", "clarify")
     df = replaceSubstring_Global(df, "askInformationLocation", 'askLocation')
-    df = replaceSubstring_Global(df, "Stabilized", "Victim")
+    df = replaceSubstring_Global(df, "Stabilized", "Victim") # see notes above
 #    df = replaceSubstring_Global(df, "direct", "suggest")
     df = replaceSubstring_Global(df, "Collaborationcollaborate",
             "Collaboration")

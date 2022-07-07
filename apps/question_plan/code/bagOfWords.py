@@ -150,9 +150,24 @@ def bagOfWords(unsorted_df):
     '''
 
     print("End of bagOfWords()")
-
+    return team1, team2, team3
 
 ###############################################################################
+def utterance(unsorted_df, theUtterance):
+    unsorted_df = unsorted_df[['video', 'obsNum', 'regular', 'critical', 'score',
+        'question_verbatim', 'abstractLabels', 'questionLabels']]
+    df = unsorted_df.sort_values(by=['video'])
+    print("For one team, not all the data, the Joint Probabilities of all Abstract Labels, given the utterance",
+            theUtterance, "in the question.\n")
+    print(hrule, "UTTERANCE OF INTEREST:\t", theUtterance, "\n\n")
+    utter = df['question_verbatim'].str.contains(theUtterance, case=False)
+    utter = df[utter]
+    print(hrule, utter)
+    print(hrule, "\np(Intention | \"", theUtterance, "\" is spoken)\n\n",
+            utter["abstractLabels"].value_counts().head(30), "\n")
+    bagOfWords(utter)
+
+
 def abstractLabel_subset(df, theIntent):
     '''
     Separate df by abstaction labels to identify intentions and correlate them
@@ -187,7 +202,7 @@ def abstractLabel_subset(df, theIntent):
               shareInformationUnique        0.063
 
     '''
-
+    print("Joint Probabilities of all Abstract Labels:\n\n")
     joint = prob.get_joint_probability(df, "abstractLabels")
 
 
@@ -196,13 +211,18 @@ def abstractLabel_subset(df, theIntent):
 
     myIntent = df['abstractLabels'].str.contains(theIntent, case = False)
     myIntent = df[myIntent]
+    print("Conditional Probabilities of Abstract Labels with Intent:", theIntent, "\n\n")
+    Intent_joint = prob.get_joint_probability(myIntent, "abstractLabels")
+    print("Conditional Probabilities of Question Labels with Intent:", theIntent, "\n\n")
+    qIntent_joint = prob.get_joint_probability(myIntent, "questionLabels")
+
 
     # Remove first column since importing the joint prob function adds it. 
     #TODO: fix this bug.
     myIntent.drop(myIntent.columns[0], axis=1, inplace=True)
     myIntent = myIntent.sort_values(by=['video'])
-#    print(hrule, "All observations that have the word \"", theIntent,
-#            "\" in abstract labels.\n\n", myIntent.head(191))
+    print(hrule, "All observations that have the word \"", theIntent,
+            "\" in abstract labels.\n\n", myIntent.head(191))
     return myIntent
 
 ###############################################################################
@@ -230,14 +250,42 @@ print(hrule, "\nChecking head(3) of myCleanedData:\n\n", data.head(3), hrule)
 
 ### Uncomment to send the entire dataset to bagOfWords
 print(Hrule, "FOR ALL INTENTIONS\n")
-bagOfWords(data)
+teamUtter1, teamUtter2, teamUtter3 = bagOfWords(data)
+print(Hrule*3, teamUtter1, Hrule)
+utterance(data, "guy")  # Use a stemmed version of utterance
+
 
 ### Send a specific player intention to the bagOfWords(). In this case, we will
     ### Investigate the intention to 'carry' a victim or potential victim.
 
     # First subset the dataset with all abstraction labels with the word of
       # interest for intentions, as captured in abstraction labels:
-intent = "stabilize"
+
+
+#*** THIS LOOP IS INTERACTIVE AND REQUIRES INPUT FROM USER ***
+
+
+#jUNCOMMENT TO LOOP THROUGH ALL INTENTIONS AND OBTAIN CONDITIONAL PROBABILITIES.
+
+
+
+'''
+## This loop requires user interaction, which can be annoying to some.
+
+intentions = ['carry', 'wake', 'priorit', 'locat', 'unique', 'information',
+'plan', 'clear', 'critical', 'stabilize', 'ask', 'request', 'suggest']
+
+for i in intentions:
+    carryIntention = abstractLabel_subset(data, i)
+    print(hrule)
+    ask = input("Hit c to continue to next\n")
+    if ask == "c":
+        continue
+    else:
+        break
+'''
+
+intent = "locat"
 print(Hrule, "FOR THE INTENT:", intent, "\n")
 carryIntention = abstractLabel_subset(data, intent)
     # Now send to the bagOfWords() function:
