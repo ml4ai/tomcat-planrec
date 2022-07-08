@@ -1,6 +1,6 @@
 #include "PercAgent.hpp"
-#include "../../lib/kb.h"
 #include "boost/json.hpp"
+#include "file.hpp"
 #include <iostream>
 
 using namespace std;
@@ -101,7 +101,7 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     .at("locations")
                     .at(jv.at("data").at("locations").as_array().size() - 1)
                     .at("id"));
-            new_knowledge = "(at ";
+            new_knowledge = "(player_at ";
             auto role = boost::json::value_to<std::string>(
                 jv.at("data").at("callsign"));
             if (role == "Red") {
@@ -119,13 +119,24 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     .at(jv.at("data").at("locations").as_array().size() - 1)
                     .at("id"));
             new_knowledge += ")";
-//            tell(this->kb, new_knowledge);
+            tell(this->kb, new_knowledge);
         }
     }
     catch (exception& exc) {
         pretty_print(std::cout, jv);
     }
-    //    cout << jv["data"].as_string() << endl;
 }
 
-PercAgent::PercAgent(string address) : Agent(address){};
+PercAgent::PercAgent(string address) : Agent(address) {
+    // initialize kb
+    auto const s = read_file("../../../metadata/Saturn_1.5_3D_sm_v1.0.json");
+    json::object jv = json::parse(s).as_object();
+    vector<string> location_ids;
+    for (const auto& loc : jv.at("locations").as_array()) {
+        location_ids.emplace_back(loc.at("id").as_string().c_str());
+    }
+    initialize_data_type(this->kb, "Location", location_ids);
+    initialize_data_type(
+        this->kb, "Role", {"medic", "transporter", "engineer"});
+    initialize_predicate(this->kb, "player_at", {"Role", "Location"});
+};
