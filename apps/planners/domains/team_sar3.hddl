@@ -7,6 +7,7 @@
 
   (:predicates
     (at ?p - human ?l - location)
+    (adj ?l1 ?l2 - location)
     (holds ?p - rescuer ?v - victim)
     (holding_vic ?p - rescuer)
     (stabilized ?v - victim)
@@ -24,21 +25,112 @@
     (has_sensor_for ?l ?s_l - location)
     (knowledge_of_regs ?p - rescuer ?l - location)
     (knowledge_of_crit ?p - rescuer ?l - location)
-  )
-
-  (:f-predicates
-    (can_see_reg_vic ?p - rescuer)
+    (location_marker_A ?p - rescuer ?l1 ?l2 - location)
+    (location_marker_B ?p - rescuer ?l1 ?l2 - location)
+    (location_marker_NVH ?p - rescuer ?l1 ?l2 - location)
+    (location_marker_CV ?p - rescuer ?l1 ?l2 - location)
+    (location_marker_RV ?p - rescuer ?l1 ?l2 - location)
+    (location_marker_TR ?p - rescuer ?l1 ?l2 - location)
+    (location_marker_R ?p - rescuer ?l1 ?l2 - location)
+    (location_marker_HMH ?p - rescuer ?l1 ?l2 - location)
+    (victim_marker_A ?p - rescuer ?l - location ?v - victim)
+    (victim_marker_B ?p - rescuer ?l - location ?v - victim)
+    (victim_marker_NVH ?p - rescuer ?l - location ?v - victim)
+    (victim_marker_CV ?p - rescuer ?l - location ?v - victim)
+    (victim_marker_RV ?p - rescuer ?l - location ?v - victim)
+    (victim_marker_TR ?p - rescuer ?l - location ?v - victim)
+    (victim_marker_R ?p - rescuer ?l - location ?v - victim)
+    (victim_marker_HMH ?p - rescuer ?l - location ?v - victim)
+    (can_see_reg_vic ?p - rescuer);start f-predicates 
     (can_diagnose_vic ?m - medic ?v - victim)
     (can_see_crit_vic ?p - rescuer)
     (can_stabilize_vic ?m - medic ?v - victim)
     (can_wake_vic ?m - medic ?t - rescuer ?v - victim)
     (can_pickup_vic ?p - rescuer ?v - victim)
     (can_break_block ?e - engineer ?b - block)
+    (blocked_from ?l1 ?l2 - location)
     (type_a ?v - victim)
     (type_b ?v - victim)
     (type_c ?v - victim)
     (sense_regs ?l - location)
     (sense_crit ?l - location)
+    (marked_location_A ?p - rescuer ?l1 ?l2 - location)
+    (marked_location_B ?p - rescuer ?l1 ?l2 - location)
+    (marked_location_NVH ?p - rescuer ?l1 ?l2 - location)
+    (marked_location_CV ?p - rescuer ?l1 ?l2 - location)
+    (marked_location_RV ?p - rescuer ?l1 ?l2 - location)
+    (marked_location_TR ?p - rescuer ?l1 ?l2 - location)
+    (marked_location_R ?p - rescuer ?l1 ?l2 - location)
+    (marked_location_HMH ?p - rescuer ?l1 ?l2 - location)
+    (marked_victim_A ?p - rescuer ?l - location ?v - victim)
+    (marked_victim_B ?p - rescuer ?l - location ?v - victim)
+    (marked_victim_NVH ?p - rescuer ?l - location ?v - victim)
+    (marked_victim_CV ?p - rescuer ?l - location ?v - victim)
+    (marked_victim_RV ?p - rescuer ?l - location ?v - victim)
+    (marked_victim_TR ?p - rescuer ?l - location ?v - victim)
+    (marked_victim_R ?p - rescuer ?l - location ?v - victim)
+    (marked_victim_HMH ?p - rescuer ?l - location ?v - victim)
+    (remove_location_A ?p - rescuer ?l1 ?l2 - location)
+    (remove_location_B ?p - rescuer ?l1 ?l2 - location)
+    (remove_location_NVH ?p - rescuer ?l1 ?l2 - location)
+    (remove_location_CV ?p - rescuer ?l1 ?l2 - location)
+    (remove_location_RV ?p - rescuer ?l1 ?l2 - location)
+    (remove_location_TR ?p - rescuer ?l1 ?l2 - location)
+    (remove_location_R ?p - rescuer ?l1 ?l2 - location)
+    (remove_location_HMH ?p - rescuer ?l1 ?l2 - location)
+    (remove_victim_A ?p - rescuer ?l - location ?v - victim)
+    (remove_victim_B ?p - rescuer ?l - location ?v - victim)
+    (remove_victim_NVH ?p - rescuer ?l - location ?v - victim)
+    (remove_victim_CV ?p - rescuer ?l - location ?v - victim)
+    (remove_victim_RV ?p - rescuer ?l - location ?v - victim)
+    (remove_victim_TR ?p - rescuer ?l - location ?v - victim)
+    (remove_victim_R ?p - rescuer ?l - location ?v - victim)
+    (remove_victim_HMH ?p - rescuer ?l - location ?v - victim)
+  )
+
+  (:task move_to
+    :parameters (?h - rescuer ?l - location)
+  )
+
+  (:task move_together_pair
+    :parameters (?t1 ?t2 - rescuer ?l - location)
+  )
+
+  (:task move_together_all
+    :parameters (?t1 ?t2 ?t3 - rescuer ?l - location)
+  )
+
+  (:method m_move_to_0
+    :parameters (?h - rescuer ?old_l ?new_l - location)
+    :task (move_to ?h ?new_l)
+    :precondition (and 
+                    (at ?h ?old_l)
+                    (adj ?old_l ?new_l)
+                    (not (blocked_from ?new_l ?old_l))
+                  )
+    :subtasks (and
+                (task0 (move ?h ?old_l ?new_l))
+              )
+  )
+
+  (:method m_move_to_1
+    :parameters (?h - rescuer ?old_l ?new_l sub_l - location)
+    :task (move_to ?h ?new_l)
+    :precondition (and 
+                    (at ?h ?old_l)
+                    (adj ?new_l sub_l)
+                    (or 
+                      (not (adj ?old_l ?new_l))
+                      (blocked_from ?new_l ?old_l)
+                    )
+                  )
+    :subtasks (and
+                (task0 (move_to ?h ?sub_l))
+                (task1 (move_to ?h ?new_l))
+              )
+    :ordering (and
+                (< task0 task1)
+              )
   )
 
   (:action stabilize
@@ -70,6 +162,7 @@
     :parameters (?h - rescuer ?old_l ?new_l - location)
     :precondition (and
                     (at ?h ?old_l) 
+                    (adj ?old_l ?new_l)
                   )
     :effect (and
               (not (at ?h ?old_l))
@@ -173,6 +266,21 @@
             )
   )
 
+  (:action remove_location_marker
+    :parameters (?h - rescuer ?l1 ?l2 - location)
+    :preconditions (at ?h ?l)
+    :effect (and
+              (when (remove_location_A ?h ?l1 ?l2) (not (location_marker_A ?h ?l1 ?l2)))
+              (when (remove_location_B ?h ?l1 ?l2) (not (location_marker_B ?h ?l1 ?l2)))
+              (when (remove_location_NVH ?h ?l1 ?l2) (not (location_marker_NVH ?h ?l1 ?l2)))
+              (when (remove_location_CV ?h ?l1 ?l2) (not (location_marker_CV ?h ?l1 ?l2)))
+              (when (remove_location_RV ?h ?l1 ?l2) (not (location_marker_RV ?h ?l1 ?l2)))
+              (when (remove_location_TR ?h ?l1 ?l2) (not (location_marker_TR ?h ?l1 ?l2)))
+              (when (remove_location_R ?h ?l1 ?l2) (not (location_marker_R ?h ?l1 ?l2)))
+              (when (remove_location_HMH ?h ?l1 ?l2) (not (location_marker_HMH ?h ?l1 ?l2)))
+            )
+  )
+
   (:action mark_victim
     :parameters (?h - rescuer ?l - location ?v - victim)
     :preconditions (at ?h ?l)
@@ -188,9 +296,24 @@
             )
   )
 
-  (:action replace_mark_location
-    :parameters (?h - rescuer ?t - rescuer ?l1 ?l2 - location)
+  (:action remove_victim_marker
+    :parameters (?h - rescuer ?l - location ?v - victim)
     :preconditions (at ?h ?l)
+    :effect (and
+              (when (remove_victim_A ?h ?l ?v) (not (victim_marker_A ?h ?l ?v)))
+              (when (remove_victim_B ?h ?l ?v) (not (victim_marker_B ?h ?l ?v)))
+              (when (remove_victim_NVH ?h ?l ?v) (not (victim_marker_NVH ?h ?l ?v)))
+              (when (remove_victim_CV ?h ?l ?v) (not (victim_marker_CV ?h ?l ?v)))
+              (when (remove_victim_RV ?h ?l ?v) (not (victim_marker_RV ?h ?l ?v)))
+              (when (remove_victim_TR ?h ?l ?v) (not (victim_marker_TR ?h ?l ?v)))
+              (when (remove_victim_R ?h ?l ?v) (not (victim_marker_R ?h ?l ?v)))
+              (when (remove_victim_HMH ?h ?l ?v) (not (victim_marker_HMH ?h ?l ?v)))
+            )
+  )
+
+  (:action replace_mark_location
+    :parameters (?h ?t - rescuer ?l1 ?l2 - location)
+    :preconditions (at ?h ?l1)
     :effect (and
               (when (marked_location_A ?h ?l1 ?l2) (location_marker_A ?h ?l1 ?l2))
               (when (marked_location_B ?h ?l1 ?l2) (location_marker_B ?h ?l1 ?l2))
@@ -212,27 +335,26 @@
   )
 
   (:action replace_mark_victim
-    :parameters (?h - rescuer ?t - rescuer ?l1 ?l2 - location)
+    :parameters (?h ?t - rescuer ?l - location ?v - victim)
     :preconditions (at ?h ?l)
     :effect (and
-              (when (marked_victim_A ?h ?l1 ?l2) (victim_marker_A ?h ?l1 ?l2))
-              (when (marked_victim_B ?h ?l1 ?l2) (victim_marker_B ?h ?l1 ?l2))
-              (when (marked_victim_NVH ?h ?l1 ?l2) (victim_marker_NVH ?h ?l1 ?l2))
-              (when (marked_victim_CV ?h ?l1 ?l2) (victim_marker_CV ?h ?l1 ?l2))
-              (when (marked_victim_RV ?h ?l1 ?l2) (victim_marker_RV ?h ?l1 ?l2))
-              (when (marked_victim_TR ?h ?l1 ?l2) (victim_marker_TR ?h ?l1 ?l2))
-              (when (marked_victim_R ?h ?l1 ?l2) (victim_marker_R ?h ?l1 ?l2))
-              (when (marked_victim_HMH ?h ?l1 ?l2) (victim_marker_HMH ?h ?l1 ?l2))
-              (when (remove_victim_A ?t ?l1 ?l2) (not (victim_marker_A ?t ?l1 ?l2)))
-              (when (remove_victim_B ?t ?l1 ?l2) (not (victim_marker_B ?t ?l1 ?l2)))
-              (when (remove_victim_NVH ?t ?l1 ?l2) (not (victim_marker_NVH ?t ?l1 ?l2)))
-              (when (remove_victim_CV ?t ?l1 ?l2) (not (victim_marker_CV ?t ?l1 ?l2)))
-              (when (remove_victim_RV ?t ?l1 ?l2) (not (victim_marker_RV ?t ?l1 ?l2)))
-              (when (remove_victim_TR ?t ?l1 ?l2) (not (victim_marker_TR ?t ?l1 ?l2)))
-              (when (remove_victim_R ?t ?l1 ?l2) (not (victim_marker_R ?t ?l1 ?l2)))
-              (when (remove_victim_HMH ?t ?l1 ?l2) (not (victim_marker_HMH ?t ?l1 ?l2)))
+              (when (marked_victim_A ?h ?l ?v) (victim_marker_A ?h ?l ?v))
+              (when (marked_victim_B ?h ?l ?v) (victim_marker_B ?h ?l ?v))
+              (when (marked_victim_NVH ?h ?l ?v) (victim_marker_NVH ?h ?l ?v))
+              (when (marked_victim_CV ?h ?l ?v) (victim_marker_CV ?h ?l ?v))
+              (when (marked_victim_RV ?h ?l ?v) (victim_marker_RV ?h ?l ?v))
+              (when (marked_victim_TR ?h ?l ?v) (victim_marker_TR ?h ?l ?v))
+              (when (marked_victim_R ?h ?l ?v) (victim_marker_R ?h ?l ?v))
+              (when (marked_victim_HMH ?h ?l ?v) (victim_marker_HMH ?h ?l ?v))
+              (when (remove_victim_A ?t ?l ?v) (not (victim_marker_A ?t ?l ?v)))
+              (when (remove_victim_B ?t ?l ?v) (not (victim_marker_B ?t ?l ?v)))
+              (when (remove_victim_NVH ?t ?l ?v) (not (victim_marker_NVH ?t ?l ?v)))
+              (when (remove_victim_CV ?t ?l ?v) (not (victim_marker_CV ?t ?l ?v)))
+              (when (remove_victim_RV ?t ?l ?v) (not (victim_marker_RV ?t ?l ?v)))
+              (when (remove_victim_TR ?t ?l ?v) (not (victim_marker_TR ?t ?l ?v)))
+              (when (remove_victim_R ?t ?l ?v) (not (victim_marker_R ?t ?l ?v)))
+              (when (remove_victim_HMH ?t ?l ?v) (not (victim_marker_HMH ?t ?l ?v)))
             )
   )
-
 
 )
