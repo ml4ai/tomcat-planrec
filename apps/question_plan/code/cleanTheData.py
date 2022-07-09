@@ -216,7 +216,7 @@ def alphabetizeObjects(column):
 
             elif myN[0] > myM[0]:
 #                print("\nLabel to alphabetize:", myV, myN, myM)
-                print("Oh no!",  myN[0], "<?>", myM[0])
+#                print("Oh no!",  myN[0], "<?>", myM[0])
                 temp = myN
                 myN = myM
                 myM = temp
@@ -278,6 +278,23 @@ def alphabetizeObjects(column):
         allNouns.append(n)
         allModifiers.append(m)
         newColumn.append(c)
+
+
+    # probability of the feature of interest.
+    def jointProb(allList):
+        df = pandas.DataFrame(allList)
+        pandas.set_option('display.float_format', '{:.2}'.format)
+        df.columns = ["POS"]
+        print(df)
+        dfa = df['POS'].value_counts(normalize = True).sort_values().to_frame()
+        dfa.reset_index(inplace = True)
+        dfa.columns = ['0', 'joint_probability']
+        print(dfa.head(100), hrule)
+
+#    jointProb(allModifiers)
+
+
+
 
 #    print(hrule, "All Verbs:\n", allVerbs)
 #    print(hrule, "All Nouns:\n", allNouns)

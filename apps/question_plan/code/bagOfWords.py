@@ -58,7 +58,7 @@ for the purposes of this file.
 '''
 
 
-def bagOfWords(unsorted_df):
+def bagOfWords(unsorted_df, column):
     pandas.set_option('display.max_rows', 400)
     pandas.set_option('display.float_format', '{:.2}'.format)
     pandas.set_option('display.max_columns', 200)
@@ -91,7 +91,7 @@ def bagOfWords(unsorted_df):
 
     ### Divide up the dataframe by teams:
     def divideFrame(team):
-        docs = team['question_verbatim'].to_frame()
+        docs = team[column].to_frame()
         docs.reset_index(inplace = True)
         docs.drop(docs.columns[0], axis = 1, inplace = True)
 #        print(hrule, docs.shape, type(docs))
@@ -153,19 +153,38 @@ def bagOfWords(unsorted_df):
     return team1, team2, team3
 
 ###############################################################################
-def utterance(unsorted_df, theUtterance):
-    unsorted_df = unsorted_df[['video', 'obsNum', 'regular', 'critical', 'score',
-        'question_verbatim', 'abstractLabels', 'questionLabels']]
+def utterance_intent(unsorted_df, theUtterance, theIntent):
+
+    unsorted_df = unsorted_df[['video', 'obsNum', 'regular', 'critical', 'score', 'question_verbatim', 'abstractLabels', 'questionLabels']]
     df = unsorted_df.sort_values(by=['video'])
-    print("For one team, not all the data, the Joint Probabilities of all Abstract Labels, given the utterance",
-            theUtterance, "in the question.\n")
-    print(hrule, "UTTERANCE OF INTEREST:\t", theUtterance, "\n\n")
+
+    '''
+    Create two subset dataframes, one for all observations that have
+    utterance of interest and the other for the intent of interest
+    '''
     utter = df['question_verbatim'].str.contains(theUtterance, case=False)
     utter = df[utter]
-    print(hrule, utter)
-    print(hrule, "\np(Intention | \"", theUtterance, "\" is spoken)\n\n",
-            utter["abstractLabels"].value_counts().head(30), "\n")
-    bagOfWords(utter)
+    intent = df['abstractLabels'].str.contains(theIntent, case = False)
+    intent = df[intent]
+
+    ### Find the conditional probability
+    print("Probabilities of all Abstract Labels, given the utterance",
+            theUtterance, "in the question.\n")
+    print("\np(", theIntent," | \"", theUtterance, "\" is spoken)\n\n")
+    cond_utter = prob.get_conditional_probability(utter, "question_verbatim", "abstractLabels")
+
+    # Now send to bag of words ()
+    bagOfWords(utter, "question_verbatim")
+
+
+#    print(hrule, "Bag of words for ", theUtterance, "performed on labels")
+#    print(intent)
+#    print("\np(", theUtterance," | \"", theIntent, "\" is spoken)\n\n")
+
+#    cond_intent = prob.get_conditional_probability(utter, "abstractLabels", "question_verbatim")
+#    bagOfWords(intent, "abstractLabels")
+
+###############################################################################
 
 
 def abstractLabel_subset(df, theIntent):
@@ -221,6 +240,7 @@ def abstractLabel_subset(df, theIntent):
     #TODO: fix this bug.
     myIntent.drop(myIntent.columns[0], axis=1, inplace=True)
     myIntent = myIntent.sort_values(by=['video'])
+    myIntent["0"] = range(1, 1+len(myIntent))
     print(hrule, "All observations that have the word \"", theIntent,
             "\" in abstract labels.\n\n", myIntent.head(191))
     return myIntent
@@ -233,6 +253,7 @@ def abstractLabel_subset(df, theIntent):
 ### Horizontal ruling for visual ease in reading output.
 hrule = ("\n" + "-"*80 + "\n")
 Hrule = ("\n" + "="*80 + "\n")
+HRULE = ("\n" + "___"*30 + "CURRENT TESTING" + "___"*30 + "\n")
 
 ### Set number of rows to display in output:
 HEAD = 20
@@ -248,24 +269,11 @@ data = pandas.read_csv(file)
 print(hrule, "\nChecking head(3) of myCleanedData:\n\n", data.head(3), hrule)
 
 
-### Uncomment to send the entire dataset to bagOfWords
-print(Hrule, "FOR ALL INTENTIONS\n")
-teamUtter1, teamUtter2, teamUtter3 = bagOfWords(data)
-print(Hrule*3, teamUtter1, Hrule)
-utterance(data, "guy")  # Use a stemmed version of utterance
 
+### 
+intent = "collabor"
+utterances = "guy"
 
-### Send a specific player intention to the bagOfWords(). In this case, we will
-    ### Investigate the intention to 'carry' a victim or potential victim.
-
-    # First subset the dataset with all abstraction labels with the word of
-      # interest for intentions, as captured in abstraction labels:
-
-
-#*** THIS LOOP IS INTERACTIVE AND REQUIRES INPUT FROM USER ***
-
-
-#jUNCOMMENT TO LOOP THROUGH ALL INTENTIONS AND OBTAIN CONDITIONAL PROBABILITIES.
 
 
 
@@ -285,11 +293,24 @@ for i in intentions:
         break
 '''
 
-intent = "locat"
+
+
+### Uncomment to send the entire dataset to bagOfWords
+print(Hrule, "FOR ALL INTENTIONS AND UTTERANCES:\n")
+teamUtter1, teamUtter2, teamUtter3 = bagOfWords(data, "question_verbatim")
+print(Hrule*3, teamUtter1, Hrule)
+utterance_intent(data, utterances, intent)  # Use a stemmed version of utterance
+
+
 print(Hrule, "FOR THE INTENT:", intent, "\n")
 carryIntention = abstractLabel_subset(data, intent)
     # Now send to the bagOfWords() function:
-bagOfWords(carryIntention)
+bagOfWords(carryIntention, "question_verbatim")
+
+
+print(Hrule, "FOR THE UTTERANCE:", utterances, "\n")
+bagOfWords(carryIntention, "question_verbatim")
+print("\nEnd of intent = collaborat")
 
 
 print(Hrule, "\t\t\tEnd of Program", Hrule)

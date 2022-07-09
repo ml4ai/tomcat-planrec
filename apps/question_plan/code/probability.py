@@ -96,17 +96,16 @@ def get_joint_probability(df, colA):
     dfa = df[colA].value_counts(normalize = True).sort_values().to_frame()
     dfa.reset_index(inplace = True)
     dfa.columns = [colA, 'joint_probability']
-    print(dfa, hrule)
+    #print(dfa, hrule)
     return dfa
 
 def get_conditional_probability(df, colA, colB):
     print("\nP(", colB, "|", colA, ")\n")
     df1 = df.groupby(colA).value_counts(normalize = True).to_frame()
     df1.reset_index(inplace = True)
-
     # next line solution from: https://www.codegrepper.com/code-examples/python/pandas+change+the+last+column+name
     df1 = df1.rename(columns={0: 'conditional_probability'})
-    print(df1)
+    #print(df1)
     print(hrule)
     return df1
 
@@ -156,12 +155,14 @@ def replaceTerms(df):
     df = replaceSubstring_Global(df, "confirm", "clarify")
     df = replaceSubstring_Global(df, "Marker", "Mark")
     df = replaceSubstring_Global(df, "askPlan", "collaborate")
+    df = replaceSubstring_Global(df, "Stabilizedvictim", "Stabilized")
+    df = replaceSubstring_Global(df, "cordinate", "coordinate")
     df = replaceSubstring_Global(df, "CapabilitiesRole",
             "Collaborationcollaborate")
     df = replaceSubstring_Global(df, "Knowledge", "Information")
     df = replaceSubstring_Global(df, "clarifyInformation", "clarify")
     df = replaceSubstring_Global(df, "askInformationLocation", 'askLocation')
-    df = replaceSubstring_Global(df, "Stabilized", "Victim") # see notes above
+#    df = replaceSubstring_Global(df, "Stabilized", "Victim") # see notes above
 #    df = replaceSubstring_Global(df, "direct", "suggest")
     df = replaceSubstring_Global(df, "Collaborationcollaborate",
             "Collaboration")
