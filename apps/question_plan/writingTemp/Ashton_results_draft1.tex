@@ -376,38 +376,107 @@ represented by classical planning or HTN planning.
 
 \newpage
 
+
+
+
+
+
+
 \section{Results}
+
+
+
+
+
+
+
+
+
+
+
+
+PROMISES MADE:
+
+\begin{itemize}
+    \item DONE: investigate how uttered questions can infer another person's goal or intention. 
+    
+
+    \item How do spoken questions reveal another person’s plan or intent? 
+    \item Can people listen to spoken questions and accurately decide if the other person's plan
+        is simple, sequential, or hierarchical? Can the distinction between such
+        structures improve predictive performance for Artificial Social
+        Intelligence (ASI) agent intervention?
+    \item  annotate six ASIST Study 3 Spiral 2 pilot video observations and
+six HSR ASIST Study 3 videos released between March 29 and May 5, for a total
+of at least twelve videos. 
+    \item Two human annotators
+    \item Strict adherence to Grounded Theory (bottomup/ process and causal coding)
+    \item emergent categories
+    \item minimally-stemmed or lemmatized, 100\% unsupervised labeling with full autonomy and strict definition/ use
+    \item Kappa $>$ 80\%
+    \item 1 - 2 super theories will emerge, which we assume to mean Team ToM
+    \item Preliminary Analysis HOW Team TOM maps to AI PLanning-- due to small sample size:
+    \begin{itemize}
+        \item qualitative investigation of word frequencies, clustering and/ correlation
+        \item qualitative investigation through visualization
+        \item scatterplots or histograms or hierarchical visualizations
+        \item information across time
+    \end{itemize}
+ \end{itemize}
+
+Limitations:
+\begin{itemize}
+    \item Cost of human annotation
+    \item sample size means no evaluation at this time
+\end{itemize}
+
+Future Research:
+\begin{itemize}
+    \item knowledge engineering and representation of tasks, goals, and hidden intentions;  \emph{hierarchical task network} (HTN),
+    \item scale for additional data
+    \item Preliminary research can lead to additional annotation, quantitative analysis and generalized theories for ASI
+    \item Compare and contrast theories that emerge from no-intervention data to high-intervention data
+    \item Investigation into which data structures best capture human individual and team ToM
+\end{itemize}
+
+
+
+
+
+
+
+
+\vspace{300pt}
 \subsection{Label Development and Taxonomy}
 
-To demonstrate that questions have hidden goals or intentions, two independent annotators\footnote{Ashton and Kim} viewed six different study-3 pilot videos using an unconstrained set of labels. We annotated one video and compared notes to address the others' potential bias toward labels and their lexical definitions. The disambiguation of such labels led to extensive documentation of verb, noun and modifier use agreement. 
+To demonstrate that questions have hidden goals or intentions, we used a bottom-up approach of Grounded Theory Qualitative Coding methodology. This particular method is one of the strictest and most robust qualitative methodologies that easily transforms into quantitative analysis, and we followed its canon and procedure with care. Two independent annotators\footnote{Ashton and Kim} viewed six different study-3 pilot videos using an unconstrained set of labels. We annotated one video and compared notes to address the others' potential bias toward labels and their lexical definitions. The disambiguation of such labels led to extensive documentation of verb, noun and modifier use agreement. 
 
 These labels served to develop a final labeling schema for the remaining 5 pilot videos and the annotation of six different study-3 real data videos\footnote{Ashton and Reiffer-Champlin}. The following features were annotated: video observation number, question count per video, running count of regular and critical victims fully rescued at time interval of occurrence, running score, time interval of question utterance, the player who asked the question, transcription of question utterance\footnote{Disclaimer: Ashton wears corrective hearing aids; all annotation transcriptions were verified by both annotators in stage 1 and stage 2}), optional context of question utterance, and the question label. 
 
 For all 12 video observations, Ashton further annotated a causeLabel, effectLabel, abstractLabel, htnLabel, and reasonWhyQuestionLabel before seeing any of the other annotators' work. A cause is the reason why a question had been uttered or the capturing of an event or phenomena that made the question utterance possible at that time step whereas it had not been a plausible question before. While there may be several causes for a question utterance, we would need more data to confidently declare whether these causeLabels are independent or conditionally independent. The same can be said for several effectLabels resulting from question utterances. Abstract labels redefine the question label at a mid-range abstraction level and the htn level redefines the entire cause-question-effect triple as a highest-level task or goal. 
 
-While annotation label schema had been developed, no constraint was placed on any potential label or event; each annotator remained autonomous in labeling any question utterance. Because only three additional labels were created during this second stage of coding, we achieved \emph{theoretical saturation}.\footnote{The point of label development that allows for additional labels, but very few are created when given full autonomy, thus indicating that existing label schema fully capture events, data and phenomena observed.} A full, lexical definition of labels can be found within this repository that includes examples of when or when not to use a particular label. Label codes were created in the format of "verbObjectObject" where an object could be a noun or modifier. 
+While annotation label schema had been developed, no constraint was placed on any potential label or event; each annotator remained autonomous in labeling any question utterance. Because only three additional labels were created during this second stage of coding, we achieved \emph{theoretical saturation}.\footnote{The point of label development that allows for additional labels, but very few are created when given full autonomy, thus indicating that existing label schema fully capture events, data and phenomena observed.} A full, lexical definition of labels can be found within this repository that includes examples of when or when not to use a particular label. Label codes were created in the format of "verbObjectObject" where an object could be a noun or modifier, and was left for the annotator to decide.  
+
+
+Data preprocessing on pilot data and adherence to Grounded Theory procedure suggested that the theoretical saturation point of concept labels  yield 21 verb labels, 24 noun labels, and 25 modifier labels. Without replacement, this yields 12,600 possible labels, plus any label creations given to the autonomous annotators. Regardless of the probability of these labels approaching near zero, Ashton demonstrated theoretical saturation with the demonstrated use of less than 30 labels, before global replacement.
+
+The strict adherence to Grounded Theory worked, as described by Saldana, but it now lets the data tell us what the player intention and strategies are.
+
+
 
 \subsection{Data Cleaning and Annotator Agreement}
-Data were entered in an Excel spreadsheet to minimize annotator interface constraints.\footnote{Future annotations will use particular software to allow for experiment scalability}. Data were cleaned by spelling correction, stemming of verbs and objects, and alphabetizing one object after the other, both placed after the verb. 
+Because of the full autonomy given annotators, the probability of theoretical label agreement approaches zero, so it is remarkable that we achieved an unweighted Cohen Kappa agreement of 0.892. Data were entered in an Excel spreadsheet to minimize annotator interface constraints.\footnote{Future annotations will use particular software to allow for experiment scalability} and cleaned by spelling correction, minimal lemmatization, and alphabetizing one object after the other, both placed after the verb. During data analysis, Ashton empirically justified granularities of label definition to capture question-asking intentions. For example, the conditional probabilities of questions, given a player intention would change if "critical" and "victim" were labeled as "victim". Therefore, these and similar granularities were maintained. Other conditional probabilities, such as "location" and "room" did not significantly change, so after the data were cleaned, a global replacement of "room" to "location", and similar replacements were made. Global placement after post processing is not reflected in the Kappa score in order to maintain researcher transparency.
 
 Using the disambiguation documentation and Merriam-Webster's Dictionary to meticulously settle any annotator label disagreement, Ashton declared the question labels as 'agree' or 'disagree'. In cases of agreement but labels were not the same, "clarifyBreakRubble" vs "confirmBreakRubble" for example, Ashton verified annotator intention. Likewise, in cases of disagreement but labels sounded similar, "navigateRoom" vs "navigateLocation", Ashton declared 'disagreement'\footnote{Clarify means to ask for additional information; confirm is to give additional acknowledgement of additional information; Location was used as a general area or set of rooms in the same area; Room was used as a specific room only.} When annotator intention and the disambiguation documentation did not clarify the agreement or disagreement of labels, Ashton declared it as 'disagreement'. In cases where question labels had matching cause or effect labels, Ashton declared the question label as 'agreement'. In cases where questionLabels had ambivalent annotator intention, cause or effect label pairs, Ashton then viewed the abstraction label. In cases of 3 or less ambivalent label subsets, Ashton declared "disagreement; cannot justify agreement with data size." All decisions are thoroughly documented in the dataset under the column 'reasonWhyQuestionLabel.' 
 
-This rigorous approach to label disambiguation fulfilled several purposes: annotator assumption about domain definitions for SAR, annotator bias toward predicted strategy of player or team, and explicit statement of reasoning that will guide algorithmic development of causal inference in future research. We promised a Kappa Score of 80\% inter-rater reliability and achieved 89\%. 
 
 
-Relative agreement: 0.892
-Infinite labels that are unsupervised, however preliminary data preprocessing on pilot data and adherence to Grounded Theory procedure suggested that the theoretical saturation point of concept labels are:
-\begin{itemize}
-    \item Verbs: 21 labels
-    \item Nouns: 24 labels
-    \item Modifiers: 25 labels
-    \item Relative agreement: 0.892
-    \item Unweighted Cohen Kappa Inter-rater Reliability Score: 0.8918
-\end{itemize}
-
-I defined 'agreement' as $0 = $ No match and $1 =$ match\footnote{Explanation of a match is found in the data themselves for each observation}. This binary classification of agreement allowed me to use the unweighted Cohen Kappa\footnote{In order to adhere to the robust procedure of Grounded Theory, the technical calculation of Kappa's score would include the probability of \textit{all possible probabilities of all labels}, which would approach zero. While it sounds trivial, it must be mentioned that the reason Grounded Theory is robust in its unsupervised labeling approach is because annotators have complete autonomy. So, while it is mathematically true that the probability of two annotators choosing the same label for any action assumes infinite label possibilities, I chose to calculate the probability with the assumption of 21 verb possibilities and 25 noun/ modifier possibilities, with the added component of user-created labels. If theoretical saturation were to be achieved, very few additional labels would be created. That was the case here. Therefore, the Kappa score was calculated on the latter set of assumptions}. Inter-rater Reliability measure. Because the sample size is small and only two annotators worked on the pilot data, and two annotators worked on the real data, there is no current justification for using Scott's pi or a weighted Kappa. This will change as investigation and further research scale.
 
 
+I defined 'agreement' as $0 = $ No match and $1 =$ match\footnote{Explanation of a match is found in the data themselves for each observation}. This binary classification of agreement allowed me to use the unweighted Cohen Kappa\footnote{In order to adhere to the robust procedure of Grounded Theory, the technical calculation of Kappa's score would include the probability of \textit{all possible probabilities of all labels}, which would approach zero. While it sounds trivial, it must be mentioned that the reason Grounded Theory is robust in its unsupervised labeling approach is because annotators have complete autonomy. So, while it is mathematically true that the probability of two annotators choosing the same label for any action assumes infinite label possibilities, I chose to calculate the probability with the assumption of 21 verb possibilities and 25 noun/ modifier possibilities, with the added component of user-created labels. If theoretical saturation were to be achieved, very few additional labels would be created. That was the case here. Therefore, the Kappa score was calculated on the latter set of assumptions. Inter-rater Reliability measure. Because the sample size is small and only two annotators worked on the pilot data, and two annotators worked on the real data, there is no current justification for using Scott's pi or a weighted Kappa. This will change as investigation and further research scale.}
+
+
+This rigorous approach to label disambiguation fulfilled several purposes: annotator assumption about domain definitions for SAR, annotator bias toward predicted strategy of player or team, and explicit statement of reasoning that will guide algorithmic development of causal inference in future research. We promised a Kappa Score of 80\% inter-rater reliability and we deliver a score of 89.2\%. 
 
 
 \subsection{Emergent Categories of Player Intention}
@@ -424,13 +493,57 @@ From more than 400 unconstrained labels developed in stage 1 annotation, we disc
 
 
 
-\subsubsection{Question Labels}
+\subsubsection{Questions and Intentions}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{../figures/abstractLabel_ConditionalProbability_STA.pdf}
+    \caption{ }
+\end{figure}
 
 
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{../figures/abstractLabelProbability_STA.pdf}
+    \caption{ }
+\end{figure}
+
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{../figures/questionLabel_ConditionalProbability_STA.pdf}
+    \caption{ }
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{../figures/questionLabel_ConditionalProbability_STA.pdf}
+    \caption{ }
+\end{figure}
+
+
+\clearpage
 
 \subsubsection{Visualizations, Frequencies and Correlations}
 
 We did not regard label frequency as criteria for label usefulness. Instead, from these emergent categories, we chose specific words that optimized intention or belief differences among player interaction\footnote{For example: \emph{ask}, \emph{request}, \emph{suggest}, and \emph{clarify} are all actions that show the goal of obtaining information, but clarify asks for additional information needed before acting upon a goal or task, request is an initiation of commitment to another player with the optional accept/ reject response that suggest would not imply, and ask is a general desire for information.}. We then used 38 label components, to be used as verb or object, as per the discretion of each annotator, and in conjunction with annotator autonomy for new label development, for stage 2 annotation. After data cleaning, a handful of labels were created but most were subsumed in lexical meaning of established labels. Only 3 additional labels were remained: search, plan, and role, and are found in the data.
+
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{../figures/QuestionTiming_STA.pdf}
+    \caption{ }
+\end{figure}
+
+\clearpage
+
+
+
+
+
+
+
+
+
 
 
 
