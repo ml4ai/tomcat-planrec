@@ -395,6 +395,21 @@ Using the disambiguation documentation and Merriam-Webster's Dictionary to metic
 This rigorous approach to label disambiguation fulfilled several purposes: annotator assumption about domain definitions for SAR, annotator bias toward predicted strategy of player or team, and explicit statement of reasoning that will guide algorithmic development of causal inference in future research. We promised a Kappa Score of 80\% inter-rater reliability and achieved 89\%. 
 
 
+Relative agreement: 0.892
+Infinite labels that are unsupervised, however preliminary data preprocessing on pilot data and adherence to Grounded Theory procedure suggested that the theoretical saturation point of concept labels are:
+\begin{itemize}
+    \item Verbs: 21 labels
+    \item Nouns: 24 labels
+    \item Modifiers: 25 labels
+    \item Relative agreement: 0.892
+    \item Unweighted Cohen Kappa Inter-rater Reliability Score: 0.8918
+\end{itemize}
+
+I defined 'agreement' as $0 = $ No match and $1 =$ match\footnote{Explanation of a match is found in the data themselves for each observation}. This binary classification of agreement allowed me to use the unweighted Cohen Kappa\footnote{In order to adhere to the robust procedure of Grounded Theory, the technical calculation of Kappa's score would include the probability of \textit{all possible probabilities of all labels}, which would approach zero. While it sounds trivial, it must be mentioned that the reason Grounded Theory is robust in its unsupervised labeling approach is because annotators have complete autonomy. So, while it is mathematically true that the probability of two annotators choosing the same label for any action assumes infinite label possibilities, I chose to calculate the probability with the assumption of 21 verb possibilities and 25 noun/ modifier possibilities, with the added component of user-created labels. If theoretical saturation were to be achieved, very few additional labels would be created. That was the case here. Therefore, the Kappa score was calculated on the latter set of assumptions}. Inter-rater Reliability measure. Because the sample size is small and only two annotators worked on the pilot data, and two annotators worked on the real data, there is no current justification for using Scott's pi or a weighted Kappa. This will change as investigation and further research scale.
+
+
+
+
 \subsection{Emergent Categories of Player Intention}
 From more than 400 unconstrained labels developed in stage 1 annotation, we discovered recurrent components from which goals or intentions emerged:
 
@@ -406,6 +421,11 @@ From more than 400 unconstrained labels developed in stage 1 annotation, we disc
     \item Question utterances that were actually demands, statements that were questions with inflection, and other nuanced utterances: suggest, tell, direct, request; context and explanations included in annotation.
     \item Autonomy in any other label creation; this resulted in marker, mission, wake, etc.
 \end{itemize}
+
+
+
+\subsubsection{Question Labels}
+
 
 
 \subsubsection{Visualizations, Frequencies and Correlations}
