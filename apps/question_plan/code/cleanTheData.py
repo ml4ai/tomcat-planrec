@@ -160,10 +160,19 @@ def alphabetizeObjects(column):
         def getVerb(label):
 #            print("from getVerb()", label)
             verb = ""
+            size = len(label)
+            size = int(size)
             for j in label:
-                if j.islower():
+                if size < 1:
+                    label = "Nomodifier"
+                    return verb, label
+                elif j.islower():
                     verb = verb + j
                     label = label.replace(j, "", 1)
+                    size -= 1
+                    if size < 1:
+                        label = "Nomodifier"
+                        return verb, label
                 else:
 #                    print("\nFrom getVerb():\n", verb)
                     return verb, label

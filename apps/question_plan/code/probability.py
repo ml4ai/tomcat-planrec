@@ -96,7 +96,7 @@ def get_joint_probability(df, colA):
     dfa = df[colA].value_counts(normalize = True).sort_values().to_frame()
     dfa.reset_index(inplace = True)
     dfa.columns = [colA, 'joint_probability']
-    #print(dfa, hrule)
+    print(dfa, hrule)
     return dfa
 
 def get_conditional_probability(df, colA, colB):
@@ -106,7 +106,6 @@ def get_conditional_probability(df, colA, colB):
     # next line solution from: https://www.codegrepper.com/code-examples/python/pandas+change+the+last+column+name
     df1 = df1.rename(columns={0: 'conditional_probability'})
     #print(df1)
-    print(hrule)
     return df1
 
 
@@ -156,6 +155,7 @@ def replaceTerms(df):
     df = replaceSubstring_Global(df, "Marker", "Mark")
     df = replaceSubstring_Global(df, "askPlan", "collaborate")
     df = replaceSubstring_Global(df, "Stabilizedvictim", "Stabilized")
+    df = replaceSubstring_Global(df, "LocationThreat", "Threatroom")
     df = replaceSubstring_Global(df, "cordinate", "coordinate")
     df = replaceSubstring_Global(df, "CapabilitiesRole",
             "Collaborationcollaborate")
