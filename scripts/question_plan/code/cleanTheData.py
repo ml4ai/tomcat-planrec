@@ -1,53 +1,43 @@
+#TODO: start documentation on line 257
+
 '''
 --------------------------------------------------------------------------
-This code will not run until I upload the csv data.
+Purpose:
+    This program reads in a csv file from annotations written in camel-case
+    verbObjectObject form, time, raw text annotation, and other features
+    annotated from the ASIST Minecraft SAR Environment Study 3 data.
 
-Program begins around line 410.
+Author:
+    Salena T. Ashton
+    PhD Student, School of Information
+    University of Arizona
+
+Date Created:
+    18 June 2022
+
+Last Updated:
+    11 July 2022
+
+Affiliation:
+    Theory of Mind-based Cognitive Architecture for Teams (ToMCAT)
+    Adarsh Pyarelal, Head PI and Clayton T. Morrison, Co-PI
+    School of Information, University of Arizona
 --------------------------------------------------------------------------
-
-Author: Salena T. Ashton
-        PhD Student, School of Information
-        University of Arizona
-
-Date Created: 18 June 2022
-Last Updated: 19 June 2022
-
-Theory of Mind-based Cognitive Architecture for Teams (ToMCAT)
-Planning Work Group
-Adarsh Pyarelal, Head PI and Clayton T. Morrison, Co-PI
-School of Information, University of Arizona
---------------------------------------------------------------------------
-
-Purpose: cleanTheData.py takes in annotations written in camel-case
-    verbObjectObject form, time, and other features annotated from study 3
-    data from ASIST's Minecraft SAR Environment.
 
 Functions in File:
     1. getRawData(filename)
-        * Reads in csv file. See note on line 2.
-        * Returns dataframe with features of interest
     2. cleanLabels(df, dirtyCol)
-        * Calls out to 3 Functions:
-    3.     * convert_datetime_integer(column)
-             * converts timestamps to total seconds
-    4.     * find_time_column(df)
-             * locates other columns that need conversions
-    5.     * alphabetizeObjects(column)
-             * splits parts of speech, checks for missing modifiers,
-               checks for missing nouns, reorders labels for convention,
-               and returns cleaned columns for all labels sent in the
-               verbObjectObject format.
+    3. convert_datetime_integer(column)
+    4. find_time_column(df)
+    5. alphabetizeObjects(column)
+    6. main(csv file)
 
-This file creates temporary files (when uncommented).
 --------------------------------------------------------------------------
 '''
 
-
-###################################################################
-### Horizontal ruling for visual ease in reading output.
+# Horizontal ruling for visual ease in reading output.
 hrule = ("\n" + "-"*76 + "\n")
 Hrule = ("\n" + "="*76 + "\n")
-###################################################################
 
 import sys
 import numpy
@@ -56,30 +46,32 @@ import requests
 import time
 import datetime
 
-########################################################################
+
 def convert_datetime_integer(column):
     '''
-    Convert datetime to integer timestamp. Since the mission progresses from 900
-        start time and ends at 000 seconds, and since players refer to time in
-        terms of "time left," I have reflected this in the data format.
+    Purpose:
+        Convert datetime to integer timestamp. Since players refer to time in
+        terms of "time left," the data are formatted in descending order.
 
-    Purpose: Convert object or datatypes into integers.
-             Note that the dt() function often mentioned in tutorials is
-             depreciated and most solutions found online do not work.
-    Input:   Called from find_time_column() and sends the
-             Selected column that has word 'time' in name.
-    Output:  Returns a column of total seconds as integers to the
-             find_time_column() function.
+        The dt() function often mentioned in tutorials is depreciated, so I created an
+        alternate solution (Salena Ashton, 20 June 2022).
+
+    Args:
+        column: Called from find_time_column() and sends the selected column
+            to be converted from datetime format.
+
+    Returns:
+        Returns a column of total seconds as integers to the find_time_column() function.
     '''
 
+    # Convert column into its own dataframe
     column = pandas.to_datetime(column)
-#    print(hrule, "Data Types of Each Column:", data.dtypes)
-    ### Remove dates and then convert to seconds
+
+    # Remove dates and then convert to seconds
     column = pandas.Series([val.time() for val in column])
     tempCol = []
 
     for i in column:
-#        print(i, "is START data type:", type(i))
         time = str(i)
         time = time[:-3]
         date_time = datetime.datetime.strptime(time, "%M:%S")
@@ -87,28 +79,28 @@ def convert_datetime_integer(column):
         seconds = a_timedelta.total_seconds()
         seconds = int(seconds)
         tempCol.append(seconds)
-#        print(hrule)
 
     return tempCol # returns fixed column to find_time_column()
 
 
-
-########################################################################
-
 def find_time_column(df):
     '''
-    Purpose: Finds column names with the word 'time' and verifies that it
-             can be converted from any datatype to an integer to count seconds.
-    Input:   Takes in a dataframe and reads the name of each column head.
-    Process: Sends to convert_datatime_integer() function to convert. 
-    Output:  Returns a column of total seconds as integers to the
-             find_time_column() function.
+    Purpose:
+        Finds column names with the word 'time' and verifies that it can be
+        converted from any datatype to an integer to count seconds.
+
+    Args:
+        df: dataframe with datetime formats
+
+    Returns:
+        df: dataframe with cleaned time column (integer)
+
     '''
-    ### Empty String to send later
+    # Empty String to send later
     fixCol = ""
     columnCount = 0
 
-    ### Check for the word 'time' in the column names. It is ideal to check for
+    # Check for the word 'time' in the column names. It is ideal to check for
         # datetime format but often, and especially from what I've seen online
         # for the troubleshooting, you cannot rely on that. 
         #TODO: update this code to check for datatime, object.
@@ -116,48 +108,86 @@ def find_time_column(df):
         columnCount += 1
         if "time" in i:
             fixCol = i
-#            print(hrule, "Name of current fixCol=", fixCol)
 
-            ### Send the column to be fixed to the function:
+            # Send the column to be fixed to the function:
             tempCol = []
             tempCol = convert_datetime_integer(df[fixCol])
 
-            ### Insert this converted data as a new column of data frame:
+            # Insert this converted data as a new column of data frame:
             newFixCol = fixCol[4:] # Remove 'time' from column name
             df.insert(columnCount, newFixCol+"Seconds", tempCol, True)
 
-            ### Remove original datetime formatted column
+            # Remove original datetime formatted column
             df.drop(fixCol, inplace = True, axis = 1)
 
-            ### Check Dataframe within this function and loop
-            #print(hrule, "Checking dataframe with updated", fixCol, "Column:\n", df.head())
+            # Check Dataframe within this function and loop
 
-            ### Save temporarily-altered dataframe to a csv file in working directory
+            # Save temporarily-altered dataframe to a csv file in working directory
             temp_df = pandas.DataFrame(df)
             temp_df.to_csv("../data/temp_csv_folder/"+fixCol+"_temp_df_from_doNotCommit_Cleaned.csv")
 
     return df
 
-#####################################################################################
 
-### Replace labels as created by annotators with alphabetized labels
+# Replace labels as created by annotators with alphabetized labels
 def alphabetizeObjects(column):
     '''
-    Purpose: Independent annotators were given least-restrictive labeling
-             as long as they adhered to the procedures of Grounded Theory.
-             Because of this, some labels, like 'askLocationVictim' and
-             'askVictimLocation' register as two separate labels. This main
-             function corrects all labels to keep original verb, then it
-             alphabetizes the two objects. Not all labels have 2 objects.
-    Input:   dataframe column of labels to be cleaned
-    Process: getLabels() splits into parts of speech and alphabetizes objects.
-    Output:  returns parts of speech and cleaned labels for column.
-             removes old column and inserts new column automatically.
+    Purpose:
+        Annotation Labels come in the form "verbObjectObject". This function
+        alphabetizes both objects after the verb to avoid duplication of labels
+        that are the same in meaning.
+
+        Example:
+            Raw Labels: "clarifyVictimLocation", "collaborateCarryStabilized",
+            and "clarifyLocationVictim." Because annotators were given full
+            autonomy in label creation during annotation, many labels are not
+            in a specific order of objects. This raw list has three labels but
+            only two meanings.
+
+            Cleaned labels: "clarifyLocationVictim" and
+            "collaborateCarryStabilized."
+
+        Labels have a verb, an object, and optional second object. This
+        function will only work for labels written in Camel Case.
+
+    Args:
+        column: A column of labels to be cleaned. Columns are currently
+        hard-coded within the main() function.
+
+    Returns:
+        newColumn: Original column of labels in cleaned form.
+        allVerbs: a list of all verbs used in annotation.
+        allNM: a list of all objects that were used as modifiers or nouns.
     '''
+
     def getLabels(myLabel):
+    '''
+    Purpose:
+        This function is called from alphabetizeObjects and splits the label
+        into verbs and objects.
+
+    Args:
+        myLabel: Each label found in the column sent to this function.
+
+    Returns:
+        myVerb:
+        myNoun:
+        myModifier:
+        myABC:
+
+    '''
 #        print(hrule, "from getLabels():", myLabel)
 
         def getVerb(label):
+    '''
+    Args:
+        label: Unclean label from column to be cleaned.
+
+    Returns:
+        verb: The verb from the label.
+        label: Remainder of label object(s).
+
+    '''
 #            print("from getVerb()", label)
             verb = ""
             size = len(label)
@@ -174,10 +204,18 @@ def alphabetizeObjects(column):
                         label = "Nomodifier"
                         return verb, label
                 else:
-#                    print("\nFrom getVerb():\n", verb)
                     return verb, label
 
         def getNoun(label):
+    '''
+    Args:
+        label: Label objects after verb is removed.
+
+    Returns:
+        noun: First object removed from label.
+        label: Remainder of label (second object, if present).
+
+    '''
 #            print("from getNoun()", label)
             # remove capital letter for noun:
             noun = label[0].lower()
@@ -198,10 +236,17 @@ def alphabetizeObjects(column):
                     return noun, label
 
         def getModifier(label):
+    '''
+    Args:
+        Label: Remainder of label after verb and first object are removed.
+
+    Returns:
+        modifier: Last object removed from label or blank if no second object
+            were present.
+
+    '''
             size = len(label)
             if size < 1:
-#                print("size:", size)
-#                print("NO MODIFIER")
                 modifier = ""
                 return modifier
 
@@ -212,6 +257,14 @@ def alphabetizeObjects(column):
             return modifier
 
         def abcOrder(myV, myN, myM):
+    '''
+    Purpose:
+
+    Args:
+
+    Returns:
+
+    '''
             abcLabel = ""
 #            print(hrule, myV, myN, myM)
             if myM=="":
@@ -287,22 +340,6 @@ def alphabetizeObjects(column):
         allNouns.append(n)
         allModifiers.append(m)
         newColumn.append(c)
-
-
-    # probability of the feature of interest.
-    def jointProb(allList):
-        df = pandas.DataFrame(allList)
-        pandas.set_option('display.float_format', '{:.2}'.format)
-        df.columns = ["POS"]
-        print(df)
-        dfa = df['POS'].value_counts(normalize = True).sort_values().to_frame()
-        dfa.reset_index(inplace = True)
-        dfa.columns = ['0', 'joint_probability']
-        print(dfa.head(100), hrule)
-
-#    jointProb(allModifiers)
-
-
 
 
 #    print(hrule, "All Verbs:\n", allVerbs)
