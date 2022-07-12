@@ -1,5 +1,3 @@
-#TODO: start documentation on line 257
-
 '''
 --------------------------------------------------------------------------
 Purpose:
@@ -32,10 +30,14 @@ Functions in File:
     5. alphabetizeObjects(column)
     6. main(csv file)
 
+Attributes of comments in file to be aware of:
+    '###' Single-line comments for user.
+    '#' Commands that can be uncommented. Most of these are either print
+        statements for debugging or data exploration samples/ heads.
 --------------------------------------------------------------------------
 '''
 
-# Horizontal ruling for visual ease in reading output.
+### Horizontal ruling for visual ease in reading output.
 hrule = ("\n" + "-"*76 + "\n")
 Hrule = ("\n" + "="*76 + "\n")
 
@@ -64,10 +66,10 @@ def convert_datetime_integer(column):
         Returns a column of total seconds as integers to the find_time_column() function.
     '''
 
-    # Convert column into its own dataframe
+    ### Convert column into its own dataframe
     column = pandas.to_datetime(column)
 
-    # Remove dates and then convert to seconds
+    ### Remove dates and then convert to seconds
     column = pandas.Series([val.time() for val in column])
     tempCol = []
 
@@ -80,7 +82,7 @@ def convert_datetime_integer(column):
         seconds = int(seconds)
         tempCol.append(seconds)
 
-    return tempCol # returns fixed column to find_time_column()
+    return tempCol ### returns fixed column to find_time_column()
 
 
 def find_time_column(df):
@@ -96,40 +98,38 @@ def find_time_column(df):
         df: dataframe with cleaned time column (integer)
 
     '''
-    # Empty String to send later
+    ### Empty String to send later
     fixCol = ""
     columnCount = 0
 
-    # Check for the word 'time' in the column names. It is ideal to check for
-        # datetime format but often, and especially from what I've seen online
-        # for the troubleshooting, you cannot rely on that. 
-        #TODO: update this code to check for datatime, object.
+    ### Check for the word 'time' in the column names. It is ideal to check for
+        ### datetime format but often, and especially from what I've seen online
+        ### for the troubleshooting, you cannot rely on that. 
+        ###TODO: update this code to check for datatime, object.
     for i in df.columns:
         columnCount += 1
         if "time" in i:
             fixCol = i
 
-            # Send the column to be fixed to the function:
+            ### Send the column to be fixed to the function:
             tempCol = []
             tempCol = convert_datetime_integer(df[fixCol])
 
-            # Insert this converted data as a new column of data frame:
+            ### Insert this converted data as a new column of data frame:
             newFixCol = fixCol[4:] # Remove 'time' from column name
             df.insert(columnCount, newFixCol+"Seconds", tempCol, True)
 
-            # Remove original datetime formatted column
+            ### Remove original datetime formatted column
             df.drop(fixCol, inplace = True, axis = 1)
 
-            # Check Dataframe within this function and loop
-
-            # Save temporarily-altered dataframe to a csv file in working directory
+            ### Save temporarily-altered dataframe to a csv file in working directory
             temp_df = pandas.DataFrame(df)
             temp_df.to_csv("../data/temp_csv_folder/"+fixCol+"_temp_df_from_doNotCommit_Cleaned.csv")
 
     return df
 
 
-# Replace labels as created by annotators with alphabetized labels
+### Replace labels as created by annotators with alphabetized labels
 def alphabetizeObjects(column):
     '''
     Purpose:
@@ -161,33 +161,34 @@ def alphabetizeObjects(column):
     '''
 
     def getLabels(myLabel):
-    '''
-    Purpose:
-        This function is called from alphabetizeObjects and splits the label
-        into verbs and objects.
+        '''
+        Purpose:
+            This function is called from alphabetizeObjects and splits the label
+            into verbs and objects, then alphabetizes the objects before
+            reassembling the label.
 
-    Args:
-        myLabel: Each label found in the column sent to this function.
+        Args:
+            myLabel: Each label found in the column sent to this function.
 
-    Returns:
-        myVerb:
-        myNoun:
-        myModifier:
-        myABC:
+        Returns:
+            myVerb: The verb from a specific label in the column iteration.
+            myNoun: The specific noun or first object.
+            myModifier: The specific modifier or second, optional object.
+            myABC: The full label, alphabetized with verb first.
 
-    '''
+        '''
 #        print(hrule, "from getLabels():", myLabel)
 
         def getVerb(label):
-    '''
-    Args:
-        label: Unclean label from column to be cleaned.
+            '''
+            Args:
+                label: Unclean label from column to be cleaned.
 
-    Returns:
-        verb: The verb from the label.
-        label: Remainder of label object(s).
+            Returns:
+                verb: The verb from the label.
+                label: Remainder of label object(s).
 
-    '''
+            '''
 #            print("from getVerb()", label)
             verb = ""
             size = len(label)
@@ -207,17 +208,18 @@ def alphabetizeObjects(column):
                     return verb, label
 
         def getNoun(label):
-    '''
-    Args:
-        label: Label objects after verb is removed.
+            '''
+            Args:
+                label: Label objects after verb is removed.
 
-    Returns:
-        noun: First object removed from label.
-        label: Remainder of label (second object, if present).
+            Returns:
+                noun: First object removed from label.
+                label: Remainder of label (second object, if present).
 
-    '''
+            '''
 #            print("from getNoun()", label)
-            # remove capital letter for noun:
+
+            ### Remove capital letter for noun:
             noun = label[0].lower()
             label = label.replace(label[0], "", 1)
             size = len(label)
@@ -236,15 +238,15 @@ def alphabetizeObjects(column):
                     return noun, label
 
         def getModifier(label):
-    '''
-    Args:
-        Label: Remainder of label after verb and first object are removed.
+            '''
+            Args:
+                Label: Remainder of label after verb and first object are removed.
 
-    Returns:
-        modifier: Last object removed from label or blank if no second object
-            were present.
+            Returns:
+                modifier: Last object removed from label or blank if no second object
+                    were present.
+            '''
 
-    '''
             size = len(label)
             if size < 1:
                 modifier = ""
@@ -253,46 +255,40 @@ def alphabetizeObjects(column):
             modifier = label[0].lower()
             label = label.replace(label[0], "", 1)
             modifier = modifier + label
-            # Since we don't have a break for uppers, use length:
+            ### Since we don't have a break for uppers, use length:
             return modifier
 
         def abcOrder(myV, myN, myM):
-    '''
-    Purpose:
+            '''
+            Purpose:
+                Reassemble label components back into verbObjObj in
+                alphabetical order.
 
-    Args:
+            Args:
+                myV: The verb from the label in current iteration of column.
+                myN: The noun from the label in current iteration of column.
+                myM: The modifier, if present, from the label in current
+                    iteration of the column.
 
-    Returns:
-
-    '''
+            Returns:
+                ABCLabel: alphabetized label
+            '''
             abcLabel = ""
-#            print(hrule, myV, myN, myM)
             if myM=="":
                 first = myN[0].upper()
-#                print(first)
                 myN = first+myN[1:]
-#                print("capitalized myN:", myN)
                 abcLabel = myV+myN
-#                print("abcLabel = ", abcLabel)
-#                return abcLabel
 
             elif myN[0] > myM[0]:
-#                print("\nLabel to alphabetize:", myV, myN, myM)
 #                print("Oh no!",  myN[0], "<?>", myM[0])
                 temp = myN
                 myN = myM
                 myM = temp
-#                print("Is it fixed?",  myN[0], "<?>", myM[0])
                 first = myN[0].upper()
-#                print(first)
                 myN = first+myN[1:]
-#                print("capitalized myN:", myN)
                 second = myM[0].upper()
-#                print(second)
                 myM = second+myM[1:]
-#                print("capitalized myM:", myM)
                 abcLabel = (myV+myN+myM)
-#                print("\tabcLabel = ", abcLabel)
 
             else:
                 first = myN[0].upper()
@@ -318,7 +314,6 @@ def alphabetizeObjects(column):
 #        print("\nVerb:", myVerb, "\nNoun:", myNoun, "\nModifier:", myModifier)
 
         return myVerb, myNoun, myModifier, myABC
-            ### make verb, noun, and modifier lists from dataframe:
 
     allNouns = []
     allVerbs = []
@@ -327,9 +322,7 @@ def alphabetizeObjects(column):
     newColumn = []
 
     for i in column:
-#        print("from alpha()", i)
         token = str(i)
- #       print("Token:", token)
         v, n, m, c = getLabels(token)
         if len(m) > 0:
             M = m[0].upper()
@@ -341,6 +334,9 @@ def alphabetizeObjects(column):
         allModifiers.append(m)
         newColumn.append(c)
 
+    '''
+    Uncomment print statements as necessary.
+    '''
 
 #    print(hrule, "All Verbs:\n", allVerbs)
 #    print(hrule, "All Nouns:\n", allNouns)
@@ -352,20 +348,25 @@ def alphabetizeObjects(column):
 
 
 
-##################################################################################### |
-
 def getRawData(filename):
     '''
     Purpose:
-    Input:
-    Process:
-    Output:
+        To clean labels from camel-case format in human annotation.
+        Reads file into a pandas dataframe format, removes null values, selects
+        features to be cleaned, display preferences, and converts select
+        columns into integer types.
+
+    Args:
+        filename: User-specified file name of csv to be cleaned.
+
+    Returns:
+        data: Dataframe format of csv file.
     '''
 
-    rawData = pandas.read_csv(filename)
     ### If not in csv format, use read_json(), read_html(), read_sql_table()
+    rawData = pandas.read_csv(filename)
 
-    ### EXAMINE THE DATA
+    ### Examine the Data
     print("Shape of raw data:", rawData.shape)
 
     ### Get rid of null values
@@ -384,50 +385,38 @@ def getRawData(filename):
     data = rawData[["video", "obsNum", "regular", "critical", "score", "timeStart", "timeEnd",
     "question_verbatim", "htn", "abstractLabel", "causeLabel", "questionLabel",
     "effectLabel", "qWord", "qPhrase", "auxVerb", "actionVerb"]]
-#
 #    print("Shape of selected-feature data:", data.shape, hrule)
-    ###################################################################
-    ### Getting to know the Data:
-    #print(hrule, "\nData info():\n", data.info())
 
-    ### Not as helpful for my research question 
- #   print(hrule, "\nDescribe Data:\n", data.describe(), "\n")
+    ### Helpful examination of numerical data
+#    print(hrule, "\nData info():\n", data.info())
+#    print(hrule, "\nDescribe Data:\n", data.describe(), "\n")
 
-    ### Describe using a parameter and numpy:
- #   print(hrule, "\nDescribe Data with Parameter:\n", data.describe(include=object))
+    ### Describe using a parameter and numpy. Helpful for categorical data.
+#    print(hrule, "\nDescribe Data with Parameter:\n", data.describe(include=object))
 
-    ### Print data types of columns:
     ### No need for floats in this data. Convert all floats to integers:
-    #print(hrule, "\nData Types of Each Column:\n", data.dtypes)
     data["video"] = data["video"].astype(int)
     data["obsNum"] = data["obsNum"].astype(int)
     data["regular"] = data["regular"].astype(int)
     data["critical"] = data["critical"].astype(int)
     data["score"] = data["score"].astype(int)
-    #print(hrule, "Data Types of Each Column:\n", data.dtypes)
 
     return data
-#####################################################################################
 
 
 def cleanLabels(df, dirtyCol):
     '''
-    Purpose: converts datetime datatypes, cleans annotator labels
-             and cleans dataframes. Use for scalability.
-    Input:   df = dataframe of columns to be cleaned
-             dirtyCol = column needing to be cleaned
-    Output:  dataframe ready for data snooping after cleaning
+    Purpose:
+        Converts datetime datatypes, cleans annotator labels
+        and cleans dataframes. Use for scalability in this format.
+
+    Args:
+        df: Dataframe of columns to be cleaned.
+        dirtyCol: Column needing to be cleaned.
+
+    Output:
+        cleaned: Dataframe ready for data snooping after cleaning
     '''
-    ########################################################
-    ### Uncomment to Verify the column passes in correctly:
-
-    #print(hrule, "verify column passes in correctly:", hrule)
-    #for d in dirtyCol:
-    #    print(d)
-
-    #print(hrule, "dirtyCol End from cleanLabels()", hrule)
-    ########################################################
-
 
     ### Reinspect and Describe using a parameter and numpy:
     cleaned = df.copy(deep=True)
@@ -435,30 +424,14 @@ def cleanLabels(df, dirtyCol):
     cleaned = find_time_column(cleaned)
     #print(hrule, "With new columns for time, Shape of cleaned data:", cleaned.shape)
 
-
-    ########################################################
     ### Create a new column to alphabatize verbObjectObject:
     abcColumn = []
     abcColumn, allV, allNM = alphabetizeObjects(cleaned[dirtyCol])
 
-    ### Uncomment to Verify the column passes in correctly:
-
-    #print("Check to see if things are passing in this function okay:\n")
-    #print("Sending dirtyCol to alphabetizingObjects...")
-    #for i in abcColumn:
-    #    print(i)
-
-    #print(hrule, "abcColumn End from cleanLabels()", hrule)
-    ########################################################
-
-    ### Uncomment to Verify the column passes in correctly:
-    #for a in abcColumn:
-    #    print("From outer most edge, ready to put back in dataframe:", a)
 
     ### Get column Index of labels to be cleaned so I can place the new column
         ### next to it:
     labelIndex = cleaned.columns.get_loc(dirtyCol)
-    #print(hrule*3, "labelIndex:", labelIndex)
     labelIndex += 1
 
 
@@ -482,9 +455,6 @@ def cleanLabels(df, dirtyCol):
         cleaned.insert(labelIndex, dirtyCol+"s_nm", allNM, True)
         cleaned.insert(labelIndex, dirtyCol+"s_v", allV, True)
 
-
-#    print(hrule, "Dataframe with Updated", dirtyCol+"s Column:"+"\n\n", cleaned.head())
-
     ### Save temporarily-altered dataframe to a csv file in working directory
     temp_cleaned = pandas.DataFrame(cleaned)
     temp_cleaned.to_csv("../data/temp_csv_folder/temp_ABC_"+dirtyCol+"_from_doNotCommit_Cleaned.csv")
@@ -497,6 +467,7 @@ def main(filename):
     '''
     Purpose: Clean data, whether called from this file or another file.
     '''
+    print(hrule, "Cleaning columns...\n\n")
     myData = getRawData(filename)
     myData = cleanLabels(myData, "abstractLabel")
     myData = cleanLabels(myData, "htn")
@@ -505,7 +476,7 @@ def main(filename):
     myData = cleanLabels(myData, "questionLabel")
     HSR = pandas.DataFrame(myData)
     HSR.to_csv("../data/doNotCommit2_HSR_readyForUse.csv")
-#    print(hrule, "saving to readyForUse file...\n")
+    print(hrule, "saving to readyForUse file...\n")
     return myData
 
 
@@ -515,10 +486,12 @@ file = "../data/doNotCommit2_HSR_raw.csv"
 ### Start Cleaning Process from main()
 myCleanedData = main(file)
 
-### Verify
-#print(hrule, "\nChecking myCleanedData:\n\n", myCleanedData.head(10), hrule)
+### Uncomment the next 3 lines to verify labels are clean:
+#test = myCleanedData["questionLabels"].sort_values().unique()
+#for t in test:
+#    print(t)
 
-
+print("\nEND OF cleanTheData.py PROGRAM.\n")
 #####################################################################################
 #   End of Program
 #####################################################################################
