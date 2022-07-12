@@ -1,0 +1,310 @@
+---
+title: "regVisual"
+author: "Salena Ashton"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dbplyr)
+library(ggrepel)
+library(ggthemes)
+library(scales)
+library(tidyverse)
+```
+
+```{r}
+
+connect = read_csv("~/PDDLing-Around/personalNoCOMMIT_questionPlan_17June2022/data/connect.csv")
+
+connect %>%
+  mutate(dummy = freq) %>%
+    ggplot(aes(y = questionLabels,
+               x = teamLabel)) +
+    geom_tile(aes(y = questionLabels,
+                  x = team,
+                  fill = dummy),
+                  color = "gray20") +
+    geom_text_repel(data = connect %>%
+                      mutate(count = freq) %>%
+                      filter(count > 0.05),
+                    aes(x = team,
+                        y = questionLabels,
+                        label = count),
+                    size = 4,
+                    vjust = "center",
+                    hjust = 0.4) +
+    scale_fill_gradient2(high = "steelblue4",
+                       low = "gray",
+                       midpoint = 0.03) +
+    scale_x_discrete(labels = c("Team 217 \ncombined score\n 1060",
+                                "Team 218 \ncombined score\n 750",
+                                "Team 219 \ncombined score\n 1490",
+                                "All Teams")) +
+  labs(title = "Player Question, Represented by Question Labels",
+     subtitle = "No-Advisor Missions for Teams 217, 218 and 219",
+     caption = "Source: ASIST Study 3 HSR Data, No Intervention \nSalena T. Ashton, University of Arizona   9 July 2022",
+     x = "",
+     y = "Question Label",
+     fill = "Joint Probability\n of Label") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+    theme_linedraw() +
+     theme(legend.position = "right") 
+
+ggsave(filename = "../figures/questionLabelProbability_STA.pdf")
+```
+
+
+```{r}
+
+connect1 = read_csv("~/PDDLing-Around/personalNoCOMMIT_questionPlan_17June2022/data/connect1.csv")
+connect1 %>%
+    group_by(abstractLabels, ateam, afreq) %>%
+    mutate(dummy = afreq) %>%
+    ggplot(aes(y = abstractLabels,
+               x = ateam)) +
+    geom_tile(aes(y = abstractLabels,
+                  x = ateam,
+                  fill = dummy),
+              color = "gray20") +
+    geom_text_repel(data = connect1 %>%
+                      mutate(count = afreq) %>%
+                      filter(count > 0.06),
+                    aes(x = ateam,
+                        y = abstractLabels,
+                        label = count),
+                    size = 4,
+                    vjust = 0.4,
+                    hjust = 0.4) +
+    scale_fill_gradient2(high = "steelblue4",
+                       low = "gray",
+                       midpoint = 0.05) +
+      scale_x_discrete(labels = c("Team 217 \ncombined score\n 1060",
+                                "Team 218 \ncombined score\n 750",
+                                "Team 219 \ncombined score\n 1490",
+                                "All Teams")) +
+  labs(title = "Player Intention, represented by Abstract Labels",
+     subtitle = "No-Advisor Missions for Teams 217, 218 and 219",
+     caption = "Source: ASIST Study 3 HSR Data, No Intervention \nSalena T. Ashton, University of Arizona   9 July 2022",
+     x = "",
+     y = "Abstract Label",
+     fill = "Joint Probability\n of Label") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+    theme_linedraw() +
+     theme(legend.position = "right") 
+
+ggsave(filename = "../figures/abstractLabelProbability_STA.pdf")
+```
+
+
+```{r}
+connect2 = read_csv("~/PDDLing-Around/personalNoCOMMIT_questionPlan_17June2022/data/connect2.csv")
+
+connect2 %>%
+    filter(freq > 0.2) %>%
+    mutate(dummy = freq) %>%
+    ggplot(aes(y = abstractLabels,
+               x = questionLabels)) +
+    geom_tile(aes(y = abstractLabels,
+                  x = questionLabels,
+                  fill = dummy),
+              color = "gray20") +
+    geom_text_repel(data = connect2 %>%
+                      mutate(count = freq) %>%
+                      filter(count > 0.2),
+                    aes(x = questionLabels,
+                        y = abstractLabels,
+                        label = count),
+                    size = 3.5,
+                    vjust = 0.2,
+                    hjust = "center",
+                    nudge_x = 0.1) +
+    scale_fill_gradient2(high = "steelblue4",
+                       low = "gray",
+                       midpoint = 0.1) +
+    scale_x_discrete(labels = c("ask\nLocation", "ask\nLocation\nTeammate",
+                                "ask\nLocation\nVictim", "ask\nThreatroom",
+                                "clarify\nClear\nLocation", "clarify\nCritical\nLocation",
+                                "clarify\nLocation", "clarify\nStabilized\nStatus",
+                                "request\nDestination")) +
+  labs(title = "Player Intention, Conditioned on Question Labels",
+     subtitle = "No-Advisor Missions for Teams 217, 218 and 219",
+     caption = "\nSource: ASIST Study 3 HSR Data, No Intervention \nSalena T. Ashton, University of Arizona   9 July 2022",
+     x = "\nQuestion Label",
+     y = "Intention (Represented by Abstract Label)",
+     fill = "Conditional Probability\n P(Abstract | Question)") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+    theme_linedraw() +
+  theme(panel.grid.major = element_line(color='gray')) +
+     theme(legend.position = "bottom")
+
+ggsave(filename = "../figures/abstractLabel_ConditionalProbability_STA.pdf")
+```
+
+
+```{r}
+connect3 = read_csv("~/PDDLing-Around/personalNoCOMMIT_questionPlan_17June2022/data/connect3.csv")
+
+connect3 %>%
+    filter(freq > 0.1) %>%
+    mutate(dummy = freq) %>%
+    ggplot(aes(x = abstractLabels,
+               y = questionLabels)) +
+    geom_tile(aes(x = abstractLabels,
+                  y = questionLabels,
+                  fill = dummy),
+              color = "gray20") +
+    geom_text_repel(data = connect3 %>%
+                      mutate(count = freq) %>%
+                      filter(count > 0.1),
+                    aes(y = questionLabels,
+                        x = abstractLabels,
+                        label = count),
+                    size = 4,
+                    vjust = 0.3,
+                    hjust = "center",
+                    nudge_x = 0.2) +
+    scale_fill_gradient2(high = "steelblue4",
+                       low = "gray",
+                       midpoint = 0.1) +
+  scale_x_discrete(labels = c("collaborate\nCarry\nStabilized",
+                              "collaborate\nCritical\nWake",
+                              "prioritize\nCritical\nLocation")) +
+  labs(title = "Questions Asked, Conditioned on Player Intention",
+     subtitle = "No-Advisor Missions for Teams 217, 218 and 219",
+     caption = "\nSource: ASIST Study 3 HSR Data, No Intervention \nSalena T. Ashton, University of Arizona   9 July 2022",
+     y = "Question Label",
+     x = "Intention (Represented by Abstract Label)",
+     fill = "Conditional Probability\n P(Question | Abstract)") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+    theme(panel.grid.major = element_line(color='gray')) +
+    theme_linedraw() +
+     theme(legend.position = "bottom") 
+
+ggsave(filename = "../figures/questionLabel_ConditionalProbability_STA.pdf")
+```
+
+
+## Read in the data:
+```{r}
+data = read_csv("~/PDDLing-Around/personalNoCOMMIT_questionPlan_17June2022/data/../data/doNotCommit2_HSR_readyForUse.csv")
+
+data %>%
+  group_by(obsNum, video, StartSeconds) %>%
+  summarize(count = n()) %>%
+  mutate(total = sum(count),
+         percentage = count/total) %>%
+  ggplot(aes(x = video,
+             y = percentage,
+             fill = StartSeconds,
+             width = 0.8)) +
+  geom_col(color = "gray20",
+           size = 0.10) +
+  scale_fill_gradient2(low = "darkred",
+                       high = "gray20",
+                       midpoint = 500) +
+    scale_x_continuous(breaks = seq(633, 638, by = 1)) +
+   labs(title = "Number of Questions asked with Respect to Time",
+     subtitle = "Team 217 = Videos 633/634    Team 218 = Videos 635/636   Team 219 = Videos 637/638
+                 Black = Questions asked in First Half of Each Mission,
+                 Red   = Questions asked in Second Half of Each Mission",
+     caption = "Source: ASIST Study 3 HSR Data, No Intervention \nSalena T. Ashton, University of Arizona   9 July 2022",
+     x = "Video Observation",
+     y = "Number of Question Utterances",
+     fill = "Seconds\nRemaining\nin Mission") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme_linedraw()
+
+ggsave(filename = "../figures/QuestionTiming_STA.pdf")
+```
+
+`
+```{r}
+connect5 = read_csv("~/PDDLing-Around/personalNoCOMMIT_questionPlan_17June2022/data/connect5.csv")
+
+connect5 %>%
+  filter(iu > 0.2) %>%
+  mutate(dummy = iu) %>%
+  ggplot(aes(y = intent,
+             x = utterance)) + 
+  geom_tile(aes(y = intent,
+                x = utterance,
+                fill = dummy),
+             color = "gray20") +
+      geom_text_repel(data = connect5 %>%
+                      mutate(count = iu) %>%
+                      filter(count > 0.2),
+                    aes(y = intent,
+                        x = utterance,
+                        label = count),
+                    size = 4,
+                    vjust = 0.1,
+                    hjust = "center",
+                    nudge_x = 0.2) +
+    scale_fill_gradient2(high = "steelblue4",
+                       low = "gray",
+                       midpoint = 0.3) +
+  #scale_x_discrete(labels = c("collaborate\nCarry\nStabilized",)) +
+  labs(title = "Words Uttered and Mapped to Player Intentions",
+     #subtitle = "No-Advisor Missions for Teams 217, 218 and 219",
+     caption = "\nSource: ASIST Study 3 HSR Data, No Intervention \nSalena T. Ashton, University of Arizona   9 July 2022",
+     y = "Player Intention",
+     x = "Word Uttered of Interest",
+     fill = "p(player intention| utterance spoken)") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(panel.grid.major = element_line(color='gray')) +
+    theme_linedraw() +
+     theme(legend.position = "bottom")
+
+ggsave(filename = "../figures/QuestionUtterances_Link_STA.pdf")
+```
+
+```{r}
+connect5 %>%
+  filter(ui > 0.2) %>%
+  mutate(dummy = ui) %>%
+  ggplot(aes(x = intent,
+             y = utterance)) + 
+  geom_tile(aes(x = intent,
+                y = utterance,
+                fill = dummy),
+             color = "gray20") +
+      geom_text_repel(data = connect5 %>%
+                      mutate(count = ui) %>%
+                      filter(count > 0.2),
+                    aes(x = intent,
+                        y = utterance,
+                        label = count),
+                    size = 4,
+                    vjust = 0.1,
+                    hjust = "center",
+                    nudge_x = 0.2) +
+    scale_fill_gradient2(high = "steelblue4",
+                       low = "gray",
+                       midpoint = 0.3) +
+    scale_x_discrete(labels = c("ask\nLocation", "clear\nLocation\nVictim",
+                                "collaborate\nCarry\nStabilized",
+                                "collaborate\nCarry\nVictim", "collaborate\nCritical",
+                                "collaborate\nCritical\nLocation",
+                                "collaborate\nCritical\nThreatroom",
+                                "collaborate\nCritical\nWake",
+                                "coordinate\nPlanTeam",
+                                "share\nInformation\nUnique")) +
+  labs(title = "Words Uttered and Mapped to Player Intentions",
+     #subtitle = "No-Advisor Missions for Teams 217, 218 and 219",
+     caption = "\nSource: ASIST Study 3 HSR Data, No Intervention \nSalena T. Ashton, University of Arizona   9 July 2022",
+     x = "Player Intention",
+     y = "Word Uttered of Interest",
+     fill = "p(utterance spoken | player intention)") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(panel.grid.major = element_line(color='gray')) +
+    theme_linedraw() +
+     theme(legend.position = "bottom")  
+
+ggsave(filename = "../figures/Intent_to_Utterances_Link_STA.pdf")
+```
+
+
