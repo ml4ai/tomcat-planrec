@@ -123,8 +123,8 @@ def find_time_column(df):
             df.drop(fixCol, inplace = True, axis = 1)
 
             ### Save temporarily-altered dataframe to a csv file in working directory
-            temp_df = pandas.DataFrame(df)
-            temp_df.to_csv("../data/temp_csv_folder/"+fixCol+"_temp_df_from_doNotCommit_Cleaned.csv")
+            #temp_df = pandas.DataFrame(df)
+            #temp_df.to_csv("../data/temp_csv_folder/"+fixCol+"_temp_df_from_doNotCommit_Cleaned.csv")
 
     return df
 
@@ -383,7 +383,7 @@ def getRawData(filename):
 
     ### Subset dataframe to focus on conditional probabilities of labels
     data = rawData[["video", "obsNum", "regular", "critical", "score", "timeStart", "timeEnd",
-    "question_verbatim", "htn", "abstractLabel", "causeLabel", "questionLabel",
+    "htn", "abstractLabel", "causeLabel", "questionLabel",
     "effectLabel", "qWord", "qPhrase", "auxVerb", "actionVerb"]]
 #    print("Shape of selected-feature data:", data.shape, hrule)
 
@@ -475,13 +475,13 @@ def main(filename):
     myData = cleanLabels(myData, "effectLabel")
     myData = cleanLabels(myData, "questionLabel")
     HSR = pandas.DataFrame(myData)
-    HSR.to_csv("../data/doNotCommit2_HSR_readyForUse.csv")
+    HSR.to_csv("../data/data_noHSR_readyForUse.csv")
     print(hrule, "saving to readyForUse file...\n")
     return myData
 
 
 ### Read in the Data:
-file = "../data/doNotCommit2_HSR_raw.csv"
+file = "../data/commitOKAY_HSR-Removed_raw.csv"
 
 ### Start Cleaning Process from main()
 myCleanedData = main(file)
