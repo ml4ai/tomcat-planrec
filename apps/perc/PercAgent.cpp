@@ -100,18 +100,18 @@ vector<std::string> split_player_name(std::string str) {
 void PercAgent::process(mqtt::const_message_ptr msg) {
     json::object jv = json::parse(msg->to_string()).as_object();
     std::string new_knowledge;
-    cout << msg->get_topic() << endl;
+//    cout << msg->get_topic() << endl;
     if (msg->get_topic() == "observations/events/player/location") {
         try {
             if (jv.at("data").as_object().contains("locations")) {
-                pretty_print(std::cout, jv.at("msg").at("sub_type"));
-                pretty_print(std::cout, jv.at("data").at("callsign"));
-                pretty_print(
-                    std::cout,
-                    jv.at("data")
-                        .at("locations")
-                        .at(jv.at("data").at("locations").as_array().size() - 1)
-                        .at("id"));
+//                pretty_print(std::cout, jv.at("msg").at("sub_type"));
+//                pretty_print(std::cout, jv.at("data").at("callsign"));
+//                pretty_print(
+//                    std::cout,
+//                    jv.at("data")
+//                        .at("locations")
+//                        .at(jv.at("data").at("locations").as_array().size() - 1)
+//                        .at("id"));
                 new_knowledge = "(player_at ";
                 auto role = boost::json::value_to<std::string>(
                     jv.at("data").at("callsign"));
@@ -134,7 +134,8 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
             }
         }
         catch (exception& exc) {
-            pretty_print(std::cout, jv);
+            cout << exc.what() << endl;
+//            pretty_print(std::cout, jv);
         }
     }
     else if (msg->get_topic() == "observations/events/player/rubble_collapse") {
@@ -225,12 +226,13 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
 
 PercAgent::PercAgent(string address) : Agent(address) {
     // initialize kb
-    auto const s = read_file("../../../metadata/Saturn_1.5_3D_sm_v1.0.json");
+    auto const s = read_file("../../../metadata/Saturn_2.6_3D_sm_v1.0.json");
     json::object jv = json::parse(s).as_object();
     vector<string> location_ids;
     for (const auto& loc : jv.at("locations").as_array()) {
         location_ids.emplace_back(loc.at("id").as_string().c_str());
     }
+    location_ids.emplace_back("UNKNOWN");
     initialize_data_type(this->kb, "Location", location_ids);
     initialize_data_type(this->kb, "Player_Status", {"safe", "trapped"});
     initialize_data_type(
