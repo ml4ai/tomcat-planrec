@@ -1,45 +1,69 @@
-'''
+#TODO: Start documentation on line 218.
+"""
 --------------------------------------------------------------------------
-This code will not run from the tomcat-planrec repo until I upload the csv data.
+Purpose:
+    This file uses bag of words and functions from probability.py for the
+    preliminary analysis of linking word utterances and annotated data.
+
+    This file depends on HSR data. Adjust your relative path at the end of this
+    file to read in this data.
+
+TODO:
+    Argparse for user path to HSR data.
+
+Author:
+    Salena T. Ashton
+    PhD Student, School of Information
+    University of Arizona
+
+Date Created:
+    5 July 2022
+
+Last Updated:
+    13 July 2022
+
+Affiliation:
+    Theory of Mind-based Cognitive Architecture for Teams (ToMCAT)
+    Adarsh Pyarelal, Head PI and Clayton T. Morrison, Co-PI
+    School of Information, University of Arizona
 --------------------------------------------------------------------------
+File Dependencies:
+    cleanTheData.py
+    probability.py
 
-Author: Salena T. Ashton
-        PhD Student, School of Information
-        University of Arizona
+Attributes of comments in file to be aware of:
+    '###' Single-line comments for user.
+    '#' Commands that can be uncommented. Most of these are either print
+        statements for debugging or data exploration samples/ heads.
 
-Date Created: 5 July 2022
-Last Updated: 6 July 2022
-
-Dr. Adriana Picoral, Instructor INFO 692
-School of Information, University of Arizona
-
-Purpose: Intro to NLP Implementation, as encountered in Eisenstein book.
+Functions in File:
+    abstractLabel_subset(df, theIntent)
+    bagOfWords(unsorted_df, column)
+    divideFrame(team)
+    stringLemma(doc)
+    utterance_intent(unsorted_df, theUtterance, theIntent)
+    main()
 
 --------------------------------------------------------------------------
+"""
 
-
-Sources used considerably:
-
-    * Converting wide <-> long data for analysis vs visualization
-        * https://www.statology.org/long-vs-wide-data/
-'''
-
-
-import sys
-import numpy
-import pandas
-import requests
-import time
-import scipy.stats as stats
-from sklearn import linear_model
+import collections
 import datetime
 import matplotlib.pyplot as pyplot
-import collections
-import re
+import nltk
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-import nltk
+import numpy
+import pandas
+import requests
+import re
+import scipy.stats as stats
+from sklearn import linear_model
+import sys
+import time
+
+import probability as prob
 
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -47,49 +71,81 @@ nltk.download('omw-1.4')
 ps = PorterStemmer()
 lemmatizer = WordNetLemmatizer()
 
-import probability as prob
-'''
-I personalized and combined the tutorials found at:
+#--------------------------------------------------------------------------
+### Set to true or false to run program for each desired dataframe.
+ORIGINAL_DATAFRAME = True
+REPLACED_DATAFRAME = False
 
-    * https://www.analyticsvidhya.com/blog/2021/08/a-friendly-guide-to-nlp-bag-of-words-with-python-example/
-    * https://www.machinelearningplus.co/np.lemmatization-examples-python/
+### Horizontal ruling for visual ease in reading output.
+hrule = ("\n" + "-"*80 + "\n")
+Hrule = ("\n" + "="*80 + "\n")
+#--------------------------------------------------------------------------
 
-for the purposes of this file.
-'''
 
 
-def bagOfWords(unsorted_df, column):
+
+
+def bagOfWords(unsorted_df, column = "question_verbatim"):
+    """
+    Purpose:
+        The design of this function is still in progress.
+
+        1. Word analysis for player utterances by:
+            * The entire dataframe
+            * Subset dataframes by teams or videos
+        2. Customized stop-words that are domain-specific
+        3. Minimal Lemmatization (requires some human analysis, by design)
+        4. Uncomment to view ngram 1x1 or 2x2
+
+
+    Args:
+        unsorted_df: unsorted dataframe, which will later be sorted to filter
+            by video or utterance.
+        column: Feature of Interest. Default set as "question_verbatim".
+
+    Output:
+        Vectorized print of words by full dataframe or by team.
+
+    Returns:
+        team1, team2, ... teamN: subset dataframe by team.
+
+    Resources used:
+        1. https://www.analyticsvidhya.com/blog/2021/08/a-friendly-guide-to-nlp-bag-of-words-with-python-example/
+        2. https://www.machinelearningplus.co/np.lemmatization-examples-python/
+        3. Guidance from Dr. Adriana Picoral, assistant professor, School of
+        Information, University of Arizona (Info 692 Directed Research, Summer
+        2022)
+    """
+
     pandas.set_option('display.max_rows', 400)
     pandas.set_option('display.float_format', '{:.2}'.format)
     pandas.set_option('display.max_columns', 200)
     pandas.set_option('display.colheader_justify', 'center')
     pandas.set_option('display.width', 200)
 
-    '''
-    Normally, we do not sort our data when analyzing but I will sort by video
-    in order to compare different teams and different missions per team.
-    '''
-#    print(unsorted_df.head(10))
+    ### Sort by video to compare different teams and different missions per team.
     unsorted_df = unsorted_df[['video', 'obsNum', 'regular', 'critical', 'score',
         'question_verbatim', 'abstractLabels', 'questionLabels']]
     df = unsorted_df.sort_values(by=['video'])
 #    print(df.head(113))
 
     ### Divide up the dataframe by teams:
+    #TODO: argparse for team binning
     team1 = (df['video'] == 633) | (df['video'] == 634)
-    team1 = df[team1]
+    team1 = df[team1] ### Reset as a dataframe for all features
 #    print(hrule, "Team1\n", team1)
 #    print(team1.shape, type(team1))
 
     team2 = (df['video'] == 635) | (df['video'] == 636)
     team2 = df[team2]
 #    print(hrule, "team2\n", team2)
+#    print(team2.shape, type(team2))
 
     team3 = (df['video'] == 637) | (df['video'] == 638)
     team3 = df[team3]
-#    print(hrule, "Team3\n", team3, Hrule)
+#    print(hrule, "Team3\n", team3, hrule)
+#    print(team3.shape, type(team3))
 
-    ### Divide up the dataframe by teams:
     def divideFrame(team):
         docs = team[column].to_frame()
         docs.reset_index(inplace = True)
@@ -98,31 +154,38 @@ def bagOfWords(unsorted_df, column):
 #        print(docs.head(30))
         return docs
 
-
+    ### Reset the dataframes' columns
     docs1= divideFrame(team1)
     docs2= divideFrame(team2)
     docs3= divideFrame(team3)
 
 
-########### Bag of Words Using Scikit_Learn
+    ### Bag of Words Using Scikit_Learn
     pandas.set_option('display.max_columns', 600)
     from sklearn.feature_extraction.text import CountVectorizer
     from sklearn.feature_extraction import text
-#    print(Hrule, "\n\n from sklearn package:\n\n")
 
-    # be sure to remove stop words
-    ### customize stopwords
-    # add list of specific room numbers
+    ### Customize stopwords: add list of specific room numbers
     salena_stop_words = text.ENGLISH_STOP_WORDS.union(['a1', 'a2', 'a3','a4',
         'a5', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8',
-        'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 
+        'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8',
         'd1', 'd2', 'd3', 'e5', 'f4', 'g3', 'h1', 'h2', 'i2', 'i4', 'j1', 'j4',
         'm1', 'm2', 'm3', 'l1', 'k2', 'hey', 'just', 'did', '10', '11', '12',
         '13', '14', '15', '16', '17', '18', '19', '20', 'english'])
-    # In orer to slice lists for use, turn them to strings then lemmatize:
 
 
     def stringLemma(doc):
+        """
+        Purpose:
+            In order to slice lists for use, turn them to strings, then
+            lemmatize. This function currently uses WordNetLemmatizer().
+
+        Args:
+            doc: Dataframe or subset dataframe of interest
+
+        Returns:
+            docLem: tokenized and lemmatized dataframe.
+        """
         doc = str(doc)
         docWords = nltk.word_tokenize(doc)
         docLem = ' '.join([lemmatizer.lemmatize(w) for w in docWords])
@@ -140,27 +203,35 @@ def bagOfWords(unsorted_df, column):
     df_bow_sklearn = pandas.DataFrame(X.toarray(),columns=vectorizer.get_feature_names_out())
     print(df_bow_sklearn.head(200))
 
-    '''
+    """
     ### Then vectorize 2 by 2
     print(hrule, "For 2 by 2 ngram\n\n")
     vectorizer = CountVectorizer(stop_words = salena_stop_words, ngram_range=(2,2))
     X = vectorizer.fit_transform([doc1, doc2, doc3])
     df_bow_sklearn = pandas.DataFrame(X.toarray(),columns=vectorizer.get_feature_names_out())
     print(df_bow_sklearn.head(200))
-    '''
+    """
 
     return team1, team2, team3
 
 ###############################################################################
 def utterance_intent(unsorted_df, theUtterance, theIntent):
+    """
+    Purpose:
+
+    Args:
+
+    Returns:
+    """
 
     unsorted_df = unsorted_df[['video', 'obsNum', 'regular', 'critical', 'score', 'question_verbatim', 'abstractLabels', 'questionLabels']]
     df = unsorted_df.sort_values(by=['video'])
 
-    '''
+    """
     Create two subset dataframes, one for all observations that have
     utterance of interest and the other for the intent of interest
-    '''
+    """
+
     utter = df['question_verbatim'].str.contains(theUtterance, case=False)
     utter = df[utter]
     intent = df['abstractLabels'].str.contains(theIntent, case = False)
@@ -171,14 +242,14 @@ def utterance_intent(unsorted_df, theUtterance, theIntent):
 
 
 
-    print(Hrule, "Probabilities of ALL Intentions, given the utterance\"",
+    print(hrule, "Probabilities of ALL Intentions, given the utterance\"",
             theUtterance, "\"in the question.")
     prob.get_joint_probability(utter, "abstractLabels")
 
 
 
 
-    print(Hrule, "Bag of Words for ALL Utterances, given the intent:", theIntent)
+    print(hrule, "Bag of Words for ALL Utterances, given the intent:", theIntent)
     bagOfWords(intent, "question_verbatim")
 
 
@@ -187,7 +258,7 @@ def utterance_intent(unsorted_df, theUtterance, theIntent):
 
 
 
-    '''
+    """
     # The rest of this function is under construction:
 
     print(hrule, "Intent=", theIntent," | \"", theUtterance, "\" is spoken)")
@@ -205,13 +276,20 @@ def utterance_intent(unsorted_df, theUtterance, theIntent):
 
     # now send to bag of word:
     print("End of bagOfWords() for the intent:", theIntent, "\n")
-    '''
+    """
 
 ###############################################################################
 
 
 def abstractLabel_subset(df, theIntent):
-    '''
+    """
+    Purpose:
+
+    Args:
+
+    Returns:
+    """
+    """
     Separate df by abstaction labels to identify intentions and correlate them
     to possible verbatim clues.
 
@@ -243,7 +321,7 @@ def abstractLabel_subset(df, theIntent):
                         rescueVictim        0.016
               shareInformationUnique        0.063
 
-    '''
+    """
     print("Joint Probabilities of all Abstract Labels:\n\n")
     joint = prob.get_joint_probability(df, "abstractLabels")
 
@@ -268,32 +346,11 @@ def abstractLabel_subset(df, theIntent):
             "\" in abstract labels.\n\n", myIntent.head(191))
     return myIntent
 
-###############################################################################
-##### PROGRAM STARTS HERE
-###############################################################################
-
-###################################################################
-### Horizontal ruling for visual ease in reading output.
-hrule = ("\n" + "-"*80 + "\n")
-Hrule = ("\n\n\n" + "="*80 + "\n")
-HRULE = ("\n" + "___"*30 + "CURRENT TESTING" + "___"*30 + "\n")
-
-### Set number of rows to display in output:
-HEAD = 20
-
-###################################################################
-### Use this block to clean data before using this file, else use next block.
-### Read in the Data:
-### Read in the data
-file = "../data/doNotCommit2_HSR_replacedTerms_readyToUse.csv"
-data = pandas.read_csv(file)
 
 
 
 
-
-
-'''
+"""
 ## This loop requires user interaction, which can be annoying to some.
 
 intentions = ['carry', 'wake', 'priorit', 'locat', 'unique', 'information',
@@ -307,125 +364,44 @@ for i in intentions:
         continue
     else:
         break
-'''
+"""
 
 
+def main(df, utterance):
+    """
+    Purpose:
 
-### Send the entire dataset to bagOfWords
-### Split into teams to compare and contrast. In this case, three teams.
-### This splitting is done inside of bagOfWord()
-print("\n\nFOR ALL INTENTIONS AND UTTERANCES:")
-teamUtter1, teamUtter2, teamUtter3 = bagOfWords(data, "question_verbatim")
-print(teamUtter1)
+    Args:
 
-
-
-
-
-
-
-
-
+    Returns:
+    """
+    ### Send the entire dataset to bagOfWords
+    ### Split into teams to compare and contrast. In this case, three teams.
+    ### This splitting is done inside of bagOfWord()
+    print("\n\nFOR ALL INTENTIONS AND UTTERANCES:")
+    teamUtter1, teamUtter2, teamUtter3 = bagOfWords(df, "question_verbatim")
+    print(teamUtter1)
 
 
-### Use stemmed version of your query:
-utterances = "want"
+    ## Now send entire dataset, or team data subset, to find:
+        # conditional probability of intention, given the utterance
+        # conditional probabiity of utterance, given the player intent 
+        # bagOfWords() called from within utterance_intent()
 
-## Now send entire dataset, or team data subset, to find:
-    # conditional probability of intention, given the utterance
-    # conditional probabiity of utterance, given the player intent 
-    # bagOfWords() called from within utterance_intent()
+    list_intent = list(df["abstractLabels"].sort_values().unique())
 
-
-#intent = "askLocation"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "clearLocationVictim"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "collaborateLocationVictim"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-intent = "collaborateCriticalWake"
-print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-utterance_intent(data, utterances, intent)
-
-#intent = "clarifyRequestTeammate"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "collaborateCarryVictim"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-intent = "collaborateCarryStabilize"
-print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-utterance_intent(data, utterances, intent)
-
-#intent = "collaborateCriticalLocation"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "collaborateCriticalThreatroom"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "collaborateThreatroom"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
+    for i in list_intent:
+        print(hrule, "For Player Intention:", i, "\n Word uttered:", utterance)
+        utterance_intent(df, utterance, i)
 
 
-intent = "coordinatePlanTeam"
-print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-utterance_intent(data, utterances, intent)
+    print("Joint Probabilities of all Abstract Labels:\n\n")
+    joint, joint_tail = prob.get_joint_probability(df, "abstractLabels")
 
+    myJoint = joint.sort_values(by=['abstractLabels'])
+    print(myJoint.head(200))
 
-#intent = "directCarryStabilized"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-
-#intent = "collaborateCritical"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "prioritizeClearLocation"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "prioritizeCriticalVictim"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "requestCriticalWake"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "rescueTeammateTrapped"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-#intent = "shareInformationUnique"
-#print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-#utterance_intent(data, utterances, intent)
-
-
-print("Joint Probabilities of all Abstract Labels:\n\n")
-joint = prob.get_joint_probability(data, "abstractLabels")
-myJoint = joint.sort_values(by=['abstractLabels'])
-print(myJoint.head(200))
-
-'''
-intent = ""
-print(Hrule, "For Player Intention:", intent, "\nWord uttered:", utterances)
-utterance_intent(data, utterances, intent)
-
-
-
-
+"""
 ### The rest of this program is still under construction
 
 print("\nFOR THE INTENT:", intent, "\n")
@@ -438,9 +414,30 @@ print("\nFOR THE UTTERANCE:", utterances, "\n")
 bagOfWords(subsetIntention, "question_verbatim")
 print("\nEnd of intent =", intent)
 
-'''
+"""
 
-print(Hrule, "\t\t\tEnd of Program", Hrule)
 
 ###############################################################################
+#   Program Starts Here
+###############################################################################
 
+if __name__ == '__main__':
+
+    if ORIGINAL_DATAFRAME:
+        ### Read in the data
+        file = "../data/HSR/doNotCommit2_HSR_readyForUse.csv"
+        data = pandas.read_csv(file)
+        data = pandas.DataFrame(data)
+        main(data, "want")
+        print(hrule, "\t\t\tEnd of Original Dataset Process", Hrule)
+
+    if REPLACED_DATAFRAME:
+        relabeled_file = "../data/HSR/doNotCommit3_HSR_replacedTerms_readyToUse.csv"
+        rdata = pandas.read_csv(relabeled_file)
+        rdata = pandas.DataFrame(rdata)
+        main(rdata, "want")
+        print(hrule, "\t\t\tEnd of Replaced-label Dataset Process", Hrule)
+
+###############################################################################
+#   Program Ends Here
+###############################################################################
