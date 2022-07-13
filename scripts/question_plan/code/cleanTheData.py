@@ -373,7 +373,7 @@ def getRawData(filename):
 
     ### Get rid of null values
     rawData = rawData[rawData["obsNum"].notnull()]
-    print("Shape of data AFTER cleaning out nulls:", rawData.shape)
+    print("Shape of data AFTER cleaning out nulls:", rawData.shape, hrule)
 
     ### Set up display for convenience in reading output:
     pandas.set_option('display.max_rows', 40)
@@ -474,7 +474,7 @@ def main(filename):
         myData: cleaned dataframe to be used for additional text cleaning
     """
 
-    print(hrule, "Cleaning columns...\n\n")
+    print(hrule, "Cleaning columns...\n")
     myData = getRawData(filename)
     myData = cleanLabels(myData, "abstractLabel")
     myData = cleanLabels(myData, "htn")

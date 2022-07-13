@@ -44,6 +44,8 @@ Functions in File:
      * reclean(df, col, newCol)
      * contingency_tables(df, colA, colB)
      * investigate_ReplacedTerms(dataframe)
+     * investigate_subset(df, colA='qPhrase',
+     colB='abstractLabels', token_name='canYou'):
      * main(data)
 
 Sources and references:
@@ -341,7 +343,7 @@ def investigate_subset(df, colA='qPhrase', colB='abstractLabels',
     # next step returns a [n x 2] dataframe of booleans. Don't forget this
     # step.
     token = df[token]
-    print(hrule, "Rows with \'", token_name, "\' in qPhrase\n\n", token)
+    print(hrule, "Rows with \'{}\' in qPhrase.\n\n{}.\n".format(token_name, token))
 
     ### Find joint and conditional probabilities of these subdatasets
     ###
@@ -356,8 +358,9 @@ def investigate_subset(df, colA='qPhrase', colB='abstractLabels',
 
     print("Notice patterns when \'which\' is spoken", hrule)
     print("Describe Full DataFrame Categorial Data:\n", df.describe(include=object), hrule)
-    print("Describe \'", token_name, "\' Categorial Data:\n", token.describe(include=object), hrule)
-    print("Describe \'", token_name, "\' + critical Categorial Data:\n", tokenCritical.describe(include=object), hrule)
+    print("Describe Subset qPhrase=\'{}\' Categorial Data:\n".format(token_name), token.describe(include=object), hrule)
+    print("Describe Subset qPhrase=\'{}\' + critical Categorial Data:\n".format(token_name),
+            tokenCritical.describe(include=object), hrule)
 
 
 ###############################################################################

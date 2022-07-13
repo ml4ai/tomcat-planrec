@@ -74,7 +74,7 @@ lemmatizer = WordNetLemmatizer()
 #--------------------------------------------------------------------------
 ### Set to true or false to run program for each desired dataframe.
 ORIGINAL_DATAFRAME = True
-REPLACED_DATAFRAME = False
+REPLACED_DATAFRAME = True ### Replaced labels from probability.py
 
 ### Horizontal ruling for visual ease in reading output.
 hrule = ("\n" + "-"*80 + "\n")
@@ -159,7 +159,6 @@ def bagOfWords(unsorted_df, column = "question_verbatim"):
     docs2= divideFrame(team2)
     docs3= divideFrame(team3)
 
-
     ### Bag of Words Using Scikit_Learn
     pandas.set_option('display.max_columns', 600)
     from sklearn.feature_extraction.text import CountVectorizer
@@ -224,39 +223,24 @@ def utterance_intent(unsorted_df, theUtterance, theIntent):
     Returns:
     """
 
-    unsorted_df = unsorted_df[['video', 'obsNum', 'regular', 'critical', 'score', 'question_verbatim', 'abstractLabels', 'questionLabels']]
+    unsorted_df = unsorted_df[['video', 'obsNum', 'regular', 'critical', 'score',
+        'question_verbatim', 'abstractLabels', 'questionLabels']]
     df = unsorted_df.sort_values(by=['video'])
 
     """
     Create two subset dataframes, one for all observations that have
     utterance of interest and the other for the intent of interest
     """
-
     utter = df['question_verbatim'].str.contains(theUtterance, case=False)
     utter = df[utter]
     intent = df['abstractLabels'].str.contains(theIntent, case = False)
     intent = df[intent]
 
-
-
-
-
-
-    print(hrule, "Probabilities of ALL Intentions, given the utterance\"",
-            theUtterance, "\"in the question.")
+    print(hrule, "Probabilities of ALL Intentions, given the utterance\"{}\" in the question.".format(theUtterance))
     prob.get_joint_probability(utter, "abstractLabels")
-
-
-
 
     print(hrule, "Bag of Words for ALL Utterances, given the intent:", theIntent)
     bagOfWords(intent, "question_verbatim")
-
-
-
-
-
-
 
     """
     # The rest of this function is under construction:
@@ -283,43 +267,44 @@ def utterance_intent(unsorted_df, theUtterance, theIntent):
 
 def abstractLabel_subset(df, theIntent):
     """
+
+    This function is in progress.
+
     Purpose:
+        Separate df by abstaction labels to identify intentions and correlate them
+        to possible verbatim clues.
 
     Args:
 
     Returns:
-    """
-    """
-    Separate df by abstaction labels to identify intentions and correlate them
-    to possible verbatim clues.
 
-    The following abstractions labels occur more than twice, or at a joint
-    probability of > 0.1 and these will be the focus of the rest of this
-    function for the present time.
+        The following abstractions labels occur more than twice, or at a joint
+        probability of > 0.1 and these will be the focus of the rest of this
+        function for the present time.
 
-                ABSTRACT LABEL           JOINT PROBABILITY
+                    ABSTRACT LABEL           JOINT PROBABILITY
 
-                         askLocation        0.021
+                            askLocation        0.021
 
-       collaborateCriticalThreatroom        0.016
-         collaborateCriticalLocation        0.031
-            collaborateCriticalWake         0.12
-         collaborateCriticalPriority        0.021
+        collaborateCriticalThreatroom        0.016
+            collaborateCriticalLocation        0.031
+                collaborateCriticalWake         0.12
+            collaborateCriticalPriority        0.021
 
-           collaborateRescueTeammate        0.026
-           collaborateLocationVictim        0.031
-             collaborateCarryVictim         0.15
-            collaborateClearLocation        0.037
+            collaborateRescueTeammate        0.026
+            collaborateLocationVictim        0.031
+                collaborateCarryVictim         0.15
+                collaborateClearLocation        0.037
 
-                  coordinatePlanTeam        0.047
-                 clearLocationVictim        0.058
+                    coordinatePlanTeam        0.047
+                    clearLocationVictim        0.058
 
-            prioritizeCriticalVictim        0.016
-             prioritizeClearLocation        0.021
-          prioritizeCriticalLocation        0.063
+                prioritizeCriticalVictim        0.016
+                prioritizeClearLocation        0.021
+            prioritizeCriticalLocation        0.063
 
-                        rescueVictim        0.016
-              shareInformationUnique        0.063
+                            rescueVictim        0.016
+                shareInformationUnique        0.063
 
     """
     print("Joint Probabilities of all Abstract Labels:\n\n")
@@ -342,46 +327,55 @@ def abstractLabel_subset(df, theIntent):
     myIntent.drop(myIntent.columns[0], axis=1, inplace=True)
     myIntent = myIntent.sort_values(by=['video'])
     myIntent["0"] = range(1, 1+len(myIntent))
-    print("All observations that have the word \"", theIntent,
-            "\" in abstract labels.\n\n", myIntent.head(191))
+    print("All observations that have the word \"{}\" in abstract labels.".format(theIntent), myIntent.head(191))
     return myIntent
 
 
+def get_intention_components(df, iList):
+    """
+    This function is in progress. As of 13 July, this function is implemented
+    as an user-interactive loop to ease development and troubleshooting. The
+    final implementation will not have this interaction.
 
+    Purpose:
+        To compare specific intention components with word utterances.
 
+    Args:
+    Returns:
+    """
 
-"""
-## This loop requires user interaction, which can be annoying to some.
+    ## This loop requires user interaction, which can be annoying to some.
 
-intentions = ['carry', 'wake', 'priorit', 'locat', 'unique', 'information',
-'plan', 'clear', 'critical', 'stabilize', 'ask', 'request', 'suggest']
+    intentions = ['carry', 'wake', 'priorit', 'locat', 'unique', 'information',
+    'plan', 'clear', 'critical', 'stabilize', 'ask', 'request', 'suggest']
 
-for i in intentions:
-    carryIntention = abstractLabel_subset(data, i)
-    print(hrule)
-    ask = input("Hit c to continue to next\n")
-    if ask == "c":
-        continue
-    else:
-        break
-"""
+    for i in intentions:
+        carryIntention = abstractLabel_subset(data, i)
+        print(hrule)
+        ask = input("Hit c to continue to next\n")
+        if ask == "c":
+            continue
+        else:
+            break
 
 
 def main(df, utterance):
     """
     Purpose:
+        This main function splits dataframe into subsets by team, obtains bag
+        of words, counts, and calculates the joint or conditional probability
+        of a word or intention, conditioned on the other.
 
     Args:
+        df: dataframe
+        utterance: word of interest
 
-    Returns:
+    Returns: None
     """
-    ### Send the entire dataset to bagOfWords
-    ### Split into teams to compare and contrast. In this case, three teams.
-    ### This splitting is done inside of bagOfWord()
+    ### Send the entire dataset to bagOfWords, split into teams to compare and contrast.
     print("\n\nFOR ALL INTENTIONS AND UTTERANCES:")
     teamUtter1, teamUtter2, teamUtter3 = bagOfWords(df, "question_verbatim")
     print(teamUtter1)
-
 
     ## Now send entire dataset, or team data subset, to find:
         # conditional probability of intention, given the utterance
@@ -394,32 +388,35 @@ def main(df, utterance):
         print(hrule, "For Player Intention:", i, "\n Word uttered:", utterance)
         utterance_intent(df, utterance, i)
 
-
     print("Joint Probabilities of all Abstract Labels:\n\n")
     joint, joint_tail = prob.get_joint_probability(df, "abstractLabels")
 
     myJoint = joint.sort_values(by=['abstractLabels'])
     print(myJoint.head(200))
 
-"""
-### The rest of this program is still under construction
+    """
+    ### The rest of this program is still under construction
 
-print("\nFOR THE INTENT:", intent, "\n")
-subsetIntention = abstractLabel_subset(data, intent)
-    # Now send to the bagOfWords() function:
-bagOfWords(subsetIntention, "question_verbatim")
+    print("\nFOR THE INTENT:", intent, "\n")
+    subsetIntention = abstractLabel_subset(data, intent)
+        # Now send to the bagOfWords() function:
+    bagOfWords(subsetIntention, "question_verbatim")
 
 
-print("\nFOR THE UTTERANCE:", utterances, "\n")
-bagOfWords(subsetIntention, "question_verbatim")
-print("\nEnd of intent =", intent)
+    print("\nFOR THE UTTERANCE:", utterances, "\n")
+    bagOfWords(subsetIntention, "question_verbatim")
+    print("\nEnd of intent =", intent)
 
-"""
-
+    """
 
 ###############################################################################
 #   Program Starts Here
 ###############################################################################
+"""
+Set desired word utterance in line below to begin program.
+"""
+desired_word_utterance = "want"
+
 
 if __name__ == '__main__':
 
@@ -428,15 +425,18 @@ if __name__ == '__main__':
         file = "../data/HSR/doNotCommit2_HSR_readyForUse.csv"
         data = pandas.read_csv(file)
         data = pandas.DataFrame(data)
-        main(data, "want")
-        print(hrule, "\t\t\tEnd of Original Dataset Process", Hrule)
+        main(data, desired_word_utterance)
+        print(hrule, "\tEnd of Original Dataset Process for the uttered word \'{}\'.".format(desired_word_utterance),  Hrule)
+
+    if ORIGINAL_DATAFRAME & REPLACED_DATAFRAME:
+        time.sleep(2)
 
     if REPLACED_DATAFRAME:
         relabeled_file = "../data/HSR/doNotCommit3_HSR_replacedTerms_readyToUse.csv"
         rdata = pandas.read_csv(relabeled_file)
         rdata = pandas.DataFrame(rdata)
-        main(rdata, "want")
-        print(hrule, "\t\t\tEnd of Replaced-label Dataset Process", Hrule)
+        main(rdata, desired_word_utterance)
+        print(hrule, "\tEnd of Replaced-label Dataset Process for the uttered word \'{}\'.".format(desired_word_utterance),  Hrule)
 
 ###############################################################################
 #   Program Ends Here
