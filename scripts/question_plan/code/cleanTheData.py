@@ -131,10 +131,6 @@ def find_time_column(df):
             ### Remove original datetime formatted column
             df.drop(fixCol, inplace = True, axis = 1)
 
-            ### Save temporarily-altered dataframe to a csv file in working directory
-            temp_df = pandas.DataFrame(df)
-            temp_df.to_csv("../data/temp_csv_folder/"+fixCol+"_temp_df_from_doNotCommit_Cleaned.csv")
-
     return df
 
 
@@ -404,7 +400,7 @@ def getRawData(filename):
 #    print(hrule, "\nDescribe Data with Parameter:\n", data.describe(include=object))
 
     ### No need for floats in this data. Convert all floats to integers:
-    data["video"] = rawData["video"].astype(int)
+    data["video"] = data["video"].astype(int)
     data["obsNum"] = data["obsNum"].astype(int)
     data["regular"] = data["regular"].astype(int)
     data["critical"] = data["critical"].astype(int)
