@@ -89,7 +89,7 @@ void pretty_print(std::ostream &os,
 vector<std::string> split_player_name(std::string str) {
     std::replace(str.begin(), str.end(), '_', ' '); // replace ':' by ' '
 
-    vector<string> array;
+    vector<std::string> array;
     stringstream ss(str);
     std::string temp;
     while (ss >> temp)
@@ -268,7 +268,15 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
             cout << exc.what() << endl;
             pretty_print(std::cout, jv);
         }
+    } else if (msg->get_topic() ==
+               "observations/events/player/triage") {
+        if (jv.at_pointer("/data/triage_state") == "SUCCESSFUL") {
+            tell(this->kb,
+                 "(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) +
+                 " saved)");
+        }
     }
+
 }
 
 PercAgent::PercAgent(string address) : Agent(address) {
@@ -288,14 +296,19 @@ PercAgent::PercAgent(string address) : Agent(address) {
     }
     initialize_data_type(this->kb, "Victim", vic_ids);
     initialize_data_type(this->kb, "Victim_Type", {"a", "b", "c"});
+    initialize_data_type(this->kb, "Victim_Status", {"unsaved", "saved"});
     initialize_data_type(
             this->kb, "Role", {"medic", "transporter", "engineer"});
     initialize_predicate(this->kb, "player_at", {"Role", "Location"});
     initialize_predicate(this->kb, "player_status", {"Role", "Player_Status"});
     initialize_predicate(this->kb, "victim_type", {"Victim", "Victim_Type"});
+    initialize_predicate(this->kb, "victim_status", {"Victim", "Victim_Status"});
     tell(this->kb, "(player_status medic safe)");
     tell(this->kb, "(player_status transporter safe)");
     tell(this->kb, "(player_status engineer safe)");
+    for (int i = 1; i <= 35; i++) {
+        tell(this->kb, "(victim_status vic_" + to_string(i) + " unsaved)");
+    }
     this->medic_trapped_coord.push_back(0);
     this->medic_trapped_coord.push_back(0);
     this->transporter_trapped_coord.push_back(0);
