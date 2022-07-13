@@ -100,8 +100,25 @@ vector<std::string> split_player_name(std::string str) {
 void PercAgent::process(mqtt::const_message_ptr msg) {
     json::value jv = json::parse(msg->to_string()).as_object();
     std::string new_knowledge;
-//    cout << msg->get_topic() << endl;
-    if (msg->get_topic() == "observations/events/player/location") {
+    cout << msg->get_topic() << endl;
+    if (msg->get_topic() == "ground_truth/mission/victims_list") {
+        std::vector<std::string> vic_types;
+        for (const auto &v: jv.at_pointer("/data/mission_victim_list").as_array()) {
+            if (v.at("block_type").as_string() == "block_victim_proximity") {
+                vic_types.emplace_back("c");
+            } else if (v.at("block_type").as_string() == "block_victim_1") {
+                vic_types.emplace_back("a");
+            } else {
+                vic_types.emplace_back("b");
+            }
+        }
+        initialize_data_type(this->kb, "Victim_Type", {"a", "b", "c"});
+        std::string knowledge;
+        for (int i = 0; i < vic_types.size(); i++) {
+            knowledge = "(victim_type vic_" + to_string(i + 1) + " " + vic_types[i] + ")";
+            tell(this->kb, knowledge);
+        }
+    } else if (msg->get_topic() == "observations/events/player/location") {
         try {
             if (jv.at_pointer("/data").as_object().contains("locations")) {
 //                pretty_print(std::cout, jv.at("msg").at("sub_type"));
@@ -211,6 +228,46 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
             cout << exc.what() << endl;
             pretty_print(std::cout, jv);
         }
+    } else if (msg->get_topic() ==
+               "agent/pygl_fov/player/3d/summary") {
+        try {
+            for (auto v: jv.at_pointer("/data/blocks").as_array()) {
+                if (v.at("type").as_string().find("victim") != std::string::npos) {
+                    pretty_print(std::cout, v);
+                }
+            }
+//
+//            pretty_print(std::cout, jv.at_pointer("/msg/sub_type"));
+//            pretty_print(std::cout, jv.at_pointer("/data/rubble_x"));
+//            pretty_print(std::cout, jv.at_pointer("/data/rubble_z"));
+//
+//            auto rubble_x = (int) jv.at_pointer("/data/rubble_x").as_int64();
+//            auto rubble_z = (int) jv.at_pointer("/data/rubble_z").as_int64();
+//            new_knowledge = "(player_status";
+//            if (rubble_x == this->medic_trapped_coord.at(0) and
+//                rubble_z == this->medic_trapped_coord.at(1)) {
+//                new_knowledge += " medic safe)";
+//                this->medic_trapped_coord.at(0) = 0;
+//                this->medic_trapped_coord.at(1) = 0;
+//                tell(this->kb, new_knowledge);
+//            } else if (rubble_x == this->transporter_trapped_coord.at(0) and
+//                       rubble_z == this->transporter_trapped_coord.at(1)) {
+//                new_knowledge += " transporter safe)";
+//                this->transporter_trapped_coord.at(0) = 0;
+//                this->transporter_trapped_coord.at(1) = 0;
+//                tell(this->kb, new_knowledge);
+//            } else if (rubble_x == this->engineer_trapped_coord.at(0) and
+//                       rubble_z == this->engineer_trapped_coord.at(1)) {
+//                new_knowledge += " engineer safe)";
+//                this->engineer_trapped_coord.at(0) = 0;
+//                this->engineer_trapped_coord.at(1) = 0;
+//                tell(this->kb, new_knowledge);
+//            }
+        }
+        catch (exception &exc) {
+            cout << exc.what() << endl;
+            pretty_print(std::cout, jv);
+        }
     }
 }
 
@@ -225,10 +282,17 @@ PercAgent::PercAgent(string address) : Agent(address) {
     location_ids.emplace_back("UNKNOWN");
     initialize_data_type(this->kb, "Location", location_ids);
     initialize_data_type(this->kb, "Player_Status", {"safe", "trapped"});
+    std::vector<std::string> vic_ids;
+    for (int i = 1; i <= 35; i++) {
+        vic_ids.push_back("vic_" + to_string(i));
+    }
+    initialize_data_type(this->kb, "Victim", vic_ids);
+    initialize_data_type(this->kb, "Victim_Type", {"a", "b", "c"});
     initialize_data_type(
             this->kb, "Role", {"medic", "transporter", "engineer"});
     initialize_predicate(this->kb, "player_at", {"Role", "Location"});
     initialize_predicate(this->kb, "player_status", {"Role", "Player_Status"});
+    initialize_predicate(this->kb, "victim_type", {"Victim", "Victim_Type"});
     tell(this->kb, "(player_status medic safe)");
     tell(this->kb, "(player_status transporter safe)");
     tell(this->kb, "(player_status engineer safe)");
