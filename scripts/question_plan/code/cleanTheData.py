@@ -1,9 +1,13 @@
-'''
+"""
 --------------------------------------------------------------------------
 Purpose:
     This program reads in a csv file from annotations written in camel-case
     verbObjectObject form, time, raw text annotation, and other features
     annotated from the ASIST Minecraft SAR Environment Study 3 data.
+
+    This program does not import HSR Data.
+
+    Set RUN_TESTABC = TRUE (line 58) to print cleaned labels.
 
 Author:
     Salena T. Ashton
@@ -14,7 +18,7 @@ Date Created:
     18 June 2022
 
 Last Updated:
-    11 July 2022
+    12 July 2022
 
 Affiliation:
     Theory of Mind-based Cognitive Architecture for Teams (ToMCAT)
@@ -35,11 +39,12 @@ Attributes of comments in file to be aware of:
     '#' Commands that can be uncommented. Most of these are either print
         statements for debugging or data exploration samples/ heads.
 --------------------------------------------------------------------------
-'''
+"""
 
+#--------------------------------------------------------------------------
 ### Horizontal ruling for visual ease in reading output.
-hrule = ("\n" + "-"*76 + "\n")
-Hrule = ("\n" + "="*76 + "\n")
+hrule = ("\n" + "-"*80 + "\n")
+Hrule = ("\n" + "="*80 + "\n")
 
 import sys
 import numpy
@@ -49,8 +54,12 @@ import time
 import datetime
 
 
+### Set to true or false to print labels for verification of being cleaned
+RUN_TESTABC = True
+#--------------------------------------------------------------------------
+
 def convert_datetime_integer(column):
-    '''
+    """
     Purpose:
         Convert datetime to integer timestamp. Since players refer to time in
         terms of "time left," the data are formatted in descending order.
@@ -64,7 +73,7 @@ def convert_datetime_integer(column):
 
     Returns:
         Returns a column of total seconds as integers to the find_time_column() function.
-    '''
+    """
 
     ### Convert column into its own dataframe
     column = pandas.to_datetime(column)
@@ -86,7 +95,7 @@ def convert_datetime_integer(column):
 
 
 def find_time_column(df):
-    '''
+    """
     Purpose:
         Finds column names with the word 'time' and verifies that it can be
         converted from any datatype to an integer to count seconds.
@@ -97,7 +106,7 @@ def find_time_column(df):
     Returns:
         df: dataframe with cleaned time column (integer)
 
-    '''
+    """
     ### Empty String to send later
     fixCol = ""
     columnCount = 0
@@ -122,16 +131,12 @@ def find_time_column(df):
             ### Remove original datetime formatted column
             df.drop(fixCol, inplace = True, axis = 1)
 
-            ### Save temporarily-altered dataframe to a csv file in working directory
-            #temp_df = pandas.DataFrame(df)
-            #temp_df.to_csv("../data/temp_csv_folder/"+fixCol+"_temp_df_from_doNotCommit_Cleaned.csv")
-
     return df
 
 
 ### Replace labels as created by annotators with alphabetized labels
 def alphabetizeObjects(column):
-    '''
+    """
     Purpose:
         Annotation Labels come in the form "verbObjectObject". This function
         alphabetizes both objects after the verb to avoid duplication of labels
@@ -158,10 +163,10 @@ def alphabetizeObjects(column):
         newColumn: Original column of labels in cleaned form.
         allVerbs: a list of all verbs used in annotation.
         allNM: a list of all objects that were used as modifiers or nouns.
-    '''
+    """
 
     def getLabels(myLabel):
-        '''
+        """
         Purpose:
             This function is called from alphabetizeObjects and splits the label
             into verbs and objects, then alphabetizes the objects before
@@ -176,11 +181,11 @@ def alphabetizeObjects(column):
             myModifier: The specific modifier or second, optional object.
             myABC: The full label, alphabetized with verb first.
 
-        '''
+        """
 #        print(hrule, "from getLabels():", myLabel)
 
         def getVerb(label):
-            '''
+            """
             Args:
                 label: Unclean label from column to be cleaned.
 
@@ -188,7 +193,7 @@ def alphabetizeObjects(column):
                 verb: The verb from the label.
                 label: Remainder of label object(s).
 
-            '''
+            """
 #            print("from getVerb()", label)
             verb = ""
             size = len(label)
@@ -208,7 +213,7 @@ def alphabetizeObjects(column):
                     return verb, label
 
         def getNoun(label):
-            '''
+            """
             Args:
                 label: Label objects after verb is removed.
 
@@ -216,7 +221,7 @@ def alphabetizeObjects(column):
                 noun: First object removed from label.
                 label: Remainder of label (second object, if present).
 
-            '''
+            """
 #            print("from getNoun()", label)
 
             ### Remove capital letter for noun:
@@ -238,14 +243,14 @@ def alphabetizeObjects(column):
                     return noun, label
 
         def getModifier(label):
-            '''
+            """
             Args:
                 Label: Remainder of label after verb and first object are removed.
 
             Returns:
                 modifier: Last object removed from label or blank if no second object
                     were present.
-            '''
+            """
 
             size = len(label)
             if size < 1:
@@ -259,7 +264,7 @@ def alphabetizeObjects(column):
             return modifier
 
         def abcOrder(myV, myN, myM):
-            '''
+            """
             Purpose:
                 Reassemble label components back into verbObjObj in
                 alphabetical order.
@@ -272,7 +277,7 @@ def alphabetizeObjects(column):
 
             Returns:
                 ABCLabel: alphabetized label
-            '''
+            """
             abcLabel = ""
             if myM=="":
                 first = myN[0].upper()
@@ -334,9 +339,6 @@ def alphabetizeObjects(column):
         allModifiers.append(m)
         newColumn.append(c)
 
-    '''
-    Uncomment print statements as necessary.
-    '''
 
 #    print(hrule, "All Verbs:\n", allVerbs)
 #    print(hrule, "All Nouns:\n", allNouns)
@@ -349,7 +351,7 @@ def alphabetizeObjects(column):
 
 
 def getRawData(filename):
-    '''
+    """
     Purpose:
         To clean labels from camel-case format in human annotation.
         Reads file into a pandas dataframe format, removes null values, selects
@@ -361,7 +363,7 @@ def getRawData(filename):
 
     Returns:
         data: Dataframe format of csv file.
-    '''
+    """
 
     ### If not in csv format, use read_json(), read_html(), read_sql_table()
     rawData = pandas.read_csv(filename)
@@ -381,10 +383,13 @@ def getRawData(filename):
     pandas.set_option('display.precision', 1) # decimal place
 
 
-    ### Subset dataframe to focus on conditional probabilities of labels
+    ### Deep copy of dataframe to focus on conditional probabilities of labels
+        # If no deep copy is made, several warnings will result. 
+        # Reference used to solve copy problem: https://www.dataquest.io/blog/settingwithcopywarning/
     data = rawData[["video", "obsNum", "regular", "critical", "score", "timeStart", "timeEnd",
     "htn", "abstractLabel", "causeLabel", "questionLabel",
-    "effectLabel", "qWord", "qPhrase", "auxVerb", "actionVerb"]]
+    "effectLabel", "qWord", "qPhrase", "auxVerb", "actionVerb"]].copy(deep =
+            True)
 #    print("Shape of selected-feature data:", data.shape, hrule)
 
     ### Helpful examination of numerical data
@@ -395,7 +400,7 @@ def getRawData(filename):
 #    print(hrule, "\nDescribe Data with Parameter:\n", data.describe(include=object))
 
     ### No need for floats in this data. Convert all floats to integers:
-    data["video"] = data["video"].astype(int)
+    data["video"] = rawData["video"].astype(int)
     data["obsNum"] = data["obsNum"].astype(int)
     data["regular"] = data["regular"].astype(int)
     data["critical"] = data["critical"].astype(int)
@@ -405,7 +410,7 @@ def getRawData(filename):
 
 
 def cleanLabels(df, dirtyCol):
-    '''
+    """
     Purpose:
         Converts datetime datatypes, cleans annotator labels
         and cleans dataframes. Use for scalability in this format.
@@ -414,9 +419,9 @@ def cleanLabels(df, dirtyCol):
         df: Dataframe of columns to be cleaned.
         dirtyCol: Column needing to be cleaned.
 
-    Output:
+    Returns:
         cleaned: Dataframe ready for data snooping after cleaning
-    '''
+    """
 
     ### Reinspect and Describe using a parameter and numpy:
     cleaned = df.copy(deep=True)
@@ -454,19 +459,21 @@ def cleanLabels(df, dirtyCol):
     if "primitiveQuestion" in dirtyCol:
         cleaned.insert(labelIndex, dirtyCol+"s_nm", allNM, True)
         cleaned.insert(labelIndex, dirtyCol+"s_v", allV, True)
-
-    ### Save temporarily-altered dataframe to a csv file in working directory
-    temp_cleaned = pandas.DataFrame(cleaned)
-    temp_cleaned.to_csv("../data/temp_csv_folder/temp_ABC_"+dirtyCol+"_from_doNotCommit_Cleaned.csv")
     return cleaned
 
-#####################################################################################
-#           Program Starts Here
-#####################################################################################
+
 def main(filename):
-    '''
-    Purpose: Clean data, whether called from this file or another file.
-    '''
+    """
+    Purpose:
+        Clean data, whether called from this file or another file.
+
+    Args:
+        filename: relative path to non-HSR data
+
+    Returns:
+        myData: cleaned dataframe to be used for additional text cleaning
+    """
+
     print(hrule, "Cleaning columns...\n\n")
     myData = getRawData(filename)
     myData = cleanLabels(myData, "abstractLabel")
@@ -476,22 +483,35 @@ def main(filename):
     myData = cleanLabels(myData, "questionLabel")
     HSR = pandas.DataFrame(myData)
     HSR.to_csv("../data/data_noHSR_readyForUse.csv")
-    print(hrule, "saving to readyForUse file...\n")
     return myData
 
+def testABC(df, col):
+    """
+    Purpose:
+        Prints list of all labels after cleaning in order to verify the labels
+        were cleaned correctly. User must specify "True" or "False" on line 58
+        to execute this function.
+    """
+    df = df[col].sort_values().unique()
+    for d in df:
+        print(d)
 
-### Read in the Data:
-file = "../data/commitOKAY_HSR-Removed_raw.csv"
 
-### Start Cleaning Process from main()
-myCleanedData = main(file)
+###############################################################################
+#   Program Starts Here
+###############################################################################
 
-### Uncomment the next 3 lines to verify labels are clean:
-#test = myCleanedData["questionLabels"].sort_values().unique()
-#for t in test:
-#    print(t)
+if __name__ == '__main__':
+    ### Read in the Data:
+    file = "../data/commitOKAY_HSR-Removed_raw.csv"
 
-print("\nEND OF cleanTheData.py PROGRAM.\n")
-#####################################################################################
+    ### Start Cleaning Process from main()
+    myCleanedData = main(file)
+
+    ### Test abc order of labels
+    if RUN_TESTABC:
+        testABC(myCleanedData, 'questionLabels')
+
+###############################################################################
 #   End of Program
-#####################################################################################
+###############################################################################
