@@ -1,4 +1,4 @@
-'''
+"""
 --------------------------------------------------------------------------
 Purpose:
     This utility file calculates joint, marginal and conditional probabilities
@@ -51,7 +51,7 @@ Sources and references:
     2) https://re-thought.com/pandas-value_counts/
     3) https://towardsdatascience.com/9-pandas-value-counts-tricks-to-improve-your-data-analysis-7980a2b46536
 --------------------------------------------------------------------------
-'''
+"""
 
 import datetime
 import matplotlib.pyplot as pyplot
@@ -77,7 +77,7 @@ hrule = ("\n" + "-"*80 + "\n")
 Hrule = ("\n" + "="*80 + "\n")
 
 def replaceSubstring_Global(df, old, new):
-    '''
+    """
     Purpose:
         Called from replaceTerms(df) to replace whole or part of substring.
 
@@ -88,14 +88,14 @@ def replaceSubstring_Global(df, old, new):
 
     Returns:
         df: Updated dataframe with new term, global replacement
-    '''
+    """
     print("\treplace", old, "with", new)
     df = df.replace(old, new, regex=True)
     return df
 
 
 def get_joint_probability(df, colA):
-    '''
+    """
     Purpose:
         Calculate the joint probability of a dataframe's column of interest.
         This function creates a data frame with probability column and works
@@ -108,7 +108,7 @@ def get_joint_probability(df, colA):
     Returns:
         dfa: Dataframe with joint_probability column
         common: updated dataframe with top 20 joint probabilities.
-    '''
+    """
     dfa = df[colA].value_counts(normalize = True).sort_values().to_frame()
     dfa.reset_index(inplace = True)
     dfa.columns = [colA, 'joint_probability']
@@ -123,7 +123,7 @@ def get_joint_probability(df, colA):
 
 
 def get_conditional_probability(df, colA, colB):
-    '''
+    """
     Purpose:
         Calculate the conditional probability of a dataframe's feature of
         interest, conditioned on another column of interest. This function
@@ -138,7 +138,7 @@ def get_conditional_probability(df, colA, colB):
 
     Returns:
         df1: Dataframe with conditional_probability column
-    '''
+    """
     df1 = df.groupby(colA).value_counts(normalize = True).to_frame()
     df1.reset_index(inplace = True)
     # next line solution from: https://www.codegrepper.com/code-examples/python/pandas+change+the+last+column+name
@@ -150,7 +150,7 @@ def get_conditional_probability(df, colA, colB):
 
 
 def reclean(df, col, newCol):
-    '''
+    """
     Purpose:
         Recleans labels if substrings were replaced globally.
 
@@ -161,7 +161,7 @@ def reclean(df, col, newCol):
 
     Returns:
         df: Dataframe with replaced and cleaned labels.
-    '''
+    """
     df = ctd.cleanLabels(df, col)
     df = df.rename(columns={col: newCol})
     return df
@@ -169,7 +169,7 @@ def reclean(df, col, newCol):
 
 
 def replaceTerms(df):
-    '''
+    """
     Purpose:
         Replaces certain terms in the data to reduce granularity of labels.
         Commented-out commands have less impact in reducing number of labels
@@ -203,7 +203,7 @@ def replaceTerms(df):
         Additional justification of label replacement, as specified in the
         above examples come from bagOfWords.py when evauluating the tf.d with
         and without label replacement. Update July 6, 2002.
-    '''
+    """
     df = replaceSubstring_Global(df, "Room", "Location") # see notes above
     df = replaceSubstring_Global(df, "LocationInformation", "Location")
     df = replaceSubstring_Global(df, "InformationThreatroom", "Threatroom")
@@ -222,13 +222,11 @@ def replaceTerms(df):
     df = replaceSubstring_Global(df, "Collaborationcollaborate",
             "Collaboration")
     df = replaceSubstring_Global(df, "wakeCritical", "collaborateCriticalWake")
-
     return df
 
 
-
 def contingency_tables(df, colA, colB):
-    '''
+    """
     Purpose:
         Uses a Pandas package to create a continency table.
 
@@ -237,15 +235,13 @@ def contingency_tables(df, colA, colB):
         colB: Feature #2
 
     Returns: none
-    '''
+    """
     df_table = pandas.crosstab(index=df[colA],
             columns=df[colB], margins = True)
 
 
-
-
 def investigate_replacedTerms(orig, colA, colB):
-    '''
+    """
     Purpose:
         Compare and contrast probabilities of features, given another features,
         before and after global replacement of labels. This function is useful
@@ -264,7 +260,7 @@ def investigate_replacedTerms(orig, colA, colB):
         colB: Second feature of interest.
 
     Returns: None
-    '''
+    """
     ### Set some display options
     pandas.set_option('display.max_rows', 400)
     pandas.set_option('display.float_format', '{:.2}'.format)
@@ -315,7 +311,7 @@ def investigate_replacedTerms(orig, colA, colB):
 
 def investigate_subset(df, colA='qPhrase', colB='abstractLabels',
         token_name='canYou'):
-    '''
+    """
     Purpose:
         This function investigates conditional probabilities of features,
         conditioned on either two other features or uttered text. The option to
@@ -333,7 +329,7 @@ def investigate_subset(df, colA='qPhrase', colB='abstractLabels',
             part of a common question utterance, "can you..."
 
     Returns: none
-    '''
+    """
 
     df = df[['obsNum', 'score', 'StartSeconds',
             'abstractLabels', 'questionLabels', 'qPhrase', 'actionVerb']]
@@ -379,7 +375,7 @@ def main(file):
 
     Returns:
         rdata: Cleaned and relabeled dataframe
-        """
+    """
 
     ### Start Cleaning Process
     data = ctd.main(file)
