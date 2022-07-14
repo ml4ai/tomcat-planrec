@@ -1,4 +1,3 @@
-#TODO: Start documentation on line 218.
 """
 --------------------------------------------------------------------------
 Purpose:
@@ -7,9 +6,6 @@ Purpose:
 
     This file depends on HSR data. Adjust your relative path at the end of this
     file to read in this data.
-
-TODO:
-    Argparse for user path to HSR data.
 
 Author:
     Salena T. Ashton
@@ -46,7 +42,7 @@ Functions in File:
 
 --------------------------------------------------------------------------
 """
-
+import argparse
 import collections
 import datetime
 import matplotlib.pyplot as pyplot
@@ -68,13 +64,14 @@ import probability as prob
 nltk.download('punkt')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
+
 ps = PorterStemmer()
 lemmatizer = WordNetLemmatizer()
 
 #--------------------------------------------------------------------------
 ### Set to true or false to run program for each desired dataframe.
 ORIGINAL_DATAFRAME = True
-REPLACED_DATAFRAME = True ### Replaced labels from probability.py
+REPLACED_DATAFRAME = False ### Replaced labels from probability.py
 
 ### Horizontal ruling for visual ease in reading output.
 hrule = ("\n" + "-"*80 + "\n")
@@ -412,24 +409,43 @@ def main(df, utterance):
 ###############################################################################
 #   Program Starts Here
 ###############################################################################
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--dataset', type=str, required = False)
+parser.add_argument('--utterance', type=str, required = True)
+args = parser.parse_args()
+
 """
-Set desired word utterance in line below to begin program.
+
+Use command line to specify word utterance of interest.
+
+Example:
+    For the uttered word, "want," enter this command:
+    $ python bagOfWords.py --utterance want --dataset ../data/dataSet.csv
+
 """
-desired_word_utterance = "want"
+print(args.utterance)
+desired_word_utterance = args.utterance
+myPath = args.dataset
+
 
 
 if __name__ == '__main__':
 
     if ORIGINAL_DATAFRAME:
-        ### Read in the data
-        file = "../data/HSR/doNotCommit2_HSR_readyForUse.csv"
-        data = pandas.read_csv(file)
-        data = pandas.DataFrame(data)
-        main(data, desired_word_utterance)
-        print(hrule, "\tEnd of Original Dataset Process for the uttered word \'{}\'.".format(desired_word_utterance),  Hrule)
+            ### Read in the data
+        if args.dataset:
+            data = pandas.read_csv(myPath)
+            data = pandas.DataFrame(data)
+            main(data, desired_word_utterance)
+            print(hrule, "\tEnd of Original Dataset Process for the uttered word \'{}\'.".format(desired_word_utterance),  Hrule)
 
-    if ORIGINAL_DATAFRAME & REPLACED_DATAFRAME:
-        time.sleep(2)
+        else:
+            file = "../data/HSR/doNotCommit2_HSR_readyForUse.csv"
+            data = pandas.read_csv(file)
+            data = pandas.DataFrame(data)
+            main(data, desired_word_utterance)
+            print(hrule, "\tEnd of Original Dataset Process for the uttered word \'{}\'.".format(desired_word_utterance),  Hrule)
 
     if REPLACED_DATAFRAME:
         relabeled_file = "../data/HSR/doNotCommit3_HSR_replacedTerms_readyToUse.csv"
