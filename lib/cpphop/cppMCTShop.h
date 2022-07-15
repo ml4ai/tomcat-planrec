@@ -140,8 +140,8 @@ csimulation(int horizon,
            Domain& domain,
            int seed) {
 
-    int i = 0;
-    while (!tasks.empty() && i < horizon) {
+    int h = 0;
+    while (!tasks.empty() && h < horizon) {
       Task task = tasks.back();
 
       if (in(task.task_id, domain.operators)) {
@@ -151,7 +151,7 @@ csimulation(int horizon,
               tasks.pop_back();
               seed++;
               state = newstate.value();
-              i++;
+              h++;
               continue;
           }
           return 0.0;
@@ -177,7 +177,7 @@ csimulation(int horizon,
               i != r.second.begin();) {
             tasks.push_back(*(--i));
           }
-          i++;
+          h++;
           continue;
       }
       std::string message = "Invalid task ";

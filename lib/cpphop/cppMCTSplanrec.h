@@ -23,7 +23,6 @@ struct prNode {
     json team_plan;
     double mean = 0.0;
     int sims = 0;
-    double likelihood;
     int pred = -1;
     std::vector<int> successors = {};
 };
@@ -52,16 +51,6 @@ struct prTree {
     }
     return;
   }
-
-  void delete_nodes(int root_id) {
-    if (!nodes[root_id].successors.empty()) {
-      for (auto const &x : nodes[root_id].successors) {
-        delete_nodes(x);
-      }
-    }
-    delete_node(root_id);
-    return;
-  }
 };
 
 template <class State>
@@ -70,6 +59,25 @@ struct prResults {
   int root;
   int end;
 };
+
+bool subseq(json& j, json& g) {
+  for (int t = 0; t < j.size(); t++) {
+    if (j[t] != g[t]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool subsequence(json& j, json& g, std::vector<std::string>& agents) {
+
+  for (auto const &a : agents) {
+    if (subseq(j["plan"][a], g["plan"][a]) == false) {
+      return false;
+    }
+  }
+  return true;
+}
 
 template <class State>
 int
@@ -154,16 +162,13 @@ void cbackprop_rec(prTree<State>& t, int n, double r) {
 }
 
 template <class State, class Domain>
-std::pair<int,double>
-csimulation_rec(json& data_team_plan,
+double
+csimulation_rec(int horizon,
+           json& data_team_plan,
            json team_plan,
            State state,
            Tasks tasks,
            Domain& domain,
-           CPM& cpm,
-           double likelihood,
-           double max_likelihood,
-           double alpha,
            int seed) {
 
     while (team_plan["size"] < data_team_plan["size"]) {
