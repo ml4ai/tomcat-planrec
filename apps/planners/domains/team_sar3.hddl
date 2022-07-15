@@ -12,19 +12,26 @@
     (holding_vic ?p - rescuer)
     (stabilized ?v - victim)
     (awake_crit ?v - victim)
-    (broken ?b - block ?l - location)
+    (broke_block ?l - location)
+    (broke_more_blocks ?l - location)
     (zone_a ?l - location)
     (zone_b ?l - location)
     (zone_c ?l - location)
     (rescue_a ?v - victim)
     (rescue_b ?v - victim)
     (rescue_c ?v - victim)
-    (knowledge_of_type_a ?p - rescuer ?v - victim)
-    (knowledge_of_type_b ?p - rescuer ?v - victim)
-    (knowledge_of_type_c ?p - rescuer ?v - victim)
+    (knowledge_of_s_vic ?p - rescuer ?v - victim ?l - location)
+    (knowledge_of_type_a ?p - rescuer ?v - victim ?l - location)
+    (knowledge_of_type_b ?p - rescuer ?v - victim ?l - location)
+    (knowledge_of_type_c ?p - rescuer ?v - victim ?l - location)
+    (h_knowledge_of_s_vic ?p - rescuer ?v - victim)
+    (h_knowledge_of_type_a ?p - rescuer ?v - victim)
+    (h_knowledge_of_type_b ?p - rescuer ?v - victim)
+    (h_knowledge_of_type_c ?p - rescuer ?v - victim)
     (has_sensor_for ?l ?s_l - location)
     (knowledge_of_regs ?p - rescuer ?l - location)
     (knowledge_of_crit ?p - rescuer ?l - location)
+    (knowledge_of_empty_room ?p - rescuer ?l -location)
     (location_marker_A ?p - rescuer ?l1 ?l2 - location)
     (location_marker_B ?p - rescuer ?l1 ?l2 - location)
     (location_marker_NVH ?p - rescuer ?l1 ?l2 - location)
@@ -47,13 +54,14 @@
     (can_stabilize_vic ?m - medic ?v - victim)
     (can_wake_vic ?m - medic ?t - rescuer ?v - victim)
     (can_pickup_vic ?p - rescuer ?v - victim)
-    (can_break_block ?e - engineer ?b - block)
+    (can_break_block ?e - engineer)
     (blocked_from ?l1 ?l2 - location)
     (type_a ?v - victim)
     (type_b ?v - victim)
     (type_c ?v - victim)
     (sense_regs ?l - location)
     (sense_crit ?l - location)
+    (sense_nothing ?l - location)
     (marked_location_A ?p - rescuer ?l1 ?l2 - location)
     (marked_location_B ?p - rescuer ?l1 ?l2 - location)
     (marked_location_NVH ?p - rescuer ?l1 ?l2 - location)
@@ -100,6 +108,14 @@
     :parameters (?t1 ?t2 ?t3 - rescuer ?l - location)
   )
 
+  (:task meet_pair
+    :parameters (?t1 ?t2 - rescuer ?l - location)
+  )
+
+  (:task meet_all
+    :parameters (?t1 ?t2 ?t3 - rescuer ?l - location)
+  )
+
   (:method m_move_to_0
     :parameters (?h - rescuer ?old_l ?new_l - location)
     :task (move_to ?h ?new_l)
@@ -133,14 +149,186 @@
               )
   )
 
+  (:method move_together_pair_0
+    :parameters (?t1 ?t2 - rescuer ?old_l ?new_l - location)
+    :task (move_together_pair ?t1 ?t2 ?new_l)
+    :precondition (and 
+                    (at ?t1 ?old_l)
+                    (at ?t2 ?old_l)
+                    (not (= ?t1 ?t2))
+                    (adj ?old_l ?new_l)
+                    (not (blocked_from ?new_l ?old_l))
+                  )
+    :subtasks (and
+                (task0 (move ?t1 ?old_l ?new_l))
+                (task1 (move ?t2 ?old_l ?new_l))
+              )
+  )
+
+  (:method move_together_pair_1
+    :parameters (?t1 ?t2 - rescuer ?old_l ?new_l ?sub_l - location)
+    :task (move_together_pair ?t1 ?t2 ?new_l)
+    :precondition (and 
+                    (at ?t1 ?old_l)
+                    (at ?t2 ?old_l)
+                    (not (= ?t1 ?t2))
+                    (adj ?old_l ?sub_l)
+                    (or
+                      (not (adj ?old_l ?new_l))
+                      (blocked_from ?new_l ?old_l)
+                    )
+                  )
+    :subtasks (and
+                (task0 (move_together_pair ?t1 ?t2 ?sub_l))
+                (task1 (move_together_pair ?t1 ?t2 ?new_l))
+              )
+    :ordering (and
+                (< task0 task1)
+              )
+  )
+
+  (:method move_together_all_0
+    :parameters (?t1 ?t2 ?t3 - rescuer ?old_l ?new_l - location)
+    :task (move_together_all ?t1 ?t2 ?t3 ?new_l)
+    :precondition (and 
+                    (at ?t1 ?old_l)
+                    (at ?t2 ?old_l)
+                    (at ?t3 ?old_l)
+                    (not (= ?t1 ?t2))
+                    (not (= ?t2 ?t3))
+                    (not (= ?t1 ?t3))
+                    (adj ?old_l ?new_l)
+                    (not (blocked_from ?new_l ?old_l))
+                  )
+    :subtasks (and
+                (task0 (move ?t1 ?old_l ?new_l))
+                (task1 (move ?t2 ?old_l ?new_l))
+                (task2 (move ?t3 ?old_l ?new_l))
+              )
+  )
+
+  (:method move_together_all_1
+    :parameters (?t1 ?t2 ?t3 - rescuer ?old_l ?new_l ?sub_l - location)
+    :task (move_together_all ?t1 ?t2 ?t3 ?new_l)
+    :precondition (and 
+                    (at ?t1 ?old_l)
+                    (at ?t2 ?old_l)
+                    (at ?t3 ?old_l)
+                    (not (= ?t1 ?t2))
+                    (not (= ?t2 ?t3))
+                    (not (= ?t1 ?t3))
+                    (adj ?old_l ?sub_l)
+                    (or
+                      (not (adj ?old_l ?new_l))
+                      (blocked_from ?new_l ?old_l)
+                    )
+                  )
+    :subtasks (and
+                (task0 (move_together_all ?t1 ?t2 ?t3 ?sub_l))
+                (task1 (move_together_all ?t1 ?t2 ?t3 ?new_l))
+              )
+    :ordering (and
+                (< task0 task1)
+              )
+  )
+
+  (:method meet_pair_0
+    :parameters (?t1 ?t2 - rescuer ?old_l1 ?old_l2 ?new_l - location)
+    :task (meet_pair ?t1 ?t2 ?new_l)
+    :precondition (and 
+                    (at ?t1 ?old_l1)
+                    (at ?t2 ?old_l2)
+                    (not (= ?t1 ?t2))
+                    (not (= ?old_l1 ?new_l))
+                    (not (= ?old_l2 ?new_l))
+                  )
+    :subtasks (and
+                (task0 (move_to ?t1 ?new_l))
+                (task1 (move_to ?t2 ?new_l))
+              )
+  )
+
+  (:method meet_pair_1
+    :parameters (?t1 ?t2 - rescuer ?old_l1 ?old_l2 ?new_l - location)
+    :task (meet_pair ?t1 ?t2 ?new_l)
+    :precondition (and 
+                    (at ?t1 ?old_l1)
+                    (at ?t2 ?old_l2)
+                    (not (= ?t1 ?t2))
+                    (= ?old_l1 ?new_l)
+                  )
+    :subtasks (and
+                (task0 (move_to ?t2 ?new_l))
+              )
+  )
+
+  (:method meet_all_0
+    :parameters (?t1 ?t2 ?t3 - rescuer ?old_l1 ?old_l2 ?old_l3 ?new_l - location)
+    :task (meet_all ?t1 ?t2 ?t3 ?new_l)
+    :precondition (and 
+                    (at ?t1 ?old_l1)
+                    (at ?t2 ?old_l2)
+                    (at ?t3 ?old_l3)
+                    (not (= ?t1 ?t2))
+                    (not (= ?t2 ?t3))
+                    (not (= ?t1 ?t3))
+                    (not (= ?old_l1 ?new_l))
+                    (not (= ?old_l2 ?new_l))
+                    (not (= ?old_l3 ?new_l))
+                  )
+    :subtasks (and
+                (task0 (move_to ?t1 ?new_l))
+                (task1 (move_to ?t2 ?new_l))
+                (task2 (move_to ?t3 ?new_l))
+              )
+  )
+
+  (:method meet_all_1
+    :parameters (?t1 ?t2 ?t3 - rescuer ?old_l1 ?old_l2 ?old_l3 ?new_l - location)
+    :task (meet_all ?t1 ?t2 ?t3 ?new_l)
+    :precondition (and 
+                    (at ?t1 ?old_l1)
+                    (at ?t2 ?old_l2)
+                    (at ?t3 ?old_l3)
+                    (not (= ?t1 ?t2))
+                    (not (= ?t2 ?t3))
+                    (not (= ?t1 ?t3))
+                    (= ?old_l1 ?new_l)
+                  )
+    :subtasks (and
+                (task0 (move_to ?t2 ?new_l))
+                (task1 (move_to ?t3 ?new_l))
+              )
+  )
+
+  (:method meet_all_2
+    :parameters (?t1 ?t2 ?t3 - rescuer ?old_l1 ?old_l2 ?old_l3 ?new_l - location)
+    :task (meet_all ?t1 ?t2 ?t3 ?new_l)
+    :precondition (and 
+                    (at ?t1 ?old_l1)
+                    (at ?t2 ?old_l2)
+                    (at ?t3 ?old_l3)
+                    (not (= ?t1 ?t2))
+                    (not (= ?t2 ?t3))
+                    (not (= ?t1 ?t3))
+                    (= ?old_l1 ?new_l)
+                    (= ?old_l2 ?new_l)
+                  )
+    :subtasks (and
+                (task0 (move_to ?t3 ?new_l))
+              )
+  )
+
   (:action stabilize
     :parameters (?m - medic ?v - victim ?l - location)
     :precondition (and
                     (at ?m ?l)
+                    (not (stabilized ?v))
                   )
     :effect (and
               (stabilized ?v)
-              (at ?v ?l)
+              (when (not (at ?v ?l)) (at ?v ?l))
+              (knowledge_of_s_vic ?m ?v ?l)
             )
   )
 
@@ -149,12 +337,13 @@
     :precondition (and
                     (at ?m ?l)
                     (at ?t ?l)
+                    (not (awake_crit ?v))
                   )
     :effect (and
               (awake_crit ?v)
-              (at ?v ?l)
-              (knowledge_of_type_c ?m ?v)
-              (knowledge_of_type_c ?t ?v)
+              (when (not (at ?v ?l)) (at ?v ?l))
+              (knowledge_of_type_c ?m ?v ?l)
+              (knowledge_of_type_c ?t ?v ?l)
             )
   )
 
@@ -171,12 +360,13 @@
   )
 
   (:action break_block
-    :parameters (?e - engineer ?b - block ?l - location)
+    :parameters (?e - engineer ?l - location)
     :precondition (and
                     (at ?e ?l)
                   )
     :effect (and
-              (broken ?b ?l)
+              (broke_block ?l)
+              (when (broke_block ?l) broke_more_blocks ?l)
             )
   )
 
@@ -190,7 +380,27 @@
     :effect (and
               (holding_vic ?h)
               (holds ?h ?v)
-              (not (at ?v ?l))
+              (when (at ?v ?l) (not (at ?v ?l)))
+              (when (knowledge_of_s_vic ?h ?v ?l) (and 
+                                                    (not (knowledge_of_s_vic ?h ?v ?l))
+                                                    (h_knowledge_of_s_vic ?h ?v)
+                                                  )
+              )
+              (when (knowledge_of_type_a ?h ?v ?l) (and 
+                                                    (not (knowledge_of_type_a ?h ?v ?l))
+                                                    (h_knowledge_of_type_a ?h ?v)
+                                                  )
+              )
+              (when (knowledge_of_type_b ?h ?v ?l) (and 
+                                                    (not (knowledge_of_type_b ?h ?v ?l))
+                                                    (h_knowledge_of_type_b ?h ?v)
+                                                  )
+              )
+              (when (knowledge_of_type_c ?h ?v ?l) (and 
+                                                    (not (knowledge_of_type_c ?h ?v ?l))
+                                                    (h_knowledge_of_type_c ?h ?v)
+                                                  )
+              )
             ) 
   )
 
@@ -205,6 +415,10 @@
               (not (holding_vic ?h))
               (not (holds ?h ?v))
               (at ?v ?l)
+              (when (h_knowledge_of_s_vic ?h ?v) (knowledge_of_s_vic ?h ?v ?l))
+              (when (h_knowledge_of_type_a ?h ?v) (knowledge_of_type_a ?h ?v ?l))
+              (when (h_knowledge_of_type_b ?h ?v) (knowledge_of_type_b ?h ?v ?l))
+              (when (h_knowledge_of_type_c ?h ?v) (knowledge_of_type_c ?h ?v ?l))
             )
   )
 
@@ -214,16 +428,16 @@
                     (at ?h ?l)
                     (holding_vic ?h)
                     (holds ?h ?v)
-                    (or (and (type_a ?v) (zone_a ?l))
-                        (and (type_b ?v) (zone_b ?l))
-                        (and (type_c ?v) (zone_c ?l))
+                    (or 
+                      (zone_a ?l)
+                      (zone_b ?l)
+                      (zone_c ?l)
                     )
                   )
     :effect (and
-              (at ?v ?l)
-              (when (type_a ?v) (rescue_a ?v))
-              (when (type_b ?v) (rescue_b ?v))
-              (when (type_c ?v) (rescue_c ?v))
+              (when (and (type_a ?v) (zone_a ?l)) (rescue_a ?v))
+              (when (and (type_b ?v) (zone_b ?l)) (rescue_b ?v))
+              (when (and (type_c ?v) (zone_c ?l)) (rescue_c ?v))
             )
   )
 
@@ -248,6 +462,7 @@
     :effect (and
               (when (sense_regs ?s_l) (knowledge_of_regs ?t ?s_l)) 
               (when (sense_crit ?s_l) (knowledge_of_crit ?t ?s_l))
+              (when (sense_nothing ?s_l) (knowledge_of_empty_room ?t ?s_l))
             )
   )
 
