@@ -1,3 +1,5 @@
+
+#TODO: This file is still in development (15 July 2022)
 """
 --------------------------------------------------------------------------
 Purpose:
@@ -16,7 +18,7 @@ Date Created:
     5 July 2022
 
 Last Updated:
-    14 July 2022
+    15 July 2022
 
 Affiliation:
     Theory of Mind-based Cognitive Architecture for Teams (ToMCAT)
@@ -71,7 +73,7 @@ lemmatizer = WordNetLemmatizer()
 #--------------------------------------------------------------------------
 ### Set to true or false to run program for each desired dataframe.
 ORIGINAL_DATAFRAME = True
-REPLACED_DATAFRAME = False ### Replaced labels from probability.py
+REPLACED_DATAFRAME = True ### Replaced labels from probability.py
 
 ### Horizontal ruling for visual ease in reading output.
 hrule = ("\n" + "-"*80 + "\n")
@@ -193,7 +195,7 @@ def bagOfWords(unsorted_df, column = "question_verbatim"):
     doc3 = stringLemma(docs3)
 
     ### First vectorize 1 by 1
-    print(hrule, "For 1 by 1 ngram\nFirst Row = First Team, etc...\n")
+    print(hrule, "First Row = First Team, etc...\n")
     vectorizer = CountVectorizer(stop_words = salena_stop_words, ngram_range=(1,1))
     X = vectorizer.fit_transform([doc1, doc2, doc3])
     df_bow_sklearn = pandas.DataFrame(X.toarray(),columns=vectorizer.get_feature_names_out())
@@ -233,18 +235,14 @@ def utterance_intent(unsorted_df, theUtterance, theIntent):
     intent = df['abstractLabels'].str.contains(theIntent, case = False)
     intent = df[intent]
 
-    print(hrule, "Probabilities of ALL Intentions, given the utterance\"{}\" in the question.".format(theUtterance))
-    prob.get_joint_probability(utter, "abstractLabels")
-
-    print(hrule, "Bag of Words for ALL Utterances, given the intent:", theIntent)
+    print("Bag of Words for all utterances, given the word \'{}\' and given "
+            "the intent \'{}\'.".format(theUtterance, theIntent))
     bagOfWords(intent, "question_verbatim")
 
-    """
     # The rest of this function is under construction:
 
     print(hrule, "Intent=", theIntent," | \"", theUtterance, "\" is spoken)")
     prob.get_conditional_probability(utter, "question_verbatim", "abstractLabels")
-    print("Ends here\n")
 
     # Now send to bag of words ()
     bagOfWords(utter, "abstractLabels")
@@ -256,8 +254,7 @@ def utterance_intent(unsorted_df, theUtterance, theIntent):
     print("Ends here\n")
 
     # now send to bag of word:
-    print("End of bagOfWords() for the intent:", theIntent, "\n")
-    """
+#    print("End of bagOfWords() for the intent:", theIntent, "\n")
 
 ###############################################################################
 
@@ -304,6 +301,7 @@ def abstractLabel_subset(df, theIntent):
                 shareInformationUnique        0.063
 
     """
+    """
     print("Joint Probabilities of all Abstract Labels:\n\n")
     joint = prob.get_joint_probability(df, "abstractLabels")
 
@@ -330,6 +328,7 @@ def abstractLabel_subset(df, theIntent):
 
 def get_intention_components(df, iList):
     """
+    """
     This function is in progress. As of 13 July, this function is implemented
     as an user-interactive loop to ease development and troubleshooting. The
     final implementation will not have this interaction.
@@ -341,6 +340,7 @@ def get_intention_components(df, iList):
     Returns:
     """
 
+    """
     ## This loop requires user interaction, which can be annoying to some.
 
     intentions = ['carry', 'wake', 'priorit', 'locat', 'unique', 'information',
@@ -354,6 +354,7 @@ def get_intention_components(df, iList):
             continue
         else:
             break
+    """
 
 
 def main(df, utterance):
@@ -370,9 +371,7 @@ def main(df, utterance):
     Returns: None
     """
     ### Send the entire dataset to bagOfWords, split into teams to compare and contrast.
-    print("\n\nFOR ALL INTENTIONS AND UTTERANCES:")
     teamUtter1, teamUtter2, teamUtter3 = bagOfWords(df, "question_verbatim")
-    print(teamUtter1)
 
     ## Now send entire dataset, or team data subset, to find:
         # conditional probability of intention, given the utterance
@@ -381,8 +380,9 @@ def main(df, utterance):
 
     list_intent = list(df["abstractLabels"].sort_values().unique())
 
+
     for i in list_intent:
-        print(hrule, "For Player Intention:", i, "\n Word uttered:", utterance)
+        print(Hrule, "Player Intention:", i, "\n Word uttered:", utterance)
         utterance_intent(df, utterance, i)
 
     print("Joint Probabilities of all Abstract Labels:\n\n")
@@ -412,7 +412,7 @@ def main(df, utterance):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, required = False)
-parser.add_argument('--utterance', type=str, required = True)
+parser.add_argument('--utterance', type=str, required = False)
 args = parser.parse_args()
 
 """
@@ -431,6 +431,12 @@ myPath = args.dataset
 
 
 if __name__ == '__main__':
+
+    if not args.utterance:
+        desired_word_utterance = "come"
+        print("\nDefault word utterance:", desired_word_utterance)
+        print("Enter word at command line, if desired.\n   Example: $ python bagOfWords.py --utterance want \n\n")
+        time.sleep(3)
 
     if ORIGINAL_DATAFRAME:
             ### Read in the data
