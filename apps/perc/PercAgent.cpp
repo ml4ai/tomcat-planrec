@@ -6,6 +6,8 @@
 using namespace std;
 namespace json = boost::json;
 
+const int FOV_STACK_SIZE = 4;
+
 void pretty_print(std::ostream &os,
                   json::value const &jv,
                   std::string *indent = nullptr) {
@@ -97,10 +99,28 @@ vector<std::string> split_player_name(std::string str) {
     return array;
 }
 
+void process_fov(KnowledgeBase &kb, const std::string &role, std::queue<int> que) {
+    std::queue<int> tmp_queue;
+    std::set<int> tmp_set;
+    tmp_queue = que;
+    std::string new_knowledge;
+
+    while (!tmp_queue.empty()) {
+        new_knowledge = "(fov_victim " + role;
+        if (tmp_queue.front() == -1 or (tmp_set.find(tmp_queue.front()) != tmp_set.end())) {
+            tmp_queue.pop();
+        } else {
+            new_knowledge += " vic_" + to_string(tmp_queue.front());
+            tmp_queue.pop();
+        }
+        tell(kb, new_knowledge, -1, false);
+    }
+}
+
 void PercAgent::process(mqtt::const_message_ptr msg) {
     json::value jv = json::parse(msg->to_string()).as_object();
     std::string new_knowledge;
-    cout << msg->get_topic() << endl;
+//    cout << msg->get_topic() << endl;
     if (msg->get_topic() == "ground_truth/mission/victims_list") {
         std::vector<std::string> vic_types;
         for (const auto &v: jv.at_pointer("/data/mission_victim_list").as_array()) {
@@ -232,54 +252,100 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                "agent/pygl_fov/player/3d/summary") {
         try {
             for (auto v: jv.at_pointer("/data/blocks").as_array()) {
-                if (v.at("type").as_string().find("victim") != std::string::npos) {
-                    pretty_print(std::cout, v);
+                if (this->fov_medic.size() == FOV_STACK_SIZE) {
+                    clear_fov_facts(this->kb, "fov_victim", "medic");
+                    set<int> int_set(this->fov_medic.begin(), this->fov_medic.end());
+//                    this->fov_medic.assign(int_set.begin(), int_set.end());
+                    for (auto vic: int_set){
+                        new_knowledge = "(fov_victim medic vic_";
+                        if (vic != -1){
+                            new_knowledge += to_string(vic) + ")";
+                            tell(this->kb, new_knowledge, -1, false);
+                        }
+                    }
+                    this->fov_medic = {};
+                } else if (this->fov_engineer.size() == FOV_STACK_SIZE) {
+                    clear_fov_facts(this->kb, "fov_victim", "engineer");
+                    set<int> int_set(this->fov_engineer.begin(), this->fov_engineer.end());
+//                    this->fov_medic.assign(int_set.begin(), int_set.end());
+                    for (auto vic: int_set){
+                        new_knowledge = "(fov_victim engineer vic_";
+                        if (vic != -1){
+                            new_knowledge += to_string(vic) + ")";
+                            tell(this->kb, new_knowledge, -1, false);
+                        }
+                    }
+                    this->fov_engineer = {};
+                } else if (this->fov_transporter.size() == FOV_STACK_SIZE) {
+                    clear_fov_facts(this->kb, "fov_victim", "transporter");
+                    set<int> int_set(this->fov_transporter.begin(), this->fov_transporter.end());
+//                    this->fov_medic.assign(int_set.begin(), int_set.end());
+                    for (auto vic: int_set){
+                        new_knowledge = "(fov_victim transporter vic_";
+                        if (vic != -1){
+                            new_knowledge += to_string(vic) + ")";
+                            tell(this->kb, new_knowledge, -1, false);
+                        }
+                    }
+                    this->fov_transporter = {};
                 }
+
+                auto player_color =
+                        split_player_name(
+                                jv.at_pointer("/data/playername").as_string().c_str())
+                                .at(0);
+                if (v.at_pointer("/type").as_string().find("victim") != std::string::npos) {
+                    pretty_print(std::cout, jv.at_pointer("/data/playername"));
+                    pretty_print(std::cout, v.at_pointer("/id"));
+                    if (player_color == "RED") {
+                        this->fov_medic.push_back(int(v.at_pointer("/id").as_int64()));
+                    } else if (player_color == "BLUE") {
+                        this->fov_engineer.push_back(int(v.at_pointer("/id").as_int64()));
+                    } else {
+                        this->fov_transporter.push_back(int(v.at_pointer("/id").as_int64()));
+                    }
+                } else {
+                    if (player_color == "RED") {
+                        this->fov_medic.push_back(-1);
+                    } else if (player_color == "BLUE") {
+                        this->fov_engineer.push_back(-1);
+                    } else {
+                        this->fov_transporter.push_back(-1);
+                    }
+                }
+                // tell(this->kb, "(player_status medic safe)");
+//                clear_facts(this->kb, "fov_victim");
+//                cout << this->fov_medic.size() << endl;
+//                cout << this->fov_engineer.size() << endl;
+//                cout << this->fov_transporter.size() << endl;
+//                cout << std::all_of(this->fov_medic.begin(), this->fov_medic.end(), [](int i) { return i == -1; })
+//                     << endl;
             }
-//
-//            pretty_print(std::cout, jv.at_pointer("/msg/sub_type"));
-//            pretty_print(std::cout, jv.at_pointer("/data/rubble_x"));
-//            pretty_print(std::cout, jv.at_pointer("/data/rubble_z"));
-//
-//            auto rubble_x = (int) jv.at_pointer("/data/rubble_x").as_int64();
-//            auto rubble_z = (int) jv.at_pointer("/data/rubble_z").as_int64();
-//            new_knowledge = "(player_status";
-//            if (rubble_x == this->medic_trapped_coord.at(0) and
-//                rubble_z == this->medic_trapped_coord.at(1)) {
-//                new_knowledge += " medic safe)";
-//                this->medic_trapped_coord.at(0) = 0;
-//                this->medic_trapped_coord.at(1) = 0;
-//                tell(this->kb, new_knowledge);
-//            } else if (rubble_x == this->transporter_trapped_coord.at(0) and
-//                       rubble_z == this->transporter_trapped_coord.at(1)) {
-//                new_knowledge += " transporter safe)";
-//                this->transporter_trapped_coord.at(0) = 0;
-//                this->transporter_trapped_coord.at(1) = 0;
-//                tell(this->kb, new_knowledge);
-//            } else if (rubble_x == this->engineer_trapped_coord.at(0) and
-//                       rubble_z == this->engineer_trapped_coord.at(1)) {
-//                new_knowledge += " engineer safe)";
-//                this->engineer_trapped_coord.at(0) = 0;
-//                this->engineer_trapped_coord.at(1) = 0;
-//                tell(this->kb, new_knowledge);
-//            }
         }
         catch (exception &exc) {
             cout << exc.what() << endl;
             pretty_print(std::cout, jv);
         }
+
+
     } else if (msg->get_topic() ==
                "observations/events/player/triage") {
-        if (jv.at_pointer("/data/triage_state") == "SUCCESSFUL") {
-            tell(this->kb,
-                 "(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) +
-                 " saved)");
+        try {
+            if (jv.at_pointer("/data/triage_state") == "SUCCESSFUL") {
+                tell(this->kb,
+                     "(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) +
+                     " saved)");
+            }
+        }
+        catch (exception &exc) {
+            cout << exc.what() << endl;
         }
     }
 
 }
 
-PercAgent::PercAgent(string address) : Agent(address) {
+PercAgent::PercAgent(string
+                     address) : Agent(address) {
     // initialize kb
     auto const s = read_file("../../../metadata/Saturn_2.6_3D_sm_v1.0.json");
     json::object jv = json::parse(s).as_object();
@@ -303,6 +369,7 @@ PercAgent::PercAgent(string address) : Agent(address) {
     initialize_predicate(this->kb, "player_status", {"Role", "Player_Status"});
     initialize_predicate(this->kb, "victim_type", {"Victim", "Victim_Type"});
     initialize_predicate(this->kb, "victim_status", {"Victim", "Victim_Status"});
+    initialize_predicate(this->kb, "fov_victim", {"Role", "Victim"});
     tell(this->kb, "(player_status medic safe)");
     tell(this->kb, "(player_status transporter safe)");
     tell(this->kb, "(player_status engineer safe)");

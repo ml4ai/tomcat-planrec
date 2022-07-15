@@ -3,28 +3,41 @@
 
 using namespace std;
 
-void initialize_data_type(KnowledgeBase& kb,
-                          const string& data_type_name,
+void initialize_data_type(KnowledgeBase &kb,
+                          const string &data_type_name,
                           vector<string> data_type_candidates) {
     if (kb.data_types.count(data_type_name) == 0) {
         kb.data_types[data_type_name] = data_type_candidates;
     }
 }
 
-void initialize_symbol(KnowledgeBase& kb,
-                       const string& symbol_name,
+void initialize_symbol(KnowledgeBase &kb,
+                       const string &symbol_name,
                        string symbol_type) {
     if (kb.symbols.count(symbol_name) == 0) {
         kb.symbols[symbol_name] = symbol_type;
     }
 }
 
-void initialize_predicate(KnowledgeBase& kb,
-                          const string& predicate_name,
-                          vector<string> predicate_var_types) {
+void initialize_predicate(KnowledgeBase &kb,
+                          const std::string &predicate_name,
+                          vector<std::string> predicate_var_types) {
     if (kb.predicates.count(predicate_name) == 0) {
         kb.predicates[predicate_name] = predicate_var_types;
         kb.facts[predicate_name] = {};
+    }
+}
+
+void clear_fov_facts(KnowledgeBase &kb,
+                 const std::string &predicate_name, const std::string& role) {
+    if (kb.predicates.count(predicate_name) != 0) {
+        for (auto i = kb.facts[predicate_name].begin(); i != kb.facts[predicate_name].end();) {
+            if (i->at(0) == role)
+                i = kb.facts[predicate_name].erase(i);
+            else
+                i++;
+        }
+//        kb.facts[predicate_name] = {};
     }
 }
 
@@ -44,13 +57,13 @@ tuple<string, vector<string>> parse_predicate(string pred) {
     return {predicate, symbols};
 }
 
-string get_smt(KnowledgeBase& kb) {
+string get_smt(KnowledgeBase &kb) {
     string smt_string;
     string con;
-    for (const auto& dt : kb.data_types) {
+    for (const auto &dt: kb.data_types) {
         con = "(declare-datatype ";
         con += dt.first + " (";
-        for (const auto& var : dt.second) {
+        for (const auto &var: dt.second) {
             con += "(" + var + ") ";
         }
         con += "))";
@@ -58,17 +71,17 @@ string get_smt(KnowledgeBase& kb) {
         con = "";
     }
 
-    for (const auto& sym : kb.symbols) {
+    for (const auto &sym: kb.symbols) {
         con = "(declare-fun ";
         con += sym.first + "() " + sym.second + ")";
         smt_string += con;
         con = "";
     }
 
-    for (const auto& pred : kb.predicates) {
+    for (const auto &pred: kb.predicates) {
         con = "(declare-fun ";
         con += pred.first + " (";
-        for (const auto& var : pred.second) {
+        for (const auto &var: pred.second) {
             con += var + " ";
         }
         con += ") Bool)";
@@ -76,10 +89,10 @@ string get_smt(KnowledgeBase& kb) {
         con = "";
     }
 
-    for (const auto& f : kb.facts) {
-        for (const auto& arg_set : f.second) {
+    for (const auto &f: kb.facts) {
+        for (const auto &arg_set: f.second) {
             con = "(assert (" + f.first;
-            for (const auto& arg : arg_set) {
+            for (const auto &arg: arg_set) {
                 con += " " + arg;
             }
             con += "))";
@@ -101,15 +114,13 @@ string get_smt(KnowledgeBase& kb) {
             con += "))))";
             smt_string += con;
             con = "";
-        }
-        else {
+        } else {
             if (f.second.size() == 1) {
                 con += " (=> (not";
-            }
-            else {
+            } else {
                 con += " (=> (not (or";
             }
-            for (const auto& arg_set_ : f.second) {
+            for (const auto &arg_set_: f.second) {
                 con += " (and";
                 for (int i = 0; i < arg_set_.size(); i++) {
                     con += " (= cw_var_" + to_string(i);
@@ -119,8 +130,7 @@ string get_smt(KnowledgeBase& kb) {
             }
             if (f.second.size() == 1) {
                 con += ")";
-            }
-            else {
+            } else {
                 con += "))";
             }
 
@@ -134,7 +144,7 @@ string get_smt(KnowledgeBase& kb) {
         }
     }
 
-    for (const auto& df : kb.domain_context) {
+    for (const auto &df: kb.domain_context) {
         con = "(assert (" + df + "))";
         smt_string += con;
         con = "";
@@ -143,7 +153,7 @@ string get_smt(KnowledgeBase& kb) {
     return smt_string;
 }
 
-bool ask(KnowledgeBase& kb, const string& query) {
+bool ask(KnowledgeBase &kb, const string &query) {
     z3::context c;
     z3::solver s(c);
     map<string, vector<string>> res;
@@ -155,7 +165,7 @@ bool ask(KnowledgeBase& kb, const string& query) {
     return (s.check() == z3::unsat);
 }
 
-map<string, vector<string>> ask_vars(KnowledgeBase& kb, const string& query) {
+map<string, vector<string>> ask_vars(KnowledgeBase &kb, const string &query) {
     z3::context c;
     z3::solver s(c);
     map<string, vector<string>> res;
@@ -167,7 +177,7 @@ map<string, vector<string>> ask_vars(KnowledgeBase& kb, const string& query) {
         if (args[i].find('?') != string::npos) {
             // " (declare-fun r () Role)\n"
             string var_string =
-                "(declare-fun " + args[i] + " () " + data_type[i] + " )";
+                    "(declare-fun " + args[i] + " () " + data_type[i] + " )";
             smt_string += var_string;
         }
     }
@@ -186,18 +196,17 @@ map<string, vector<string>> ask_vars(KnowledgeBase& kb, const string& query) {
                 //                    m.get_const_interp(v)
                 //                              << "\n";
                 res[v.name().str()].push_back(
-                    m.get_const_interp(v).to_string());
+                        m.get_const_interp(v).to_string());
                 st += "(assert (not (= " + v.name().str() + " " +
                       m.get_const_interp(v).to_string() + ")))";
             }
-        }
-        else {
+        } else {
             st += "(assert (not (and ";
             for (unsigned i = 0; i < m.size(); i++) {
                 z3::func_decl v = m[i];
                 if (m.get_const_interp(v)) {
                     res[v.name().str()].push_back(
-                        m.get_const_interp(v).to_string());
+                            m.get_const_interp(v).to_string());
                     st += "(= " + v.name().str() + " " +
                           m.get_const_interp(v).to_string() + ") ";
                 }
@@ -212,36 +221,33 @@ map<string, vector<string>> ask_vars(KnowledgeBase& kb, const string& query) {
     return res;
 }
 
-void add_fact(KnowledgeBase& kb, const string& predicate) {
+void add_fact(KnowledgeBase &kb, const string &predicate) {
     auto [pred, args] = parse_predicate(predicate);
     kb.facts[pred].insert(args);
 }
 
-bool is_predicate(KnowledgeBase& kb, string str) {
+bool is_predicate(KnowledgeBase &kb, string str) {
     auto [pred, args] = parse_predicate(str);
     if (kb.predicates.count(pred) == 0) {
         return false;
-    }
-    else if (kb.predicates[pred].size() != args.size()) {
+    } else if (kb.predicates[pred].size() != args.size()) {
         return false;
     }
     return true;
 }
 
-void tell(KnowledgeBase& kb,
-          const string& knowledge,
+void tell(KnowledgeBase &kb,
+          const string &knowledge,
           int cw_var_idx,
           bool unique) {
     auto knowledge_ = knowledge.substr(1, knowledge.length() - 2);
     // Check if it exists in kb
     if (ask(kb, knowledge)) {
         return;
-    }
-    else {
+    } else {
         if (!is_predicate(kb, knowledge_)) {
             kb.domain_context.insert(knowledge);
-        }
-        else {
+        } else {
             if (unique) {
                 auto [pred, args] = parse_predicate(knowledge_);
                 if (cw_var_idx == -1) {
@@ -251,8 +257,7 @@ void tell(KnowledgeBase& kb,
                 for (int i = 0; i < args.size(); i++) {
                     if (i != cw_var_idx) {
                         query += " " + args[i];
-                    }
-                    else {
+                    } else {
                         query += " ?var";
                     }
                 }
@@ -260,15 +265,13 @@ void tell(KnowledgeBase& kb,
                 auto res_ = ask_vars(kb, query);
                 if (res_.empty()) {
                     add_fact(kb, knowledge_);
-                }
-                else {
-                    for (const auto& r : res_["?var"]) {
+                } else {
+                    for (const auto &r: res_["?var"]) {
                         vector<string> removed_set{};
                         for (int i = 0; i < args.size(); i++) {
                             if (i != cw_var_idx) {
                                 removed_set.push_back(args[i]);
-                            }
-                            else {
+                            } else {
                                 removed_set.push_back(r);
                             }
                         }
@@ -276,8 +279,7 @@ void tell(KnowledgeBase& kb,
                     }
                     kb.facts[pred].insert(args);
                 }
-            }
-            else {
+            } else {
                 add_fact(kb, knowledge_);
             }
         }

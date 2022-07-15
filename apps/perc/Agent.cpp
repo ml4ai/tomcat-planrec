@@ -36,9 +36,9 @@ Agent::Agent(std::string address) {
 //    mqtt_client->subscribe("observations/events/player/location", 2);
 //    mqtt_client->subscribe("observations/events/player/rubble_collapse", 2);
 //    mqtt_client->subscribe("observations/events/player/rubble_destroyed", 2);
-//    mqtt_client->subscribe("agent/pygl_fov/player/3d/summary", 2);
+    mqtt_client->subscribe("agent/pygl_fov/player/3d/summary", 2);
 //    mqtt_client->subscribe("ground_truth/mission/victims_list", 2);
-    mqtt_client->subscribe("observations/events/player/triage", 2);
+//    mqtt_client->subscribe("observations/events/player/triage", 2);
 
     /** Start publishing heartbeat messages */
     heartbeat_future = async(launch::async, &Agent::publish_heartbeats, this);

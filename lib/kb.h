@@ -35,6 +35,9 @@ void initialize_predicate(KnowledgeBase& kb,
                           const std::string& predicate_name,
                           std::vector<std::string> predicate_var_types);
 
+void clear_fov_facts(KnowledgeBase &kb,
+                     const std::string &predicate_name, const std::string& role);
+
 std::tuple<std::string, std::vector<std::string>> parse_predicate(std::string pred);
 
 std::string get_smt(KnowledgeBase& kb);
