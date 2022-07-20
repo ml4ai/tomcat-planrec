@@ -72,15 +72,13 @@ bool subseq(json& j, json& g) {
 bool subsequence(json& j, json& g, std::vector<std::string>& agents) {
 
   for (auto const &a : agents) {
-    if (j["plan"][a].size() <= g["plan"][a]) {
+    if (j["plan"][a].size() <= g["plan"][a].size()) {
       if (!subseq(j["plan"][a], g["plan"][a])) {
         return false;
       }
     }
     else {
-      if (!subseq(g["plan"][a], j["plan"][a])) {
-        return false;
-      }
+      return false;
     }
   }
   return true;
@@ -179,10 +177,7 @@ csimulation_rec(int horizon,
            int seed) {
 
     int h = 0;
-    while (!tasks.empty() && h < horizon) {
-      if (!subsequence(data_team_plan,team_plan, state.agents)) {
-        return 0.0;
-      }
+    while (team_plan["size"] < data_team_plan["size"] && h < horizon) {
       Task task = tasks.back();
 
       if (in(task.task_id, domain.operators)) {
@@ -331,8 +326,13 @@ cseek_planrecMCTS(json& data_team_plan,
     for (int i = 0; i < R; i++) {
       int n = cselection_rec(m,w,eps,seed);
       seed++;
-      if (m.nodes[n].tasks.empty()) {
-          cbackprop_rec(m,n,domain.score(m.nodes[n].state));
+      if (m.nodes[n].team_plan["size"] >= data_team_plan["size"]) {
+          if (m.nodes[n].team_plan["plan"] == data_team_plan["plan"]) {
+            cbackprop_rec(m,n,domain.score(m.nodes[n].state));
+          }
+          else {
+            cbackprop_rec(m,n,0.0);
+          }
       }
       else {
         if (m.nodes[n].sims == 0) {
@@ -393,15 +393,16 @@ cseek_planrecMCTS(json& data_team_plan,
     v = y;
 
     while (m.nodes[arg_max].successors.size() == 1) {
-          prNode<State> j;
-          j.state = m.nodes[arg_max].state;
-          j.tasks = m.nodes[arg_max].tasks;
-          j.team_plan = m.nodes[arg_max].team_plan;
-          j.pred = v;
-          int y = t.add_node(j);
-          t.nodes[v].successors.push_back(y);
-          seed++;
-          v = y;
+      arg_max = m.nodes[arg_max].successors.front();
+      prNode<State> j;
+      j.state = m.nodes[arg_max].state;
+      j.tasks = m.nodes[arg_max].tasks;
+      j.team_plan = m.nodes[arg_max].team_plan;
+      j.pred = v;
+      int y = t.add_node(j);
+      t.nodes[v].successors.push_back(y);
+      seed++;
+      v = y;
     }
           
   }
