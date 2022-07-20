@@ -94,7 +94,7 @@ cselection_rec(prTree<State>& t,
           int seed = 2021) {
 
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<> dis(0.0,1.0);
+    std::uniform_real_distribution<double> dis(0.0,1.0);
     while (!t.nodes[v].successors.empty()) {
       double e = dis(gen);
       if (e > eps) {
@@ -318,7 +318,7 @@ cseek_planrecMCTS(json& data_team_plan,
                  int aux_R = 10) {
 
   std::mt19937 gen(seed);
-  std::negative_binomial_distribution<int>> nbd(50,0.75);
+  std::negative_binomial_distribution<int> nbd(50,0.75);
   while (t.nodes[v].team_plan["size"] < data_team_plan["size"]) {
     prTree<State> m;
     prNode<State> n_node;
