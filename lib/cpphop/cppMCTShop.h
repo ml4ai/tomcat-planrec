@@ -193,8 +193,8 @@ int cexpansion(pTree<State>& t,
               int n,
               Domain& domain,
               int seed = 4021) {
-    Task task = t.nodes[n].tasks.back();
 
+    Task task = t.nodes[n].tasks.back();
     if (in(task.task_id, domain.operators)) {
         Operator<State> op = domain.operators[task.task_id];
         std::optional<State> newstate = op(t.nodes[n].state, task.args);
