@@ -577,7 +577,8 @@ template <class State> cTasks no_class(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp.empty()) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp.empty() && min_agent_time <= 900) {
     return {"no_class_0",
       {Task("No_class", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -695,7 +696,8 @@ template <class State> cTasks h(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "h") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "h" && min_agent_time <= 900) {
     return {"h_0",
       {Task("H", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -739,7 +741,8 @@ template <class State> cTasks m(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "m") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "m" && min_agent_time <= 900) {
     return {"m_0",
       {Task("M", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -784,7 +787,8 @@ template <class State> cTasks s(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "s") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "s" && min_agent_time <= 900) {
     return {"s_0",
       {Task("S", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -828,7 +832,8 @@ template <class State> cTasks hh(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hh") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hh" && min_agent_time <= 900) {
     return {"hh_0",
       {Task("HH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -872,7 +877,8 @@ template <class State> cTasks hm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hm" && min_agent_time <= 900) {
     return {"hm_0",
       {Task("HM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -916,7 +922,8 @@ template <class State> cTasks hs(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hs") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hs" && min_agent_time <= 900) {
     return {"hs_0",
       {Task("HS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -960,7 +967,8 @@ template <class State> cTasks mm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "mm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "mm" && min_agent_time <= 900) {
     return {"mm_0",
       {Task("MM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1004,7 +1012,8 @@ template <class State> cTasks ms(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "ms") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "ms" && min_agent_time <= 900) {
     return {"ms_0",
       {Task("MS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1048,7 +1057,8 @@ template <class State> cTasks ss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "ss") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "ss" && min_agent_time <= 900) {
     return {"ss_0",
       {Task("SS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1092,7 +1102,8 @@ template <class State> cTasks hhh(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hhh") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hhh" && min_agent_time <= 900) {
     return {"hhh_0",
       {Task("HHH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1210,7 +1221,8 @@ template <class State> cTasks hhm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hhm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hhm" && min_agent_time <= 900) {
     return {"hhm_0",
       {Task("HHM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1328,7 +1340,8 @@ template <class State> cTasks hhs(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hhs") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hhs" && min_agent_time <= 900) {
     return {"hhs_0",
       {Task("HHS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1446,7 +1459,8 @@ template <class State> cTasks hmm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hmm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hmm" && min_agent_time <= 900) {
     return {"hmm_0",
       {Task("HMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1564,7 +1578,8 @@ template <class State> cTasks hms(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hms") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hms" && min_agent_time <= 900) {
     return {"hms_0",
       {Task("HMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1682,7 +1697,8 @@ template <class State> cTasks hss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hss") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hss" && min_agent_time <= 900) {
     return {"hss_0",
       {Task("HSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1800,7 +1816,8 @@ template <class State> cTasks mmm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "mmm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "mmm" && min_agent_time <= 900) {
     return {"mmm_0",
       {Task("MMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1920,7 +1937,8 @@ template <class State> cTasks mms(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "mms") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "mms" && min_agent_time <= 900) {
     return {"mms_0",
       {Task("MMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -2038,7 +2056,8 @@ template <class State> cTasks mss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "mss") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "mss" && min_agent_time <= 900) {
     return {"mss_0",
       {Task("MSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -2156,7 +2175,8 @@ template <class State> cTasks sss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "sss") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "sss" && min_agent_time <= 900) {
     return {"sss_0",
       {Task("SSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -2332,8 +2352,8 @@ template <class State> cTasks agent3_task(State state, Args args) {
 
 template <class State> cTasks no_class_task(State state, Args args) {
   auto agent = args["agent"];
-
-  if (state.role[agent] == "NONE") {
+  
+  if (state.role[agent] == "NONE" && state.time[agent] <= 900) {
     return {"no_class_task_0",
           {Task("No_class_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -2343,7 +2363,7 @@ template <class State> cTasks no_class_task(State state, Args args) {
 template <class State> cTasks h_task(State state, Args args) {
   auto agent = args["agent"];
 
-  if (state.role[agent] == "Hazardous_Material_Specialist") {
+  if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] <= 900) {
     return {"h_task_0",
           {Task("H_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -2520,7 +2540,7 @@ template <class State> cTasks done_breaking(State state, Args args) {
 template <class State> cTasks m_task(State state, Args args) {
   auto agent = args["agent"];
 
-  if (state.role[agent] == "Medical_Specialist") {
+  if (state.role[agent] == "Medical_Specialist" && state.time[agent] <= 900) {
     return {"m_task_0",
           {Task("M_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -2846,7 +2866,7 @@ template <class State> cTasks done_triaging(State state, Args args) {
 template <class State> cTasks s_task(State state, Args args) {
   auto agent = args["agent"];
 
-  if (state.role[agent] == "Search_Specialist") {
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] <= 900) {
     return {"s_task_0",
           {Task("S_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -3657,7 +3677,7 @@ template <class State> cTasks choose_Medical_Specialist(State state, Args args) 
     start = std::to_string(state.time[agent]);
   }
 
-  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
+  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone && state.time[agent] <= 900) {
     std::string cond = "choose_Medical_Specialist_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
@@ -3751,7 +3771,7 @@ template <class State> cTasks choose_Hazardous_Material_Specialist(State state, 
     start = std::to_string(state.time[agent]);
   }
 
-  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
+  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone && state.time[agent] <= 900) {
     std::string cond = "choose_Hazardous_Material_Specialist_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
@@ -3845,7 +3865,7 @@ template <class State> cTasks choose_Search_Specialist(State state, Args args) {
     start = std::to_string(state.time[agent]);
   }
 
-  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
+  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone && state.time[agent]) {
     std::string cond = "choose_Search_Specialist_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
@@ -4027,6 +4047,7 @@ class TeamSARState {
     std::vector<std::unordered_map<std::string,std::unordered_map<std::string,int>>> fov_tracker;
     bool plan_rec = false;
     int seed = 100;
+
 
     nlohmann::json to_json() {
       return nlohmann::json{{"agents", this->agents},
@@ -4216,41 +4237,49 @@ class TeamSARDomain {
                          {"Assign_agent_for_task",
                           {agent1_task,
                            agent2_task,
-                           agent3_task}},
+                           agent3_task,
+                           out_of_time}},
                          {"Agent_1_task",
                           {no_class_task,
                            h_task,
                            m_task,
-                           s_task}},
+                           s_task,
+                           out_of_time}},
                          {"Agent_2_task",
                           {no_class_task,
                            h_task,
                            m_task,
-                           s_task}},
+                           s_task,
+                           out_of_time}},
                          {"Agent_3_task",
                           {no_class_task,
                            h_task,
                            m_task,
-                           s_task}},
+                           s_task,
+                           out_of_time}},
                          {"No_class_task",
-                          {move_agent}},
+                          {move_agent,
+                          out_of_time}},
                          {"H_task",
                           {move_agent,
-                           clear_area}},
+                           clear_area,
+                          out_of_time}},
                          {"Clear_area",
                           {break_blocks,
                            done_breaking}},
                          {"M_task",
                           {move_agent,
                            triage_regs_in_area,
-                           triage_critical}},
+                           triage_critical,
+                           out_of_time}},
                          {"Triage_regs_in_area",
                           {triage_regs,
                            done_triaging}},
                          {"S_task",
                           {move_agent,
                            relocate_victim,
-                           resume_relocate_victim}},
+                           resume_relocate_victim,
+                           out_of_time}},
                          {"Relocate_vic",
                           {pickup_victim,
                            move_victim,
@@ -4258,23 +4287,35 @@ class TeamSARDomain {
                            need_to_do_something_else,
                            no_time_to_putdown}},
                          {"Assign_agents_for_group_task",
-                          {all_task}},
+                          {all_task,
+                          out_of_time}},
                          {"All_task",
-                          {wake_crit_vic}},
+                          {wake_crit_vic,
+                          out_of_time}},
                          {"Team_composition_change",
                           {agent1_change_role,
                            agent2_change_role,
-                           agent3_change_role}},
+                           agent3_change_role,
+                           out_of_time}},
                          {"Agent_1_change_role",
-                          {picking_role}},
+                          {picking_role,
+                          out_of_time}},
                          {"Agent_2_change_role",
-                          {picking_role}},
+                          {picking_role,
+                          out_of_time}},
                          {"Agent_3_change_role",
-                          {picking_role}},
+                          {picking_role,
+                          out_of_time}},
                          {"Pick_new_role",
                           {choose_Medical_Specialist,
                            choose_Hazardous_Material_Specialist,
-                           choose_Search_Specialist}}});
+                           choose_Search_Specialist,
+                          out_of_time}}});
+
+    //score function
+    int score(TeamSARState state) {
+      return state.r_triage_total*10 + state.c_triage_total*50 + state.team_comp.size()*100; 
+    }
 
     TeamSARDomain() {
       std::cout << "Operators: ";
