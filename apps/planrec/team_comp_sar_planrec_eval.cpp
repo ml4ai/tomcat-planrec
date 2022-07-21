@@ -21,23 +21,19 @@ int main(int argc, char* argv[]) {
   int N = -1;
   int R = 30;
   double e = 0.4;
-  double alpha = 0.05;
   int aux_R = 10;
   std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
   std::string fov_file = "fov.json";
-  std::string cpm_json;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
       ("exp_param,e",po::value<double>(),"The exploration parameter for the plan recognition algorithm (double)")
-      ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CPM (default)")
       ("trace_size,N", po::value<int>(), "Sets trace size of N from beginning (int)")
       ("file,f",po::value<std::string>(),"file to parse (string)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
-      ("cpm_json,j",po::value<std::string>(),"json file to parse CPM (string)")
       ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
     ;
 
@@ -58,10 +54,6 @@ int main(int argc, char* argv[]) {
       e = vm["exp_para"].as<double>();
     }
 
-    if (vm.count("alpha")) {
-      alpha = vm["alpha"].as<double>();
-    }
-
     if (vm.count("trace_size")) {
       N = vm["trace_size"].as<int>();
     }
@@ -72,10 +64,6 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("file")) {
       infile = vm["file"].as<std::string>();
-    }
-
-    if (vm.count("cpm_json")) {
-      cpm_json = vm["cpm_json"].as<std::string>();
     }
 
     if (vm.count("map_json")) {
@@ -143,21 +131,6 @@ int main(int argc, char* argv[]) {
   
     auto domain = TeamSARDomain();
 
-    CPM cpm = {};
-
-    if (cpm_json != "") {
-      std::ifstream i(cpm_json);
-      json j;
-      i >> j;
-      for (auto& [k1, v1] : j.items()) {
-        for (auto& [k2,v2] : v1.items()) {
-          for (auto& [k3,v3] : v2.items()) {
-            cpm[k1][k2][k3] = v3;
-          }
-        }
-      }
-    }
-
     std::ifstream f(fov_file);
     json j_fov;
     f >> j_fov;
@@ -189,10 +162,8 @@ int main(int argc, char* argv[]) {
                           p.initial_state,
                           tasks,
                           domain,
-                          cpm,
                           R,
                           e,
-                          alpha,
                           2021,
                           aux_R);
     auto e_node = pt.t.nodes[pt.end];
@@ -202,7 +173,8 @@ int main(int argc, char* argv[]) {
       e_node.state.loc_tracker[a] = {};
       //e_node.state.time[a] = time[a];
     }
-    cppMCTSpredict(e_node.state,e_node.tasks,domain,cpm,R,e,alpha,4021,aux_R);
+
+    cppMCTSpredict(e_node.state, e_node.tasks, domain, R, e, 4021, aux_R);
     
     std::cout << "Ground Truth:" << std::endl;
     for (auto const &a : p.initial_state.agents) {
