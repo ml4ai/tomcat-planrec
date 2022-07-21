@@ -173,12 +173,12 @@ int main(int argc, char* argv[]) {
       e_node.state.loc_tracker[a] = {};
       //e_node.state.time[a] = time[a];
     }
-    //fix later
-    //cppMCTSpredict(e_node.state,e_node.tasks,domain,cpm,R,e,alpha,4021,aux_R);
+
+    cppMCTSpredict(e_node.state, e_node.tasks, domain, R, e, 4021, aux_R);
     
-    //std::cout << "Ground Truth:" << std::endl;
-    //for (auto const &a : p.initial_state.agents) {
-      //std::cout << p.gt[a].action << std::endl;
-    //}
+    std::cout << "Ground Truth:" << std::endl;
+    for (auto const &a : p.initial_state.agents) {
+      std::cout << p.gt[a].action << std::endl;
+    }
     return EXIT_SUCCESS;
 }
