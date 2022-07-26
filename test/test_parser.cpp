@@ -155,90 +155,10 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     // Additional elements added to this domain for parser testing purposes
     //     only, and may not make logical sense.
 
-    storage = R"(
-
-  (define (domain domain-htn)
-	(:requirements :negative-preconditions :typing :hierarchy)
-	(:types
-		package - locatable
-		capacity_number - object
-		location - object
-		target - object
-		vehicle - locatable
-		locatable - object
-	)
-
-    (:constants surprise - package)
-	
-    (:predicates
-		(road ?arg0 - location ?arg1 - location)
-		(at ?arg0 - locatable ?arg1 - location)
-		(in ?arg0 - package ?arg1 ?arg2 - vehicle)
-		(capacity ?arg0 - vehicle ?arg1 - capacity_number)
-		(capacity_predecessor ?arg0 - capacity_number ?arg1 - capacity_number)
-	)
-
-	(:task deliver
-		:parameters (?p - package ?l - location)
-	)
-
-	(:task get_to
-		:parameters (?v - vehicle ?l - location)
-	)
-
-	(:method m_deliver_ordering_0
-		:parameters (?loc1 - location ?loc2 - location ?p - package ?v - vehicle)
-		:task (deliver ?p ?loc2) 
-
-        :precondition (or
-          (at ?l)
-          (at ?s)
-          )
-
-        :subtasks (and
-         (task0 (get_to ?v ?loc1))
-         (task1 (load ?v ?loc1 ?p))
-         (task2 (get_to ?v ?loc2))
-         (task3 (unload ?v ?loc1 ?p))
-         )
-
-		:ordering (and
-			( < task0 task1)
-			( < task1 task2)
-			( < task2 task3)
-		)
-	)
-
-	(:method m_unload_ordering_0
-		:parameters (?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number ?v - vehicle)
-		:task (unload ?v ?l ?p)
-		:subtasks (and
-		 (task0 (drop ?v ?l ?p ?s1 ?s2))
-		)
-	)
-
-	(:action pick_up
-		:parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
-		:precondition
-			(and
-				(at ?v ?l)
-				(at ?p ?l)
-				(capacity_predecessor ?s1 ?s2)
-				(capacity ?v ?s2)
-			)
-		:effect
-			(and
-				(not (at ?p ?l))
-				(in ?p ?v)
-				(capacity ?v ?s1)
-				(not (capacity ?v ?s2))
-			)
-	); end action pick_up
-  ); end domain definition
-    )";
-
-
-    auto dom = parse<Domain>(storage);
+    std::ifstream f("../../test/storage_domain_test.hddl");
+    std::string t_storage( (std::istreambuf_iterator<char>(f)),
+                           (std::istreambuf_iterator<char>()));
+    auto dom = parse<Domain>(t_storage);
 
     // Test Domain Name:
     BOOST_TEST(dom.name == "domain-htn");
@@ -340,53 +260,12 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 
 BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     //  Test parsing of problem definition and its components
-    storage = R"(
-    (define
-        (problem delivery)
-        (:domain domain_htn)
-        (:requirements :strips :typing)
 
-   	(:objects
-        package_0 - package
-	    package_1 - package
-	    capacity_0 - capacity_number
-	    capacity_1 - capacity_number
-	    city_loc_0 - location
-	    city_loc_1 - location
-	    city_loc_2 - location
-	    truck_0 - vehicle
-        location
-	    )
-	(:htn
-		;:parameters ()
-		:parameters (?loc1 - location ?p - package ?v - vehicle)
-		:subtasks (and
-		 (task0 (deliver package_0 city_loc_0))
-		 (task1 (deliver package_1 city_loc_2))
-		)
-		:ordering (and
-			(< task0 task1)
-		)
-	)
-	(:init
-		(capacity_predecessor capacity_0 capacity_1)
-		(road city_loc_0 city_loc_1)
-		(road city_loc_1 city_loc_0)
-		(road city_loc_1 city_loc_2)
-		(road city_loc_2 city_loc_1)
-		(at package_0 city_loc_1)
-		(at package_1 city_loc_1)
-		(at truck_0 city_loc_2)
-		(capacity truck_0 capacity_1)
-	)
-    (:goal
-         (and (at package_1 city_loc_2)
-              (at truck_1 city_loc_2)
-    ))
-  ); end problem definition
- )";
+    std::ifstream f("../../test/storage_problem_test.hddl");
+    std::string t_storage( (std::istreambuf_iterator<char>(f)),
+                           (std::istreambuf_iterator<char>()));
 
-    auto prob = parse<Problem>(storage);
+    auto prob = parse<Problem>(t_storage);
 
     BOOST_TEST(prob.name == "delivery");
     BOOST_TEST(prob.domain_name == "domain_htn");

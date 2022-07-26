@@ -1,0 +1,69 @@
+(define (domain domain-htn)
+  (:requirements :negative-preconditions :typing :hierarchy)
+  (:types
+      package - locatable
+      capacity_number - object
+      location - object
+      target - object
+      vehicle - locatable
+      locatable - object
+  )
+  (:constants surprise - package)
+  
+  (:predicates
+      (road ?arg0 - location ?arg1 - location)
+      (at ?arg0 - locatable ?arg1 - location)
+      (in ?arg0 - package ?arg1 ?arg2 - vehicle)
+      (capacity ?arg0 - vehicle ?arg1 - capacity_number)
+      (capacity_predecessor ?arg0 - capacity_number ?arg1 - capacity_number)
+  )
+  (:task deliver
+      :parameters (?p - package ?l - location)
+  )
+  (:task get_to
+      :parameters (?v - vehicle ?l - location)
+  )
+  (:method m_deliver_ordering_0
+      :parameters (?loc1 - location ?loc2 - location ?p - package ?v - vehicle)
+      :task (deliver ?p ?loc2) 
+      :precondition (or
+        (at ?l)
+        (at ?s)
+        )
+      :subtasks (and
+       (task0 (get_to ?v ?loc1))
+       (task1 (load ?v ?loc1 ?p))
+       (task2 (get_to ?v ?loc2))
+       (task3 (unload ?v ?loc1 ?p))
+       )
+      :ordering (and
+          ( < task0 task1)
+          ( < task1 task2)
+          ( < task2 task3)
+      )
+  )
+  (:method m_unload_ordering_0
+      :parameters (?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number ?v - vehicle)
+      :task (unload ?v ?l ?p)
+      :subtasks (and
+       (task0 (drop ?v ?l ?p ?s1 ?s2))
+      )
+  )
+  (:action pick_up
+      :parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
+      :precondition
+          (and
+              (at ?v ?l)
+              (at ?p ?l)
+              (capacity_predecessor ?s1 ?s2)
+              (capacity ?v ?s2)
+          )
+      :effect
+          (and
+              (not (at ?p ?l))
+              (in ?p ?v)
+              (capacity ?v ?s1)
+              (not (capacity ?v ?s2))
+          )
+  ) 
+)
