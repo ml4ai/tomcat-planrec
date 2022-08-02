@@ -4,8 +4,90 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+#include <iterator>
+#include "kb.h"
 
-using Args = std::unordered_map<std::string, std::string>;
+using head = std::string;
+using var = std::string;
+using type = std::string;
+using binding = std::string;
+using Params = std::unordered_map<var, type>; 
+using Args = std::unordered_map<var, binding>;
+using Preconds = std::string;
+using preds = std::unordered_map<head,Params>;
+using Additions = std::unordered_map<head,Params>;
+using Deletions = std::unordered_map<head,Params>;
+using Effects = std::pair<Additions,Deletions>;
+using conds = std::unordered_map<head,Params>;
+using CAdditions = std::pair<conds,Additions>;
+using CDeletions = std::pair<conds,Deletions>;
+using CEffects = std::pair<CAdditions,CDeletions>;
+using task_token = std::string;
+
+std::vector<Args> cartProd(Args args1, Args args2) {
+  std::vector<Args> new_a = {};
+  for (int i = 0; i < args1.size(); i++) {
+    for (int j = 0; j < args2.size(); j++) {
+      
+    }
+  }
+}
+
+std::vector<Args> get_all_sets(KnowledgeBase& kb,pc, Params params) {
+  std::vector<Args> a_set = {}; 
+  auto res = ask_vars(kb,pc);
+  int perm = 0;
+  for (auto const &r : res) {
+    perm += res[r.first].size(); 
+  }
+
+  for (int i = 0; i < perm; i++) {
+    Args a;
+    for (auto const &r : res) {
+
+    }
+  }
+}
+
+struct Operator {
+  head name;
+  Params parameters;
+  Preconds preconditions;
+  Effects effects;
+  CEffects ceffects;
+  Operator(head name, Params parameters, Preconds preconditions, Effects effects, CEffects ceffects) {
+    this->name = name;
+    this->parameters = parameters;
+    this->preconditions = preconditions;
+    this->effects = effects;
+    this->ceffects = ceffects;
+  }
+
+  std::vector<std::pair<task_token,KnowledgeBase>> apply(KnowledgeBase kb, Args args) {
+    std::string pc = "(and ";
+    for (auto const &p : this->parameters) {
+      if (args.find(p.first) != args.end()) {
+        pc += "(= "+p.first+" "+args[p.first]+") ";
+      }
+      pc += "("+p.second+" "+p.first+") ";
+    }
+    pc += this->preconditions + ")";
+    auto res = ask_vars(kb,pc); 
+
+    for (auto const &r : res) {
+
+    }
+  }
+}
+struct DomainDef {
+  Operators operators;
+  Methods methods;
+}
+
+struct ProblemDef {
+  KnowledgeBase kb;
+  Tasks tasks;
+}
 
 struct Task {
   std::string task_id;
@@ -34,16 +116,7 @@ using Plans = std::vector<pTasks>;
 using cPlans = std::vector<cTasks>;
 using Predictions = std::unordered_map<std::string, Task>;
 
-using CFM = std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string,int>>>;
-using CPM = std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string,double>>>;
-
-
-template <class State> using Operator = std::optional<State> (*)(State, Args);
-
-template <class State> using pOperator = double (*)(State,State,Args);
-
-template <class State>
-using Operators = std::unordered_map<std::string, Operator<State>>;
+using Operators = std::unordered_map<std::string, Operator>;
 
 template <class State>
 using pOperators = std::unordered_map<std::string, pOperator<State>>;
