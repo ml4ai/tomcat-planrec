@@ -3,6 +3,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <map>
 #include <vector>
 #include <iterator>
 #include "kb.h"
@@ -24,13 +25,61 @@ using CDeletions = std::pair<conds,Deletions>;
 using CEffects = std::pair<CAdditions,CDeletions>;
 using task_token = std::string;
 
-std::vector<Args> cartProd(Args args1, Args args2) {
+std::vector<Args> cartProd(var v1, std::vector<std::string> &b1, var v2, std::vector<std::string> &b2) {
   std::vector<Args> new_a = {};
-  for (int i = 0; i < args1.size(); i++) {
-    for (int j = 0; j < args2.size(); j++) {
-      
+  for (auto const& i : b1) {
+    for (auto const& j : b2) {
+      Args args;
+      args[v1] = i;
+      args[v2] = j;
+      new_a.push_back(args);
     }
   }
+  return new_a;
+}
+
+std::vector<Args> cartProd(std::vector<Args> &bindings, var v, std::vector<std::string> &b) {
+  std::vector<Args> new_a = {};
+  for (auto const& i : bindings) {
+    for (auto const& [j1,j2] : i) {
+      for (auto const& k : b) {
+        Args args;
+        args[j1] = j2;
+        args[v] = k;
+        new_a.push_back(args);
+      }
+    } 
+  }
+  return new_a;
+}
+
+std::vector<Args> cartProd(std::map<string,std::vector<std::string>> &bindings) {
+  std::vector<int> keys;
+  for (auto const& [i,_] : bindings) {
+    keys.push_back(i);
+  }
+
+  std::vector<Args> a = {};
+  if (bindings.size() == 1) {
+    for (auto const& i : bindings[keys[0]]) {
+      Args args;
+      args[keys[0]] = i;
+      a.push_back()
+    }
+    return a;
+  }
+
+  a = cartProd(keys[0], bindings[keys[0]], keys[1], bindings[keys[1]]);
+
+  if (bindings.size() == 2) {
+    return a;
+  }
+  
+  for (int i = 2; i < keys.size(); i++) {
+    a = cartProd(a, keys[i], bindings[keys[i]]);
+  }
+  return a;
+  
 }
 
 std::vector<Args> get_all_sets(KnowledgeBase& kb,pc, Params params) {
