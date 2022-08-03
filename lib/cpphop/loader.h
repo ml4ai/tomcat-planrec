@@ -20,21 +20,13 @@ using namespace ast;
 using boost::get;
 using std::string, std::vector, std::unordered_set;
 
-struct DomainDef {
-  Operators operators;
-  Methods methods;
-};
-
-struct ProblemDef {
-  KnowledgeBase kb;
-  Tasks tasks;
-};
-
-DomainDef dom_loader(std::string dom_file) {
+Domain dom_loader(std::string dom_file) {
   std::ifstream f(dom_file);
   std::string s_dom((std::istreambuf_iterator<char>(f)),
                     (std::istreambuf_iterator<char>()));
   return parse<Domain>(s_dom);
 }
 
-
+DomainDef getDomObjs(Domain dom) {
+  
+}
