@@ -41,20 +41,20 @@ std::vector<Args> cartProd(var v1, std::vector<std::string> &b1, var v2, std::ve
 std::vector<Args> cartProd(std::vector<Args> &bindings, var v, std::vector<std::string> &b) {
   std::vector<Args> new_a = {};
   for (auto const& i : bindings) {
-    for (auto const& [j1,j2] : i) {
-      for (auto const& k : b) {
-        Args args;
+    for (auto const& k : b) {
+      Args args;
+      for (auto const& [j1,j2] : i) {
         args[j1] = j2;
-        args[v] = k;
-        new_a.push_back(args);
       }
+      args[v] = k;
+      new_a.push_back(args);
     } 
   }
   return new_a;
 }
 
 std::vector<Args> cartProd(std::map<string,std::vector<std::string>> &bindings) {
-  std::vector<int> keys;
+  std::vector<std::string> keys;
   for (auto const& [i,_] : bindings) {
     keys.push_back(i);
   }
@@ -64,7 +64,7 @@ std::vector<Args> cartProd(std::map<string,std::vector<std::string>> &bindings) 
     for (auto const& i : bindings[keys[0]]) {
       Args args;
       args[keys[0]] = i;
-      a.push_back()
+      a.push_back(args);
     }
     return a;
   }
@@ -82,20 +82,9 @@ std::vector<Args> cartProd(std::map<string,std::vector<std::string>> &bindings) 
   
 }
 
-std::vector<Args> get_all_sets(KnowledgeBase& kb,pc, Params params) {
-  std::vector<Args> a_set = {}; 
+std::vector<Args> get_all_sets(KnowledgeBase kb,pc) {
   auto res = ask_vars(kb,pc);
-  int perm = 0;
-  for (auto const &r : res) {
-    perm += res[r.first].size(); 
-  }
-
-  for (int i = 0; i < perm; i++) {
-    Args a;
-    for (auto const &r : res) {
-
-    }
-  }
+  return cartProd(res); 
 }
 
 struct Operator {
@@ -112,7 +101,7 @@ struct Operator {
     this->ceffects = ceffects;
   }
 
-  std::vector<std::pair<task_token,KnowledgeBase>> apply(KnowledgeBase kb, Args args) {
+  std::vector<std::pair<task_token,KnowledgeBase>> apply(KnowledgeBase& kb, Args args) {
     std::string pc = "(and ";
     for (auto const &p : this->parameters) {
       if (args.find(p.first) != args.end()) {
@@ -121,11 +110,11 @@ struct Operator {
       pc += "("+p.second+" "+p.first+") ";
     }
     pc += this->preconditions + ")";
-    auto res = ask_vars(kb,pc); 
-
-    for (auto const &r : res) {
-
-    }
+    std::vector<Args> a_sets = get_all_sets(kb,pc);
+  }
+  //Helper function
+  std::pair<task_token, KnowledgeBase> apply_set(KnowledgeBase kb, Args args) {
+    
   }
 }
 struct DomainDef {
