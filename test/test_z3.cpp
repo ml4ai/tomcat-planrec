@@ -7,7 +7,6 @@
 #include <iostream>
 #include <string>
 
-#include "util.h"
 #include <boost/optional.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
 
@@ -15,7 +14,7 @@ using boost::unit_test::framework::master_test_suite;
 namespace x3 = boost::spirit::x3;
 using namespace std;
 using boost::get;
-#include "z3++.h";
+#include "z3++.h"
 using namespace z3;
 
 string demorgan() {
@@ -403,6 +402,6 @@ BOOST_AUTO_TEST_CASE(test_z3) {
     BOOST_TEST(test_logic_infer7() == "sat");
     BOOST_TEST(test_logic_infer8() == "unsat");
     BOOST_TEST(test_logic_infer9() == "unsat");
-    BOOST_TEST(test_logic_infer10() == "unsat");
+    BOOST_TEST(test_logic_infer10() == "sat");
     BOOST_TEST(test_logic_infer11() == "sat");
 }
