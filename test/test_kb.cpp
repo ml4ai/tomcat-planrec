@@ -10,57 +10,39 @@ using namespace fol;
 
 BOOST_AUTO_TEST_CASE(test_kb) {
     KnowledgeBase kb;
+    kb.add_type("target");
+    kb.add_type("capacity_number");
+    kb.add_type("location");
+    kb.add_type("locatable");
+    kb.add_type("package","locatable");
+    kb.add_type("vehicle","locatable");
 
-    initialize_data_type(kb, "Role", {"medic", "transporter", "engineer"});
-    initialize_data_type(kb, "Victim", {"v1", "v2", "v3"});
-    initialize_data_type(kb, "Location", {"room1", "room2", "room3"});
-    initialize_data_type(kb, "Victim_Type", {"a", "b", "c"});
-    initialize_predicate(kb, "at", {"Role", "Location"});
-    initialize_predicate(kb, "vt", {"Victim", "Victim_Type"});
-    tell(kb, "(at medic room1)");
-    tell(kb, "(at transporter room1)");
-    tell(kb, "(at engineer room1)");
-    tell(kb, "(at medic room2)");
-    tell(kb, "(at transporter room3)");
-    tell(kb, "(at medic room1)");
-    tell(kb, "(at transporter room1)");
-    tell(kb, "(at engineer room3)");
-    tell(kb, "(vt v1 a)");
-    tell(kb, "(vt v2 b)");
-    tell(kb, "(vt v3 c)");
-    tell(kb, "(vt v2 c)");
-    tell(kb, "(vt v3 a)");
+    kb.add_object("package_0","package");
+    kb.add_object("package_1","package");
+    kb.add_object("capacity_0","capacity_number");
+    kb.add_object("capacity_1","capacity_number");
+    kb.add_object("city_loc_0","location");
+    kb.add_object("city_loc_1","location");
+    kb.add_object("city_loc_2","location");
+    kb.add_object("truck_0","vehicle");
+    kb.add_object("surprise","package");
 
-    auto context = get_smt(kb);
-    cout << "SMT string: " << endl;
-    cout << context << endl;
-    BOOST_TEST(!ask(kb, "(at engineer room2)"));
-    BOOST_TEST(ask(kb, "(at engineer room3)"));
-    BOOST_TEST(ask(kb, "(and (at medic room1) (at transporter room1))"));
-    BOOST_TEST(!ask(kb, "(and (at medic room1) (at transporter room3))"));
-    BOOST_TEST(ask(kb, "(or (at medic room1) (at transporter room3))"));
-    BOOST_TEST(ask(kb, "(and (at medic room1) (at transporter room1) (vt v1 a))"));
-    BOOST_TEST(!ask(kb, "(and (at medic room1) (at transporter room1) (vt v2 a))"));
-    BOOST_TEST(ask(kb,
-              "(or (and (at medic room1) (at transporter room1) (vt v1 a)) "
-              "(and (at medic room1) (at transporter room1) (vt v2 a)))"));
-    auto res = ask_vars(kb, "(at engineer ?location)");
-    BOOST_TEST(res["?location"].at(0) == "room3");
-    res = ask_vars(kb, "(vt v2 ?type)");
-    BOOST_TEST(res["?type"].at(0) == "c");
-    res = ask_vars(kb, "(vt v2 ?type)");
-    BOOST_TEST(res["?type"].at(0) != "b");
-    res = ask_vars(kb, "(vt ?vic a)");
-    BOOST_TEST(res["?vic"].at(0) == "v1");
-    BOOST_TEST(res["?vic"].at(1) == "v3");
-    res = ask_vars(kb, "(at ?who room1)");
-    BOOST_TEST(res["?who"].at(0) == "medic");
-    BOOST_TEST(res["?who"].at(1) == "transporter");
-    res = ask_vars(kb, "(at ?who ?location)");
-    BOOST_TEST(res["?who"].at(0) == "medic");
-    BOOST_TEST(res["?location"].at(0) == "room1");
-    BOOST_TEST(res["?who"].at(1) == "transporter");
-    BOOST_TEST(res["?location"].at(1) == "room1");
-    BOOST_TEST(res["?who"].at(2) == "engineer");
-    BOOST_TEST(res["?location"].at(2) == "room3");
+    kb.add_predicate("road",{{"?arg0","location"},{"?arg1","location"}});
+    kb.add_predicate("at",{{"?arg0","locatable"},{"?arg1","location"}});
+    kb.add_predicate("in",{{"?arg0","package"},{"?arg1","vehicle"}});
+    kb.add_predicate("capacity",{{"?arg0","vehicle"},{"?arg1","capacity_number"}});
+    kb.add_predicate("capacity_predecessor",{{"?arg0","capacity_number"},{"?arg1","capacity_number"}});
+
+    kb.initialize();
+
+    BOOST_TEST(kb.tell("(capacity_predecessor capacity_0 capacity_1)"));   
+
+    std::cout <<"Added effect"<< std::endl;
+    kb.print_pfacts();
+    std::cout << std::endl;
+    BOOST_TEST(kb.tell("(capacity_predecessor capacity_0 capacity_1)",true));
+    std::cout <<"Deleted effect"<< std::endl;
+    kb.print_pfacts();
+
+
 }
