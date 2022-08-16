@@ -11,17 +11,24 @@
 #include <unordered_map>
 
 using namespace fol;
-
+//Type struct
 struct Type {
+  //Name of type
   std::string type;
+  //Indexes of the types lineage. 
   std::vector<int> lineage;
+  //Indexes of the types children
   std::vector<int> children;
 };
 
 struct TypeTree {
+  //Unordered map of the form {index,Type struct}
   std::unordered_map<int,Type> types;
+  //Keeps track of next newly usable ID
   int nextID = 0;
+  //Keeps track of usable freed IDs
   std::vector<int> freedIDs;
+  //Adds type to TypeTree and returns its index. 
   int add_type(Type& type) {
     int id;
     if (!freedIDs.empty()) {
@@ -35,7 +42,7 @@ struct TypeTree {
     types[id] = type;
     return id;
   }
-
+  //Returns index of Type struct with name type
   int find_type(std::string type) {
     for (auto const &[i,t] : this->types) {
       if (t.type == type) {
@@ -49,9 +56,13 @@ struct TypeTree {
   }
 };
 
+//Add objects from the problem definition, then ungrounded predicate
+//statements, and then run initialize before using the kb!
 class KnowledgeBase {
     private:
+      //Tracks type hierarchy
       TypeTree typetree;
+      //Tree index for root node.
       int root; 
       //header,{{var1,type1},{var2,type2},...}
       std::unordered_map<std::string, std::unordered_map<std::string,std::string>> predicates;
@@ -64,6 +75,8 @@ class KnowledgeBase {
       //belief state in smt form;
       std::string smt_state;
 
+      //Gets all bindings for smt_statement and set of variables
+      //A set of bindings is an unordered map of form {variable,value}.
       std::vector<std::unordered_map<std::string,std::string>> 
       get_bindings(std::string F, 
                   const std::unordered_map<std::string,std::string>& variables) {
@@ -99,6 +112,7 @@ class KnowledgeBase {
         return results;
       }
 
+      //Used by tell to update the smt_state string.
       void update_state() {
         this->smt_state = "(declare-datatype __Object__ (";
         for (auto const& [o1,o2] : this->objects) {
@@ -124,25 +138,33 @@ class KnowledgeBase {
       }
 
     public:
+      //Constructor initializes the default type __Object__ and adds an object
+      //predicate for it. 
       KnowledgeBase() {
         Type type;
         type.type = "__Object__";
         this->root = this->typetree.add_type(type);
         this->add_predicate("__Object__",{{"?o","__Object__"}});
       }
-
+      //Takes the predicate head (e.g., At). Parameters are given as a
+      //unordered map of {variable, type} (e.g., {?x, location})  
       void add_predicate(std::string head,std::unordered_map<std::string,std::string> params) {
         this->predicates[head] = params;
       }
 
+      //Can add many predicates as once in the form of
+      //{head,{variable1,type1},...}. 
       void add_predicates(std::unordered_map<std::string,std::unordered_map<std::string,std::string>> preds) {
         this->predicates.merge(preds); 
       }
-
+      
+      //Arguments are name of the object and type (e.g., Room1 - location).
       void add_object(std::string name, std::string type) {
         this->objects[name] = type;
       }
-
+      //Types by default inherit type __Object__. If a ancestor type is
+      //specified, the type will inherit that ancestor and the lineage of that
+      //ancestor (including __Object__). Automatically adds object predicates.
       void add_type(std::string type, std::string ancestor = "__Object__") {
         Type new_t;
         new_t.type = type;
@@ -159,7 +181,8 @@ class KnowledgeBase {
       }
 
    
-      // Warning: This clears the KB! 
+      // Warning: This clears the KB! Initializes the KBs belief state with
+      // closed world assumption.  
       void initialize() {
         this->nfacts.clear();
         this->pfacts.clear();
@@ -208,7 +231,10 @@ class KnowledgeBase {
         this->update_state();
       }
 
-      //Returns false if contradiction
+      //Returns false if contradiction is detected. Only give it a single grounded
+      //predicate. Additions have remove = false, deletions are given by
+      //setting remove to true. Do not give it a (not (pred)), the not will be
+      //handled by the parser!
       bool tell(std::string pred, bool remove = false) {
         if (remove) {
           if (this->pfacts.find(pred) != this->pfacts.end()) {
@@ -241,7 +267,8 @@ class KnowledgeBase {
       }
 
       //This adds the assert to expr, but the rest of expr must be made smt
-      //compatible prior to this call
+      //compatible prior to this call. Only grounded statements are allowed
+      //here!
       bool ask(std::string expr) {
         z3::context con;
         z3::solver s(con);
@@ -251,7 +278,9 @@ class KnowledgeBase {
       }
 
       //This adds the assert to expr, but the rest of expr must be made smt
-      //compatible prior to this call
+      //compatible prior to this call. Z3 will give an error if a variable is not
+      //found in params is used, which complies with HDDLs specifications for method and
+      //action definitions.  
       std::vector<std::unordered_map<std::string,std::string>>
       ask(std::string expr,
           std::unordered_map<std::string,std::string> params) {
@@ -264,19 +293,19 @@ class KnowledgeBase {
         return get_bindings(smt_expr,params);
       }
 
-
+      //prints all facts
       void print_pfacts() {
         for (auto const& p : this->pfacts) {
           std::cout << p << std::endl;
         }
       }
-
+      //prints all negative facts (things that are not true).
       void print_nfacts() {
         for (auto const& n : this->nfacts) {
           std::cout << n << std::endl;
         }
       }
-
+      //prints smt_state string
       void print_smt_state() {
         std::cout << this->smt_state << std::endl;
       }
