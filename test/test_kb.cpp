@@ -44,5 +44,34 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     std::cout <<"Deleted effect"<< std::endl;
     kb.print_pfacts();
 
+    BOOST_TEST(kb.tell("(capacity_predecessor capacity_0 capacity_1)"));
+    BOOST_TEST(kb.tell("(road city_loc_0 city_loc_1)"));
+    BOOST_TEST(kb.tell("(road city_loc_1 city_loc_0)"));
+    BOOST_TEST(kb.tell("(road city_loc_1 city_loc_2)"));
+    BOOST_TEST(kb.tell("(road city_loc_2 city_loc_1)"));
+    BOOST_TEST(kb.tell("(at package_0 city_loc_1)"));
+    BOOST_TEST(kb.tell("(at package_1 city_loc_1)"));
+    BOOST_TEST(kb.tell("(at truck_0 city_loc_2)"));
+    BOOST_TEST(kb.tell("(capacity truck_0 capacity_1)"));
 
+    std::string test_expr1 = "(and (at truck_0 city_loc_2) (at package_0 city_loc_1))";
+
+    BOOST_TEST(kb.ask(test_expr1));
+
+    std::string test_expr2 = "(and (at truck_0 city_loc_2) (or (at package_0 city_loc_1) (at package_0 city_loc_2)))";
+
+    BOOST_TEST(kb.ask(test_expr2));
+
+    std::string test_expr3 = "(and (at truck_0 city_loc_2) (at package_0 city_loc_2))";
+
+    BOOST_TEST(!kb.ask(test_expr3));
+
+    std::string test_expr4 = "(road ?c1 ?c2)";
+    auto test = kb.ask(test_expr4,{{"?c1","location"},{"?c2","location"}});
+    BOOST_TEST(test.size() == 4);
+    for (auto const& b : test) {
+      for (auto const& [var,val] : b) {
+        std::cout << var << " : " << val << std::endl;
+      }
+    }
 }
