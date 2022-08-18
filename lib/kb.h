@@ -4,7 +4,7 @@
 #include "util.h"
 #include "z3++.h"
 #include <map>
-#include <set>
+#include <unordered_set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -21,6 +21,7 @@ struct Type {
   std::vector<int> children;
 };
 
+//TypeTree struct. This keeps track of the type inheritence hierarchy
 struct TypeTree {
   //Unordered map of the form {index,Type struct}
   std::unordered_map<int,Type> types;
@@ -68,15 +69,14 @@ class KnowledgeBase {
       std::unordered_map<std::string, std::unordered_map<std::string,std::string>> predicates;
       //constant, type
       std::unordered_map<std::string, std::string> objects;
-      //(pred arg1 arg2 ...)
-      std::set<std::string> pfacts;
-      //(pred arg1 arg2 ...)
-      std::set<std::string> nfacts;
+      //header, (header arg1 arg2 ...), ... 
+      std::unordered_map<std::string, std::unordered_set<std::string>> facts;
       //belief state in smt form;
       std::string smt_state;
 
       //Gets all bindings for smt_statement and set of variables
-      //A set of bindings is an unordered map of form {variable,value}.
+      //A set of bindings is an unordered map of form {variable,value}. Called
+      //by ask when given a collection of params.
       std::vector<std::unordered_map<std::string,std::string>> 
       get_bindings(std::string F, 
                   const std::unordered_map<std::string,std::string>& variables) {
@@ -111,30 +111,24 @@ class KnowledgeBase {
         }
         return results;
       }
-
-      //Used by tell to update the smt_state string.
-      void update_state() {
-        this->smt_state = "(declare-datatype __Object__ (";
-        for (auto const& [o1,o2] : this->objects) {
-          this->smt_state += o1+" ";
+      
+      //Parses (header arg1 arg2 ...) into {header,{arg1, arg2, ...}}
+      std::pair<std::string, std::vector<std::string>> 
+      parse_predicate(std::string pred) {
+        std::vector<std::string> symbols = {};
+        size_t pos = 0;
+        std::string p = pred.substr(1,pred.size() - 2);
+        std::string space_delimiter = " ";
+        while ((pos = p.find(space_delimiter)) != std::string::npos) {
+          symbols.push_back(p.substr(0, pos));
+          p.erase(0, pos + space_delimiter.length());
         }
-        this->smt_state += "))\n";
-        for (auto const& [h,a] : this->predicates){
-          this->smt_state += "(declare-fun "+h+" (";
-          for (auto const& [v,t] : a) {
-            this->smt_state += "__Object__ ";
-          }
-          this->smt_state += ") Bool)\n";
+        if (!p.empty()) {
+          symbols.push_back(p);
         }
-        this->smt_state += "(assert (and ";
-        for (auto const& p : this->pfacts) {
-          this->smt_state += p+" ";
-        }
-
-        for (auto const& n : this->nfacts) {
-          this->smt_state += "(not "+n+") ";
-        }
-        this->smt_state += "))\n";
+        std::string predicate = symbols.at(0);
+        symbols.erase(symbols.begin());
+        return std::make_pair(predicate, symbols);
       }
 
     public:
@@ -148,14 +142,11 @@ class KnowledgeBase {
       }
       //Takes the predicate head (e.g., At). Parameters are given as a
       //unordered map of {variable, type} (e.g., {?x, location})  
+      //Adding duplicate predicates will clear facts with that predicate head
+      //from the KB!
       void add_predicate(std::string head,std::unordered_map<std::string,std::string> params) {
         this->predicates[head] = params;
-      }
-
-      //Can add many predicates as once in the form of
-      //{head,{variable1,type1},...}. 
-      void add_predicates(std::unordered_map<std::string,std::unordered_map<std::string,std::string>> preds) {
-        this->predicates.merge(preds); 
+        this->facts[head] = {};
       }
       
       //Arguments are name of the object and type (e.g., Room1 - location).
@@ -181,94 +172,127 @@ class KnowledgeBase {
       }
 
    
-      // Warning: This clears the KB! Initializes the KBs belief state with
-      // closed world assumption.  
+      // Initializes the KBs belief state with
+      // closed world assumption. Call ONCE after adding all of the needed types, objects, and
+      // predicate or else all tell() and ask() calls will crash or fail!   
       void initialize() {
-        this->nfacts.clear();
-        this->pfacts.clear();
-
-        std::string st = "(declare-datatype __Object__ (";
         for (auto const& [o1,o2] : this->objects) {
-          st += o1+" ";
           int t = this->typetree.find_type(o2);
           for (auto const& [t1,t2] : this->typetree.types) {
             std::string f = "("+t2.type+" "+o1+")";
             if (in(t1,this->typetree.types[t].lineage) ||
                 t2.type == o2) {
-              this->pfacts.insert(f);
+              this->facts[t2.type].insert(f);
             } 
-            else {
-              this->nfacts.insert(f);
-            }
-          }
-        }
-        st += "))\n";
-        for (auto const& [h,a] : this->predicates){
-          std::string pt = "(declare-fun "+h+" (";
-          std::string at = "(assert ("+h+" ";
-          std::string ot = "";
-          for (auto const& [v,t] : a) {
-            pt += "__Object__ ";
-            at += v+" ";
-            ot += "(declare-const "+v+" __Object__)\n";
-          }
-          pt += ") Bool)\n";
-          at += "))\n";
-          std::string smt = st + ot + pt + at;
-          auto bindings = get_bindings(smt,a);
-          for (auto const& binding : bindings) {
-            std::string pred = "("+h+" ";
-            for (auto const& [v,t] : binding) {
-              pred += t+" ";
-            }
-            pred = trim(pred);
-            pred += ")";
-            if (this->pfacts.find(pred) == pfacts.end()) {
-              this->nfacts.insert(pred);
-            }
           }
         }
         this->update_state();
       }
 
-      //Returns false if contradiction is detected. Only give it a single grounded
-      //predicate. Additions have remove = false, deletions are given by
-      //setting remove to true. Do not give it a (not (pred)), the not will be
-      //handled by the parser!
-      bool tell(std::string pred, bool remove = false) {
-        if (remove) {
-          if (this->pfacts.find(pred) != this->pfacts.end()) {
-            if (this->nfacts.find(pred) != this->nfacts.end()) {
-              return false;
+      //Used by tell to update the smt_state string. tell() calls this
+      //automatically by default, but it can be called manually too (see tell()
+      //for default settings).
+      void update_state() {
+        this->smt_state = "(declare-datatype __Object__ (";
+        for (auto const& [o1,o2] : this->objects) {
+          this->smt_state += o1+" ";
+        }
+        this->smt_state += "))\n";
+        for (auto const& [h,a] : this->predicates) {
+          if (this->facts.find(h) != this->facts.end()) {
+            if (!this->facts[h].empty()) {
+              this->smt_state += "(declare-fun "+h+" (";
+              std::string pred_assert = "(assert (forall (";
+              int i = 0;
+              std::string var_assert = "";
+              for (auto const& [v,t] : a) {
+                this->smt_state += "__Object__ ";
+                pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
+                var_assert += " x_"+std::to_string(i);
+                i++;
+              }
+              pred_assert += ") (= ("+h+var_assert+") (or ";
+              for (auto const& p : this->facts[h]) {
+                auto pp = this->parse_predicate(p);
+                pred_assert += "(and ";
+                int j = 0;
+                for (auto const& vals : pp.second) {
+                  pred_assert += "(= x_"+std::to_string(j)+" "+vals+") ";
+                  j++;
+                }
+                pred_assert += ") ";
+              }
+              pred_assert += "))))\n";
+              this->smt_state += ") Bool)\n";
+              this->smt_state += pred_assert;
             }
-            this->pfacts.erase(pred);
-            this->nfacts.insert(pred);
-            this->update_state();
-            return true;
+            else {
+              this->smt_state += "(declare-fun "+h+" (";
+              std::string pred_assert = "(assert (forall (";
+              int i = 0;
+              std::string var_assert = "";
+              for (auto const& [v,t] : a) {
+                this->smt_state += "__Object__ ";
+                pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
+                var_assert += " x_"+std::to_string(i);
+                i++;
+              }
+              pred_assert += ") (not ("+h+var_assert+"))))\n";
+              this->smt_state += ") Bool)\n";
+              this->smt_state += pred_assert;
+            }
           }
-          if (this->nfacts.insert(pred).second) {
+          else {
+            this->smt_state += "(declare-fun "+h+" (";
+            std::string pred_assert = "(assert (forall (";
+            int i = 0;
+            std::string var_assert = "";
+            for (auto const& [v,t] : a) {
+              this->smt_state += "__Object__ ";
+              pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
+              var_assert += " x_"+std::to_string(i);
+              i++;
+            }
+            pred_assert += ") (not ("+h+var_assert+"))))\n";
+            this->smt_state += ") Bool)\n";
+            this->smt_state += pred_assert;
+          }
+        }
+      }
+
+      //Returns false if predicate type is not found. Only give it a single grounded
+      //predicate in (header arg1 arg2 ...) form. Adding facts requires that remove = false (default) and 
+      //deleting facts require that remove = true. 
+      //Do not give it a (not (pred)), the "not" will be
+      //handled by the parser!
+      //By Default, it calls update_state(). If you are calling this in a long
+      //series or loop, set update_state = false and then call update_state()
+      //manually after all the tells for more optimal performance! 
+      bool tell(std::string pred, bool remove = false, bool update_state = true) {
+        auto pp = this->parse_predicate(pred);
+        if (this->predicates.find(pp.first) == this->predicates.end()) {
+          return false;
+        }
+        if (remove) {
+          this->facts[pp.first].erase(pred);
+          if (update_state) { 
             this->update_state();
           }
           return true;
         }
-        if (this->nfacts.find(pred) != this->nfacts.end()) {
-          if (this->pfacts.find(pred) != this->pfacts.end()) {
-            return false;
-          }
-          this->nfacts.erase(pred);
-          this->pfacts.insert(pred);
-          this->update_state();
-          return true;
-        }
-        if (this->pfacts.insert(pred).second) {
+        this->facts[pp.first].insert(pred);
+        if (update_state) {
           this->update_state();
         }
         return true;
       }
 
       //This adds the assert to expr, but the rest of expr must be made smt
-      //compatible prior to this call. Only grounded statements are allowed
-      //here!
+      //compatible prior to this call. 
+      //This is mostly an issue for things like forall and exist, which have different
+      //syntax in smt compared to hddl. 
+      //Only grounded statements are allowed here!
+      //EX: (and (A x) (or (B x y) (C z)))
       bool ask(std::string expr) {
         z3::context con;
         z3::solver s(con);
@@ -280,7 +304,10 @@ class KnowledgeBase {
       //This adds the assert to expr, but the rest of expr must be made smt
       //compatible prior to this call. Z3 will give an error if a variable is not
       //found in params is used, which complies with HDDLs specifications for method and
-      //action definitions.  
+      //action definitions. Params must be {{var1,type1},{var2,type2},...} 
+      //This returns {{{var1,val1},{var2,val2},...},...}
+      //EX: expr = (and (A ?x) (or (B ?x y) (C z)))
+      //params = {{"?x", "thing"}}
       std::vector<std::unordered_map<std::string,std::string>>
       ask(std::string expr,
           std::unordered_map<std::string,std::string> params) {
@@ -293,18 +320,6 @@ class KnowledgeBase {
         return get_bindings(smt_expr,params);
       }
 
-      //prints all facts
-      void print_pfacts() {
-        for (auto const& p : this->pfacts) {
-          std::cout << p << std::endl;
-        }
-      }
-      //prints all negative facts (things that are not true).
-      void print_nfacts() {
-        for (auto const& n : this->nfacts) {
-          std::cout << n << std::endl;
-        }
-      }
       //prints smt_state string
       void print_smt_state() {
         std::cout << this->smt_state << std::endl;
