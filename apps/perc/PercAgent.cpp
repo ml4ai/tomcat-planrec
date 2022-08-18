@@ -113,8 +113,9 @@ void process_fov(KnowledgeBase &kb, const std::string &role, std::queue<int> que
             new_knowledge += " vic_" + to_string(tmp_queue.front());
             tmp_queue.pop();
         }
-        kb.tell(new_knowledge);
+        kb.tell(new_knowledge, false, false);
     }
+    kb.update_state();
 }
 
 void PercAgent::process(mqtt::const_message_ptr msg) {
@@ -132,12 +133,12 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                 vic_types.emplace_back("b");
             }
         }
-        //initialize_data_type(this->kb, "Victim_Type", {"a", "b", "c"});
         std::string knowledge;
         for (int i = 0; i < vic_types.size(); i++) {
             knowledge = "(victim_type vic_" + to_string(i + 1) + " " + vic_types[i] + ")";
-            this->kb.tell(knowledge);
+            this->kb.tell(knowledge,false,false);
         }
+        this->kb.update_state();
     } else if (msg->get_topic() == "observations/events/player/location") {
         try {
             if (jv.at_pointer("/data").as_object().contains("locations")) {
@@ -150,14 +151,18 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
 //                        .at(jv.at("data").at("locations").as_array().size() - 1)
 //                        .at("id"));
                 new_knowledge = "(player_at ";
+                std::string old_knowledge = "(player_at ";
                 auto role = boost::json::value_to<std::string>(
                         jv.at_pointer("/data/callsign"));
                 if (role == "Red") {
                     new_knowledge += "medic ";
+                    old_knowledge += "medic "; 
                 } else if (role == "Green") {
                     new_knowledge += "transporter ";
+                    old_knowledge += "transporter ";
                 } else {
                     new_knowledge += "engineer ";
+                    old_knowledge += "engineer ";
                 }
                 new_knowledge += boost::json::value_to<std::string>(
                         jv.at("data")
@@ -165,7 +170,12 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                                 .at(jv.at("data").at("locations").as_array().size() - 1)
                                 .at("id"));
                 new_knowledge += ")";
-                this->kb.tell(new_knowledge);
+                auto bindings = this->kb.ask(old_knowledge+"?l)",{{"?l","location"}});
+                //There should only be one
+                auto b = bindings.back();
+                this->kb.tell(old_knowledge+b.at("?l")+")",true,false);
+                this->kb.tell(new_knowledge,false,false);
+                this->kb.update_state();
             }
         }
         catch (exception &exc) {
@@ -199,14 +209,20 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                         (int) jv.at_pointer("/data/fromBlock_z").as_int64();
             }
             new_knowledge = "(player_status ";
+            std::string old_knowledge = "(player_status ";
             if (player_color == "RED") {
                 new_knowledge += "medic trapped)";
+                old_knowledge += "medic safe)";
             } else if (player_color == "GREEN") {
                 new_knowledge += "transporter trapped)";
+                old_knowledge += "transporter safe)";
             } else {
                 new_knowledge += "engineer trapped)";
+                old_knowledge += "engineer safe)";
             }
-            this->kb.tell(new_knowledge);
+            this->kb.tell(old_knowledge,true,false);
+            this->kb.tell(new_knowledge,false,false);
+            this->kb.update_state();
         }
 
         catch (exception &exc) {
@@ -229,19 +245,25 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                 new_knowledge += " medic safe)";
                 this->medic_trapped_coord.at(0) = 0;
                 this->medic_trapped_coord.at(1) = 0;
-                this->kb.tell(new_knowledge);
+                this->kb.tell("(player_status medic trapped)",true,false);
+                this->kb.tell(new_knowledge,false,false);
+                this->kb.update_state();
             } else if (rubble_x == this->transporter_trapped_coord.at(0) and
                        rubble_z == this->transporter_trapped_coord.at(1)) {
                 new_knowledge += " transporter safe)";
                 this->transporter_trapped_coord.at(0) = 0;
                 this->transporter_trapped_coord.at(1) = 0;
-                this->kb.tell(new_knowledge);
+                this->kb.tell("(player_status transporter trapped)",true,false);
+                this->kb.tell(new_knowledge,false,false);
+                this->kb.update_state();
             } else if (rubble_x == this->engineer_trapped_coord.at(0) and
                        rubble_z == this->engineer_trapped_coord.at(1)) {
                 new_knowledge += " engineer safe)";
                 this->engineer_trapped_coord.at(0) = 0;
                 this->engineer_trapped_coord.at(1) = 0;
-                this->kb.tell(new_knowledge);
+                this->kb.tell("(player_status engineer trapped)",true,false);
+                this->kb.tell(new_knowledge,false,false);
+                this->kb.update_state();
             }
         }
         catch (exception &exc) {
@@ -255,47 +277,53 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                 if (this->fov_medic.size() == FOV_STACK_SIZE) {
                     auto bindings = this->kb.ask("(fov_victim medic ?v)",{{"?v","Victim"}});
                     for (auto const& b : bindings) {
-                      this->kb.tell("(fov_victim medic "+b.at("?v")+")",true);
+                      this->kb.tell("(fov_victim medic "+b.at("?v")+")",true,false);
                     }
+                    this->kb.update_state();
                     set<int> int_set(this->fov_medic.begin(), this->fov_medic.end());
 //                    this->fov_medic.assign(int_set.begin(), int_set.end());
                     for (auto vic: int_set){
                         new_knowledge = "(fov_victim medic vic_";
                         if (vic != -1){
                             new_knowledge += to_string(vic) + ")";
-                            this->kb.tell(new_knowledge);
+                            this->kb.tell(new_knowledge, false, false);
                         }
                     }
+                    this->kb.update_state();
                     this->fov_medic = {};
                 } else if (this->fov_engineer.size() == FOV_STACK_SIZE) {
                     auto bindings = this->kb.ask("(fov_victim engineer ?v)",{{"?v","Victim"}});
                     for (auto const& b : bindings) {
-                      this->kb.tell("(fov_victim engineer "+b.at("?v")+")",true);
+                      this->kb.tell("(fov_victim engineer "+b.at("?v")+")",true,false);
                     }
+                    this->kb.update_state();
                     set<int> int_set(this->fov_engineer.begin(), this->fov_engineer.end());
 //                    this->fov_medic.assign(int_set.begin(), int_set.end());
                     for (auto vic: int_set){
                         new_knowledge = "(fov_victim engineer vic_";
                         if (vic != -1){
                             new_knowledge += to_string(vic) + ")";
-                            this->kb.tell(new_knowledge);
+                            this->kb.tell(new_knowledge, false, false);
                         }
                     }
+                    this->kb.update_state();
                     this->fov_engineer = {};
                 } else if (this->fov_transporter.size() == FOV_STACK_SIZE) {
                     auto bindings = this->kb.ask("(fov_victim transporter ?v)",{{"?v","Victim"}});
                     for (auto const& b : bindings) {
-                      this->kb.tell("(fov_victim transporter "+b.at("?v")+")",true);
+                      this->kb.tell("(fov_victim transporter "+b.at("?v")+")",true,false);
                     }
+                    this->kb.update_state();
                     set<int> int_set(this->fov_transporter.begin(), this->fov_transporter.end());
 //                    this->fov_medic.assign(int_set.begin(), int_set.end());
                     for (auto vic: int_set){
                         new_knowledge = "(fov_victim transporter vic_";
                         if (vic != -1){
                             new_knowledge += to_string(vic) + ")";
-                            this->kb.tell(new_knowledge);
+                            this->kb.tell(new_knowledge, false, false);
                         }
                     }
+                    this->kb.update_state();
                     this->fov_transporter = {};
                 }
 
@@ -341,7 +369,9 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                "observations/events/player/triage") {
         try {
             if (jv.at_pointer("/data/triage_state") == "SUCCESSFUL") {
-                this->kb.tell("(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) + " saved)");
+                this->kb.tell("(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) + " unsaved)",true,false);
+                this->kb.tell("(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) + " saved)",false,false);
+                this->kb.update_state();
             }
         }
         catch (exception &exc) {
@@ -396,12 +426,13 @@ PercAgent::PercAgent(string
     this->kb.add_predicate("victim_status", {{"?v","Victim"}, {"?vs","Victim_Status"}});
     this->kb.add_predicate("fov_victim", {{"?r","Role"}, {"?v","Victim"}});
     this->kb.initialize();
-    this->kb.tell("(player_status medic safe)");
-    this->kb.tell("(player_status transporter safe)");
-    this->kb.tell("(player_status engineer safe)");
+    this->kb.tell("(player_status medic safe)",false,false);
+    this->kb.tell("(player_status transporter safe)",false,false);
+    this->kb.tell("(player_status engineer safe)",false,false);
     for (int i = 1; i <= 35; i++) {
-        this->kb.tell("(victim_status vic_" + to_string(i) + " unsaved)");
+        this->kb.tell("(victim_status vic_" + to_string(i) + " unsaved)", false, false);
     }
+    this->kb.update_state();
     this->medic_trapped_coord.push_back(0);
     this->medic_trapped_coord.push_back(0);
     this->transporter_trapped_coord.push_back(0);
