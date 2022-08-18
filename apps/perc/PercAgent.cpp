@@ -171,9 +171,12 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                                 .at("id"));
                 new_knowledge += ")";
                 auto bindings = this->kb.ask(old_knowledge+"?l)",{{"?l","location"}});
-                //There should only be one
+                //There should only be one binding for the players previous
+                //location
                 auto b = bindings.back();
+                //Deletes predicate for players old location
                 this->kb.tell(old_knowledge+b.at("?l")+")",true,false);
+                //Adds predicate for players new location
                 this->kb.tell(new_knowledge,false,false);
                 this->kb.update_state();
             }
@@ -220,6 +223,9 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                 new_knowledge += "engineer trapped)";
                 old_knowledge += "engineer safe)";
             }
+            //These lines deletes the fact that theplayer is safe 
+            //and adds the fact that the player is now
+            //trapped
             this->kb.tell(old_knowledge,true,false);
             this->kb.tell(new_knowledge,false,false);
             this->kb.update_state();
@@ -261,6 +267,8 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                 new_knowledge += " engineer safe)";
                 this->engineer_trapped_coord.at(0) = 0;
                 this->engineer_trapped_coord.at(1) = 0;
+                //These lines deletes the fact that player is trapped and adds
+                //the fact that they are now safe
                 this->kb.tell("(player_status engineer trapped)",true,false);
                 this->kb.tell(new_knowledge,false,false);
                 this->kb.update_state();
@@ -275,6 +283,10 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
         try {
             for (auto v: jv.at_pointer("/data/blocks").as_array()) {
                 if (this->fov_medic.size() == FOV_STACK_SIZE) {
+                    //These lines removes all instances of (fov_victim medic ?v) for all
+                    //?v - victim
+                    //This is what I assumed to be the original functionality
+                    //of clear_fov_facts() - Loren
                     auto bindings = this->kb.ask("(fov_victim medic ?v)",{{"?v","Victim"}});
                     for (auto const& b : bindings) {
                       this->kb.tell("(fov_victim medic "+b.at("?v")+")",true,false);
@@ -292,6 +304,10 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     this->kb.update_state();
                     this->fov_medic = {};
                 } else if (this->fov_engineer.size() == FOV_STACK_SIZE) {
+                    //These lines remove all instances of (fov_victim engineer ?v) for all
+                    //?v - victim
+                    //This is what I assumed to be the original functionality
+                    //of clear_fov_facts() - Loren
                     auto bindings = this->kb.ask("(fov_victim engineer ?v)",{{"?v","Victim"}});
                     for (auto const& b : bindings) {
                       this->kb.tell("(fov_victim engineer "+b.at("?v")+")",true,false);
@@ -309,6 +325,10 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     this->kb.update_state();
                     this->fov_engineer = {};
                 } else if (this->fov_transporter.size() == FOV_STACK_SIZE) {
+                    //These lines remove all instances of (fov_victim transporter ?v) for all
+                    //?v - victim
+                    //This is what I assumed to be the original functionality
+                    //of clear_fov_facts() - Loren
                     auto bindings = this->kb.ask("(fov_victim transporter ?v)",{{"?v","Victim"}});
                     for (auto const& b : bindings) {
                       this->kb.tell("(fov_victim transporter "+b.at("?v")+")",true,false);
@@ -369,6 +389,8 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                "observations/events/player/triage") {
         try {
             if (jv.at_pointer("/data/triage_state") == "SUCCESSFUL") {
+                //These lines switch victim status of a victim from unsaved to
+                //saved
                 this->kb.tell("(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) + " unsaved)",true,false);
                 this->kb.tell("(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) + " saved)",false,false);
                 this->kb.update_state();
