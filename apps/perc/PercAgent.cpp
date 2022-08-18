@@ -405,7 +405,6 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
 
 PercAgent::PercAgent(string
                      address) : Agent(address) {
-    // initialize kb
     auto const s = read_file("../metadata/Saturn_2.6_3D_sm_v1.0.json");
     json::object jv = json::parse(s).as_object();
     vector<string> location_ids;
@@ -413,6 +412,7 @@ PercAgent::PercAgent(string
         location_ids.emplace_back(loc.at("id").as_string().c_str());
     }
     location_ids.emplace_back("UNKNOWN");
+    //Adding types and objects to KB
     this->kb.add_type("Location");
     for (auto const& l: location_ids) {
       this->kb.add_object(l,"Location");
@@ -441,19 +441,23 @@ PercAgent::PercAgent(string
     this->kb.add_object("medic","Role");
     this->kb.add_object("transporter","Role");
     this->kb.add_object("engineer","Role");
-
+    //Adding predicates to KB
     this->kb.add_predicate("player_at", {{"?r","Role"}, {"?l","Location"}});
     this->kb.add_predicate("player_status", {{"?r","Role"}, {"?ps","Player_Status"}});
     this->kb.add_predicate("victim_type", {{"?v","Victim"}, {"?vt","Victim_Type"}});
     this->kb.add_predicate("victim_status", {{"?v","Victim"}, {"?vs","Victim_Status"}});
     this->kb.add_predicate("fov_victim", {{"?r","Role"}, {"?v","Victim"}});
+    //Initialize KB
     this->kb.initialize();
+    //Can add facts now that KB is initialized.
+    //Asked tell not to update the smt state string on its own to save time.
     this->kb.tell("(player_status medic safe)",false,false);
     this->kb.tell("(player_status transporter safe)",false,false);
     this->kb.tell("(player_status engineer safe)",false,false);
     for (int i = 1; i <= 35; i++) {
         this->kb.tell("(victim_status vic_" + to_string(i) + " unsaved)", false, false);
     }
+    //Updates smt state string with all the new facts that were just added
     this->kb.update_state();
     this->medic_trapped_coord.push_back(0);
     this->medic_trapped_coord.push_back(0);
