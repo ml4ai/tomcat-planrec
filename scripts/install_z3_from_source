@@ -25,7 +25,7 @@ install_z3_from_source() {
         echo "Unable to extract z3 sources - the tar command failed."
         exit 1
     fi
-    pushd z3-z3-"4.${z3_minor_version}"
+    pushd z3-"4.${z3_minor_version}"
     mkdir build
     cd build
     cmake -G "Unix Makefiles" ../
