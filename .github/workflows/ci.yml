@@ -29,6 +29,6 @@ jobs:
         sudo apt-get install -f
         mkdir build
         cd build
-        cmake -DZ3_INCLUDE_DIRS=/usr/include/z3 -DZ3_LIBRARIES=/usr/x86_64-linux-gnu/libz3.so . 
+        cmake -DZ3_INCLUDE_DIRS=/usr/include/z3 -DZ3_LIBRARIES=/usr/x86_64-linux-gnu/libz3.so .. 
         make -j
         make test
