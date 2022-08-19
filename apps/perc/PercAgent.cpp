@@ -291,15 +291,40 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     for (auto const& b : bindings) {
                       this->kb.tell("(fov_victim medic "+b.at("?v")+")",true,false);
                     }
-                    this->kb.update_state();
+                    this->kb.tell("(fov_rubble medic)",true,false);
+                    auto bindings = this->kb.ask("(fov_marker medic ?m)",{{"?m","Marker_Type"}});
+                    for (auto const& b : bindings) {
+                      this->kb.tell("(fov_marker medic "+b.at("?m")+")",true,false);
+                    }
                     set<int> int_set(this->fov_medic.begin(), this->fov_medic.end());
 //                    this->fov_medic.assign(int_set.begin(), int_set.end());
-                    for (auto vic: int_set){
-                        new_knowledge = "(fov_victim medic vic_";
-                        if (vic != -1){
-                            new_knowledge += to_string(vic) + ")";
-                            this->kb.tell(new_knowledge, false, false);
+                    for (auto obj: int_set) {
+                        if (obj >= 0) {
+                            new_knowledge = "(fov_victim medic vic_" + to_string(obj) + ")";
+                            this->kb.tell(new_knowledge,false,false);
+                        } else if (obj == -10) {
+                            new_knowledge = "(fov_rubble medic)";
+                            this->kb.tell(new_knowledge,false,false);
+                        } else if (obj <= -100) {
+                            // {"novictim": -101, "regularvictim": -102, "criticalvictim": -103, "threat": -104, "bonedamage": -105}
+                            if (obj == -101) {
+                                new_knowledge = "(fov_marker medic novictim)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -102) {
+                                new_knowledge = "(fov_marker medic regularvictim)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -103) {
+                                new_knowledge = "(fov_marker medic criticalvictim)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -104) {
+                                new_knowledge = "(fov_marker medic threat)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -105) {
+                                new_knowledge = "(fov_marker medic bonedamage)";
+                                this->kb.tell(new_knowledge,false,false);
+                            }
                         }
+
                     }
                     this->kb.update_state();
                     this->fov_medic = {};
@@ -312,15 +337,40 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     for (auto const& b : bindings) {
                       this->kb.tell("(fov_victim engineer "+b.at("?v")+")",true,false);
                     }
-                    this->kb.update_state();
+                    this->kb.tell("(fov_rubble engineer)",true,false);
+                    auto bindings = this->kb.ask("(fov_marker engineer ?m)",{{"?m","Marker_Type"}});
+                    for (auto const& b : bindings) {
+                      this->kb.tell("(fov_marker engineer "+b.at("?m")+")",true,false);
+                    }
                     set<int> int_set(this->fov_engineer.begin(), this->fov_engineer.end());
-//                    this->fov_medic.assign(int_set.begin(), int_set.end());
-                    for (auto vic: int_set){
-                        new_knowledge = "(fov_victim engineer vic_";
-                        if (vic != -1){
-                            new_knowledge += to_string(vic) + ")";
-                            this->kb.tell(new_knowledge, false, false);
+//                    this->fov_engineer.assign(int_set.begin(), int_set.end());
+                    for (auto obj: int_set) {
+                        if (obj >= 0) {
+                            new_knowledge = "(fov_victim engineer vic_" + to_string(obj) + ")";
+                            this->kb.tell(new_knowledge,false,false);
+                        } else if (obj == -10) {
+                            new_knowledge = "(fov_rubble engineer)";
+                            this->kb.tell(new_knowledge,false,false);
+                        } else if (obj <= -100) {
+                            // {"novictim": -101, "regularvictim": -102, "criticalvictim": -103, "threat": -104, "bonedamage": -105}
+                            if (obj == -101) {
+                                new_knowledge = "(fov_marker engineer novictim)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -102) {
+                                new_knowledge = "(fov_marker engineer regularvictim)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -103) {
+                                new_knowledge = "(fov_marker engineer criticalvictim)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -104) {
+                                new_knowledge = "(fov_marker engineer threat)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -105) {
+                                new_knowledge = "(fov_marker engineer bonedamage)";
+                                this->kb.tell(new_knowledge,false,false);
+                            }
                         }
+
                     }
                     this->kb.update_state();
                     this->fov_engineer = {};
@@ -333,15 +383,40 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     for (auto const& b : bindings) {
                       this->kb.tell("(fov_victim transporter "+b.at("?v")+")",true,false);
                     }
-                    this->kb.update_state();
+                    this->kb.tell("(fov_rubble transporter)",true,false);
+                    auto bindings = this->kb.ask("(fov_marker transporter ?m)",{{"?m","Marker_Type"}});
+                    for (auto const& b : bindings) {
+                      this->kb.tell("(fov_marker transporter "+b.at("?m")+")",true,false);
+                    }
                     set<int> int_set(this->fov_transporter.begin(), this->fov_transporter.end());
-//                    this->fov_medic.assign(int_set.begin(), int_set.end());
-                    for (auto vic: int_set){
-                        new_knowledge = "(fov_victim transporter vic_";
-                        if (vic != -1){
-                            new_knowledge += to_string(vic) + ")";
-                            this->kb.tell(new_knowledge, false, false);
+//                    this->fov_transporter.assign(int_set.begin(), int_set.end());
+                    for (auto obj: int_set) {
+                        if (obj >= 0) {
+                            new_knowledge = "(fov_victim transporter vic_" + to_string(obj) + ")";
+                            this->kb.tell(new_knowledge,false,false);
+                        } else if (obj == -10) {
+                            new_knowledge = "(fov_rubble transporter)";
+                            this->kb.tell(new_knowledge,false,false);
+                        } else if (obj <= -100) {
+                            // {"novictim": -101, "regularvictim": -102, "criticalvictim": -103, "threat": -104, "bonedamage": -105}
+                            if (obj == -101) {
+                                new_knowledge = "(fov_marker transporter novictim)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -102) {
+                                new_knowledge = "(fov_marker transporter regularvictim)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -103) {
+                                new_knowledge = "(fov_marker transporter criticalvictim)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -104) {
+                                new_knowledge = "(fov_marker transporter threat)";
+                                this->kb.tell(new_knowledge,false,false);
+                            } else if (obj == -105) {
+                                new_knowledge = "(fov_marker transporter bonedamage)";
+                                this->kb.tell(new_knowledge,false,false);
+                            }
                         }
+
                     }
                     this->kb.update_state();
                     this->fov_transporter = {};
@@ -352,14 +427,69 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                                 jv.at_pointer("/data/playername").as_string().c_str())
                                 .at(0);
                 if (v.at_pointer("/type").as_string().find("victim") != std::string::npos) {
-                    pretty_print(std::cout, jv.at_pointer("/data/playername"));
-                    pretty_print(std::cout, v.at_pointer("/id"));
+//                    pretty_print(std::cout, jv.at_pointer("/data/playername"));
+//                    pretty_print(std::cout, v.at_pointer("/id"));
                     if (player_color == "RED") {
                         this->fov_medic.push_back(int(v.at_pointer("/id").as_int64()));
                     } else if (player_color == "BLUE") {
                         this->fov_engineer.push_back(int(v.at_pointer("/id").as_int64()));
                     } else {
                         this->fov_transporter.push_back(int(v.at_pointer("/id").as_int64()));
+                    }
+                } else if (v.at_pointer("/type").as_string().find("gravel") != std::string::npos) {
+                    // encode rubble as -10
+                    if (player_color == "RED") {
+                        this->fov_medic.push_back(-10);
+                    } else if (player_color == "BLUE") {
+                        this->fov_engineer.push_back(-10);
+                    } else {
+                        this->fov_transporter.push_back(-10);
+                    }
+                } else if (v.at_pointer("/type").as_string().find("marker_block") != std::string::npos) {
+//                    pretty_print(std::cout, v.at_pointer("/marker_type"));
+                    // {"novictim": -101, "regularvictim": -102, "criticalvictim": -103, "threat": -104, "bonedamage": -105}
+                    if (player_color == "RED") {
+                        if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
+                            this->fov_medic.push_back(-101);
+                        } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") !=
+                                   std::string::npos) {
+                            this->fov_medic.push_back(-102);
+                        } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") !=
+                                   std::string::npos) {
+                            this->fov_medic.push_back(-103);
+                        } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
+                            this->fov_medic.push_back(-104);
+                        } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
+                            this->fov_medic.push_back(-105);
+                        }
+                    } else if (player_color == "BLUE") {
+                        if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
+                            this->fov_engineer.push_back(-101);
+                        } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") !=
+                                   std::string::npos) {
+                            this->fov_engineer.push_back(-102);
+                        } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") !=
+                                   std::string::npos) {
+                            this->fov_engineer.push_back(-103);
+                        } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
+                            this->fov_engineer.push_back(-104);
+                        } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
+                            this->fov_engineer.push_back(-105);
+                        }
+                    } else {
+                        if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
+                            this->fov_transporter.push_back(-101);
+                        } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") !=
+                                   std::string::npos) {
+                            this->fov_transporter.push_back(-102);
+                        } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") !=
+                                   std::string::npos) {
+                            this->fov_transporter.push_back(-103);
+                        } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
+                            this->fov_transporter.push_back(-104);
+                        } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
+                            this->fov_transporter.push_back(-105);
+                        }
                     }
                 } else {
                     if (player_color == "RED") {
@@ -437,6 +567,13 @@ PercAgent::PercAgent(string
     this->kb.add_object("unsaved","Victim_Status");
     this->kb.add_object("saved","Victim_Status");
 
+    this->kb.add_type("Marker_Type");
+    this->kb.add_object("novictim","Marker_Type");
+    this->kb.add_object("regularvictim","Marker_Type");
+    this->kb.add_object("criticalvictim","Marker_Type");
+    this->kb.add_object("threat","Marker_Type");
+    this->kb.add_object("bonedamage","Marker_Type");
+
     this->kb.add_type("Role"); 
     this->kb.add_object("medic","Role");
     this->kb.add_object("transporter","Role");
@@ -447,6 +584,8 @@ PercAgent::PercAgent(string
     this->kb.add_predicate("victim_type", {{"?v","Victim"}, {"?vt","Victim_Type"}});
     this->kb.add_predicate("victim_status", {{"?v","Victim"}, {"?vs","Victim_Status"}});
     this->kb.add_predicate("fov_victim", {{"?r","Role"}, {"?v","Victim"}});
+    this->kb.add_predicate("fov_rubble", {{"?r","Role"}});
+    this->kb.add_predicate("fov_marker", {{"?r","Role"}, {"?m","Marker_Type"}});
     //Initialize KB
     this->kb.initialize();
     //Can add facts now that KB is initialized.
