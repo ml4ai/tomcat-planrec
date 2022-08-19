@@ -1,0 +1,66 @@
+#!/bin/bash
+
+set -u
+
+# KB requires z3 4.8.17 or higher
+Z3_MINOR_VERSION_REQUIRED=8.17
+
+# On Linux machines, the z3 version header is usually found here.
+Z3_VERSION_HEADER="/usr/local/include/z3_version.h"
+
+# Latest minor version of z3 available at the time this script was last
+# updated (2022/08/19).
+Z3_MINOR_VERSION_LATEST=11.0
+
+# Install z3 from source
+install_z3_from_source() {
+    local z3_minor_version=$1
+    curl -LO\
+    https://github.com/Z3Prover/z3/archive/refs/tags/z3-4.${z3_minor_version}.tar.gz
+    if [[ $? -ne 0 ]]; then 
+        echo "Unable to download the z3 source distribution - the curl command failed."
+        exit 1
+    fi
+    if ! tar xfz z3-z3-"4.${z3_minor_version}.0".tar.gz; then
+        echo "Unable to extract z3 sources - the tar command failed."
+        exit 1
+    fi
+    pushd z3-z3-"4.${z3_minor_version}.0"
+    mkdir build
+    cd build
+    cmake -G "Unix Makefiles" ../
+    make -j4
+    make install
+    popd
+    /bin/rm -rf z3-z3-"4.${z3_minor_version}.0"*
+}
+
+
+# Check if the header file exists at the specified location
+if [[ -f $Z3_VERSION_HEADER ]]; then
+    echo "z3 version header file found at ${Z3_VERSION_HEADER}."
+
+    # Get the z3 version number
+    Z3_MINOR=$(cat $Z3_VERSION_HEADER | grep "#define Z3_MINOR_VERSION " | cut -d' ' -f5)
+    Z3_BUILD=$(cat $Z3_VERSION_HEADER | grep "#define Z3_BUILD_NUMBER " | cut -d' ' -f6)
+
+    # Get the minor version number
+    Z3_MINOR_VERSION_INSTALLED=$Z3_MINOR.$Z3_BUILD  
+
+    # If the minor version number installed is less than the minor version
+    # required, then we install z3 from source. 
+    if [[ $Z3_MINOR_VERSION_INSTALLED -le $Z3_MINOR_VERSION_REQUIRED ]]; then
+        echo "Detected z3 version 4.${Z3_MINOR_VERSION_INSTALLED}."
+        echo "This is less than the minimum version required "\
+             "(4.${Z3_MINOR_VERSION_REQUIRED})."
+        echo "We will now proceed to install z3 version 4.${Z3_MINOR_VERSION_LATEST} from source."
+        install_z3_from_source ${Z3_MINOR_VERSION_LATEST}
+    fi
+else
+    echo "Did not find the z3 version header file at ${Z3_VERSION_HEADER}."
+    echo "We assume that Boost is not installed on this machine, so we will"\
+         "install it now."
+    install_z3_from_source ${Z3_MINOR_VERSION_LATEST}
+fi
+
+exit 0
