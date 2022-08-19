@@ -287,13 +287,13 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     //?v - victim
                     //This is what I assumed to be the original functionality
                     //of clear_fov_facts() - Loren
-                    auto bindings = this->kb.ask("(fov_victim medic ?v)",{{"?v","Victim"}});
-                    for (auto const& b : bindings) {
+                    auto v_bindings = this->kb.ask("(fov_victim medic ?v)",{{"?v","Victim"}});
+                    for (auto const& b : v_bindings) {
                       this->kb.tell("(fov_victim medic "+b.at("?v")+")",true,false);
                     }
                     this->kb.tell("(fov_rubble medic)",true,false);
-                    auto bindings = this->kb.ask("(fov_marker medic ?m)",{{"?m","Marker_Type"}});
-                    for (auto const& b : bindings) {
+                    auto m_bindings = this->kb.ask("(fov_marker medic ?m)",{{"?m","Marker_Type"}});
+                    for (auto const& b : m_bindings) {
                       this->kb.tell("(fov_marker medic "+b.at("?m")+")",true,false);
                     }
                     set<int> int_set(this->fov_medic.begin(), this->fov_medic.end());
@@ -333,13 +333,13 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     //?v - victim
                     //This is what I assumed to be the original functionality
                     //of clear_fov_facts() - Loren
-                    auto bindings = this->kb.ask("(fov_victim engineer ?v)",{{"?v","Victim"}});
-                    for (auto const& b : bindings) {
+                    auto v_bindings = this->kb.ask("(fov_victim engineer ?v)",{{"?v","Victim"}});
+                    for (auto const& b : v_bindings) {
                       this->kb.tell("(fov_victim engineer "+b.at("?v")+")",true,false);
                     }
                     this->kb.tell("(fov_rubble engineer)",true,false);
-                    auto bindings = this->kb.ask("(fov_marker engineer ?m)",{{"?m","Marker_Type"}});
-                    for (auto const& b : bindings) {
+                    auto m_bindings = this->kb.ask("(fov_marker engineer ?m)",{{"?m","Marker_Type"}});
+                    for (auto const& b : m_bindings) {
                       this->kb.tell("(fov_marker engineer "+b.at("?m")+")",true,false);
                     }
                     set<int> int_set(this->fov_engineer.begin(), this->fov_engineer.end());
@@ -379,13 +379,13 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     //?v - victim
                     //This is what I assumed to be the original functionality
                     //of clear_fov_facts() - Loren
-                    auto bindings = this->kb.ask("(fov_victim transporter ?v)",{{"?v","Victim"}});
-                    for (auto const& b : bindings) {
+                    auto v_bindings = this->kb.ask("(fov_victim transporter ?v)",{{"?v","Victim"}});
+                    for (auto const& b : v_bindings) {
                       this->kb.tell("(fov_victim transporter "+b.at("?v")+")",true,false);
                     }
                     this->kb.tell("(fov_rubble transporter)",true,false);
-                    auto bindings = this->kb.ask("(fov_marker transporter ?m)",{{"?m","Marker_Type"}});
-                    for (auto const& b : bindings) {
+                    auto m_bindings = this->kb.ask("(fov_marker transporter ?m)",{{"?m","Marker_Type"}});
+                    for (auto const& b : m_bindings) {
                       this->kb.tell("(fov_marker transporter "+b.at("?m")+")",true,false);
                     }
                     set<int> int_set(this->fov_transporter.begin(), this->fov_transporter.end());
