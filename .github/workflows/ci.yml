@@ -25,7 +25,8 @@ jobs:
         # version of Boost we require (as of August 18th, 2022).
         sudo ./scripts/install_boost_from_source
         sudo apt-get update
-        sudo apt-get install -y nlohmann-json3-dev graphviz libgraphviz-dev z3 libz3-dev libpaho-mqtt-dev libpaho-mqttpp-dev
+        sudo apt-get install -y nlohmann-json3-dev graphviz libgraphviz-dev libz3-dev libpaho-mqtt-dev libpaho-mqttpp-dev
+        sudo apt-get install -f
         mkdir build
         cd build
         cmake .. 
