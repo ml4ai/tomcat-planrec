@@ -7,6 +7,7 @@ find_package(Z3 REQUIRED)
 find_package(
     Boost 
     COMPONENTS 
+    filesystem
     date_time
     chrono
     program_options
