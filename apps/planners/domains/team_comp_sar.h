@@ -129,13 +129,8 @@ template <class State> std::optional<State> wakeCrit(State state, Args args) {
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
 
-  bool have_Medical_Specialist = false;
   bool all_here = true;
   for (auto a : state.agents) {
-    if (state.role[a] == "Medical_Specialist") {
-      have_Medical_Specialist = true;
-    }
-    
     if (state.agent_loc[a] != area) {
       all_here = false;
     }
@@ -150,8 +145,7 @@ template <class State> std::optional<State> wakeCrit(State state, Args args) {
   else {
     c_awake = state.c_awake[area];
   }
-  if (all_here && have_Medical_Specialist && 
-      state.c_triage_total < state.c_max && !c_awake) {
+  if (all_here && state.c_triage_total < state.c_max && !c_awake) {
     state.c_awake[area] = true;
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
@@ -361,7 +355,7 @@ template <class State> std::optional<State> mark_opening_1(State state, Args arg
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
   
-  if (state.agent_loc[agent] == area_placed && state.time[agent] < 900) {
+  if (state.agent_loc[agent] == area_placed && state.time[agent] <= 900) {
     state.marked_opening_1[agent][area_placed][area_marked] = true;
     state.time[agent] = end;
 
@@ -383,7 +377,7 @@ template <class State> std::optional<State> mark_opening_2(State state, Args arg
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
   
-  if (state.agent_loc[agent] == area_placed && state.time[agent] < 900) {
+  if (state.agent_loc[agent] == area_placed && state.time[agent] <= 900) {
     state.marked_opening_2[agent][area_placed][area_marked] = true;
     state.time[agent] = end;
 
@@ -405,7 +399,7 @@ template <class State> std::optional<State> mark_opening_3(State state, Args arg
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
   
-  if (state.agent_loc[agent] == area_placed && state.time[agent] < 900) {
+  if (state.agent_loc[agent] == area_placed && state.time[agent] <= 900) {
     state.marked_opening_3[agent][area_placed][area_marked] = true;
     state.time[agent] = end;
 
@@ -426,7 +420,7 @@ template <class State> std::optional<State> mark_area_1(State state, Args args) 
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
   
-  if (state.agent_loc[agent] == area_marked && state.time[agent] < 900) {
+  if (state.agent_loc[agent] == area_marked && state.time[agent] <= 900) {
     state.marked_area_1[agent][area_marked] = true;
     state.time[agent] = end;
 
@@ -447,7 +441,7 @@ template <class State> std::optional<State> mark_area_2(State state, Args args) 
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
   
-  if (state.agent_loc[agent] == area_marked && state.time[agent] < 900) {
+  if (state.agent_loc[agent] == area_marked && state.time[agent] <= 900) {
     state.marked_area_2[agent][area_marked] = true;
     state.time[agent] = end;
 
@@ -468,7 +462,7 @@ template <class State> std::optional<State> mark_area_3(State state, Args args) 
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
   
-  if (state.agent_loc[agent] == area_marked && state.time[agent] < 900) {
+  if (state.agent_loc[agent] == area_marked && state.time[agent] <= 900) {
     state.marked_area_3[agent][area_marked] = true;
     state.time[agent] = end;
 
@@ -487,7 +481,7 @@ template <class State> std::optional<State> change_to_Medical_Specialist(State s
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
   
-  if (!state.holding[agent]) {
+  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
   
     state.role[agent] = "Medical_Specialist";
     state.time[agent] = end;
@@ -511,7 +505,7 @@ template <class State> std::optional<State> change_to_Hazardous_Material_Special
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
   
-  if (!state.holding[agent]) {
+  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
   
     state.role[agent] = "Hazardous_Material_Specialist";
     state.time[agent] = end;
@@ -535,7 +529,7 @@ template <class State> std::optional<State> change_to_Search_Specialist(State st
   auto duration = std::stoi(args["duration"],nullptr);
   int end = start + duration;
   
-  if (!state.holding[agent]) {
+  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
   
     state.role[agent] = "Search_Specialist";
     state.time[agent] = end;
@@ -555,7 +549,7 @@ template <class State> double change_to_Search_Specialist(State pre_state, State
 
 template <class State> std::optional<State> exit(State state, Args args) {
     auto agent = args["agent"];
-    state.time[agent] = 900;
+    state.time[agent] = 901;
     if (!state.action_tracker[agent].empty()) {
       state.action_tracker[agent].pop_back();
     }
@@ -574,16 +568,17 @@ template <class State> cTasks SAR(State state, Args args) {
   auto agent3 = args["agent3"];
   return {"SAR_0",
     {Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
-     Task("!exit", Args({{"agent",agent1},{"start","900"},{"duration","0"}}), {"agent","start","duration"},{agent1}),
-     Task("!exit", Args({{"agent",agent2},{"start","900"},{"duration","0"}}), {"agent","start","duration"},{agent2}),
-     Task("!exit", Args({{"agent",agent3},{"start","900"},{"duration","0"}}), {"agent","start","duration"},{agent3})}};
+     Task("!exit", Args({{"agent",agent1},{"start","901"},{"duration","0"}}), {"agent","start","duration"},{agent1}),
+     Task("!exit", Args({{"agent",agent2},{"start","901"},{"duration","0"}}), {"agent","start","duration"},{agent2}),
+     Task("!exit", Args({{"agent",agent3},{"start","901"},{"duration","0"}}), {"agent","start","duration"},{agent3})}};
 }
 
 template <class State> cTasks no_class(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp.empty()) {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp.empty() && min_agent_time <= 900) {
     return {"no_class_0",
       {Task("No_class", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -598,20 +593,16 @@ template <class State> cTasks single_agent_no_class(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -619,7 +610,7 @@ template <class State> cTasks single_agent_no_class(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_no_class_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("No_class", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -632,30 +623,33 @@ template <class State> cTasks comp_change(State state, Args args) {
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
 
-  std::string min_agent = "";
+  std::string min_agent = "NIL";
+  int min_time = 901;
   if (state.plan_rec) {
-    int min_time = 900;
-    min_agent = "NIL";
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.action.substr(0,11) == "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
     }
   }
+  else {
+    for (auto a : state.agents) {
+      if (state.time[a] <= min_time) {
+        if (state.agent_loc[a] == state.change_zone) {
+          min_time = state.time[a];
+          min_agent = a;
+        }
+      }
+    } 
+  }
 
-  if (((state.time[agent1] < 900 && state.agent_loc[agent1] == state.change_zone) || 
-      (state.time[agent2] < 900 && state.agent_loc[agent2] == state.change_zone) || 
-      (state.time[agent3] < 900 && state.agent_loc[agent3] == state.change_zone)) && 
-      min_agent != "NIL") {
+  if (min_agent != "NIL" && min_time <= 900) {
     std::string cond;
     if (state.team_comp.size() <= 2) {
       cond = "comp_change_0";
@@ -702,7 +696,8 @@ template <class State> cTasks h(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "h") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "h" && min_agent_time <= 900) {
     return {"h_0",
       {Task("H", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -717,20 +712,16 @@ template <class State> cTasks single_agent_h(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -738,7 +729,7 @@ template <class State> cTasks single_agent_h(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_h_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("H", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -750,7 +741,8 @@ template <class State> cTasks m(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "m") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "m" && min_agent_time <= 900) {
     return {"m_0",
       {Task("M", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -765,20 +757,17 @@ template <class State> cTasks single_agent_m(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
     std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -786,7 +775,7 @@ template <class State> cTasks single_agent_m(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_m_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("M", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -798,7 +787,8 @@ template <class State> cTasks s(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "s") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "s" && min_agent_time <= 900) {
     return {"s_0",
       {Task("S", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -813,20 +803,16 @@ template <class State> cTasks single_agent_s(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -834,7 +820,7 @@ template <class State> cTasks single_agent_s(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_s_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("S", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -846,7 +832,8 @@ template <class State> cTasks hh(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hh") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hh" && min_agent_time <= 900) {
     return {"hh_0",
       {Task("HH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -861,20 +848,16 @@ template <class State> cTasks single_agent_hh(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -882,7 +865,7 @@ template <class State> cTasks single_agent_hh(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_hh_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HH", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -894,7 +877,8 @@ template <class State> cTasks hm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hm" && min_agent_time <= 900) {
     return {"hm_0",
       {Task("HM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -909,20 +893,16 @@ template <class State> cTasks single_agent_hm(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -930,7 +910,7 @@ template <class State> cTasks single_agent_hm(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_hm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -942,7 +922,8 @@ template <class State> cTasks hs(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hs") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hs" && min_agent_time <= 900) {
     return {"hs_0",
       {Task("HS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -957,20 +938,16 @@ template <class State> cTasks single_agent_hs(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -978,7 +955,7 @@ template <class State> cTasks single_agent_hs(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_hs_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -990,7 +967,8 @@ template <class State> cTasks mm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "mm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "mm" && min_agent_time <= 900) {
     return {"mm_0",
       {Task("MM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1005,20 +983,16 @@ template <class State> cTasks single_agent_mm(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1026,7 +1000,7 @@ template <class State> cTasks single_agent_mm(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_mm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1038,7 +1012,8 @@ template <class State> cTasks ms(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "ms") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "ms" && min_agent_time <= 900) {
     return {"ms_0",
       {Task("MS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1053,20 +1028,16 @@ template <class State> cTasks single_agent_ms(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1074,7 +1045,7 @@ template <class State> cTasks single_agent_ms(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_ms_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1086,7 +1057,8 @@ template <class State> cTasks ss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "ss") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "ss" && min_agent_time <= 900) {
     return {"ss_0",
       {Task("SS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1101,20 +1073,16 @@ template <class State> cTasks single_agent_ss(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1122,7 +1090,7 @@ template <class State> cTasks single_agent_ss(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_ss_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("SS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1134,7 +1102,8 @@ template <class State> cTasks hhh(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hhh") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hhh" && min_agent_time <= 900) {
     return {"hhh_0",
       {Task("HHH", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1149,20 +1118,16 @@ template <class State> cTasks single_agent_hhh(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1170,9 +1135,83 @@ template <class State> cTasks single_agent_hhh(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_hhh_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+           Task("HHH", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {"NIL",{}};
+}
+
+template <class State> cTasks group_hhh(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  bool group_task = true;
+  bool act_available = false;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_available = true;
+      auto act = state.action_tracker[a].back();
+      if (act.agent == a) {
+        group_task = false;
+      }
+    }
+  }
+  
+  if (act_available) {
+    if (!group_task) {
+      return {"NIL",{}};
+    }
+  }
+
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_hhh_0";
+      }
+      else {
+        cond = "group_hhh_1";
+      }
+    }
+
+    return {cond,
+          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HHH", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1182,7 +1221,8 @@ template <class State> cTasks hhm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hhm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hhm" && min_agent_time <= 900) {
     return {"hhm_0",
       {Task("HHM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1197,20 +1237,16 @@ template <class State> cTasks single_agent_hhm(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1218,7 +1254,7 @@ template <class State> cTasks single_agent_hhm(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_hhm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HHM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1249,8 +1285,8 @@ template <class State> cTasks group_hhm(State state, Args args) {
     }
   }
 
-  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
-      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
     std::string c_vic_area = state.agent_loc[agent1];
 
     bool c_awake;
@@ -1304,7 +1340,8 @@ template <class State> cTasks hhs(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hhs") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hhs" && min_agent_time <= 900) {
     return {"hhs_0",
       {Task("HHS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1319,20 +1356,16 @@ template <class State> cTasks single_agent_hhs(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1340,9 +1373,83 @@ template <class State> cTasks single_agent_hhs(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_hhs_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+           Task("HHS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {"NIL",{}};
+}
+
+template <class State> cTasks group_hhs(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  bool group_task = true;
+  bool act_available = false;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_available = true;
+      auto act = state.action_tracker[a].back();
+      if (act.agent == a) {
+        group_task = false;
+      }
+    }
+  }
+  
+  if (act_available) {
+    if (!group_task) {
+      return {"NIL",{}};
+    }
+  }
+
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_hhs_0";
+      }
+      else {
+        cond = "group_hhs_1";
+      }
+    }
+
+    return {cond,
+          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HHS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1352,7 +1459,8 @@ template <class State> cTasks hmm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hmm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hmm" && min_agent_time <= 900) {
     return {"hmm_0",
       {Task("HMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1367,20 +1475,16 @@ template <class State> cTasks single_agent_hmm(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1388,7 +1492,7 @@ template <class State> cTasks single_agent_hmm(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_hmm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HMM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1419,8 +1523,8 @@ template <class State> cTasks group_hmm(State state, Args args) {
     }
   }
 
-  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
-      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
     std::string c_vic_area = state.agent_loc[agent1];
 
     bool c_awake;
@@ -1474,7 +1578,8 @@ template <class State> cTasks hms(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hms") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hms" && min_agent_time <= 900) {
     return {"hms_0",
       {Task("HMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1489,20 +1594,16 @@ template <class State> cTasks single_agent_hms(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1510,7 +1611,7 @@ template <class State> cTasks single_agent_hms(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_hms_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HMS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1541,8 +1642,8 @@ template <class State> cTasks group_hms(State state, Args args) {
     }
   }
 
-  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
-      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
     std::string c_vic_area = state.agent_loc[agent1];
 
     bool c_awake;
@@ -1596,7 +1697,8 @@ template <class State> cTasks hss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "hss") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "hss" && min_agent_time <= 900) {
     return {"hss_0",
       {Task("HSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1611,20 +1713,16 @@ template <class State> cTasks single_agent_hss(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1632,9 +1730,83 @@ template <class State> cTasks single_agent_hss(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_hss_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+           Task("HSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {"NIL",{}};
+}
+
+template <class State> cTasks group_hss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  bool group_task = true;
+  bool act_available = false;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_available = true;
+      auto act = state.action_tracker[a].back();
+      if (act.agent == a) {
+        group_task = false;
+      }
+    }
+  }
+  
+  if (act_available) {
+    if (!group_task) {
+      return {"NIL",{}};
+    }
+  }
+
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_hss_0";
+      }
+      else {
+        cond = "group_hss_1";
+      }
+    }
+
+    return {cond,
+          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("HSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -1644,7 +1816,8 @@ template <class State> cTasks mmm(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "mmm") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "mmm" && min_agent_time <= 900) {
     return {"mmm_0",
       {Task("MMM", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1659,20 +1832,16 @@ template <class State> cTasks single_agent_mmm(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1680,7 +1849,7 @@ template <class State> cTasks single_agent_mmm(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_mmm_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MMM", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1712,8 +1881,8 @@ template <class State> cTasks group_mmm(State state, Args args) {
     }
   }
 
-  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
-      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
     std::string c_vic_area = state.agent_loc[agent1];
 
     bool c_awake;
@@ -1768,7 +1937,8 @@ template <class State> cTasks mms(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "mms") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "mms" && min_agent_time <= 900) {
     return {"mms_0",
       {Task("MMS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1783,20 +1953,16 @@ template <class State> cTasks single_agent_mms(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1804,7 +1970,7 @@ template <class State> cTasks single_agent_mms(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_mms_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MMS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1835,8 +2001,8 @@ template <class State> cTasks group_mms(State state, Args args) {
     }
   }
 
-  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
-      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
     std::string c_vic_area = state.agent_loc[agent1];
 
     bool c_awake;
@@ -1890,7 +2056,8 @@ template <class State> cTasks mss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "mss") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "mss" && min_agent_time <= 900) {
     return {"mss_0",
       {Task("MSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1905,20 +2072,16 @@ template <class State> cTasks single_agent_mss(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -1926,7 +2089,7 @@ template <class State> cTasks single_agent_mss(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_mss_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("MSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -1957,8 +2120,8 @@ template <class State> cTasks group_mss(State state, Args args) {
     }
   }
 
-  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
-      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
     std::string c_vic_area = state.agent_loc[agent1];
 
     bool c_awake;
@@ -2012,7 +2175,8 @@ template <class State> cTasks sss(State state, Args args) {
   auto agent1 = args["agent1"];
   auto agent2 = args["agent2"];
   auto agent3 = args["agent3"];
-  if (state.team_comp == "sss") {
+  int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
+  if (state.team_comp == "sss" && min_agent_time <= 900) {
     return {"sss_0",
       {Task("SSS", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3}),
       Task("Do_mission", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
@@ -2027,20 +2191,16 @@ template <class State> cTasks single_agent_sss(State state, Args args) {
 
   std::string min_agent = "";
   if (state.plan_rec) {
-    int min_time = 900;
+    int min_time = 901;
     min_agent = "NIL";
-    std::vector<int> single_time = {};
     for (auto a : state.agents) {
       if (!state.action_tracker[a].empty()) {
         auto act = state.action_tracker[a].back();
-        if (stoi(act.start,nullptr) < min_time) {
+        if (stoi(act.start,nullptr) <= min_time) {
           min_time = stoi(act.start,nullptr);
           if (act.agent != "all" && act.action != "!exit" &&
             act.action.substr(0,11) != "!change_to_") {
             min_agent = a;
-          }
-          else {
-            min_agent = "NIL";
           }
         }
       }
@@ -2048,9 +2208,83 @@ template <class State> cTasks single_agent_sss(State state, Args args) {
   }
 
   int min_agent_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-  if (min_agent_time < 900 && min_agent != "NIL") {
+  if (min_agent_time <= 900 && min_agent != "NIL") {
     return {"single_agent_sss_0",
           {Task("Assign_agent_for_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3},{"min_agent",min_agent}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
+           Task("SSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
+  }
+  return {"NIL",{}};
+}
+
+template <class State> cTasks group_sss(State state, Args args) {
+  auto agent1 = args["agent1"];
+  auto agent2 = args["agent2"];
+  auto agent3 = args["agent3"];
+
+  bool group_task = true;
+  bool act_available = false;
+  for (auto a : state.agents) {
+    if (!state.action_tracker[a].empty()) {
+      act_available = true;
+      auto act = state.action_tracker[a].back();
+      if (act.agent == a) {
+        group_task = false;
+      }
+    }
+  }
+  
+  if (act_available) {
+    if (!group_task) {
+      return {"NIL",{}};
+    }
+  }
+
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
+    std::string c_vic_area = state.agent_loc[agent1];
+
+    bool c_awake;
+    if(state.c_awake.find(c_vic_area) == state.c_awake.end()) {
+      c_awake = false;
+    }
+    else {
+      c_awake = state.c_awake[c_vic_area];
+    }
+
+    bool in_room = in(c_vic_area,state.rooms);
+    if ((!in_room && 
+        !in(c_vic_area,state.multi_room_zones)) ||
+        c_awake ||
+        state.c_triage_total >= state.c_max) {
+      c_vic_area = "NONE";
+    }
+    bool all_gathered = true;
+    for (auto a : state.agents) {
+      if (state.agent_loc[a] != c_vic_area) {
+        all_gathered = false;
+      } 
+    }
+    std::string cond = "NIL";
+
+    bool r_triaged_here;
+    if(state.r_triaged_here.find(c_vic_area) == state.r_triaged_here.end()) {
+      r_triaged_here = false;
+    }
+    else {
+      r_triaged_here = state.r_triaged_here[c_vic_area];
+    }
+
+    if (all_gathered) {
+      if (in_room && r_triaged_here) {
+        cond = "group_sss_0";
+      }
+      else {
+        cond = "group_sss_1";
+      }
+    }
+
+    return {cond,
+          {Task("Assign_agents_for_group_task", Args({{"agent1",agent1},{"agent2",agent2},{"agent3",agent3}}),{"agent1","agent2","agent3"},{agent1,agent2,agent3}),
            Task("SSS", Args({{"agent3",agent3},{"agent2",agent2},{"agent1",agent1}}), {"agent1","agent2","agent3"},{agent1,agent2,agent3})}};
   }
   return {"NIL",{}};
@@ -2064,12 +2298,12 @@ template <class State> cTasks agent1_task(State state, Args args) {
 
   if (min_agent.empty()) {
     int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent1]) {
-      min_agent = "NIL";
+    if (min_time == state.time[agent1]) {
+      min_agent = agent1;
     }
   }
 
-  if (state.time[agent1] < 900 && min_agent == agent1) {
+  if (state.time[agent1] <= 900 && min_agent == agent1) {
     return {"U",
           {Task("Agent_1_task", Args({{"agent",agent1}}),{"agent"},{agent1})}};
   }
@@ -2084,12 +2318,12 @@ template <class State> cTasks agent2_task(State state, Args args) {
 
   if (min_agent.empty()) {
     int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent2]) {
-      min_agent = "NIL";
+    if (min_time == state.time[agent2]) {
+      min_agent = agent2;
     }
   }
 
-  if (state.time[agent2] < 900 && min_agent == agent2) {
+  if (state.time[agent2] <= 900 && min_agent == agent2) {
     return {"U",
           {Task("Agent_2_task", Args({{"agent",agent2}}),{"agent"},{agent2})}};
   }
@@ -2104,12 +2338,12 @@ template <class State> cTasks agent3_task(State state, Args args) {
 
   if (min_agent.empty()) {
     int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent3]) {
-      min_agent = "NIL";
+    if (min_time == state.time[agent3]) {
+      min_agent = agent3;
     }
   }
 
-  if (state.time[agent3] < 900 && min_agent == agent3) {
+  if (state.time[agent3] <= 900 && min_agent == agent3) {
     return {"U",
           {Task("Agent_3_task", Args({{"agent",agent3}}),{"agent"},{agent3})}};
   }
@@ -2118,8 +2352,8 @@ template <class State> cTasks agent3_task(State state, Args args) {
 
 template <class State> cTasks no_class_task(State state, Args args) {
   auto agent = args["agent"];
-
-  if (state.role[agent] == "NONE") {
+  
+  if (state.role[agent] == "NONE" && state.time[agent] <= 900) {
     return {"no_class_task_0",
           {Task("No_class_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -2129,7 +2363,7 @@ template <class State> cTasks no_class_task(State state, Args args) {
 template <class State> cTasks h_task(State state, Args args) {
   auto agent = args["agent"];
 
-  if (state.role[agent] == "Hazardous_Material_Specialist") {
+  if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] <= 900) {
     return {"h_task_0",
           {Task("H_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -2138,34 +2372,34 @@ template <class State> cTasks h_task(State state, Args args) {
 
 template <class State> cTasks clear_area(State state, Args args) {
   auto agent = args["agent"];
-
+  std::string start = std::to_string(state.time[agent]);
   if (!state.action_tracker[agent].empty()) {
     Action act = state.action_tracker[agent].back();
     if (act.action != "!break_block") {
       return {"NIL",{}};
     }
+    start = act.start;
   }
-
-  if (state.role[agent] == "Hazardous_Material_Specialist" && state.team_comp.size() >= 3 && 
-      state.time[agent] < 900 && !in(state.agent_loc[agent],state.no_victim_zones)) {
-      std::string cond;
+  bool seen_block = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["blocks"] > 0; 
+  if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] <= 900 && seen_block) {
+      std::string cond = "clear_area_0";
       if (state.team_comp == "hhh") {
-        cond = "clear_area_0";
-      }
-      if (state.team_comp == "hhm") {
         cond = "clear_area_1";
       }
-      if (state.team_comp == "hhs") {
+      if (state.team_comp == "hhm") {
         cond = "clear_area_2";
       }
-      if (state.team_comp == "hmm") {
+      if (state.team_comp == "hhs") {
         cond = "clear_area_3";
       }
-      if (state.team_comp == "hms") {
+      if (state.team_comp == "hmm") {
         cond = "clear_area_4";
       }
-      if (state.team_comp == "hss") {
+      if (state.team_comp == "hms") {
         cond = "clear_area_5";
+      }
+      if (state.team_comp == "hss") {
+        cond = "clear_area_6";
       }
 
 
@@ -2195,8 +2429,8 @@ template <class State> cTasks break_blocks(State state, Args args) {
     duration = "1";
     start = std::to_string(state.time[agent]);
   }
-
-  if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] < 900) {
+  bool seen_block = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["blocks"] > 0; 
+  if (state.role[agent] == "Hazardous_Material_Specialist" && state.time[agent] <= 900 && seen_block) {
     std::string cond;
 
     int blocks_broken;
@@ -2208,23 +2442,24 @@ template <class State> cTasks break_blocks(State state, Args args) {
     }
 
     if (blocks_broken > 0) {
+      cond = "break_blocks_1";
       if (state.team_comp == "hhh") {
-        cond = "break_blocks_1";
-      }
-      if (state.team_comp == "hhm") {
         cond = "break_blocks_2";
       }
-      if (state.team_comp == "hhs") {
+      if (state.team_comp == "hhm") {
         cond = "break_blocks_3";
       }
-      if (state.team_comp == "hmm") {
+      if (state.team_comp == "hhs") {
         cond = "break_blocks_4";
       }
-      if (state.team_comp == "hms") {
+      if (state.team_comp == "hmm") {
         cond = "break_blocks_5";
       }
-      if (state.team_comp == "hss") {
+      if (state.team_comp == "hms") {
         cond = "break_blocks_6";
+      }
+      if (state.team_comp == "hss") {
+        cond = "break_blocks_7";
       }
     }
     else {
@@ -2248,6 +2483,14 @@ template <class State> cTasks break_blocks(State state, Args args) {
 template <class State> cTasks done_breaking(State state, Args args) {
   auto agent = args["agent"];
   auto area = args["area"];
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    start = act.start;
+  }
+  else {
+    start = std::to_string(state.time[agent]);
+  }
   auto current_blocks_broken = std::stoi(args["blocks_broken"],nullptr);
   if (state.role[agent] == "Hazardous_Material_Specialist" && current_blocks_broken > 0) {
     std::string cond;
@@ -2261,29 +2504,31 @@ template <class State> cTasks done_breaking(State state, Args args) {
     }
 
     if (blocks_broken > 0) {
+      cond = "done_breaking_1";
       if (state.team_comp == "hhh") {
-        cond = "done_breaking_1";
-      }
-      if (state.team_comp == "hhm") {
         cond = "done_breaking_2";
       }
-      if (state.team_comp == "hhs") {
+      if (state.team_comp == "hhm") {
         cond = "done_breaking_3";
       }
-      if (state.team_comp == "hmm") {
+      if (state.team_comp == "hhs") {
         cond = "done_breaking_4";
       }
-      if (state.team_comp == "hms") {
+      if (state.team_comp == "hmm") {
         cond = "done_breaking_5";
       }
-      if (state.team_comp == "hss") {
+      if (state.team_comp == "hms") {
         cond = "done_breaking_6";
+      }
+      if (state.team_comp == "hss") {
+        cond = "done_breaking_7";
       }
     }
     else {
       cond = "NIL";
     }
-    if (state.time[agent] >= 900) {
+    bool no_blocks_seen = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["blocks"] < 1;  
+    if (state.time[agent] > 900 || no_blocks_seen) {
       cond = "done_breaking_0";
     }
 
@@ -2295,7 +2540,7 @@ template <class State> cTasks done_breaking(State state, Args args) {
 template <class State> cTasks m_task(State state, Args args) {
   auto agent = args["agent"];
 
-  if (state.role[agent] == "Medical_Specialist") {
+  if (state.role[agent] == "Medical_Specialist" && state.time[agent] <= 900) {
     return {"m_task_0",
           {Task("M_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -2335,8 +2580,9 @@ template <class State> cTasks triage_critical(State state, Args args) {
   else {
     c_triaged_here = state.c_triaged_here[state.agent_loc[agent]];
   }
-
-  if (state.role[agent] == "Medical_Specialist" && state.time[agent] < 900 &&
+  bool seen_crit_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["crit_vics"] > 0;
+  if (state.role[agent] == "Medical_Specialist" && state.time[agent] <= 900 &&
+      seen_crit_vics &&
       c_awake && 
       !c_triaged_here &&
       state.c_triage_total < state.c_max) {
@@ -2414,15 +2660,17 @@ template <class State> cTasks triage_critical(State state, Args args) {
 
 template <class State> cTasks triage_regs_in_area(State state, Args args) {
   auto agent = args["agent"];
-
+  std::string start = std::to_string(state.time[agent]); 
   if (!state.action_tracker[agent].empty()) {
     Action act = state.action_tracker[agent].back();
     if (act.action != "!triageReg") {
       return {"NIL",{}};
     }
+    start = act.start;
   }
-  if (state.role[agent] == "Medical_Specialist" && state.time[agent] < 900 &&
-      !in(state.agent_loc[agent],state.no_victim_zones) &&
+  bool seen_reg_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] > 0;
+  if (state.role[agent] == "Medical_Specialist" && state.time[agent] <= 900 &&
+      seen_reg_vics &&
       state.r_triage_total < state.r_max) {
     std::string cond;
 
@@ -2435,43 +2683,45 @@ template <class State> cTasks triage_regs_in_area(State state, Args args) {
     }
 
     if (in(state.agent_loc[agent],state.rooms) && c_awake) {
+      cond = "triage_regs_in_area_7";
       if (state.team_comp == "hhm") {
-        cond = "triage_regs_in_area_6";
-      }
-      if (state.team_comp == "hmm") {
-        cond = "triage_regs_in_area_7";
-      }
-      if (state.team_comp == "hms") {
         cond = "triage_regs_in_area_8";
       }
-      if (state.team_comp == "mmm") {
+      if (state.team_comp == "hmm") {
         cond = "triage_regs_in_area_9";
       }
-      if (state.team_comp == "mms") {
+      if (state.team_comp == "hms") {
         cond = "triage_regs_in_area_10";
       }
-      if (state.team_comp == "mss") {
+      if (state.team_comp == "mmm") {
         cond = "triage_regs_in_area_11";
+      }
+      if (state.team_comp == "mms") {
+        cond = "triage_regs_in_area_12";
+      }
+      if (state.team_comp == "mss") {
+        cond = "triage_regs_in_area_13";
       }
     }
     else {
+      cond = "triage_regs_in_area_0";
       if (state.team_comp == "hhm") {
-        cond = "triage_regs_in_area_0";
-      }
-      if (state.team_comp == "hmm") {
         cond = "triage_regs_in_area_1";
       }
-      if (state.team_comp == "hms") {
+      if (state.team_comp == "hmm") {
         cond = "triage_regs_in_area_2";
       }
-      if (state.team_comp == "mmm") {
+      if (state.team_comp == "hms") {
         cond = "triage_regs_in_area_3";
       }
-      if (state.team_comp == "mms") {
+      if (state.team_comp == "mmm") {
         cond = "triage_regs_in_area_4";
       }
-      if (state.team_comp == "mss") {
+      if (state.team_comp == "mms") {
         cond = "triage_regs_in_area_5";
+      }
+      if (state.team_comp == "mss") {
+        cond = "triage_regs_in_area_6";
       }
     }
 
@@ -2501,8 +2751,9 @@ template <class State> cTasks triage_regs(State state, Args args) {
     duration = "7";
     start = std::to_string(state.time[agent]);
   }
-
-  if (state.role[agent] == "Medical_Specialist" && state.time[agent] < 900 &&
+  bool seen_reg_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] > 0;
+  if (state.role[agent] == "Medical_Specialist" && state.time[agent] <= 900 &&
+      seen_reg_vics &&
       state.r_triage_total < state.r_max) {
     std::string cond;
 
@@ -2515,23 +2766,24 @@ template <class State> cTasks triage_regs(State state, Args args) {
     }
 
     if (r_triaged_here) {
+      cond = "triage_regs_1";
       if (state.team_comp == "hhm") {
-        cond = "triage_regs_1";
-      }
-      if (state.team_comp == "hmm") {
         cond = "triage_regs_2";
       }
-      if (state.team_comp == "hms") {
+      if (state.team_comp == "hmm") {
         cond = "triage_regs_3";
       }
-      if (state.team_comp == "mmm") {
+      if (state.team_comp == "hms") {
         cond = "triage_regs_4";
       }
-      if (state.team_comp == "mms") {
+      if (state.team_comp == "mmm") {
         cond = "triage_regs_5";
       }
-      if (state.team_comp == "mss") {
+      if (state.team_comp == "mms") {
         cond = "triage_regs_6";
+      }
+      if (state.team_comp == "mss") {
+        cond = "triage_regs_7";
       }
 
     }
@@ -2557,6 +2809,14 @@ template <class State> cTasks done_triaging(State state, Args args) {
   auto area = args["area"];
 
   auto regs_triaged = std::stoi(args["regs_triaged"],nullptr);
+  std::string start;
+  if (!state.action_tracker[agent].empty()) {
+    Action act = state.action_tracker[agent].back();
+    start = act.start;
+  }
+  else {
+    start = std::to_string(state.time[agent]);
+  }
 
   if (state.role[agent] == "Medical_Specialist" && regs_triaged > 0) {
     std::string cond;;
@@ -2570,29 +2830,31 @@ template <class State> cTasks done_triaging(State state, Args args) {
     }
 
     if (r_triaged_here) {
+      cond = "done_triaging_1";
       if (state.team_comp == "hhm") {
-        cond = "done_triaging_1";
-      }
-      if (state.team_comp == "hmm") {
         cond = "done_triaging_2";
       }
-      if (state.team_comp == "hms") {
+      if (state.team_comp == "hmm") {
         cond = "done_triaging_3";
       }
-      if (state.team_comp == "mmm") {
+      if (state.team_comp == "hms") {
         cond = "done_triaging_4";
       }
-      if (state.team_comp == "mms") {
+      if (state.team_comp == "mmm") {
         cond = "done_triaging_5";
       }
-      if (state.team_comp == "mss") {
+      if (state.team_comp == "mms") {
         cond = "done_triaging_6";
+      }
+      if (state.team_comp == "mss") {
+        cond = "done_triaging_7";
       }
     }
     else {
       cond = "NIL";
     }
-    if (state.time[agent] >= 900) {
+    bool no_reg_vics_seen = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] < 1;
+    if (state.time[agent] > 900 || no_reg_vics_seen) {
       cond = "done_triaging_0";
     }
 
@@ -2604,7 +2866,7 @@ template <class State> cTasks done_triaging(State state, Args args) {
 template <class State> cTasks s_task(State state, Args args) {
   auto agent = args["agent"];
 
-  if (state.role[agent] == "Search_Specialist") {
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] <= 900) {
     return {"s_task_0",
           {Task("S_task", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -2613,35 +2875,36 @@ template <class State> cTasks s_task(State state, Args args) {
 
 template <class State> cTasks relocate_victim(State state, Args args) {
   auto agent = args["agent"];
-
+  std::string start = std::to_string(state.time[agent]); 
   if (!state.action_tracker[agent].empty()) {
     Action act = state.action_tracker[agent].back();
     if (act.action != "!pickup_vic") {
       return {"NIL",{}};
     }
+    start = act.start;
   }
-
-  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
-      !in(state.agent_loc[agent],state.no_victim_zones) &&
+  bool seen_reg_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] > 0;
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] <= 900 &&
+      seen_reg_vics &&
       state.r_triage_total < state.r_max && !state.holding[agent]) {
-    std::string cond;
+    std::string cond = "relocate_victim_0";
     if (state.team_comp == "hhs") {
-      cond = "relocate_victim_0";
-    }
-    if (state.team_comp == "hms") {
       cond = "relocate_victim_1";
     }
-    if (state.team_comp == "hss") {
+    if (state.team_comp == "hms") {
       cond = "relocate_victim_2";
     }
-    if (state.team_comp == "mms") {
+    if (state.team_comp == "hss") {
       cond = "relocate_victim_3";
     }
-    if (state.team_comp == "mss") {
+    if (state.team_comp == "mms") {
       cond = "relocate_victim_4";
     }
-    if (state.team_comp == "sss") {
+    if (state.team_comp == "mss") {
       cond = "relocate_victim_5";
+    }
+    if (state.team_comp == "sss") {
+      cond = "relocate_victim_6";
     }
 
     return {cond,
@@ -2660,7 +2923,7 @@ template <class State> cTasks resume_relocate_victim(State state, Args args) {
     }
   }
 
-  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] <= 900 &&
       !in(state.agent_loc[agent],state.no_victim_zones) &&
       state.holding[agent]) {
 
@@ -2687,9 +2950,9 @@ template <class State> cTasks pickup_victim(State state, Args args) {
     duration = "1";
     start = std::to_string(state.time[agent]);
   }
-
-  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
-      !state.holding[agent]) {
+  bool seen_reg_vics = state.fov_tracker[std::stoi(start,nullptr) + 3][agent]["reg_vics"] > 0;
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] <= 900 &&
+      seen_reg_vics && !state.holding[agent]) {
 
     return {"pickup_victim_0",
       {Task("!pickup_vic",Args({{"duration",duration},
@@ -2719,7 +2982,7 @@ template <class State> cTasks move_victim(State state, Args args) {
     start = std::to_string(state.time[agent]);
   }
 
-  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] <= 900 &&
       state.holding[agent]) {
 
     std::string n_area;
@@ -2734,24 +2997,24 @@ template <class State> cTasks move_victim(State state, Args args) {
       n_area = state.loc_tracker[agent].back();
     }
 
-    std::string cond;
+    std::string cond = "move_victim_0";
     if (state.team_comp == "hhs") {
-      cond = "move_victim_0";
-    }
-    if (state.team_comp == "hms") {
       cond = "move_victim_1";
     }
-    if (state.team_comp == "hss") {
+    if (state.team_comp == "hms") {
       cond = "move_victim_2";
     }
-    if (state.team_comp == "mms") {
+    if (state.team_comp == "hss") {
       cond = "move_victim_3";
     }
-    if (state.team_comp == "mss") {
+    if (state.team_comp == "mms") {
       cond = "move_victim_4";
     }
-    if (state.team_comp == "sss") {
+    if (state.team_comp == "mss") {
       cond = "move_victim_5";
+    }
+    if (state.team_comp == "sss") {
+      cond = "move_victim_6";
     }
 
     return {cond,
@@ -2783,27 +3046,27 @@ template <class State> cTasks putdown_victim(State state, Args args) {
     start = std::to_string(state.time[agent]);
   }
 
-  if (state.role[agent] == "Search_Specialist" && state.time[agent] < 900 &&
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] <= 900 &&
       state.holding[agent]) {
 
-    std::string cond;
+    std::string cond = "putdown_victim_0";
     if (state.team_comp == "hhs") {
-      cond = "putdown_victim_0";
-    }
-    if (state.team_comp == "hms") {
       cond = "putdown_victim_1";
     }
-    if (state.team_comp == "hss") {
+    if (state.team_comp == "hms") {
       cond = "putdown_victim_2";
     }
-    if (state.team_comp == "mms") {
+    if (state.team_comp == "hss") {
       cond = "putdown_victim_3";
     }
-    if (state.team_comp == "mss") {
+    if (state.team_comp == "mms") {
       cond = "putdown_victim_4";
     }
-    if (state.team_comp == "sss") {
+    if (state.team_comp == "mss") {
       cond = "putdown_victim_5";
+    }
+    if (state.team_comp == "sss") {
+      cond = "putdown_victim_6";
     }
 
     return {cond,
@@ -2833,7 +3096,7 @@ template<class State> cTasks need_to_do_something_else(State state,Args args) {
 template <class State> cTasks no_time_to_putdown(State state, Args args) {
   auto agent = args["agent"];
 
-  if (state.role[agent] == "Search_Specialist" && state.time[agent] >= 900 &&
+  if (state.role[agent] == "Search_Specialist" && state.time[agent] > 900 &&
       state.holding[agent]) {
 
     return {"no_time_to_putdown_0",{}};
@@ -2843,7 +3106,6 @@ template <class State> cTasks no_time_to_putdown(State state, Args args) {
 
 template <class State> cTasks move_agent(State state, Args args) {
   auto agent = args["agent"];
-
   std::string duration;
   std::string start;
   if (!state.action_tracker[agent].empty()) {
@@ -2861,17 +3123,13 @@ template <class State> cTasks move_agent(State state, Args args) {
 
   std::string n_area;
   if (state.loc_tracker[agent].empty()) {
-      do {
-        n_area = sample_loc(state.graph[state.agent_loc[agent]],state.visited[agent],state.seed);
-        state.seed++;
-      }
-      while(state.team_comp.size() < 3 && n_area == state.class_only_boundary);
+    n_area = sample_loc(state.graph[state.agent_loc[agent]],state.visited[agent],state.seed);
   }
   else {
     n_area = state.loc_tracker[agent].back();
   }
 
-  if (state.time[agent] < 900) {
+  if (state.time[agent] <= 900) {
     std::string cond = "move_agent_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
@@ -2955,14 +3213,7 @@ template <class State> cTasks agent1_change_role(State state, Args args) {
   auto agent3 = args["agent3"];
   auto min_agent = args["min_agent"];
 
-  if (min_agent.empty()) {
-    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent1]) {
-      min_agent = "NIL";
-    }
-  }
-
-  if (state.time[agent1] < 900 && state.agent_loc[agent1] == state.change_zone && min_agent == agent1) {
+  if (state.time[agent1] <= 900 && state.agent_loc[agent1] == state.change_zone && min_agent == agent1) {
     std::string cond = "agent1_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent1] == "Hazardous_Material_Specialist") {
@@ -3041,14 +3292,7 @@ template <class State> cTasks agent2_change_role(State state, Args args) {
   auto agent3 = args["agent3"];
   auto min_agent = args["min_agent"];
 
-  if (min_agent.empty()) {
-    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent2]) {
-      min_agent = "NIL";
-    }
-  }
-
-  if (state.time[agent2] < 900 && state.agent_loc[agent2] == state.change_zone && min_agent == agent2) {
+  if (state.time[agent2] <= 900 && state.agent_loc[agent2] == state.change_zone && min_agent == agent2) {
     std::string cond = "agent2_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent2] == "Hazardous_Material_Specialist") {
@@ -3127,14 +3371,7 @@ template <class State> cTasks agent3_change_role(State state, Args args) {
   auto agent3 = args["agent3"];
   auto min_agent = args["min_agent"];
 
-  if (min_agent.empty()) {
-    int min_time = std::min({state.time[agent1], state.time[agent2], state.time[agent3]});
-    if (min_time != state.time[agent3]) {
-      min_agent = "NIL";
-    }
-  }
-
-  if (state.time[agent3] < 900 && state.agent_loc[agent3] == state.change_zone && min_agent == agent3) {
+  if (state.time[agent3] <= 900 && state.agent_loc[agent3] == state.change_zone && min_agent == agent3) {
     std::string cond = "agent3_change_role_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent3] == "Hazardous_Material_Specialist") {
@@ -3217,7 +3454,7 @@ template <class State> cTasks picking_role(State state, Args args) {
     } 
   }
 
-  if (state.time[agent] < 900 && state.agent_loc[agent] == state.change_zone) {
+  if (state.time[agent] <= 900 && state.agent_loc[agent] == state.change_zone) {
     return {"picking_role_0",
           {Task("Pick_new_role", Args({{"agent",agent}}),{"agent"},{agent})}};
   }
@@ -3248,8 +3485,8 @@ template <class State> cTasks all_task(State state, Args args) {
   }
 
 
-  if (state.time[agent1] < 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
-      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+  if (state.time[agent1] <= 900 && !in(state.agent_loc[agent1],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
     std::string c_vic_area = state.agent_loc[agent1];
 
     bool c_awake;
@@ -3338,9 +3575,8 @@ template <class State> cTasks wake_crit_vic(State state, Args args) {
     duration = act.duration;
     start = act.start;
   }
-
-  if (state.time[min_agent] < 900 && !in(state.agent_loc[min_agent],state.no_victim_zones) &&
-      state.team_comp.size() >= 3 && state.team_comp.find("m") != std::string::npos) {
+  if (state.time[min_agent] <= 900 && !in(state.agent_loc[min_agent],state.no_victim_zones) &&
+      state.team_comp.size() >= 3) {
     std::string c_vic_area = state.agent_loc[min_agent];
 
     bool c_awake;
@@ -3417,7 +3653,7 @@ template <class State> cTasks out_of_time(State state, Args args) {
     return {"NIL",{}};
   }
 
-  if (state.time[agent1] >= 900 && state.time[agent2] >= 900 && state.time[agent3] >= 900) {
+  if (state.time[agent1] > 900 && state.time[agent2] > 900 && state.time[agent3] > 900) {
     return {"out_of_time_0",{}};
   }
   return {"NIL",{}};
@@ -3441,7 +3677,7 @@ template <class State> cTasks choose_Medical_Specialist(State state, Args args) 
     start = std::to_string(state.time[agent]);
   }
 
-  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
+  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone && state.time[agent] <= 900) {
     std::string cond = "choose_Medical_Specialist_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
@@ -3535,7 +3771,7 @@ template <class State> cTasks choose_Hazardous_Material_Specialist(State state, 
     start = std::to_string(state.time[agent]);
   }
 
-  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
+  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone && state.time[agent] <= 900) {
     std::string cond = "choose_Hazardous_Material_Specialist_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
@@ -3629,7 +3865,7 @@ template <class State> cTasks choose_Search_Specialist(State state, Args args) {
     start = std::to_string(state.time[agent]);
   }
 
-  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone) {
+  if (!state.holding[agent] && state.agent_loc[agent] == state.change_zone && state.time[agent]) {
     std::string cond = "choose_Search_Specialist_0";
     if (state.team_comp.size() >= 3) {
       if (state.role[agent] == "Hazardous_Material_Specialist") {
@@ -3808,8 +4044,10 @@ class TeamSARState {
     // Not part of the state representation!
     std::unordered_map<std::string,std::vector<Action>> action_tracker;
     std::unordered_map<std::string,std::vector<std::string>> loc_tracker;
+    std::vector<std::unordered_map<std::string,std::unordered_map<std::string,int>>> fov_tracker;
     bool plan_rec = false;
     int seed = 100;
+
 
     nlohmann::json to_json() {
       return nlohmann::json{{"agents", this->agents},
@@ -3948,6 +4186,7 @@ class TeamSARDomain {
                            out_of_time}},
                          {"HHH",
                           {single_agent_hhh,
+		           group_hhh,
                            comp_change,
                            out_of_time}},
                          {"HHM",
@@ -3957,6 +4196,7 @@ class TeamSARDomain {
                            out_of_time}},
                          {"HHS",
                           {single_agent_hhs,
+		           group_hhs,
                            comp_change,
                            out_of_time}},
                          {"HMM",
@@ -3971,6 +4211,7 @@ class TeamSARDomain {
                            out_of_time}},
                          {"HSS",
                           {single_agent_hss,
+		           group_hss,
                            comp_change,
                            out_of_time}},
                          {"MMM",
@@ -3990,46 +4231,55 @@ class TeamSARDomain {
                            out_of_time}},
                          {"SSS",
                           {single_agent_sss,
+		           group_sss,
                            comp_change,
                            out_of_time}},
                          {"Assign_agent_for_task",
                           {agent1_task,
                            agent2_task,
-                           agent3_task}},
+                           agent3_task,
+                           out_of_time}},
                          {"Agent_1_task",
                           {no_class_task,
                            h_task,
                            m_task,
-                           s_task}},
+                           s_task,
+                           out_of_time}},
                          {"Agent_2_task",
                           {no_class_task,
                            h_task,
                            m_task,
-                           s_task}},
+                           s_task,
+                           out_of_time}},
                          {"Agent_3_task",
                           {no_class_task,
                            h_task,
                            m_task,
-                           s_task}},
+                           s_task,
+                           out_of_time}},
                          {"No_class_task",
-                          {move_agent}},
+                          {move_agent,
+                          out_of_time}},
                          {"H_task",
                           {move_agent,
-                           clear_area}},
+                           clear_area,
+                          out_of_time}},
                          {"Clear_area",
                           {break_blocks,
                            done_breaking}},
                          {"M_task",
                           {move_agent,
                            triage_regs_in_area,
-                           triage_critical}},
+                           triage_critical,
+                           out_of_time}},
                          {"Triage_regs_in_area",
                           {triage_regs,
                            done_triaging}},
                          {"S_task",
                           {move_agent,
                            relocate_victim,
-                           resume_relocate_victim}},
+                           resume_relocate_victim,
+                           out_of_time}},
                          {"Relocate_vic",
                           {pickup_victim,
                            move_victim,
@@ -4037,23 +4287,35 @@ class TeamSARDomain {
                            need_to_do_something_else,
                            no_time_to_putdown}},
                          {"Assign_agents_for_group_task",
-                          {all_task}},
+                          {all_task,
+                          out_of_time}},
                          {"All_task",
-                          {wake_crit_vic}},
+                          {wake_crit_vic,
+                          out_of_time}},
                          {"Team_composition_change",
                           {agent1_change_role,
                            agent2_change_role,
-                           agent3_change_role}},
+                           agent3_change_role,
+                           out_of_time}},
                          {"Agent_1_change_role",
-                          {picking_role}},
+                          {picking_role,
+                          out_of_time}},
                          {"Agent_2_change_role",
-                          {picking_role}},
+                          {picking_role,
+                          out_of_time}},
                          {"Agent_3_change_role",
-                          {picking_role}},
+                          {picking_role,
+                          out_of_time}},
                          {"Pick_new_role",
                           {choose_Medical_Specialist,
                            choose_Hazardous_Material_Specialist,
-                           choose_Search_Specialist}}});
+                           choose_Search_Specialist,
+                          out_of_time}}});
+
+    //score function
+    int score(TeamSARState state) {
+      return state.r_triage_total*10 + state.c_triage_total*50 + state.team_comp.size()*100; 
+    }
 
     TeamSARDomain() {
       std::cout << "Operators: ";

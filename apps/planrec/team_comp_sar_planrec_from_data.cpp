@@ -22,23 +22,20 @@ int main(int argc, char* argv[]) {
   int end = 0;
   int R = 30;
   double e = 0.4;
-  double alpha = 0.5;
   int aux_R = 10;
   std::string infile = "../apps/data_parsing/HSRData_TrialMessages_Trial-T000485_Team-TM000143_Member-na_CondBtwn-2_CondWin-SaturnA_Vers-4.metadata";
   std::string map_json = "../apps/data_parsing/Saturn_map_info.json";
-  std::string cpm_json;
+  std::string fov_file = "fov.json";
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
       ("exp_param,e",po::value<double>(),"The exploration parameter for the plan recognition algorithm (double)")
-      ("alpha,a", po::value<double>(), "default frequency measure for missing conditional probabilities in CPM (default)")
       ("trace_size,N", po::value<int>(), "Sets trace size of N from beginning (int)")
       ("trace_segment,T", po::value<std::vector<int> >()->multitoken(), "Sets trace segments size by mission times (int int). Ignored if trace_size is set.")
       ("file,f",po::value<std::string>(),"file to parse (string)")
       ("map_json,m", po::value<std::string>(),"json file with map data (string)")
-      ("cpm_json,j",po::value<std::string>(),"json file to parse CPM (string)")
       ("aux_r,a", po::value<int>(), "Auxiliary resources for bad expansions (int)")
     ;
 
@@ -57,10 +54,6 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("exp_param")) {
       e = vm["exp_para"].as<double>();
-    }
-
-    if (vm.count("alpha")) {
-      alpha = vm["alpha"].as<double>();
     }
 
     if (vm.count("trace_size")) {
@@ -86,10 +79,6 @@ int main(int argc, char* argv[]) {
       infile = vm["file"].as<std::string>();
     }
 
-    if (vm.count("cpm_json")) {
-      cpm_json = vm["cpm_json"].as<std::string>();
-    }
-
     if (vm.count("map_json")) {
       map_json = vm["map_json"].as<std::string>();
     }
@@ -103,9 +92,9 @@ int main(int argc, char* argv[]) {
   }
  
 
-    std::ifstream f(map_json);
+    std::ifstream m(map_json);
     json g;
-    f >> g;
+    m >> g;
 
     auto state1 = TeamSARState();
     
@@ -131,9 +120,6 @@ int main(int argc, char* argv[]) {
         state1.dist_from_change_zone[d] = di.get<int>();
     }
 
-    for (auto& mrz : g["multi_room_zones"]) {
-      state1.multi_room_zones.push_back(mrz.get<std::string>());
-    }
     for (auto& r : g["rooms"]) {
       state1.rooms.push_back(r.get<std::string>());
     }
@@ -158,19 +144,18 @@ int main(int argc, char* argv[]) {
   
     auto domain = TeamSARDomain();
 
-    CPM cpm = {};
-
-    if (cpm_json != "") {
-      std::ifstream i(cpm_json);
-      json j;
-      i >> j;
-      for (auto& [k1, v1] : j.items()) {
+    std::ifstream f(fov_file);
+    json j_fov;
+    f >> j_fov;
+    state1.fov_tracker = {};
+    for (auto& element : j_fov) {
+      std::unordered_map<std::string,std::unordered_map<std::string,int>> entry = {};
+      for (auto& [k1,v1] : element.items()) {
         for (auto& [k2,v2] : v1.items()) {
-          for (auto& [k3,v3] : v2.items()) {
-            cpm[k1][k2][k3] = v3;
-          }
+          entry[k1][k2] = v2.get<int>();
         }
       }
+      state1.fov_tracker.push_back(entry);
     }
 
     parse_data p;
@@ -198,10 +183,8 @@ int main(int argc, char* argv[]) {
                           p.initial_state,
                           tasks,
                           domain,
-                          cpm,
                           R,
                           e,
-                          alpha,
                           2021,
                           aux_R);
     auto stop_time = high_resolution_clock::now();
