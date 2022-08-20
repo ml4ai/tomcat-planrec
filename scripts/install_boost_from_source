@@ -27,11 +27,11 @@ install_boost_from_source() {
         exit 1
     fi
     pushd boost_1_"${boost_minor_version}"_0
-    if ! ./bootstrap.sh --with-libraries=log; then
+    if ! ./bootstrap.sh --with-libraries=filesystem,log,date_time,chrono,program_options,coroutine,json; then
         echo "./bootstrap.sh step failed. Exiting now."
         exit 1
     fi
-    if ! sudo ./b2 install --with-program_options --with-log; then
+    if ! sudo ./b2 install --with-program_options --with-log --with-filesystem --with-date_time --with-chrono --with-coroutine --with-json; then
         echo "sudo ./b2 install step failed. Exiting now."
         exit 1
     fi
