@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../lib/kb.h"
+#include "kb.h"
 #include "Agent.hpp"
 
 

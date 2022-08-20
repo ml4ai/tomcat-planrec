@@ -14,17 +14,19 @@ jobs:
     if: github.repository == 'ml4ai/tomcat-planrec'
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
 
 
     steps:
     - uses: actions/checkout@v2
     - name: Continuous Integration
       run: |
-        # We download Boost 1.76 separately since apt does not have the minimum
-        # version of Boost we require (as of July 20, 2021).
-        ./scripts/install_boost_from_source
-        sudo apt-get install -y nlohmann-json3-dev graphviz libgraphviz-dev libz3-dev
+        # We download Boost 1.79 separately since apt does not have the minimum
+        # version of Boost we require (as of August 18th, 2022).
+        sudo ./scripts/install_boost_from_source
+        sudo ./scripts/install_z3_from_source
+        sudo apt-get update
+        sudo apt-get install -y nlohmann-json3-dev graphviz libgraphviz-dev libpaho-mqtt-dev libpaho-mqttpp-dev
         mkdir build
         cd build
         cmake .. 

@@ -9,8 +9,8 @@
 #include <boost/program_options.hpp>
 #include <boost/log/trivial.hpp>
 
-#include "PercAgent.hpp"
-
+#include "Agent.cpp"
+#include "PercAgent.cpp"
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 

@@ -7,6 +7,7 @@ find_package(Z3 REQUIRED)
 find_package(
     Boost 
     COMPONENTS 
+    filesystem
     date_time
     chrono
     program_options
@@ -15,5 +16,6 @@ find_package(
     log
     REQUIRED
 )
-add_executable(main main.cpp Agent.cpp PercAgent.cpp ../../lib/kb.cpp)
+add_executable(main main.cpp)
 target_link_libraries(main PahoMqttCpp::paho-mqttpp3 ${Boost_LIBRARIES} ${Z3_LIBRARIES})
+target_include_directories(main PRIVATE ${Boost_INCLUDE_DIR} ../../lib)
