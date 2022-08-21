@@ -157,54 +157,70 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 
 
 //TODO CONVERT THIS TO A Q-PLAN DOMAIN
-//TODO: Define these predicates after I define the tasks
+//TODO: THERE IS A PROBLEM WITH carlify location HOW DO I RECURSIVELY MAKE
+//EFFECT IN AND NOT IN???
+//
+//
     storage = R"(
+
+
 
   (define (domain domain-htn)
 	(:requirements :negative-preconditions :typing :hierarchy)
 	(:types
 		location - object
         victim - object
-        information - object
-        plan - object
         player - object
-        room - location
-        destination - location
-        origin - location
-        threatroom - location
-        allVictims - victim
         critical - victim
         stabilized - victim
+        questioner - player
+        answerer - player
 	)
 
-//    (:predicates
-//		(road ?arg0 - location ?arg1 - location)
-//		(at ?arg0 - locatable ?arg1 - location)
-//		(in ?arg0 - package ?arg1 ?arg2 - vehicle)
-//		(capacity ?arg0 - vehicle ?arg1 - capacity_number)
-//		(capacity_predecessor ?arg0 - capacity_number ?arg1 - capacity_number)
-//	)
+    (:predicates
+        (at ?p - player ?loc - location)
+        (in ?loc - location)
+        (found ?v - victim ?loc - location)
+        (awake ?crit - critical ?loc - location)
+        (is_medic ?p - player)
+        (saved ?crit - critical)
+	)
 
+    (:action reqDestination
+      :parameters(?qu ?an - player ?loc ?dest - location)
+      :precondition(and ( at ?qu ?dest)(at ?an ?loc)(not (at ?an ?dest)))
+      :effect(and(at ?an ?dest)(not(at ?an ?loc))(not(in ?loc)))
+      )
 
-    (: task request_destination
-        :parameters (?loc1 - origin ?loc2 - destination ?p1 - ?asker - player ?teller - player)
-    )
+    (:action askLocationTeammate 
+      :parameters(?qu ?an - player ?loc ?dest - location)
+      :precondition(at ?qu ?dest)
+      :effect(and (not( at ?an ?dest)(at ?an ?loc)))
+      )
 
-    (: task clarify_critical_location
-        :parameters (?l - destination ?c - critical ?asker - player ?teller - player)
-    )
+    (:action clarifyLocation    //used for clearing areas
+      :parameters(?loc - location)
+      :precondition(not (in ?loc))
+      :effect(in ?loc) .......OR.......(not(in ?loc))
+      )
 
-    (: task team_location
-        :parameters (?l - location ?asker - player ?teller - player)
-    )
+    (:action clarifyCritLocation
+      :parameters(?qu - player ?c - critical ?loc ?dest - location)
+      :precondition()
+      :effect(and (at (?qu ?dest)(found ?c ?loc)))
+      )
 
-    (: task clarify_location
-        :parameters (?l - destination ?asker - player ?teller - player)
-    )
+    (:action wakeCritical
+      :parameters(?p1 ?p2 - player ?c - critical ?dest - location)
+      :precondition(and (at ?an ?dest)( at ?qu ?dest)(found ? ?dest))
+      :effect(awake ?c ?loc)
+      )
 
-    (: task clarify_threatroom
-        :parameters(?l - location ?asker - player ?teller - player)
-    )
+    (:action saveCritical
+      :parameters(?c - critical ?p - player ?loc - location)
+      :precondition(and (awake ?c ?loc)(is_medic ?p ?loc))
+      :effect(saved ?c)
+      )
 
 
 
