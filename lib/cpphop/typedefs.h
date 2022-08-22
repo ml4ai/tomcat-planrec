@@ -15,108 +15,184 @@ using binding = std::string;
 using Params = std::unordered_map<var, type>; 
 using Args = std::unordered_map<var, binding>;
 using Preconds = std::string;
-using preds = std::unordered_map<head,Params>;
-using Additions = std::unordered_map<head,Params>;
-using Deletions = std::unordered_map<head,Params>;
+using predicate = std::pair<head,Params>
+using Additions = std::vector<predicate>;
+using Deletions = std::vector<predicate>;
 using Effects = std::pair<Additions,Deletions>;
-using conds = std::unordered_map<head,Params>;
-using CAdditions = std::pair<conds,Additions>;
-using CDeletions = std::pair<conds,Deletions>;
+using condition = std::string;
+using CAdditions = std::vector<std::pair<condition,predicate>>;
+using CDeletions = std::vector<std::pair<condition,predicate>>;
 using CEffects = std::pair<CAdditions,CDeletions>;
 using task_token = std::string;
+using Task = std::pair<head, Params>;
+using Grounded_Task = std::pair<head,Args>;
+using Tasks = std::vector<Task>;
+using Grounded_Tasks = std::vector<std::pair<head,Args>>;
 
-std::vector<Args> cartProd(var v1, std::vector<std::string> &b1, var v2, std::vector<std::string> &b2) {
-  std::vector<Args> new_a = {};
-  for (auto const& i : b1) {
-    for (auto const& j : b2) {
-      Args args;
-      args[v1] = i;
-      args[v2] = j;
-      new_a.push_back(args);
-    }
-  }
-  return new_a;
-}
+class Operator {
+  Private:
+    head name;
+    Params parameters;
+    Preconds preconditions;
+    Effects effects;
+    CEffects ceffects;
 
-std::vector<Args> cartProd(std::vector<Args> &bindings, var v, std::vector<std::string> &b) {
-  std::vector<Args> new_a = {};
-  for (auto const& i : bindings) {
-    for (auto const& k : b) {
-      Args args;
-      for (auto const& [j1,j2] : i) {
-        args[j1] = j2;
+    std::pair<task_token,KnowledgeBase> apply_binding(KnowledgeBase& kb, Args args) {
+      std::string token = "("+this->name;
+      for (auto const& [var,t] : this->parameters) {
+         token += " "+args.at(var);
       }
-      args[v] = k;
-      new_a.push_back(args);
-    } 
-  }
-  return new_a;
-}
-
-std::vector<Args> cartProd(std::map<string,std::vector<std::string>> &bindings) {
-  std::vector<std::string> keys;
-  for (auto const& [i,_] : bindings) {
-    keys.push_back(i);
-  }
-
-  std::vector<Args> a = {};
-  if (bindings.size() == 1) {
-    for (auto const& i : bindings[keys[0]]) {
-      Args args;
-      args[keys[0]] = i;
-      a.push_back(args);
-    }
-    return a;
-  }
-
-  a = cartProd(keys[0], bindings[keys[0]], keys[1], bindings[keys[1]]);
-
-  if (bindings.size() == 2) {
-    return a;
-  }
-  
-  for (int i = 2; i < keys.size(); i++) {
-    a = cartProd(a, keys[i], bindings[keys[i]]);
-  }
-  return a;
-  
-}
-
-std::vector<Args> get_all_sets(KnowledgeBase kb,pc) {
-  auto res = ask_vars(kb,pc);
-  return cartProd(res); 
-}
-
-struct Operator {
-  head name;
-  Params parameters;
-  Preconds preconditions;
-  Effects effects;
-  CEffects ceffects;
-  Operator(head name, Params parameters, Preconds preconditions, Effects effects, CEffects ceffects) {
-    this->name = name;
-    this->parameters = parameters;
-    this->preconditions = preconditions;
-    this->effects = effects;
-    this->ceffects = ceffects;
-  }
-
-  std::vector<std::pair<task_token,KnowledgeBase>> apply(KnowledgeBase& kb, Args args) {
-    std::string pc = "(and ";
-    for (auto const &p : this->parameters) {
-      if (args.find(p.first) != args.end()) {
-        pc += "(= "+p.first+" "+args[p.first]+") ";
+      token += ")";
+      KnowledgeBase new_kb = kb;
+      for (auto const& add : this->effects.first) {
+        std::string fact = "("+add.first;
+        for (auto const& [var,t] : add.second) {
+          fact += " "+args.at(var);
+        }
+        new_kb.tell(fact+")",false,false);
       }
-      pc += "("+p.second+" "+p.first+") ";
+
+      for (auto const& del : this->effects.second) {
+        std::string fact = "("+del.first;
+        for (auto const& [var,t] : del.second) {
+          fact += " "+args.at(var);
+        }
+        new_kb.tell(fact+")",true,false);
+      }
+
+      for (auto const& cadd : this->ceffects.first) {
+        std::string c;
+        if (!args.empty()) {
+          c = "(and ";
+          for (auto const& [var,val] : args) {
+            c += "(= "+var+" "+val+") ";
+          }
+          c += cadd.first + ")";
+        }
+        else {
+          c = cadd.first;
+        }
+        auto bindings = kb.ask(c,this->parameters);
+        if (!bindings.empty()) {
+          std::string fact = "("+cadd.second.first;  
+          for (auto const& [var,t] : cadd.second.second) {
+            fact += " "+args.at(var); 
+          }
+          new_kb.tell(fact+")",false,false);
+        }
+      }
+
+      for (auto const& cdel : this->ceffects.second) {
+        std::string c;
+        if (!args.empty()) {
+          c = "(and ";
+          for (auto const& [var,val] : args) {
+            c += "(= "+var+" "+val+") ";
+          }
+          c += cdel.first + ")";
+        }
+        else {
+          c = cdel.first;
+        }
+        auto bindings = kb.ask(c,this->parameters);
+        if (!bindings.empty()) {
+          std::string fact = "("+cdel.second.first;  
+          for (auto const& [var,t] : cdel.second.second) {
+            fact += " "+args.at(var); 
+          }
+          new_kb.tell(fact+")",true,false);
+        }
+      }
+      new_kb.update_state();
+      return std::make_pair(token,new_kb);
     }
-    pc += this->preconditions + ")";
-    std::vector<Args> a_sets = get_all_sets(kb,pc);
-  }
-  //Helper function
-  std::pair<task_token, KnowledgeBase> apply_set(KnowledgeBase kb, Args args) {
-    
-  }
+
+  Public:
+    Operator(head name, Params parameters, Preconds preconditions, Effects effects, CEffects ceffects) {
+      this->name = name;
+      this->parameters = parameters;
+      this->preconditions = preconditions;
+      this->effects = effects;
+      this->ceffects = ceffects;
+    }
+
+    std::vector<std::pair<task_token,KnowledgeBase>> apply(KnowledgeBase& kb, Args args) {
+      std::string pc;
+      if (!args.empty()) {
+        pc = "(and ";
+        for (auto const& [var,val] : args) {
+          pc += "(= "+var+" "+val+") ";
+        }
+        pc += this->preconditions + ")";
+      }
+      else {
+        pc = this->preconditions;
+      }
+      auto bindings = kb.ask(pc,this->parameters);
+      std::vector<std::pair<task_token,KnowledgeBase>> new_states = {};
+      for (auto const& b : bindings) {
+        new_states.push_back(this->apply_binding(kb,b)) 
+      }
+      return new_states;
+    }
 }
+
+class Method {
+  Private:
+    head name;
+    Task task; 
+    Params parameters;
+    Preconds preconditions;
+    Tasks subtasks;
+
+  Public:
+    Method(head name, Task task, Params parameters, Preconds preconditions, Tasks subtasks) {
+      this->name = name;
+      this->task = task;
+      this->parameters = parameters;
+      this->preconditions = preconditions;
+      this->subtasks = subtasks
+    }
+
+    std::pair<task_token,Grounded_Tasks> apply_binding(Args args) {
+      std::string token = "("+this->task.first;
+      for (auto const& [var,t] : this->task.second) {
+         token += " "+args.at(var);
+      }
+      token += ")";
+      Grounded_Tasks gts = {};
+      for (auto const& s: this->subtasks) {
+        Grounded_Task gt;
+        gt.first = s.first;
+        for (auto const& [var,t] : s.second) {
+          gt.second[var] = args.at(var);  
+        }
+        gts.push_back(gt);
+      }
+      return std::make_pair(token,gts);
+    }
+
+    std::vector<std::pair<task_token,Grounded_Tasks>> apply(KnowledgeBase& kb, Args args) {
+      std::string pc;
+      if (!args.empty()) {
+        pc = "(and ";
+        for (auto const& [var,val] : args) {
+          pc += "(= "+var+" "+val+") ";
+        }
+        pc += this->preconditions + ")";
+      }
+      else {
+        pc = this->preconditions;
+      }
+      auto bindings = kb.ask(pc,this->parameters);
+      std::vector<std::pair<task_token,Grounded_Tasks>> groundings;
+      for (auto const& b : bindings) {
+        groundings.push_back(this->apply_binding(b)) 
+      }
+      return groundings;
+    }
+}
+
 struct DomainDef {
   Operators operators;
   Methods methods;
@@ -147,24 +223,6 @@ struct Task {
   }
 };
 
-using Tasks = std::vector<Task>;
-using pTasks = std::pair<double, Tasks>;
-using cTasks = std::pair<std::string, Tasks>;
-using Plans = std::vector<pTasks>;
-using cPlans = std::vector<cTasks>;
-using Predictions = std::unordered_map<std::string, Task>;
-
 using Operators = std::unordered_map<std::string, Operator>;
 
-template <class State>
-using pOperators = std::unordered_map<std::string, pOperator<State>>;
-
-template <class State> using Method = pTasks (*)(State, Args);
-
-template <class State> using cMethod = cTasks (*)(State, Args);
-
-template <class State>
-using Methods = std::unordered_map<std::string, std::vector<Method<State>>>;
-
-template <class State>
-using cMethods = std::unordered_map<std::string, std::vector<cMethod<State>>>;
+using Methods = std::unordered_map<std::string, std::vector<Method>>;
