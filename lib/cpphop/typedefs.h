@@ -7,6 +7,7 @@
 #include <vector>
 #include <iterator>
 #include "../kb.h"
+#include <optional>
 
 using var = std::string;
 using type = std::string;

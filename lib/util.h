@@ -6,6 +6,7 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <algorithm>
 
 // Utility method to see if an element is in an associative container
 template <class Element, class AssociativeContainer>
@@ -38,20 +39,9 @@ template <typename Iter> Iter select_randomly(Iter start, Iter end) {
     return select_randomly(start, end, gen);
 }
 
-int sample_method(std::vector<int> mds, std::vector<double> wts, int seed) {
-    std::mt19937 gen(seed);
-    std::discrete_distribution<int> dist(wts.begin(), wts.end());
-    int s = dist(gen);
-    return mds[s];
-}
+int sample_method(std::vector<int> mds, std::vector<double> wts, int seed);
 
-int sample_method(std::vector<int> mds, std::vector<double> wts) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::discrete_distribution<int> dist(wts.begin(), wts.end());
-    int s = dist(gen);
-    return mds[s];
-}
+int sample_method(std::vector<int> mds, std::vector<double> wts);
 
 // Helpers for std::visit
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
@@ -77,6 +67,24 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
     }
     os << ')';
     return os;
+}
+
+const std::string WHITESPACE = " \n\r\t\f\v";
+ 
+std::string ltrim(const std::string &s)
+{
+    size_t start = s.find_first_not_of(WHITESPACE);
+    return (start == std::string::npos) ? "" : s.substr(start);
+}
+ 
+std::string rtrim(const std::string &s)
+{
+    size_t end = s.find_last_not_of(WHITESPACE);
+    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+}
+ 
+std::string trim(const std::string &s) {
+    return rtrim(ltrim(s));
 }
 
 template <typename T> constexpr auto type_name() noexcept {
