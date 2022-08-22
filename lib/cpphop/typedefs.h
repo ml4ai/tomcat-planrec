@@ -6,39 +6,40 @@
 #include <map>
 #include <vector>
 #include <iterator>
-#include "kb.h"
+#include "../kb.h"
 
-using head = std::string;
 using var = std::string;
 using type = std::string;
 using binding = std::string;
 using Params = std::unordered_map<var, type>; 
 using Args = std::unordered_map<var, binding>;
 using Preconds = std::string;
-using predicate = std::pair<head,Params>
-using Additions = std::vector<predicate>;
-using Deletions = std::vector<predicate>;
+using pred = std::pair<std::string,Params>;
+using Predicates = std::vector<pred>;
+using Additions = std::vector<pred>;
+using Deletions = std::vector<pred>;
 using Effects = std::pair<Additions,Deletions>;
 using condition = std::string;
-using CAdditions = std::vector<std::pair<condition,predicate>>;
-using CDeletions = std::vector<std::pair<condition,predicate>>;
+using CAdditions = std::vector<std::pair<condition,pred>>;
+using CDeletions = std::vector<std::pair<condition,pred>>;
 using CEffects = std::pair<CAdditions,CDeletions>;
 using task_token = std::string;
-using Task = std::pair<head, Params>;
-using Grounded_Task = std::pair<head,Args>;
+using Task = std::pair<std::string, Params>;
+using Grounded_Task = std::pair<std::string,Args>;
 using Tasks = std::vector<Task>;
-using Grounded_Tasks = std::vector<std::pair<head,Args>>;
+using Grounded_Tasks = std::vector<std::pair<std::string,Args>>;
+using Objects = std::unordered_map<std::string,type>;
 
 class Operator {
-  Private:
-    head name;
+  private:
+    std::string head;
     Params parameters;
     Preconds preconditions;
     Effects effects;
     CEffects ceffects;
 
     std::pair<task_token,KnowledgeBase> apply_binding(KnowledgeBase& kb, Args args) {
-      std::string token = "("+this->name;
+      std::string token = "("+this->head;
       for (auto const& [var,t] : this->parameters) {
          token += " "+args.at(var);
       }
@@ -107,9 +108,9 @@ class Operator {
       return std::make_pair(token,new_kb);
     }
 
-  Public:
-    Operator(head name, Params parameters, Preconds preconditions, Effects effects, CEffects ceffects) {
-      this->name = name;
+  public:
+    Operator(std::string head, Params parameters, Preconds preconditions, Effects effects, CEffects ceffects) {
+      this->head = head;
       this->parameters = parameters;
       this->preconditions = preconditions;
       this->effects = effects;
@@ -138,20 +139,20 @@ class Operator {
 };
 
 class Method {
-  Private:
-    head name;
+  private:
+    std::string head;
     Task task; 
     Params parameters;
     Preconds preconditions;
     Tasks subtasks;
 
-  Public:
-    Method(head name, Task task, Params parameters, Preconds preconditions, Tasks subtasks) {
-      this->name = name;
+  public:
+    Method(std::string head, Task task, Params parameters, Preconds preconditions, Tasks subtasks) {
+      this->head = head;
       this->task = task;
       this->parameters = parameters;
       this->preconditions = preconditions;
-      this->subtasks = subtasks
+      this->subtasks = subtasks;
     }
 
     std::pair<task_token,Grounded_Tasks> apply_binding(Args args) {
@@ -197,9 +198,22 @@ using Operators = std::unordered_map<std::string, Operator>;
 using Methods = std::unordered_map<std::string, std::vector<Method>>;
 
 struct DomainDef {
+  std::string head;
+  std::unordered_map<std::string,std::vector<std::string>> types;
+  Predicates predicates;
   Operators operators;
   Methods methods;
-  DomainDef(Operators operators,Methods methods) {
+  Objects constants;
+  DomainDef(std::string head,
+            std::unordered_map<std::string,std::vector<std::string>> types,
+            Predicates predicates,
+            Objects constants,
+            Operators operators,
+            Methods methods) {
+    this->head = head;
+    this->types = types;
+    this->predicates = predicates;
+    this->constants = constants;
     this->operators = operators;
     this->methods = methods;
   }
