@@ -163,8 +163,6 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 //
     storage = R"(
 
-
-
   (define (domain domain-htn)
 	(:requirements :negative-preconditions :typing :hierarchy)
 	(:types
@@ -175,7 +173,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
         stabilized - victim
         questioner - player
         answerer - player
-	)
+	    )
 
     (:predicates
         (at ?p - player ?loc - location)
@@ -184,7 +182,31 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
         (awake ?crit - critical ?loc - location)
         (is_medic ?p - player)
         (saved ?crit - critical)
-	)
+	    )
+
+    (:task wakeCritical
+        :parameters(?p - player ?c - critical ?l - location)
+        )
+
+    (:method ordered_wake
+        :parameters(?qu ?an - player)
+        :task(wakeCritical ?qu ?c ?l)
+        :ordered_subtasks(and (clarifyCritLocation ?qu ?c ?loc ?dest)
+                              (reqDestination ?qu ?an ?loc ?dest)
+                              (wakeCritical ?qu ?an ?c ?dest))
+        )
+    
+    (:method partOrdered_wake
+        :parameters()
+        :task(wakeCritical ?qu ?c ?l)
+        :subtasks (and (t1 (clarifyCritLocation ?qu ?c ?loc ?dest))
+                       (t2 (reqDestination ?qu ?an ?loc ?dest))
+                       (t3 (clarifyLocation ?loc))
+                       (t4 (wakeCritical ?qu ?an ?c ?dest)))
+        :ordering (and(< t1 t2)
+                      (< t2 t4)
+                      (< t3 t4))
+        )
 
     (:action reqDestination
       :parameters(?qu ?an - player ?loc ?dest - location)
@@ -221,61 +243,6 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
       :precondition(and (awake ?c ?loc)(is_medic ?p ?loc))
       :effect(saved ?c)
       )
-
-
-
-
-
-
-
-	(:method m_deliver_ordering_0
-		:parameters (?loc1 - location ?loc2 - location ?p - package ?v - vehicle)
-		:task (deliver ?p ?loc2) 
-
-        :precondition (or
-          (at ?l)
-          (at ?s)
-          )
-
-        :subtasks (and
-         (task0 (get_to ?v ?loc1))
-         (task1 (load ?v ?loc1 ?p))
-         (task2 (get_to ?v ?loc2))
-         (task3 (unload ?v ?loc1 ?p))
-         )
-
-		:ordering (and
-			( < task0 task1)
-			( < task1 task2)
-			( < task2 task3)
-		)
-	)
-
-	(:method m_unload_ordering_0
-		:parameters (?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number ?v - vehicle)
-		:task (unload ?v ?l ?p)
-		:subtasks (and
-		 (task0 (drop ?v ?l ?p ?s1 ?s2))
-		)
-	)
-
-	(:action pick_up
-		:parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
-		:precondition
-			(and
-				(at ?v ?l)
-				(at ?p ?l)
-				(capacity_predecessor ?s1 ?s2)
-				(capacity ?v ?s2)
-			)
-		:effect
-			(and
-				(not (at ?p ?l))
-				(in ?p ?v)
-				(capacity ?v ?s1)
-				(not (capacity ?v ?s2))
-			)
-	); end action pick_up
   ); end domain definition
     )";
 
