@@ -5,10 +5,10 @@
 #include "util/boost_variant_helpers.h"
 #include <boost/log/trivial.hpp>
 #include <boost/variant.hpp>
-#include <fol/Constant.h>
-#include <fol/Literal.h>
-#include <fol/Term.h>
-#include <fol/Variable.h>
+#include "fol/Constant.h"
+#include "fol/Literal.h"
+#include "fol/Term.h"
+#include "fol/Variable.h"
 #include <optional>
 #include <string_view>
 #include <unordered_map>
