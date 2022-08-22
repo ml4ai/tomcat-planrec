@@ -135,7 +135,7 @@ class Operator {
       }
       return new_states;
     }
-}
+};
 
 class Method {
   Private:
@@ -191,38 +191,17 @@ class Method {
       }
       return groundings;
     }
-}
+};
+
+using Operators = std::unordered_map<std::string, Operator>;
+using Methods = std::unordered_map<std::string, std::vector<Method>>;
 
 struct DomainDef {
   Operators operators;
   Methods methods;
-}
-
-struct ProblemDef {
-  KnowledgeBase kb;
-  Tasks tasks;
-}
-
-struct Task {
-  std::string task_id;
-  Args args;
-  std::vector<std::string> args_order;
-  std::vector<std::string> agents;
-  Task(std::string t_id, Args a, std::vector<std::string> a_o, std::vector<std::string> as) {
-    task_id = t_id;
-    args = a;
-    args_order = a_o;
-    agents = as; 
-  }
-  //copy constructor
-  Task(const Task &t1) {
-    task_id = t1.task_id;
-    args = t1.args;
-    args_order = t1.args_order;
-    agents = t1.agents;
+  DomainDef(Operators operators,Methods methods) {
+    this->operators = operators;
+    this->methods = methods;
   }
 };
 
-using Operators = std::unordered_map<std::string, Operator>;
-
-using Methods = std::unordered_map<std::string, std::vector<Method>>;
