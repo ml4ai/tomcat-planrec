@@ -4,6 +4,7 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+#include <optional>
 
 using Args = std::unordered_map<std::string, std::string>;
 

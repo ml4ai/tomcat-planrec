@@ -5,6 +5,7 @@ add_definitions(-DBOOST_LOG_DYN_LINK)
 find_package(Boost COMPONENTS log REQUIRED)
 find_package(Graphviz)
 find_package(nlohmann_json REQUIRED)
+find_package(Z3 REQUIRED)
 
 # Parser testing
 add_executable(test_parser test_parser.cpp)
@@ -13,8 +14,10 @@ target_include_directories(test_parser PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # KB testing
 add_executable(test_kb test_kb.cpp)
-target_link_libraries(test_kb tomcat)
-target_include_directories(test_kb PRIVATE ${Boost_INCLUDE_DIR} ../lib)
+target_link_libraries(test_kb PRIVATE tomcat)
+target_link_libraries(test_kb PRIVATE ${Z3_LIBRARIES})
+target_include_directories(test_kb PRIVATE ${Boost_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS} ../lib)
+
 
 # Test unification
 add_executable(test_unification test_unification.cpp)
