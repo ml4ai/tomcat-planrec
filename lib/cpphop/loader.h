@@ -27,6 +27,27 @@ Domain dom_loader(std::string dom_file) {
   return parse<Domain>(s_dom);
 }
 
-DomainDef getDomObjs(Domain dom) {
-  
+DomainDef createDomainDef(Domain dom) {
+  std::string name = dom.name; 
+  std::unordered_map<std::string,std::vector<std::string>> types;
+  for (auto const& t : dom.types.explicitly_typed_lists) {
+    std::string type = boost::get<PrimitiveType>(t.type); 
+    for (auto const& e : t.entries) {
+      types[type].push_back(e);
+    }
+  }
+  Predicates predicates;
+  for (auto const& p : dom.predicates) {
+    pred pred;
+    pred.first = p.predicate;
+    Params params;
+    for (auto const& t : p.variables.explicitly_typed_lists) {
+      std::string type = boost::get<PrimitiveType>(t.type);
+      for (auto const& e : t.entries) {
+        params[e.name] = type;
+      }
+    }
+    pred.second = params;
+    predicates.push_back(pred);
+  }
 }
