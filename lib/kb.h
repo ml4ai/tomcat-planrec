@@ -10,7 +10,6 @@
 #include <vector>
 #include <unordered_map>
 
-using namespace fol;
 //Type struct
 struct Type {
   //Name of type
@@ -66,7 +65,7 @@ class KnowledgeBase {
       //Tree index for root node.
       int root; 
       //header,{{var1,type1},{var2,type2},...}
-      std::unordered_map<std::string, std::unordered_map<std::string,std::string>> predicates;
+      std::vector<std::pair<std::string,std::unordered_map<std::string,std::string>>> predicates;
       //constant, type
       std::unordered_map<std::string, std::string> objects;
       //header, (header arg1 arg2 ...), ... 
@@ -145,7 +144,7 @@ class KnowledgeBase {
       //Adding duplicate predicates will clear facts with that predicate head
       //from the KB!
       void add_predicate(std::string head,std::unordered_map<std::string,std::string> params) {
-        this->predicates[head] = params;
+        this->predicates.push_back(std::make_pair(head,params));
         this->facts[head] = {};
       }
       
@@ -198,22 +197,22 @@ class KnowledgeBase {
           this->smt_state += o1+" ";
         }
         this->smt_state += "))\n";
-        for (auto const& [h,a] : this->predicates) {
-          if (this->facts.find(h) != this->facts.end()) {
-            if (!this->facts[h].empty()) {
-              this->smt_state += "(declare-fun "+h+" (";
+        for (auto const& p : this->predicates) {
+          if (this->facts.find(p.first) != this->facts.end()) {
+            if (!this->facts[p.first].empty()) {
+              this->smt_state += "(declare-fun "+p.first+" (";
               std::string pred_assert = "(assert (forall (";
               int i = 0;
               std::string var_assert = "";
-              for (auto const& [v,t] : a) {
+              for (auto const& [v,t] : p.second) {
                 this->smt_state += "__Object__ ";
                 pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
                 var_assert += " x_"+std::to_string(i);
                 i++;
               }
-              pred_assert += ") (= ("+h+var_assert+") (or ";
-              for (auto const& p : this->facts[h]) {
-                auto pp = this->parse_predicate(p);
+              pred_assert += ") (= ("+p.first+var_assert+") (or ";
+              for (auto const& f : this->facts[p.first]) {
+                auto pp = this->parse_predicate(f);
                 pred_assert += "(and ";
                 int j = 0;
                 for (auto const& vals : pp.second) {
@@ -227,33 +226,33 @@ class KnowledgeBase {
               this->smt_state += pred_assert;
             }
             else {
-              this->smt_state += "(declare-fun "+h+" (";
+              this->smt_state += "(declare-fun "+p.first+" (";
               std::string pred_assert = "(assert (forall (";
               int i = 0;
               std::string var_assert = "";
-              for (auto const& [v,t] : a) {
+              for (auto const& [v,t] : p.second) {
                 this->smt_state += "__Object__ ";
                 pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
                 var_assert += " x_"+std::to_string(i);
                 i++;
               }
-              pred_assert += ") (not ("+h+var_assert+"))))\n";
+              pred_assert += ") (not ("+p.first+var_assert+"))))\n";
               this->smt_state += ") Bool)\n";
               this->smt_state += pred_assert;
             }
           }
           else {
-            this->smt_state += "(declare-fun "+h+" (";
+            this->smt_state += "(declare-fun "+p.first+" (";
             std::string pred_assert = "(assert (forall (";
             int i = 0;
             std::string var_assert = "";
-            for (auto const& [v,t] : a) {
+            for (auto const& [v,t] : p.second) {
               this->smt_state += "__Object__ ";
               pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
               var_assert += " x_"+std::to_string(i);
               i++;
             }
-            pred_assert += ") (not ("+h+var_assert+"))))\n";
+            pred_assert += ") (not ("+p.first+var_assert+"))))\n";
             this->smt_state += ") Bool)\n";
             this->smt_state += pred_assert;
           }
@@ -270,7 +269,13 @@ class KnowledgeBase {
       //manually after all the tells for more optimal performance! 
       bool tell(std::string pred, bool remove = false, bool update_state = true) {
         auto pp = this->parse_predicate(pred);
-        if (this->predicates.find(pp.first) == this->predicates.end()) {
+        bool not_found = true;
+        for (auto const& p : this->predicates) {
+          if (pp.first == p.first and pp.second.size() == p.second.size()) {
+            not_found = false;
+          }  
+        }
+        if (not_found) {
           return false;
         }
         if (remove) {
