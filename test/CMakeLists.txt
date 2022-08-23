@@ -25,11 +25,11 @@ target_link_libraries(test_unification tomcat Boost::log)
 target_include_directories(test_unification PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 # Test cnf_conversion
-add_executable(test_cnf_conversion test_cnf_conversion.cpp ../lib/fol/FOLDomain.h)
-target_link_libraries(test_cnf_conversion tomcat)
-target_include_directories(test_cnf_conversion PRIVATE ${Boost_INCLUDE_DIR} ../lib)
+# add_executable(test_cnf_conversion test_cnf_conversion.cpp ../lib/fol/FOLDomain.h)
+# target_link_libraries(test_cnf_conversion tomcat)
+# target_include_directories(test_cnf_conversion PRIVATE ${Boost_INCLUDE_DIR} ../lib)
 
 add_test(NAME test_parser COMMAND test_parser)
 add_test(NAME test_kb COMMAND test_kb)
 add_test(NAME test_unification COMMAND test_unification)
-add_test(NAME test_cnf_conversion COMMAND test_cnf_conversion)
+# add_test(NAME test_cnf_conversion COMMAND test_cnf_conversion)
