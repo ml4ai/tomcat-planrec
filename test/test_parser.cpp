@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 	)
 
     (:constants surprise - package)
-	
+
     (:predicates
 		(road ?arg0 - location ?arg1 - location)
 		(at ?arg0 - locatable ?arg1 - location)
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 
 	(:method m_deliver_ordering_0
 		:parameters (?loc1 - location ?loc2 - location ?p - package ?v - vehicle)
-		:task (deliver ?p ?loc2) 
+		:task (deliver ?p ?loc2)
 
         :precondition (or
           (at ?l)
@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
                "surprise");
     BOOST_TEST(boost::get<PrimitiveType>(
                    dom.constants.explicitly_typed_lists[0].type) == "package");
-    
+
     // Test parsing of predicates
     BOOST_TEST(dom.predicates.size() == 5);
     BOOST_TEST(dom.predicates[2].predicate == "in");
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(subtask_id.subtask.name == "get_to");
     std::vector<ast::Term> subtask_p = subtask_id.subtask.parameters;
     BOOST_TEST(name(subtask_p[1]) == "loc2");
-   
+
     // Test Parsing Method's Ordering:
     vector<ast::Ordering> ordering_v = boost::get<vector<Ordering>>(
         dom.methods[0].task_network.orderings.value());
@@ -413,7 +413,7 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
                "location"); // default type = object
 
     // Test Problem HTN
-    ProblemHTN  htn_f = prob.problem_htn; 
+    ProblemHTN  htn_f = prob.problem_htn;
     BOOST_TEST(htn_f.problem_class == ":htn");
     auto htn_para = htn_f.parameters;
     BOOST_TEST(boost::get<PrimitiveType>(
@@ -421,7 +421,7 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
 
     // Test Problem HTN Subtasks (brief test only)
     std::vector<SubTask> htn_subtasks = boost::get<vector<SubTask>>(
-        htn_f.task_network.subtasks.value().subtasks); 
+        htn_f.task_network.subtasks.value().subtasks);
     SubTask htn_subtask_0 = htn_subtasks[0];
     SubTaskWithId htn_id = boost::get<SubTaskWithId>(htn_subtask_0);
     std::vector<Term> htn_sub_para = htn_id.subtask.parameters;

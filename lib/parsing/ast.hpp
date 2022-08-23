@@ -81,7 +81,7 @@ namespace ast {
     struct NotSentence;
     struct ImplySentence;
     struct QuantifiedSentence;
-    struct EqualsSentence;
+    struct NotEqualsSentence;
 
     // EqualsSentence EBNF Definition:  <gd> ::= (= <term> <term>)
     struct EqualsSentence {
@@ -101,7 +101,8 @@ namespace ast {
                        boost::recursive_wrapper<NotSentence>,
                        boost::recursive_wrapper<ImplySentence>,
                        boost::recursive_wrapper<QuantifiedSentence>,
-                       boost::recursive_wrapper<EqualsSentence>>;
+                       EqualsSentence,
+                       boost::recursive_wrapper<NotEqualsSentence>>;
 
     // ConnectedSentence EBNF Definition: requires disjunctive-preconditions
         // <gd> ::= (and <gd>*)

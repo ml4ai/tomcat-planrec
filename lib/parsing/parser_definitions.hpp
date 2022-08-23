@@ -260,8 +260,8 @@ namespace parser {
         | connected_sentence
         | not_sentence
         | imply_sentence
-        | quantified_sentence
         | equals_sentence // Note: HDDL has equals sentences, but PDDL 2.1 does not.
+        | quantified_sentence
         ;
     BOOST_SPIRIT_DEFINE(sentence);
     struct TSentence : x3::annotate_on_success {};
@@ -298,9 +298,9 @@ namespace parser {
     struct TWhenCEffect: x3::annotate_on_success {};
 
     auto const c_effect_def = forall_c_effect | when_c_effect | p_effect;
-    auto const effect_def = 
+    auto const effect_def =
         nil
-        | and_c_effect 
+        | and_c_effect
         | c_effect;
 
     BOOST_SPIRIT_DEFINE(c_effect);
@@ -517,8 +517,8 @@ namespace parser {
     } problem_class;
 
     rule<class TProblemHTN, ProblemHTN> problem_htn = "problem_htn";
-    auto const problem_htn_def = ('(' >> problem_class) 
-                               > -parameters 
+    auto const problem_htn_def = ('(' >> problem_class)
+                               > -parameters
                                > task_network > ')';
     BOOST_SPIRIT_DEFINE(problem_htn);
     struct TProblemHTN: x3::annotate_on_success {};
