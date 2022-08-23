@@ -56,6 +56,15 @@ struct TypeTree {
   }
 };
 
+int find_var(std::vector<std::pair<std::string,std::string>> vars, std::string var) {
+  for (int i = 0; i < vars.size()) {
+    if (vars[i].first == var) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 //Add objects from the problem definition, then ungrounded predicate
 //statements, and then run initialize before using the kb!
 class KnowledgeBase {
@@ -65,7 +74,7 @@ class KnowledgeBase {
       //Tree index for root node.
       int root; 
       //header,{{var1,type1},{var2,type2},...}
-      std::vector<std::pair<std::string,std::unordered_map<std::string,std::string>>> predicates;
+      std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> predicates;
       //constant, type
       std::unordered_map<std::string, std::string> objects;
       //header, (header arg1 arg2 ...), ... 
@@ -74,23 +83,24 @@ class KnowledgeBase {
       std::string smt_state;
 
       //Gets all bindings for smt_statement and set of variables
-      //A set of bindings is an unordered map of form {variable,value}. Called
+      //A set of bindings is an vector of pairs of form {variable,value}. Called
       //by ask when given a collection of params.
-      std::vector<std::unordered_map<std::string,std::string>> 
+      std::vector<std::vector<std::pair<std::string,std::string>>> 
       get_bindings(std::string F, 
-                  const std::unordered_map<std::string,std::string>& variables) {
-        std::vector<std::unordered_map<std::string,std::string>> results;
+                  const std::vector<std::pair<std::string,std::string>>& variables) {
+        std::vector<std::vector<std::pair<std::string,std::string>>> results;
         z3::context con;
         z3::solver s(con);
         s.from_string(F.c_str());
         while (s.check() == z3::sat) {
           auto m = s.get_model();
-          std::unordered_map<std::string,std::string> bindings;
+          std::vector<std::pair<std::string,std::string>> bindings = variables;
           for (unsigned i = 0; i < m.size(); i++) {
             auto v = m[i];
             auto v_name = v.name().str();
-            if(variables.find(v_name) != variables.end()) {
-              bindings[v_name] = m.get_const_interp(v).to_string();
+            auto index = find_var(bindings, v_name);
+            if(index != -1) {
+              bindings[index].second = m.get_const_interp(v).to_string();
             }
           }
           results.push_back(bindings);
@@ -137,13 +147,13 @@ class KnowledgeBase {
         Type type;
         type.type = "__Object__";
         this->root = this->typetree.add_type(type);
-        this->add_predicate("__Object__",{{"?o","__Object__"}});
+        this->add_predicate("__Object__",{std::make_pair("?o","__Object__")});
       }
       //Takes the predicate head (e.g., At). Parameters are given as a
       //unordered map of {variable, type} (e.g., {?x, location})  
       //Adding duplicate predicates will clear facts with that predicate head
       //from the KB!
-      void add_predicate(std::string head,std::unordered_map<std::string,std::string> params) {
+      void add_predicate(std::string head,std::vector<std::pair<std::string,std::string>> params) {
         this->predicates.push_back(std::make_pair(head,params));
         this->facts[head] = {};
       }
@@ -158,7 +168,7 @@ class KnowledgeBase {
       void add_type(std::string type, std::string ancestor = "__Object__") {
         Type new_t;
         new_t.type = type;
-        this->add_predicate(type,{{"?o","__Object__"}});
+        this->add_predicate(type,{std::make_pair("?o","__Object__")});
         int a = this->typetree.find_type(ancestor); 
         new_t.lineage.push_back(a);
         if (ancestor != "__Object__") {
@@ -204,7 +214,7 @@ class KnowledgeBase {
               std::string pred_assert = "(assert (forall (";
               int i = 0;
               std::string var_assert = "";
-              for (auto const& [v,t] : p.second) {
+              for (auto const& pars : p.second) {
                 this->smt_state += "__Object__ ";
                 pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
                 var_assert += " x_"+std::to_string(i);
@@ -230,7 +240,7 @@ class KnowledgeBase {
               std::string pred_assert = "(assert (forall (";
               int i = 0;
               std::string var_assert = "";
-              for (auto const& [v,t] : p.second) {
+              for (auto const& vars : p.second) {
                 this->smt_state += "__Object__ ";
                 pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
                 var_assert += " x_"+std::to_string(i);
@@ -246,7 +256,7 @@ class KnowledgeBase {
             std::string pred_assert = "(assert (forall (";
             int i = 0;
             std::string var_assert = "";
-            for (auto const& [v,t] : p.second) {
+            for (auto const& vars : p.second) {
               this->smt_state += "__Object__ ";
               pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
               var_assert += " x_"+std::to_string(i);
@@ -313,13 +323,13 @@ class KnowledgeBase {
       //This returns {{{var1,val1},{var2,val2},...},...}
       //EX: expr = (and (A ?x) (or (B ?x y) (C z)))
       //params = {{"?x", "thing"}}
-      std::vector<std::unordered_map<std::string,std::string>>
+      std::vector<std::vector<std::pair<std::string,std::string>>>
       ask(std::string expr,
-          std::unordered_map<std::string,std::string> params) {
+          std::vector<std::pair<std::string,std::string>>& params) {
         std::string smt_expr = this->smt_state;
-        for (auto const& [v,t] : params) {
-          smt_expr += "(declare-const "+v+" __Object__)\n";
-          smt_expr += "(assert ("+t+" "+v+"))\n";
+        for (auto const& p : params) {
+          smt_expr += "(declare-const "+p.first+" __Object__)\n";
+          smt_expr += "(assert ("+p.second+" "+p.first+"))\n";
         }
         smt_expr += "(assert "+expr+")\n";
         return get_bindings(smt_expr,params);
