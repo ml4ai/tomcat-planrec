@@ -147,6 +147,9 @@ BOOST_AUTO_TEST_CASE(test_fol_sentence_parsing) {
     auto fs2 = boost::get<QuantifiedSentence>(cs.sentence2);
     BOOST_TEST(fs2.quantifier == "exists");
     BOOST_TEST(fs2.variables.implicitly_typed_list[0].name == "y");
+
+    auto eq = parse<Sentence>("(= ?arg1 ?arg2)");
+    auto eqes = boost::get<EqualsSentence>(eq);
 }
 
 BOOST_AUTO_TEST_CASE(test_domain_parsing) {
