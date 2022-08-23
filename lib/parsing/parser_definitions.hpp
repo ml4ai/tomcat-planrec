@@ -16,7 +16,7 @@ namespace parser {
         x3::eol, x3::rule, x3::symbols;
 
     auto const name =
-        lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - space)];
+        lexeme[!lit('-') >> +(char_ - '?' - '(' - ')' - ':' - '=' - space)];
 
 
     // Rules
