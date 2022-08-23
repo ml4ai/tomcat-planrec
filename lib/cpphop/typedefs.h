@@ -10,9 +10,9 @@
 #include <optional>
 
 using var = std::string;
-using type = std::string;
+using var_type = std::string;
 using binding = std::string;
-using Params = std::unordered_map<var, type>; 
+using Params = std::unordered_map<var, var_type>; 
 using Args = std::unordered_map<var, binding>;
 using Preconds = std::string;
 using pred = std::pair<std::string,Params>;
@@ -29,9 +29,9 @@ using Task = std::pair<std::string, Params>;
 using Grounded_Task = std::pair<std::string,Args>;
 using Tasks = std::vector<Task>;
 using Grounded_Tasks = std::vector<std::pair<std::string,Args>>;
-using Objects = std::unordered_map<std::string,type>;
+using Objects = std::unordered_map<std::string,var_type>;
 
-class Operator {
+class Action {
   private:
     std::string head;
     Params parameters;
@@ -110,7 +110,7 @@ class Operator {
     }
 
   public:
-    Operator(std::string head, Params parameters, Preconds preconditions, Effects effects, CEffects ceffects) {
+    Action(std::string head, Params parameters, Preconds preconditions, Effects effects, CEffects ceffects) {
       this->head = head;
       this->parameters = parameters;
       this->preconditions = preconditions;
@@ -133,7 +133,7 @@ class Operator {
       auto bindings = kb.ask(pc,this->parameters);
       std::vector<std::pair<task_token,KnowledgeBase>> new_states = {};
       for (auto const& b : bindings) {
-        new_states.push_back(this->apply_binding(kb,b)) 
+        new_states.push_back(this->apply_binding(kb,b)); 
       }
       return new_states;
     }
@@ -189,33 +189,33 @@ class Method {
       auto bindings = kb.ask(pc,this->parameters);
       std::vector<std::pair<task_token,Grounded_Tasks>> groundings;
       for (auto const& b : bindings) {
-        groundings.push_back(this->apply_binding(b)) 
+        groundings.push_back(this->apply_binding(b)); 
       }
       return groundings;
     }
 };
 
-using Operators = std::unordered_map<std::string, Operator>;
+using Actions = std::unordered_map<std::string, Action>;
 using Methods = std::unordered_map<std::string, std::vector<Method>>;
 
 struct DomainDef {
   std::string head;
   std::unordered_map<std::string,std::vector<std::string>> types;
   Predicates predicates;
-  Operators operators;
+  Actions actions;
   Methods methods;
   Objects constants;
   DomainDef(std::string head,
             std::unordered_map<std::string,std::vector<std::string>> types,
             Predicates predicates,
             Objects constants,
-            Operators operators,
+            Actions actions,
             Methods methods) {
     this->head = head;
     this->types = types;
     this->predicates = predicates;
     this->constants = constants;
-    this->operators = operators;
+    this->actions = actions;
     this->methods = methods;
   }
 };
