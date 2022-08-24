@@ -27,11 +27,11 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     kb.add_object("truck_0","vehicle");
     kb.add_object("surprise","package");
 
-    kb.add_predicate("road",{{"?arg0","location"},{"?arg1","location"}});
-    kb.add_predicate("at",{{"?arg0","locatable"},{"?arg1","location"}});
-    kb.add_predicate("in",{{"?arg0","package"},{"?arg1","vehicle"}});
-    kb.add_predicate("capacity",{{"?arg0","vehicle"},{"?arg1","capacity_number"}});
-    kb.add_predicate("capacity_predecessor",{{"?arg0","capacity_number"},{"?arg1","capacity_number"}});
+    kb.add_predicate("road",{std::make_pair("?arg0","location"),std::make_pair("?arg1","location")});
+    kb.add_predicate("at",{std::make_pair("?arg0","locatable"),std::make_pair("?arg1","location")});
+    kb.add_predicate("in",{std::make_pair("?arg0","package"),std::make_pair("?arg1","vehicle")});
+    kb.add_predicate("capacity",{std::make_pair("?arg0","vehicle"),std::make_pair("?arg1","capacity_number")});
+    kb.add_predicate("capacity_predecessor",{std::make_pair("?arg0","capacity_number"),std::make_pair("?arg1","capacity_number")});
 
     kb.initialize();
 
@@ -66,16 +66,18 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     BOOST_TEST(!kb.ask(test_expr3));
 
     std::string test_expr4 = "(road ?c1 ?c2)";
-    auto bindings1 = kb.ask(test_expr4,{{"?c1","location"},{"?c2","location"}});
+    std::vector<std::pair<std::string,std::string>> args1 = {std::make_pair("?c1","location"),std::make_pair("?c2","location")};
+    auto bindings1 = kb.ask(test_expr4,args1);
     BOOST_TEST(bindings1.size() == 4);
     for (auto const& b : bindings1) {
-      for (auto const& [var,val] : b) {
-        std::cout << var << " : " << val << std::endl;
+      for (auto const& vals : b) {
+        std::cout << vals.first << " : " << vals.second << std::endl;
       }
     }
 
+    std::vector<std::pair<std::string,std::string>> args2 = {std::make_pair("?p","package"),std::make_pair("?v","vehicle")};
     std::string test_expr5 = "(in ?p ?v)";
-    auto bindings2 = kb.ask(test_expr5,{{"?p","package"},{"?v","vehicle"}});
+    auto bindings2 = kb.ask(test_expr5, args2);
     BOOST_TEST(bindings2.size() == 0);
     //for (auto const& b : test) {
     //  for (auto const& [var,val] : b) {

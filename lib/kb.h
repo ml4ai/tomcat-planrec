@@ -57,7 +57,7 @@ struct TypeTree {
 };
 
 int find_var(std::vector<std::pair<std::string,std::string>> vars, std::string var) {
-  for (int i = 0; i < vars.size()) {
+  for (int i = 0; i < vars.size(); i++) {
     if (vars[i].first == var) {
       return i;
     }
@@ -303,20 +303,6 @@ class KnowledgeBase {
       }
 
       //This adds the assert to expr, but the rest of expr must be made smt
-      //compatible prior to this call. 
-      //This is mostly an issue for things like forall and exist, which have different
-      //syntax in smt compared to hddl. 
-      //Only grounded statements are allowed here!
-      //EX: (and (A x) (or (B x y) (C z)))
-      bool ask(std::string expr) {
-        z3::context con;
-        z3::solver s(con);
-        std::string smt_expr = this->smt_state+"(assert "+expr+")\n";
-        s.from_string(smt_expr.c_str());
-        return s.check() == z3::sat;
-      }
-
-      //This adds the assert to expr, but the rest of expr must be made smt
       //compatible prior to this call. Z3 will give an error if a variable is not
       //found in params is used, which complies with HDDLs specifications for method and
       //action definitions. Params must be {{var1,type1},{var2,type2},...} 
@@ -334,6 +320,21 @@ class KnowledgeBase {
         smt_expr += "(assert "+expr+")\n";
         return get_bindings(smt_expr,params);
       }
+
+      //This adds the assert to expr, but the rest of expr must be made smt
+      //compatible prior to this call. 
+      //This is mostly an issue for things like forall and exist, which have different
+      //syntax in smt compared to hddl. 
+      //Only grounded statements are allowed here!
+      //EX: (and (A x) (or (B x y) (C z)))
+      bool ask(std::string expr) {
+        z3::context con;
+        z3::solver s(con);
+        std::string smt_expr = this->smt_state+"(assert "+expr+")\n";
+        s.from_string(smt_expr.c_str());
+        return s.check() == z3::sat;
+      }
+
 
       //prints smt_state string
       void print_smt_state() {

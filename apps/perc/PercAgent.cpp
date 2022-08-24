@@ -287,14 +287,16 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     //?v - victim
                     //This is what I assumed to be the original functionality
                     //of clear_fov_facts() - Loren
-                    auto v_bindings = this->kb.ask("(fov_victim medic ?v)",{{"?v","Victim"}});
+                    std::vector<std::pair<std::string,std::string>> v_arg = {std::make_pair("?v","Victim")};
+                    auto v_bindings = this->kb.ask("(fov_victim medic ?v)",v_arg);
                     for (auto const& b : v_bindings) {
-                      this->kb.tell("(fov_victim medic "+b.at("?v")+")",true,false);
+                      this->kb.tell("(fov_victim medic "+b[0].second+")",true,false);
                     }
                     this->kb.tell("(fov_rubble medic)",true,false);
-                    auto m_bindings = this->kb.ask("(fov_marker medic ?m)",{{"?m","Marker_Type"}});
+                    std::vector<std::pair<std::string,std::string>> m_arg = {std::make_pair("?m","Marker_Type")};
+                    auto m_bindings = this->kb.ask("(fov_marker medic ?m)",m_arg);
                     for (auto const& b : m_bindings) {
-                      this->kb.tell("(fov_marker medic "+b.at("?m")+")",true,false);
+                      this->kb.tell("(fov_marker medic "+b[0].second+")",true,false);
                     }
                     set<int> int_set(this->fov_medic.begin(), this->fov_medic.end());
 //                    this->fov_medic.assign(int_set.begin(), int_set.end());
@@ -333,14 +335,16 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     //?v - victim
                     //This is what I assumed to be the original functionality
                     //of clear_fov_facts() - Loren
-                    auto v_bindings = this->kb.ask("(fov_victim engineer ?v)",{{"?v","Victim"}});
+                    std::vector<std::pair<std::string,std::string>> v_arg = {std::make_pair("?v","Victim")};
+                    auto v_bindings = this->kb.ask("(fov_victim engineer ?v)",v_arg);
                     for (auto const& b : v_bindings) {
-                      this->kb.tell("(fov_victim engineer "+b.at("?v")+")",true,false);
+                      this->kb.tell("(fov_victim engineer "+b[0].second+")",true,false);
                     }
                     this->kb.tell("(fov_rubble engineer)",true,false);
-                    auto m_bindings = this->kb.ask("(fov_marker engineer ?m)",{{"?m","Marker_Type"}});
+                    std::vector<std::pair<std::string,std::string>> m_arg = {std::make_pair("?m","Marker_Type")};
+                    auto m_bindings = this->kb.ask("(fov_marker engineer ?m)",m_arg);
                     for (auto const& b : m_bindings) {
-                      this->kb.tell("(fov_marker engineer "+b.at("?m")+")",true,false);
+                      this->kb.tell("(fov_marker engineer "+b[0].second+")",true,false);
                     }
                     set<int> int_set(this->fov_engineer.begin(), this->fov_engineer.end());
 //                    this->fov_engineer.assign(int_set.begin(), int_set.end());
@@ -379,14 +383,16 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     //?v - victim
                     //This is what I assumed to be the original functionality
                     //of clear_fov_facts() - Loren
-                    auto v_bindings = this->kb.ask("(fov_victim transporter ?v)",{{"?v","Victim"}});
+                    std::vector<std::pair<std::string,std::string>> v_arg = {std::make_pair("?v","Victim")};
+                    auto v_bindings = this->kb.ask("(fov_victim transporter ?v)",v_arg);
                     for (auto const& b : v_bindings) {
-                      this->kb.tell("(fov_victim transporter "+b.at("?v")+")",true,false);
+                      this->kb.tell("(fov_victim transporter "+b[0].second+")",true,false);
                     }
                     this->kb.tell("(fov_rubble transporter)",true,false);
-                    auto m_bindings = this->kb.ask("(fov_marker transporter ?m)",{{"?m","Marker_Type"}});
+                    std::vector<std::pair<std::string,std::string>> m_arg = {std::make_pair("?m","Marker_Type")};
+                    auto m_bindings = this->kb.ask("(fov_marker transporter ?m)",m_arg);
                     for (auto const& b : m_bindings) {
-                      this->kb.tell("(fov_marker transporter "+b.at("?m")+")",true,false);
+                      this->kb.tell("(fov_marker transporter "+b[0].second+")",true,false);
                     }
                     set<int> int_set(this->fov_transporter.begin(), this->fov_transporter.end());
 //                    this->fov_transporter.assign(int_set.begin(), int_set.end());
@@ -579,13 +585,13 @@ PercAgent::PercAgent(string
     this->kb.add_object("transporter","Role");
     this->kb.add_object("engineer","Role");
     //Adding predicates to KB
-    this->kb.add_predicate("player_at", {{"?r","Role"}, {"?l","Location"}});
-    this->kb.add_predicate("player_status", {{"?r","Role"}, {"?ps","Player_Status"}});
-    this->kb.add_predicate("victim_type", {{"?v","Victim"}, {"?vt","Victim_Type"}});
-    this->kb.add_predicate("victim_status", {{"?v","Victim"}, {"?vs","Victim_Status"}});
-    this->kb.add_predicate("fov_victim", {{"?r","Role"}, {"?v","Victim"}});
-    this->kb.add_predicate("fov_rubble", {{"?r","Role"}});
-    this->kb.add_predicate("fov_marker", {{"?r","Role"}, {"?m","Marker_Type"}});
+    this->kb.add_predicate("player_at", {std::make_pair("?r","Role"), std::make_pair("?l","Location")});
+    this->kb.add_predicate("player_status", {std::make_pair("?r","Role"), std::make_pair("?ps","Player_Status")});
+    this->kb.add_predicate("victim_type", {std::make_pair("?v","Victim"), std::make_pair("?vt","Victim_Type")});
+    this->kb.add_predicate("victim_status", {std::make_pair("?v","Victim"), std::make_pair("?vs","Victim_Status")});
+    this->kb.add_predicate("fov_victim", {std::make_pair("?r","Role"), std::make_pair("?v","Victim")});
+    this->kb.add_predicate("fov_rubble", {std::make_pair("?r","Role")});
+    this->kb.add_predicate("fov_marker", {std::make_pair("?r","Role"), std::make_pair("?m","Marker_Type")});
     //Initialize KB
     this->kb.initialize();
     //Can add facts now that KB is initialized.
