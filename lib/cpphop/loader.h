@@ -181,27 +181,111 @@ std::string sentence_to_SMT(Sentence sentence, PTypes& ptypes) {
   return "";
 }
 
-Effects decompose_ceffects(CEffect ceffect) {
-  Effects effects = {};
-  if (effect.which() == 0) {
-    return effects;
+std::unordered_set<std::string> type_inference(effect e, Ptypes& ptypes, std::string var) {
+  std::unordered_set<std::string> types = {"__Object__"};
+  auto pred = std::get<2>(e);
+  for (int i = 0; i < pred.second.size(); i++) {
+    if (var == pred.second[i].first) {
+      types.insert(ptypes[pred.first][i]);
+    } 
   }
-  if (effect.which() == 1) {
-    auto e = boost::get<AndCEffect>(effect);
-    for (auto const& c : e.c_effects) {
-      effects.merge(decompose_ceffects(c));
+  return types;
+}
+
+Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
+  Effects effects = {};
+  if (ceffect.which() == 0) {
+    auto e = boost::get<ForallCEffect>(ceffect);
+    auto faeffects = decompose_effects(e.effect,ptypes);
+    for (int i = 0; i < faeffects.size(); i++) {
+      for (auto const& v : e.variables) {
+        if (std::get<3>(faeffects[i]).find(v.name) == std::get<3>(faeffects[i]).end()) {
+          auto types = type_inference(faeffects[i],ptypes,v.name);
+          std::get<3>(faeffects[i])[v.name] = types;
+        }
+      }
+    }
+    return faeffects;
+  }
+  if (ceffect.which() == 1) {
+    auto e = boost::get<WhenCEffect>(ceffect);
+    if (e.cond_effect.which() == 0) {
+      auto p = boost::get<PEffect>(e.cond_effect);
+      auto sentSMT = sentence_to_SMT(e.gd, ptypes); 
+      pred pd;
+      pd.first = p.predicate;
+      for (int i = 0; i < p.args.size(); i++) {
+        if (p.args[i].which() == 1) {
+          std::string arg_name = boost::get<Variable>(p.args[i]).name;
+          std::pair<std::string,std::string> arg;
+          arg.first = arg_name;
+          arg.second = ptypes[p.predicate][i];
+          pd.second.push_back(arg);
+        } 
+        else {
+          std::pair<std::string,std::string> arg;
+          arg.first = "__CONST__";
+          arg.second = ptypes[p.predicate][i];
+          pd.second.push_back(arg);
+        }
+      }
+      std::unordered_map<std::string,std::unordered_set<std::string>> fa;
+      effects.push_back(std::make_tuple(sentSMT,p.is_negative,pd,fa));
+    }
+    else {
+      auto vp = boost::get<std::vector<PEffect>>(e.cond_effect);
+      auto sentSMT = sentence_to_SMT(e.gd, ptypes); 
+      for (auto const& p : vp) {
+        pred pd;
+        pd.first = p.predicate;
+        for (int i = 0; i < p.args.size(); i++) {
+          if (p.args[i].which() == 1) {
+            std::string arg_name = boost::get<Variable>(p.args[i]).name;
+            std::pair<std::string,std::string> arg;
+            arg.first = arg_name;
+            arg.second = ptypes[p.predicate][i];
+            pd.second.push_back(arg);
+          } 
+          else {
+            std::pair<std::string,std::string> arg;
+            arg.first = "__CONST__";
+            arg.second = ptypes[p.predicate][i];
+            pd.second.push_back(arg);
+          }
+        }
+        std::unordered_map<std::string,std::unordered_set<std::string>> fa;
+        effects.push_back(std::make_tuple(sentSMT,p.is_negative,pd,fa));
+      }
     }
     return effects;
   }
-  if (effect.which() == 2) {
-    auto e = boost::get<CEffect>(effect);
-    effects.merge(decompose_ceffects(c));
+  if (ceffect.which() == 2) {
+    auto p = boost::get<PEffect>(ceffect);
+    pred pd;
+    pd.first = p.predicate;
+    for (int i = 0; i < p.args.size(); i++) {
+      if (p.args[i].which() == 1) {
+        std::string arg_name = boost::get<Variable>(p.args[i]).name;
+        std::pair<std::string,std::string> arg;
+        arg.first = arg_name;
+        arg.second = ptypes[p.predicate][i];
+        pd.second.push_back(arg);
+      } 
+      else {
+        std::pair<std::string,std::string> arg;
+        arg.first = "__CONST__";
+        arg.second = ptypes[p.predicate][i];
+        pd.second.push_back(arg);
+      }
+    }
+    std::unordered_map<std::string,std::unordered_set<std::string>> fa;
+    effects.push_back(std::make_tuple(sentSMT,p.is_negative,pd,fa));
     return effects;
   }
   return effects;
 }
 
-Effects decompose_effects(Effect effect) {
+Effects decompose_effects(Effect effect, Ptypes& ptypes) {
   Effects effects = {};
   if (effect.which() == 0) {
     return effects;
@@ -209,13 +293,13 @@ Effects decompose_effects(Effect effect) {
   if (effect.which() == 1) {
     auto e = boost::get<AndCEffect>(effect);
     for (auto const& c : e.c_effects) {
-      effects.merge(decompose_ceffects(c));
+      effects.merge(decompose_ceffects(c,ptypes));
     }
     return effects;
   }
   if (effect.which() == 2) {
     auto e = boost::get<CEffect>(effect);
-    effects.merge(decompose_ceffects(c));
+    effects.merge(decompose_ceffects(c,ptypes));
     return effects;
   }
   return effects;
@@ -287,5 +371,7 @@ DomainDef createDomainDef(Domain dom) {
       params.push_back(std::make_pair(pt.name,"__Object__"));
     }
     Preconds preconditions = sentence_to_SMT(a.precondition); 
+    Effects effects = decompose_effects(a.effect,ptypes);
+    Action action = Action(name,params,preconditions,effects);
   }
 }
