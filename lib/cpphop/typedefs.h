@@ -16,7 +16,8 @@ using Args = std::vector<std::pair<std::string, std::string>>;
 using Preconds = std::string;
 using pred = std::pair<std::string,Params>;
 using Predicates = std::vector<pred>;
-using effect = std::pair<std::string,std::pair<bool,std::string>>;
+//{condition,add=false/remove=true,predicate,extra forall params}
+using effect = std::tuple<std::string,bool,pred,std::unordered_map<std::string,std::unordered_set<std::string>>>;
 using Effects = std::vector<effect>;
 using task_token = std::string;
 using Task = std::pair<std::string, Params>;
@@ -31,7 +32,6 @@ class Action {
     Params parameters;
     Preconds preconditions;
     Effects effects;
-    CEffects ceffects;
 
     std::pair<task_token,KnowledgeBase> apply_binding(KnowledgeBase& kb, Args args) {
       std::string token = "("+this->head;
@@ -45,12 +45,11 @@ class Action {
     }
 
   public:
-    Action(std::string head, Params parameters, Preconds preconditions, Effects effects, CEffects ceffects) {
+    Action(std::string head, Params parameters, Preconds preconditions, Effects effects) {
       this->head = head;
       this->parameters = parameters;
       this->preconditions = preconditions;
       this->effects = effects;
-      this->ceffects = ceffects;
     }
 
     std::vector<std::pair<task_token,KnowledgeBase>> apply(KnowledgeBase& kb, Args args) {
