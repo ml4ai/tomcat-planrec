@@ -20,13 +20,13 @@ using Predicates = std::vector<pred>;
 using effect = std::tuple<std::string,bool,pred,std::unordered_map<std::string,std::unordered_set<std::string>>>;
 using Effects = std::vector<effect>;
 using task_token = std::string;
-using Task = std::pair<std::string, Params>;
+using TaskDef = std::pair<std::string, Params>;
 using Grounded_Task = std::pair<std::string,Args>;
-using Tasks = std::vector<Task>;
+using TaskDefs = std::vector<TaskDef>;
 using Grounded_Tasks = std::vector<std::pair<std::string,Args>>;
 using Objects = std::unordered_map<std::string,std::string>;
 
-class Action {
+class ActionDef {
   private:
     std::string head;
     Params parameters;
@@ -45,7 +45,7 @@ class Action {
     }
 
   public:
-    Action(std::string head, Params parameters, Preconds preconditions, Effects effects) {
+    ActionDef(std::string head, Params parameters, Preconds preconditions, Effects effects) {
       this->head = head;
       this->parameters = parameters;
       this->preconditions = preconditions;
@@ -73,7 +73,7 @@ class Action {
     }
 };
 
-class Method {
+class MethodDef {
   private:
     std::string head;
     Task task; 
@@ -82,7 +82,7 @@ class Method {
     Tasks subtasks;
 
   public:
-    Method(std::string head, Task task, Params parameters, Preconds preconditions, Tasks subtasks) {
+    MethodDef(std::string head, Task task, Params parameters, Preconds preconditions, Tasks subtasks) {
       this->head = head;
       this->task = task;
       this->parameters = parameters;
@@ -129,26 +129,30 @@ class Method {
     }
 };
 
-using Actions = std::unordered_map<std::string, Action>;
-using Methods = std::unordered_map<std::string, std::vector<Method>>;
+using ActionDefs = std::unordered_map<std::string, ActionDef>;
+//{Task,vector of the tasks Methods}
+using MethodDefs = std::unordered_map<std::string, std::vector<MethodDef>>;
 
 struct DomainDef {
   std::string head;
   std::unordered_map<std::string,std::vector<std::string>> types;
   Predicates predicates;
-  Actions actions;
-  Methods methods;
+  TaskDefs tasks;
+  ActionDefs actions;
+  MethodDefs methods;
   Objects constants;
   DomainDef(std::string head,
             std::unordered_map<std::string,std::vector<std::string>> types,
             Predicates predicates,
             Objects constants,
-            Actions actions,
-            Methods methods) {
+            TaskDefs tasks,
+            ActionDefs actions,
+            MethodDefs methods) {
     this->head = head;
     this->types = types;
     this->predicates = predicates;
     this->constants = constants;
+    this->tasks = tasks;
     this->actions = actions;
     this->methods = methods;
   }
