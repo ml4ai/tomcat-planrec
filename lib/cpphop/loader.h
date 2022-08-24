@@ -20,6 +20,7 @@ using namespace ast;
 using boost::get;
 using std::string, std::vector, std::unordered_set;
 using Ptypes = std::unordered_map<std::string,std::vector<std::string>>;
+using Tasktypes = std::unordered_map<std::string,std::vector<std::string>>;
 
 std::unordered_set<std::string> type_inference(Sentence sentence, Ptypes& ptypes, std::string var) {
   std::unordered_set<std::string> types;
@@ -357,21 +358,86 @@ DomainDef createDomainDef(Domain dom) {
     constants[ic] = "__Object__";
   }
 
-  Actions actions;
-  for (auto const& a : dom.actions) {
-    std::string name = a.name;
+  TaskDefs tasks;
+  Tasktypes ttypes;
+  for (auto const& t : dom.tasks) {
+    TaskDef task;
+    task.first = t.name;
     Params params;
+    for (auto const& p : t.parameters.explicitly_typed_lists) {
+      std::string type = boost::get<PrimitiveType>(p.type);
+      for (auto const& e : p.entries) {
+        params.push_back(std::make_pair(e.name,type));
+        ttypes[t.name].push_back(type); 
+      }
+    }
+    for (auto const& pt : t.parameters.implicitly_typed_list) {
+      params.push_back(std::make_pair(pt.name,"__Object__"));
+      ttypes[t.name].push_back("__Object__");
+    }
+    task.second = params;
+    tasks.push_back(task);
+  }
+
+  ActionDefs actions;
+  for (auto const& a : dom.actions) {
+    TaskDef task;
+    std::string name = a.name;
+    task.first = a.name;
+    Params params;
+    Params tparams;
     for (auto const& p : a.parameters.explicitly_typed_lists) {
+      std::string type = boost::get<PrimitiveType>(p.type);
+      for (auto const& e : p.entries) {
+        params.push_back(std::make_pair(e.name,type));
+        tparams.push_back(std::make_pair(e.name,type));
+        ttypes[a.name].push_back(type);
+      }
+    }
+    for (auto const& pt : a.parameters.implicitly_typed_list) {
+      params.push_back(std::make_pair(pt.name,"__Object__"));
+      tparams.push_back(std::make_pair(pt.name,"__Object__"));
+      ttypes[a.name].push_back("__Object__");
+    }
+
+    Preconds preconditions = sentence_to_SMT(a.precondition,ptypes); 
+    Effects effects = decompose_effects(a.effect,ptypes);
+    Action action = Action(name,params,preconditions,effects);
+    actions[name] = action; 
+    task.second = tparams;
+    tasks.push_back(task);
+  }
+  
+  MethodDefs methods;
+  for (auto const& m : dom.methods) {
+    TaskDef task;
+    std::string name = m.name;
+    task.first = m.task.name;
+    Params params;
+    Params tparams;
+    for (auto const& p : m.parameters.explicitly_typed_lists) {
       std::string type = boost::get<PrimitiveType>(p.type);
       for (auto const& e : p.entries) {
         params.push_back(std::make_pair(e.name,type));
       }
     }
-    for (auto const& pt : a.parameters.implicitly_typed_list) {
+    for (auto const& pt : m.parameters.implicitly_typed_list) {
       params.push_back(std::make_pair(pt.name,"__Object__"));
     }
-    Preconds preconditions = sentence_to_SMT(a.precondition); 
-    Effects effects = decompose_effects(a.effect,ptypes);
-    Action action = Action(name,params,preconditions,effects);
+    for (int i = 0; i < m.task.parameters.size(); i++) {
+      std::pair<std::string,std::string> arg;
+      if (m.task.parameters[i].which() == 1) {
+        arg.first = boost::get<Variable>(m.task.parameters[i]).name
+        arg.second = ttypes[m.task.name][i];
+      }
+      else {
+        arg.first = "__CONST__";
+        arg.second = ttypes[m.task.name][i];
+      }
+      tparams.push_back(arg);
+    }
+    task.second = tparams;
+
+    Preconds preconditions = sentence_to_SMT(m.precondition,ptypes); 
   }
 }
