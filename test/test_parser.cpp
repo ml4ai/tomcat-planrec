@@ -181,7 +181,6 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(dom.predicates[2].predicate == "in");
     BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[1].entries[0].name ==
         "arg1");
-    std::cout << dom.predicates[2].variables.explicitly_typed_lists[1].entries[0] << std::endl;
     BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[1].entries[1].name ==
         "arg2");
     BOOST_TEST(
