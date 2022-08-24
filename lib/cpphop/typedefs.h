@@ -9,27 +9,21 @@
 #include "../kb.h"
 #include <optional>
 
-using var = std::string;
-using var_type = std::string;
-using binding = std::string;
-using Params = std::unordered_map<var, var_type>; 
-using Args = std::unordered_map<var, binding>;
+//{var,type}
+using Params = std::vector<std::pair<std::string, std::string>>; 
+//{var,val}
+using Args = std::vector<std::pair<std::string, std::string>>;
 using Preconds = std::string;
 using pred = std::pair<std::string,Params>;
 using Predicates = std::vector<pred>;
-using Additions = std::vector<pred>;
-using Deletions = std::vector<pred>;
-using Effects = std::pair<Additions,Deletions>;
-using condition = std::string;
-using CAdditions = std::vector<std::pair<condition,pred>>;
-using CDeletions = std::vector<std::pair<condition,pred>>;
-using CEffects = std::pair<CAdditions,CDeletions>;
+using effect = std::pair<std::string,std::pair<bool,std::string>>;
+using Effects = std::vector<effect>;
 using task_token = std::string;
 using Task = std::pair<std::string, Params>;
 using Grounded_Task = std::pair<std::string,Args>;
 using Tasks = std::vector<Task>;
 using Grounded_Tasks = std::vector<std::pair<std::string,Args>>;
-using Objects = std::unordered_map<std::string,var_type>;
+using Objects = std::unordered_map<std::string,std::string>;
 
 class Action {
   private:
@@ -41,71 +35,12 @@ class Action {
 
     std::pair<task_token,KnowledgeBase> apply_binding(KnowledgeBase& kb, Args args) {
       std::string token = "("+this->head;
-      for (auto const& [var,t] : this->parameters) {
-         token += " "+args.at(var);
+      for (auto const& a : args) {
+         token += " "+a.second;
       }
       token += ")";
       KnowledgeBase new_kb = kb;
-      for (auto const& add : this->effects.first) {
-        std::string fact = "("+add.first;
-        for (auto const& [var,t] : add.second) {
-          fact += " "+args.at(var);
-        }
-        new_kb.tell(fact+")",false,false);
-      }
-
-      for (auto const& del : this->effects.second) {
-        std::string fact = "("+del.first;
-        for (auto const& [var,t] : del.second) {
-          fact += " "+args.at(var);
-        }
-        new_kb.tell(fact+")",true,false);
-      }
-
-      for (auto const& cadd : this->ceffects.first) {
-        std::string c;
-        if (!args.empty()) {
-          c = "(and ";
-          for (auto const& [var,val] : args) {
-            c += "(= "+var+" "+val+") ";
-          }
-          c += cadd.first + ")";
-        }
-        else {
-          c = cadd.first;
-        }
-        auto bindings = kb.ask(c,this->parameters);
-        if (!bindings.empty()) {
-          std::string fact = "("+cadd.second.first;  
-          for (auto const& [var,t] : cadd.second.second) {
-            fact += " "+args.at(var); 
-          }
-          new_kb.tell(fact+")",false,false);
-        }
-      }
-
-      for (auto const& cdel : this->ceffects.second) {
-        std::string c;
-        if (!args.empty()) {
-          c = "(and ";
-          for (auto const& [var,val] : args) {
-            c += "(= "+var+" "+val+") ";
-          }
-          c += cdel.first + ")";
-        }
-        else {
-          c = cdel.first;
-        }
-        auto bindings = kb.ask(c,this->parameters);
-        if (!bindings.empty()) {
-          std::string fact = "("+cdel.second.first;  
-          for (auto const& [var,t] : cdel.second.second) {
-            fact += " "+args.at(var); 
-          }
-          new_kb.tell(fact+")",true,false);
-        }
-      }
-      new_kb.update_state();
+      //fix!
       return std::make_pair(token,new_kb);
     }
 
@@ -122,8 +57,8 @@ class Action {
       std::string pc;
       if (!args.empty()) {
         pc = "(and ";
-        for (auto const& [var,val] : args) {
-          pc += "(= "+var+" "+val+") ";
+        for (auto const& vals : args) {
+          pc += "(= "+vals.first+" "+vals.second+") ";
         }
         pc += this->preconditions + ")";
       }
