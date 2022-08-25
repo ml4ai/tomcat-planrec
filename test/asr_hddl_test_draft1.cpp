@@ -195,33 +195,42 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
         (is_marked ?v - victim ?mark - marker ?loc - location)
 	)
 
-    (:task wakeCritical
+    ; player intention to wake a critical victim
+    (:task wake-critical
         :parameters(?p - player ?c - critical ?l - location)
         )
 
+    ; player intention to carry stabilized victims to sick bays
     (:task collaborate-carry-stabilized
         :parameters(?p - player ?v - victim ?loc - location ?mark - marker)
         )
 
-    (:method ordered_wake
-        :parameters(?qu ?an - player)
-        :task(wakeCritical ?qu ?c ?l)
-        :ordered_subtasks(and (clarifyCritLocation ?qu ?c ?loc ?dest)
-                              (reqDestination ?qu ?an ?loc ?dest)
-                              (wakeCritical ?qu ?an ?c ?dest))
+    (:method ordered-carry-stabilized
+        :parameters()
+        :task(collaborate-carry-stabilized ?p ?v ?loc ?mark)
+        :ordered_subtasks(and (request-marker ?qu ?an ?v ?mark ?loc)
+                              (request-carry-stabilized ?qu ?v ?loc))
         )
 
-    (:method partOrdered_wake
+    (:method ordered-wake
+        :parameters(?qu ?an - player)
+        :task(wake-critical ?qu ?c ?l)
+        :ordered_subtasks(and (clarify-location-effect ?qu ?c ?loc ?dest)
+                              (request-destination ?qu ?an ?loc ?dest)
+                              (wake-critical ?qu ?an ?c ?dest))
+        )
+
+    (:method partially-ordered-wake
         :parameters()
         :task(wakeCritical ?qu ?c ?l)
-        :subtasks (and (t1 (clarifyCritLocation ?qu ?c ?loc ?dest))
-                       (t2 (reqDestination ?qu ?an ?loc ?dest))
-                       (t3 (clarifyLocation ?loc))
-                       (t4 (wakeCritical ?qu ?an ?c ?dest)))
+        :subtasks (and (t1 (clarify-critical-location ?qu ?c ?loc ?dest))
+                       (t2 (request-destination ?qu ?an ?loc ?dest))
+                       (t3 (clarify-location-repeat ?loc))
+                       (t4 (wake-critical ?qu ?an ?c ?dest)))
         :ordering (and(< t1 t2)
                       (< t2 t4)
                       (< t3 t4))
-        )
+        
 
     ; request-marker means to request a teammate to place a marker down to indicate
         ; status of a victim or stabilized victim. This does not mean the same 
@@ -265,54 +274,49 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
                   (at ?p ?loc))
       )
 
-    (:action
-      ;parameters()
-      :precondition()
-      :effect()
-      )
-
-    (:action
-      ;parameters()
-      :precondition()
-      :effect()
       
-
-    (:action reqDestination
+    ; request-destination is when one player asks another player to go to a specific location
+    (:action request-destination
       :parameters(?qu ?an - player ?loc ?dest - location)
       :precondition(and ( at ?qu ?dest)(at ?an ?loc)(not (at ?an ?dest)))
       :effect(and(at ?an ?dest)(not(at ?an ?loc))(not(in ?loc)))
       )
 
-    (:action askLocationTeammate 
+    ; ask-location-teammate is when one player asks the location of another teammate, but does
+        ; not request for them to go elsewhere
+    (:action ask-locatin-teammate
       :parameters(?qu ?an - player ?loc ?dest - location)
       :precondition(at ?qu ?dest)
       :effect(and (not( at ?an ?dest)(at ?an ?loc)))
       )
 
-    (:action clarifyLocation    //used for clearing areas
+    ; used for clearing areas; however, many times players will not clarify, so this action
+        ; is repeated half the time. This is shown as 'no effect'.
+    (:action clarify-location-repeat
       :parameters(?loc - location)
       :precondition(not (in ?loc))
-      :effect(in ?loc) .......OR.......(not(in ?loc))
+      :effect()
       )
 
-      ...... should I use "OR" in the effects?
-      ...... should I create two actions that are equal except for
-             different effects? Ask Loren.
-      ...... Or should I just abstract out the repeated 5s in cycle?????
+    (:action clarify-location-effect
+      :parameters(?loc - location)
+      :precondition(not (in ?loc))
+      :effect(in ?loc)
+      )
 
-    (:action clarifyCritLocation
+    (:action clarify-critical-location
       :parameters(?qu - player ?c - critical ?loc ?dest - location)
       :precondition()
       :effect(and (at (?qu ?dest)(found ?c ?loc)))
       )
 
-    (:action wakeCritical
+    (:action wake-critical
       :parameters(?p1 ?p2 - player ?c - critical ?dest - location)
       :precondition(and (at ?an ?dest)( at ?qu ?dest)(found ? ?dest))
       :effect(awake ?c ?loc)
       )
 
-    (:action saveCritical
+    (:action save-critical
       :parameters(?c - critical ?p - player ?loc - location)
       :precondition(and (awake ?c ?loc)(is_medic ?p ?loc))
       :effect(saved ?c)
