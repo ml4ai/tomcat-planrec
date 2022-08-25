@@ -225,7 +225,7 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
         } 
         else {
           std::pair<std::string,std::string> arg;
-          arg.first = "__CONST__";
+          arg.first = boost::get<Constant>(p.args[i]).name;
           arg.second = ptypes[p.predicate][i];
           pd.second.push_back(arg);
         }
@@ -249,7 +249,7 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
           } 
           else {
             std::pair<std::string,std::string> arg;
-            arg.first = "__CONST__";
+            arg.first = boost::get<Constant>(p.args[i]).name;
             arg.second = ptypes[p.predicate][i];
             pd.second.push_back(arg);
           }
@@ -274,7 +274,7 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
       } 
       else {
         std::pair<std::string,std::string> arg;
-        arg.first = "__CONST__";
+        arg.first = boost::get<Constant>(p.args[i]).name;
         arg.second = ptypes[p.predicate][i];
         pd.second.push_back(arg);
       }
@@ -306,6 +306,165 @@ Effects decompose_effects(Effect effect, Ptypes& ptypes) {
   return effects;
 }
 
+std::string decompose_constraint(Constraint constraint) {
+  if (constraint.which() == 0) {
+    return "()";
+  }
+  if (constraint.which() == 1) {
+    auto s = boost::get<EqualsSentence>(constraint);
+    std::string l;
+    std::string r;
+    if (s.lhs.which == 0) {
+      l = boost::get<Constant>(s.lhs).name;
+    }
+    else {
+      l = boost::get<Variable>(s.lhs).name;
+    }
+    if (s.rhs.which == 0) {
+      r = boost::get<Constant>(s.rhs).name;
+    }
+    else {
+      r = boost::get<Variable>(s.rhs).name;
+    }
+    return "(= "+l+" "+r+")";
+  }
+  if (constraint.which() == 2) {
+    auto s = boost::get<NotEqualsSentence>(sentence);
+    std::string l;
+    std::string r;
+    if (s.lhs.which == 0) {
+      l = boost::get<Constant>(s.lhs).name;
+    }
+    else {
+      l = boost::get<Variable>(s.lhs).name;
+    }
+    if (s.rhs.which == 0) {
+      r = boost::get<Constant>(s.rhs).name;
+    }
+    else {
+      r = boost::get<Variable>(s.rhs).name;
+    }
+    return "(not (= "+l+" "+r+"))";
+  }
+  return "";
+}
+
+std::string decompose_constraints(Constraints constraints) {
+  std::string cs = "(and"; 
+  if (constraints.which() == 0) {
+    return cs+" ())";
+  }
+  if (constraints.which() == 1) {
+    auto c = boost::get<Constraint>(constraints);
+    return cs+" "+decompose_constraint(c)+")";
+  }
+  if (constraints.which() == 2) {
+    auto cons = boost::get<std::vector<Constraint>>(constraints);
+    for (auto const& c : cons) {
+      cs += " "+decompose_constraint(c); 
+    }
+    return cs+")"; 
+  }
+  return "";
+}
+
+TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
+  TaskDefs subs;
+  if (subtasks.which() == 0) {
+    return subs;
+  }
+  if (subtasks.which() == 1) {
+    auto s = boost::get<SubTask>(subtasks);
+    if (s.which() == 0) {
+      auto st = boost::get<MTask>(s);
+      TaskDef t; 
+      t.first = st.name; 
+      for (int i = 0; i < st.parameters.size(); i++) {
+        if (st.parameters[i].which() == 1) {
+          std::pair<std::string,std::string> arg;
+          arg.first = boost::get<Variable>(st.parameters[i]).name; 
+          arg.second = ttypes[st.name][i];
+          t.second.push_back(arg);
+        } 
+        else {
+          std::pair<std::string,std::string> arg;
+          arg.first = boost::get<Constant>(st.parameters[i]).name; 
+          arg.second = ttypes[st.name][i];
+          t.second.push_back(arg);
+        }
+      }
+      subs.push_back(t);
+    }
+    else {
+      auto sbtid = boost::get<SubTaskWithId>(s);
+      auto st = sbtid.subtask;
+      TaskDef t; 
+      t.first = st.name; 
+      for (int i = 0; i < st.parameters.size(); i++) {
+        if (st.parameters[i].which() == 1) {
+          std::pair<std::string,std::string> arg;
+          arg.first = boost::get<Variable>(st.parameters[i]).name; 
+          arg.second = ttypes[st.name][i];
+          t.second.push_back(arg);
+        } 
+        else {
+          std::pair<std::string,std::string> arg;
+          arg.first = boost::get<Constant>(st.parameters[i]).name; 
+          arg.second = ttypes[st.name][i];
+          t.second.push_back(arg);
+        }
+      }
+      subs.push_back(t);
+    }
+  }
+  if (subtasks.which() == 2) {
+    auto vs = boost::get<std::vector<SubTask>>(subtasks);
+    for (auto const& s : vs) {
+      if (s.which() == 0) {
+        auto st = boost::get<MTask>(s);
+        TaskDef t; 
+        t.first = st.name; 
+        for (int i = 0; i < st.parameters.size(); i++) {
+          if (st.parameters[i].which() == 1) {
+            std::pair<std::string,std::string> arg;
+            arg.first = boost::get<Variable>(st.parameters[i]).name; 
+            arg.second = ttypes[st.name][i];
+            t.second.push_back(arg);
+          } 
+          else {
+            std::pair<std::string,std::string> arg;
+            arg.first = boost::get<Constant>(st.parameters[i]).name; 
+            arg.second = ttypes[st.name][i];
+            t.second.push_back(arg);
+          }
+        }
+        subs.push_back(t);
+      }
+      else {
+        auto sbtid = boost::get<SubTaskWithId>(s);
+        auto st = sbtid.subtask;
+        TaskDef t; 
+        t.first = st.name; 
+        for (int i = 0; i < st.parameters.size(); i++) {
+          if (st.parameters[i].which() == 1) {
+            std::pair<std::string,std::string> arg;
+            arg.first = boost::get<Variable>(st.parameters[i]).name; 
+            arg.second = ttypes[st.name][i];
+            t.second.push_back(arg);
+          } 
+          else {
+            std::pair<std::string,std::string> arg;
+            arg.first = boost::get<Constant>(st.parameters[i]).name; 
+            arg.second = ttypes[st.name][i];
+            t.second.push_back(arg);
+          }
+        }
+        subs.push_back(t);
+      }
+    }
+  }
+  return subs;
+}
 Domain dom_loader(std::string dom_file) {
   std::ifstream f(dom_file);
   std::string s_dom((std::istreambuf_iterator<char>(f)),
@@ -402,7 +561,7 @@ DomainDef createDomainDef(Domain dom) {
 
     Preconds preconditions = sentence_to_SMT(a.precondition,ptypes); 
     Effects effects = decompose_effects(a.effect,ptypes);
-    Action action = Action(name,params,preconditions,effects);
+    ActionDef action = ActionDef(name,params,preconditions,effects);
     actions[name] = action; 
     task.second = tparams;
     tasks.push_back(task);
@@ -431,7 +590,7 @@ DomainDef createDomainDef(Domain dom) {
         arg.second = ttypes[m.task.name][i];
       }
       else {
-        arg.first = "__CONST__";
+        arg.first =  boost::get<Constant>(m.task.parameters[i]).name
         arg.second = ttypes[m.task.name][i];
       }
       tparams.push_back(arg);
@@ -439,5 +598,22 @@ DomainDef createDomainDef(Domain dom) {
     task.second = tparams;
 
     Preconds preconditions = sentence_to_SMT(m.precondition,ptypes); 
+    if (m.task_network.constraints) {
+      std::string cs = decompose_constraints(m.task_network.constraints);
+      preconditions = "(and "+preconditions+" "+cs+")";
+    }
+    TaskDefs subtasks;
+    if (m.task_network.subtasks) {
+      subtasks = get_subtasks(m.task_network.subtasks.subtasks,ttypes);    
+    }
+
+    MethodDef method = MethodDef(name,task,params,preconditions,subtasks);
+    methods[m.task.name].push_back(method);
   }
+  return DomainDef(name,types,predicates,constants,tasks,actions,methods)
+}
+
+DomainDef loadDomain(std::string dom_file) {
+  Domain dom = dom_loader(dom_file);
+  return createDomainDef(dom);
 }
