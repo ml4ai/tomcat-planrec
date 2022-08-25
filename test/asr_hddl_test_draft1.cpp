@@ -1,3 +1,7 @@
+// TODO 
+// // Questions about effects for repeated loop line 208
+
+
 #define BOOST_TEST_MODULE TestParser
 
 #include <boost/test/included/unit_test.hpp>
@@ -163,29 +167,40 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 //
     storage = R"(
 
-  (define (domain domain-htn)
+
+
+  (define (domain question-plan)
 	(:requirements :negative-preconditions :typing :hierarchy)
 	(:types
 		location - object
         victim - object
         player - object
+        marker - object
         critical - victim
         stabilized - victim
         questioner - player
         answerer - player
-	    )
+	)
 
     (:predicates
         (at ?p - player ?loc - location)
         (in ?loc - location)
         (found ?v - victim ?loc - location)
-        (awake ?crit - critical ?loc - location)
-        (is_medic ?p - player)
-        (saved ?crit - critical)
-	    )
+        (awake ?c - critical ?loc - location)
+        (is_medic ?med - player)
+        (saved ?v - victim)
+        (stabilized ?st - victim)
+        (carried ?p - player ?v - victim ?loc1 ?loc2 - location)
+        (can_be_carried ?v - victim ?loc - location)
+        (is_marked ?v - victim ?mark - marker ?loc - location)
+	)
 
     (:task wakeCritical
         :parameters(?p - player ?c - critical ?l - location)
+        )
+
+    (:task collaborate-carry-stabilized
+        :parameters(?p - player ?v - victim ?loc - location ?mark - marker)
         )
 
     (:method ordered_wake
@@ -195,7 +210,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
                               (reqDestination ?qu ?an ?loc ?dest)
                               (wakeCritical ?qu ?an ?c ?dest))
         )
-    
+
     (:method partOrdered_wake
         :parameters()
         :task(wakeCritical ?qu ?c ?l)
@@ -207,6 +222,60 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
                       (< t2 t4)
                       (< t3 t4))
         )
+
+    ; request-marker means to request a teammate to place a marker down to indicate
+        ; status of a victim or stabilized victim. This does not mean the same 
+        ; thing as clarify-stabilized-status or clarify-victim-status. Those two
+        ; are verbal requests for clarification, not the request of placing markers
+    (:action request-marker
+      ;parameters(?qu ?an - player ?v - victim ?mark - marker ?loc - location)
+      :precondition(and (at ?v ?loc) (not(is_marked ?mark ?loc)))
+      :effect(is_marked ?v ?mark ?loc)
+      )
+
+    ;clarify-stabilized-status is an action that will execute for any type of stabilized victim
+    (:action clarify-stabilized-status
+      ;parameters(?p - player ?v - victim ?mark -marker ?loc - location)
+      :precondition(and (is_marked ?v ?mark ?loc)
+                        (stabilized ?v)
+                        (not( can_be_carried ?v ?loc)
+                            (saved ?s)))
+      :effect(and (can_be_carried ?v ?loc)
+                  (at ?p ?loc))
+      )
+
+    ;clarify-status-victim is an action that will execute for any type of unstabilized victim
+    (:action clarify-status-victim
+      ;parameters(?v - victim ?mark ?loc - location)
+      :precondition(and (not (saved ?v)
+                             (stabilized ?st))
+                        (and (can_be_carried ?v ?loc)))
+      :effect(can_be_carried ?v ?loc)
+      )
+
+    ; request-carry-stabilized is a verbal request to carry healed victims to their proper bay
+    ; can-be-carried remains in effect because it sometimes leads to status clarification again!
+    (:action request-carry-stabilized
+      ;parameters(?p - player ?v - victim ?loc - location)
+      :precondition(and (can_be_carried ?v - victim ?loc - location)
+                        (stabilized ?st)
+                        (not (saved ?v)))
+      :effect(and (carried ?p ?v ?loc)
+                  (at ?v ?loc)
+                  (at ?p ?loc))
+      )
+
+    (:action
+      ;parameters()
+      :precondition()
+      :effect()
+      )
+
+    (:action
+      ;parameters()
+      :precondition()
+      :effect()
+      
 
     (:action reqDestination
       :parameters(?qu ?an - player ?loc ?dest - location)
@@ -226,6 +295,11 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
       :effect(in ?loc) .......OR.......(not(in ?loc))
       )
 
+      ...... should I use "OR" in the effects?
+      ...... should I create two actions that are equal except for
+             different effects? Ask Loren.
+      ...... Or should I just abstract out the repeated 5s in cycle?????
+
     (:action clarifyCritLocation
       :parameters(?qu - player ?c - critical ?loc ?dest - location)
       :precondition()
@@ -243,6 +317,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
       :precondition(and (awake ?c ?loc)(is_medic ?p ?loc))
       :effect(saved ?c)
       )
+
   ); end domain definition
     )";
 
