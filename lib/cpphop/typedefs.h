@@ -72,17 +72,17 @@ class ActionDef {
       return new_states;
     }
 };
-
+//Ignores task ordering for now! It just assumes that tasks are fully ordered
 class MethodDef {
   private:
     std::string head;
-    Task task; 
+    TaskDef task; 
     Params parameters;
     Preconds preconditions;
-    Tasks subtasks;
+    TaskDefs subtasks;
 
   public:
-    MethodDef(std::string head, Task task, Params parameters, Preconds preconditions, Tasks subtasks) {
+    MethodDef(std::string head, TaskDef task, Params parameters, Preconds preconditions, TaskDefs subtasks) {
       this->head = head;
       this->task = task;
       this->parameters = parameters;
