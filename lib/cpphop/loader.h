@@ -14,7 +14,9 @@
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include "kb.h"
 #include "typedefs.h"
+#include <filesystem>
 
+namespace fs = std::filesystem;
 namespace x3 = boost::spirit::x3;
 using namespace ast;
 using boost::get;
@@ -280,7 +282,7 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
       }
     }
     std::unordered_map<std::string,std::unordered_set<std::string>> fa;
-    effects.push_back(std::make_tuple(sentSMT,p.is_negative,pd,fa));
+    effects.push_back(std::make_tuple("__NONE__",p.is_negative,pd,fa));
     return effects;
   }
   return effects;
@@ -466,10 +468,19 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
   return subs;
 }
 Domain dom_loader(std::string dom_file) {
-  std::ifstream f(dom_file);
-  std::string s_dom((std::istreambuf_iterator<char>(f)),
-                    (std::istreambuf_iterator<char>()));
-  return parse<Domain>(s_dom);
+  fs::path filePath = dom_file;
+  if (filePath.extension() == ".hddl") {
+    std::error_code ec;
+    bool exists = fs::exists(filePath,ec);
+    if (exists) {
+      std::ifstream f(dom_file);
+      std::string s_dom((std::istreambuf_iterator<char>(f)),
+                        (std::istreambuf_iterator<char>()));
+      return parse<Domain>(s_dom);
+    }
+    throw fs::filesystem_error("No file "+filePath.filename+" found!",ec);
+  }
+  throw fs::filesystem_error(filePath.extension() + " is an invalid extension, only .hddl is a valid extension!",std::error_code());
 }
 
 DomainDef createDomainDef(Domain dom) {
@@ -599,12 +610,12 @@ DomainDef createDomainDef(Domain dom) {
 
     Preconds preconditions = sentence_to_SMT(m.precondition,ptypes); 
     if (m.task_network.constraints) {
-      std::string cs = decompose_constraints(m.task_network.constraints);
+      std::string cs = decompose_constraints(*m.task_network.constraints);
       preconditions = "(and "+preconditions+" "+cs+")";
     }
     TaskDefs subtasks;
     if (m.task_network.subtasks) {
-      subtasks = get_subtasks(m.task_network.subtasks.subtasks,ttypes);    
+      subtasks = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
     }
 
     MethodDef method = MethodDef(name,task,params,preconditions,subtasks);
