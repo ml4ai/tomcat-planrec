@@ -26,6 +26,15 @@ using TaskDefs = std::vector<TaskDef>;
 using Grounded_Tasks = std::vector<std::pair<std::string,Args>>;
 using Objects = std::unordered_map<std::string,std::string>;
 
+std::string return_value(std::string var, Args args) {
+  for (auto const& a : args) {
+    if (var == a.first) {
+      return a.second;
+    }
+  }
+  return "__CONST__";
+}
+
 class ActionDef {
   private:
     std::string head;
@@ -40,7 +49,61 @@ class ActionDef {
       }
       token += ")";
       KnowledgeBase new_kb = kb;
-      //fix!
+      for (auto const& e : this->effects) {
+        if (std::get<0>(e) == "__NONE__") {
+          auto faparams = std::get<3>(e);
+          if (faparams.empty()) {
+            auto pred = std::get<2>(e);
+            std::string et = "("+pred.first;
+            for (auto const& p : pred.second) {
+              auto val = return_value(p.first,args);
+              if (val == "__CONST__") {
+                et += " "+p.first;
+              }
+              else {
+                et += " "+val;
+              }
+            }
+            new_kb.tell(et+")",std::get<1>(e),false);
+          }
+          else {
+            Params params;
+            std::string vt = "(and";
+            for (auto const& [var,types] : faparams) {
+              std::pair<std::string,std::string> arg;
+              arg.first = var;
+              arg.second = "__Object__";
+              params.push_back(arg);
+              for (auto const& t : types) {
+                vt += " ("+t+" "+var+")";
+              }
+            }
+            vt += ")";
+            auto bindings = new_kb.ask(vt,params);
+            for (auto const& b : bindings) {
+              auto pred = std::get<2>(e);
+              std::string et = "("+pred.first;
+              for (auto const& p : pred.second) {
+                auto bval = return_value(p.first,b);
+                if (bval == "__CONST__") {
+                  auto val = return_value(p.first,args); 
+                  if (val == "__CONST__") {
+                    et += " "+p.first;
+                  }
+                  else {
+                    et += " "+val;
+                  }
+                }
+                else {
+                  et += " "+bval;
+                }
+              }
+              new_kb.tell(et+")",std::get<1>(e),false);
+            }
+          }
+        }  
+        else if (std::get)
+      }
       return std::make_pair(token,new_kb);
     }
 
@@ -56,8 +119,8 @@ class ActionDef {
       std::string pc;
       if (!args.empty()) {
         pc = "(and ";
-        for (auto const& vals : args) {
-          pc += "(= "+vals.first+" "+vals.second+") ";
+        for (int i = 0; i < args.size(); i++) {
+          pc += "(= "+this->parameters[i].first+" "+args[i].second+") ";
         }
         pc += this->preconditions + ")";
       }
