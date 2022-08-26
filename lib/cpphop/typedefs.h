@@ -8,22 +8,33 @@
 #include <iterator>
 #include "../kb.h"
 #include <optional>
+#include "../util.h"
 
 //{var,type}
 using Params = std::vector<std::pair<std::string, std::string>>; 
 //{var,val}
 using Args = std::vector<std::pair<std::string, std::string>>;
 using Preconds = std::string;
-using pred = std::pair<std::string,Params>;
-using Predicates = std::vector<pred>;
-//{condition,add=false/remove=true,predicate,extra forall params}
-using effect = std::tuple<std::string,bool,pred,std::unordered_map<std::string,std::unordered_set<std::string>>>;
+using Pred = std::pair<std::string,Params>;
+using Predicates = std::vector<Pred>;
+struct effect {
+  std::string condition;
+  bool remove;
+  Pred pred;
+  std::unordered_map<std::string,std::unordered_set<std::string>> forall;
+  effect (std::string condition, bool remove, Pred pred, std::unordered_map<std::string,std::unordered_set<std::string>> forall) {
+    this->condition = condition;
+    this->remove = remove;
+    this->pred = pred;
+    this->forall = forall;
+  }
+};
 using Effects = std::vector<effect>;
 using task_token = std::string;
 using TaskDef = std::pair<std::string, Params>;
 using Grounded_Task = std::pair<std::string,Args>;
 using TaskDefs = std::vector<TaskDef>;
-using Grounded_Tasks = std::vector<std::pair<std::string,Args>>;
+using Grounded_Tasks = std::vector<Grounded_Task>;
 using Objects = std::unordered_map<std::string,std::string>;
 
 std::string return_value(std::string var, Args args) {
@@ -42,18 +53,13 @@ class ActionDef {
     Preconds preconditions;
     Effects effects;
 
-    std::pair<task_token,KnowledgeBase> apply_binding(KnowledgeBase& kb, Args args) {
-      std::string token = "("+this->head;
-      for (auto const& a : args) {
-         token += " "+a.second;
-      }
-      token += ")";
+    KnowledgeBase apply_binding(KnowledgeBase& kb, Args args) {
       KnowledgeBase new_kb = kb;
       for (auto const& e : this->effects) {
-        if (std::get<0>(e) == "__NONE__") {
-          auto faparams = std::get<3>(e);
-          if (faparams.empty()) {
-            auto pred = std::get<2>(e);
+        auto faparams = e.forall;
+        if (faparams.empty()) {
+          if (e.condition == "__NONE__") {
+            auto pred = e.pred;
             std::string et = "("+pred.first;
             for (auto const& p : pred.second) {
               auto val = return_value(p.first,args);
@@ -64,9 +70,39 @@ class ActionDef {
                 et += " "+val;
               }
             }
-            new_kb.tell(et+")",std::get<1>(e),false);
+            new_kb.tell(et+")",e.remove,false);
           }
           else {
+            std::string wc;
+            if (!args.empty()) {
+              wc = "(and ";
+              for (int i = 0; i < args.size(); i++) {
+                wc += "(= "+this->parameters[i].first+" "+args[i].second+") ";
+              }
+              wc += e.condition + ")";
+            }
+            else {
+              wc = e.condition;
+            }
+            auto pass = new_kb.ask(wc,this->parameters);
+            if (!pass.empty()) {
+              auto pred = e.pred;
+              std::string et = "("+pred.first;
+              for (auto const& p : pred.second) {
+                auto val = return_value(p.first,args);
+                if (val == "__CONST__") {
+                  et += " "+p.first;
+                }
+                else {
+                  et += " "+val;
+                }
+              }
+              new_kb.tell(et+")",e.remove,false);
+            }
+          }
+        }
+        else {
+          if (e.condition == "__NONE__") {
             Params params;
             std::string vt = "(and";
             for (auto const& [var,types] : faparams) {
@@ -81,7 +117,7 @@ class ActionDef {
             vt += ")";
             auto bindings = new_kb.ask(vt,params);
             for (auto const& b : bindings) {
-              auto pred = std::get<2>(e);
+              auto pred = e.pred;
               std::string et = "("+pred.first;
               for (auto const& p : pred.second) {
                 auto bval = return_value(p.first,b);
@@ -98,13 +134,74 @@ class ActionDef {
                   et += " "+bval;
                 }
               }
-              new_kb.tell(et+")",std::get<1>(e),false);
+              new_kb.tell(et+")",e.remove,false);
             }
           }
-        }  
-        else if (std::get)
+          else {
+            Params params;
+            std::string vt = "(and";
+            Params tempP = this->parameters;
+            for (auto const& [var,types] : faparams) {
+              std::pair<std::string,std::string> arg;
+              arg.first = var;
+              arg.second = "__Object__";
+              params.push_back(arg);
+              for (auto const& t : types) {
+                vt += " ("+t+" "+var+")";
+              }
+              for (int i = 0; i < args.size(); i++) {
+                if (var == args[i].first) {
+                  args.erase(args.begin() + i); 
+                }
+                if (var == tempP[i].first) {
+                  tempP.erase(tempP.begin() + i);
+                  tempP.push_back(std::make_pair(var,"__Object__"));
+                }
+              }
+            }
+            vt += ")";
+            auto bindings = new_kb.ask(vt,params);
+            for (auto const& b : bindings) {
+              for (auto const& b_args : b) {
+                args.push_back(b_args); 
+              }
+              std::string wc;
+              if (!args.empty()) {
+                wc = "(and ";
+                for (int i = 0; i < args.size(); i++) {
+                  wc += "(= "+args[i].first+" "+args[i].second+") ";
+                }
+                wc += e.condition + ")";
+              }
+              else {
+                wc = e.condition;
+              }
+              auto pass = new_kb.ask(wc,tempP);
+              if (!pass.empty()) {
+                auto pred = e.pred;
+                std::string et = "("+pred.first;
+                for (auto const& p : pred.second) {
+                  auto bval = return_value(p.first,b);
+                  if (bval == "__CONST__") {
+                    auto val = return_value(p.first,args); 
+                    if (val == "__CONST__") {
+                      et += " "+p.first;
+                    }
+                    else {
+                      et += " "+val;
+                    }
+                  }
+                  else {
+                    et += " "+bval;
+                  }
+                }
+                new_kb.tell(et+")",e.remove,false);
+              }
+            }
+          }
+        }
       }
-      return std::make_pair(token,new_kb);
+      return new_kb;
     }
 
   public:
@@ -115,24 +212,27 @@ class ActionDef {
       this->effects = effects;
     }
 
-    std::vector<std::pair<task_token,KnowledgeBase>> apply(KnowledgeBase& kb, Args args) {
+    std::pair<task_token,std::vector<KnowledgeBase>> apply(KnowledgeBase& kb, Args args) {
       std::string pc;
+      std::string token = "("+this->head;
       if (!args.empty()) {
         pc = "(and ";
         for (int i = 0; i < args.size(); i++) {
           pc += "(= "+this->parameters[i].first+" "+args[i].second+") ";
+          token += " "+args[i].second;
         }
         pc += this->preconditions + ")";
       }
       else {
         pc = this->preconditions;
       }
+      token += ")";
       auto bindings = kb.ask(pc,this->parameters);
-      std::vector<std::pair<task_token,KnowledgeBase>> new_states = {};
+      std::vector<KnowledgeBase> new_states = {};
       for (auto const& b : bindings) {
         new_states.push_back(this->apply_binding(kb,b)); 
       }
-      return new_states;
+      return std::make_pair(token,new_states);
     }
 };
 //Ignores task ordering for now! It just assumes that tasks are fully ordered
@@ -153,42 +253,49 @@ class MethodDef {
       this->subtasks = subtasks;
     }
 
-    std::pair<task_token,Grounded_Tasks> apply_binding(Args args) {
-      std::string token = "("+this->task.first;
-      for (auto const& [var,t] : this->task.second) {
-         token += " "+args.at(var);
-      }
-      token += ")";
+    Grounded_Tasks apply_binding(Args args) {
       Grounded_Tasks gts = {};
       for (auto const& s: this->subtasks) {
         Grounded_Task gt;
         gt.first = s.first;
-        for (auto const& [var,t] : s.second) {
-          gt.second[var] = args.at(var);  
+        for (auto const& pt : s.second) {
+          std::pair<std::string,std::string> arg;
+          arg.first = pt.first;
+          std::string val = return_value(pt.first,args);
+          if (val == "__CONST__") {
+            arg.second = pt.second;
+          }
+          else {
+            arg.second = val;
+          }
+          gt.second.push_back(arg);
         }
         gts.push_back(gt);
       }
-      return std::make_pair(token,gts);
+      return gts;
     }
 
-    std::vector<std::pair<task_token,Grounded_Tasks>> apply(KnowledgeBase& kb, Args args) {
+    std::pair<task_token,std::vector<Grounded_Tasks>> apply(KnowledgeBase& kb, Args args) {
       std::string pc;
+      std::string token = "("+this->task.first;
       if (!args.empty()) {
         pc = "(and ";
-        for (auto const& [var,val] : args) {
-          pc += "(= "+var+" "+val+") ";
+        for (int i = 0; i < args.size(); i++) {
+          pc += "(= "+this->task.second[i].first+" "+args[i].second+") ";
+          token += " "+args[i].second;
         }
         pc += this->preconditions + ")";
       }
       else {
         pc = this->preconditions;
       }
+      token += ")";
       auto bindings = kb.ask(pc,this->parameters);
-      std::vector<std::pair<task_token,Grounded_Tasks>> groundings;
+      std::vector<Grounded_Tasks> groundings;
       for (auto const& b : bindings) {
         groundings.push_back(this->apply_binding(b)); 
       }
-      return groundings;
+      return std::make_pair(token,groundings);
     }
 };
 
