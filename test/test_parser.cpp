@@ -165,24 +165,18 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto dom = parse<Domain>(t_storage);
 
     // Test Domain Name:
-    BOOST_TEST(dom.name == "domain-htn");
+    BOOST_TEST(dom.name == "domain_htn");
 
     // Test requirements
     BOOST_TEST(equals(dom.requirements, {"negative-preconditions", "typing", "hierarchy"}));
 
-    // Test constants
-    BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
-               "surprise");
-    BOOST_TEST(boost::get<PrimitiveType>(
-                   dom.constants.explicitly_typed_lists[0].type) == "package");
-
     // Test parsing of predicates
     BOOST_TEST(dom.predicates.size() == 5);
     BOOST_TEST(dom.predicates[2].predicate == "in");
+    BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[0].entries[0].name ==
+        "arg0");
     BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[1].entries[0].name ==
         "arg1");
-    BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[1].entries[1].name ==
-        "arg2");
     BOOST_TEST(
         boost::get<PrimitiveType>(
             dom.predicates[2].variables.explicitly_typed_lists[1].type) ==
@@ -207,14 +201,9 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto methodtask = dom.methods[0].task;
     BOOST_TEST(methodtask.name == "deliver");
     BOOST_TEST(boost::get<Variable>(methodtask.parameters[0]).name == "p");
-
     // Test parsing method's precondition:
     auto methodprec_f = dom.methods[0].precondition;
-    auto methodprec_s = boost::get<ConnectedSentence>(methodprec_f);
-    auto methodprec1_os = boost::get<Literal<Term>>(methodprec_s.sentences[0]);
-    auto methodprec2_os = boost::get<Literal<Term>>(methodprec_s.sentences[1]);
-    BOOST_TEST(methodprec1_os.predicate == "at");
-    BOOST_TEST(name(methodprec2_os.args[0]) == "s");
+    BOOST_TEST(boost::get<Nil>(methodprec_f) == Nil());
 
     // Test Parsing Method's SubTasks:
     std::vector<ast::SubTask> subtask_v = boost::get<vector<SubTask>>(
@@ -224,7 +213,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(subtask_id.id == "task2");
     BOOST_TEST(subtask_id.subtask.name == "get_to");
     std::vector<ast::Term> subtask_p = subtask_id.subtask.parameters;
-    BOOST_TEST(name(subtask_p[1]) == "loc2");
+    BOOST_TEST(name(subtask_p[1]) == "l2");
 
     // Test Parsing Method's Ordering:
     vector<ast::Ordering> ordering_v = boost::get<vector<Ordering>>(
@@ -235,16 +224,16 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     // Test parsing of domain actions and their components:
     // Test parsing action names
     auto actname1 = dom.actions[0].name;
-    BOOST_TEST(actname1 == "pick_up");
+    BOOST_TEST(actname1 == "drive");
 
     // Test parsing action parameters
     auto actpara1 = dom.actions[0].parameters;
     BOOST_TEST(boost::get<PrimitiveType>(
                    actpara1.explicitly_typed_lists[0].type) == "vehicle");
     BOOST_TEST(boost::get<PrimitiveType>(
-                   actpara1.explicitly_typed_lists[2].type) == "package");
+                   actpara1.explicitly_typed_lists[2].type) == "location");
     BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "v");
-    BOOST_TEST(actpara1.explicitly_typed_lists[2].entries[0].name == "p");
+    BOOST_TEST(actpara1.explicitly_typed_lists[2].entries[0].name == "l2");
 
     // Test parsing action precondition
     auto actprec1_f = dom.actions[0].precondition;
@@ -258,7 +247,8 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto effect1_s = boost::get<AndCEffect>(effect1_f);
     auto effect1_af = boost::get<Literal<Term>>(effect1_s.c_effects[0]);
     BOOST_TEST(effect1_af.predicate == "at");
-    BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "p");
+    BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "v");
+    BOOST_TEST(effect1_af.is_negative == true);
 }// end of testing the domain
 
 
