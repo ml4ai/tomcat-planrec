@@ -32,6 +32,10 @@
 		:parameters (?v - vehicle ?l - location ?p - package)
 	)
 
+    (:task test_task
+        :parameters (?v - vehicle ?l1 ?l2 - location)
+    )
+
 	(:method m_deliver_ordering_0
 		:parameters (?l1 - location ?l2 - location ?p - package ?v - vehicle)
 		:task (deliver ?p ?l2)
@@ -92,6 +96,18 @@
 		)
 	)
 
+    (:method test_method
+      :parameters (?v - vehicle ?l1 - location ?l2 - location)
+      :task (test_task ?v ?l1 ?l2)
+      :precondition (and 
+                      (forall (?x - capacity_number ?p - package) (imply (capacity ?v ?x) (in ?p ?v)))
+                      (exists (?x - capacity_number ?p - package) (imply (capacity ?v ?x) (in ?p ?v)))
+                    )
+      :subtasks (and
+        (task0 (test_action ?v ?l1))
+      )
+    )
+
 	(:action drive
 		:parameters (?v - vehicle ?l1 - location ?l2 - location)
 		:precondition 
@@ -150,4 +166,14 @@
 				(not (capacity ?v ?s1))
 			)
 	)
+
+    (:action test_action
+      :parameters (?ve - vehicle ?loc - location)
+      :precondition (at ?ve ?loc)
+      :effect 
+        (and
+          (when (at ?ve ?loc) (not (at ?ve ?loc)))
+          (forall (?x) (in ?x ?ve))
+        )
+    )
 )
