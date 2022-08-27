@@ -212,6 +212,22 @@ class ActionDef {
       this->effects = effects;
     }
 
+    std::string get_head() {
+      return this->head;
+    }
+
+    Params get_parameters() {
+      return this->parameters;
+    }
+
+    Preconds get_preconditions() {
+      return this->preconditions;
+    }
+
+    Effects get_effects() {
+      return this->effects;
+    }
+
     std::pair<task_token,std::vector<KnowledgeBase>> apply(KnowledgeBase& kb, Args args) {
       std::string pc;
       std::string token = "("+this->head;
@@ -221,16 +237,24 @@ class ActionDef {
           pc += "(= "+this->parameters[i].first+" "+args[i].second+") ";
           token += " "+args[i].second;
         }
-        pc += this->preconditions + ")";
+        if (this->preconditions != "__NONE__") {
+          pc += this->preconditions + ")";
+        }
+        else {
+          pc += ")";
+        }
       }
       else {
         pc = this->preconditions;
       }
       token += ")";
-      auto bindings = kb.ask(pc,this->parameters);
+
       std::vector<KnowledgeBase> new_states = {};
-      for (auto const& b : bindings) {
-        new_states.push_back(this->apply_binding(kb,b)); 
+      if (pc != "__NONE__") {
+        auto bindings = kb.ask(pc,this->parameters);
+        for (auto const& b : bindings) {
+          new_states.push_back(this->apply_binding(kb,b)); 
+        }
       }
       return std::make_pair(token,new_states);
     }
@@ -251,6 +275,26 @@ class MethodDef {
       this->parameters = parameters;
       this->preconditions = preconditions;
       this->subtasks = subtasks;
+    }
+
+    std::string get_head() {
+      return this->head;
+    }
+
+    TaskDef get_task() {
+      return this->task;
+    }
+
+    Params get_parameters() {
+      return this->parameters;
+    }
+
+    Preconds get_preconditions() {
+      return this->preconditions;
+    }
+
+    TaskDefs get_subtasks() {
+      return this->subtasks;
     }
 
     Grounded_Tasks apply_binding(Args args) {
@@ -284,16 +328,21 @@ class MethodDef {
           pc += "(= "+this->task.second[i].first+" "+args[i].second+") ";
           token += " "+args[i].second;
         }
-        pc += this->preconditions + ")";
+        if (pc != "__NONE__") {
+          pc += this->preconditions + ")";
+        }
+        pc += ")";
       }
       else {
         pc = this->preconditions;
       }
       token += ")";
-      auto bindings = kb.ask(pc,this->parameters);
       std::vector<Grounded_Tasks> groundings;
-      for (auto const& b : bindings) {
-        groundings.push_back(this->apply_binding(b)); 
+      if (pc != "__NONE__") {
+        auto bindings = kb.ask(pc,this->parameters);
+        for (auto const& b : bindings) {
+          groundings.push_back(this->apply_binding(b)); 
+        }
       }
       return std::make_pair(token,groundings);
     }
