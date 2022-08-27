@@ -84,7 +84,7 @@ std::unordered_set<std::string> type_inference(Sentence sentence, Ptypes& ptypes
 
 std::string sentence_to_SMT(Sentence sentence, Ptypes& ptypes) {
   if (sentence.which() == 0) {
-    return "()";
+    return "__NONE__";
   }
   if (sentence.which() == 1) {
     auto s = boost::get<Literal<Term>>(sentence);
@@ -102,28 +102,48 @@ std::string sentence_to_SMT(Sentence sentence, Ptypes& ptypes) {
   if (sentence.which() == 2) {
     auto s = boost::get<ConnectedSentence>(sentence);
     std::string cs = "("+s.connector;
+    bool all_none = true;
     for (auto const& t : s.sentences) {
-      cs += " "+sentence_to_SMT(t,ptypes);
+      std::string str = sentence_to_SMT(t,ptypes);
+      if (str != "__NONE__") {
+        cs += " "+str;
+        all_none = false;
+      }
+    }
+    if (all_none) {
+      return "__NONE__";
     }
     return cs + ")";
   }
   if (sentence.which() == 3) {
     auto s = boost::get<NotSentence>(sentence);
     std::string ns = "(not";
-    ns += " "+sentence_to_SMT(s.sentence,ptypes);
-    return ns + ")";
+    std::string str = sentence_to_SMT(s.sentence,ptypes);
+    if (str != "__NONE__") {
+      ns += " "+str;
+      return ns + ")";
+    }
+    return "__NONE__";
   }
   if (sentence.which() == 4) {
     auto s = boost::get<ImplySentence>(sentence);
     std::string is = "(=>";
-    is += " "+sentence_to_SMT(s.sentence1,ptypes);
-    is += " "+sentence_to_SMT(s.sentence2,ptypes);
-    return is + ")";
+    std::string str1 = sentence_to_SMT(s.sentence1,ptypes);
+    std::string str2 = sentence_to_SMT(s.sentence2,ptypes);
+    if (str1 != "__NONE__" && str2 != "__NONE__") {
+      is += " "+str1;
+      is += " "+str2;
+      return is + ")";
+    }
+    return "__NONE__";
   }
   if (sentence.which() == 5) {
     auto s = boost::get<QuantifiedSentence>(sentence);
     std::string qs = "("+s.quantifier + " (";
     std::string t_imply = "(=> (and";
+    if (s.variables.explicitly_typed_lists.empty() && s.variables.implicitly_typed_list.empty()) {
+      return "__NONE__";
+    }
     for (auto const& t : s.variables.explicitly_typed_lists) {
       std::string type = boost::get<PrimitiveType>(t.type);
       for (auto const& e : t.entries) {
@@ -140,8 +160,12 @@ std::string sentence_to_SMT(Sentence sentence, Ptypes& ptypes) {
     }
     qs += ") ";
     t_imply += ")";
-    qs += t_imply+" "+sentence_to_SMT(s.sentence,ptypes);
-    return qs + "))"; 
+    std::string str = sentence_to_SMT(s.sentence,ptypes);
+    if (str != "__NONE__") {
+      qs += t_imply+" "+str;
+      return qs + "))";
+    }
+    return "__NONE__";
   }
   if (sentence.which() == 6) {
     auto s = boost::get<EqualsSentence>(sentence);
@@ -159,7 +183,6 @@ std::string sentence_to_SMT(Sentence sentence, Ptypes& ptypes) {
     else {
       r = boost::get<Variable>(s.rhs).name;
     }
-
     return "(= "+l+" "+r+")";
   }
   if (sentence.which() == 7) {
@@ -178,10 +201,9 @@ std::string sentence_to_SMT(Sentence sentence, Ptypes& ptypes) {
     else {
       r = boost::get<Variable>(s.rhs).name;
     }
-
     return "(not (= "+l+" "+r+"))";
   }
-  return "";
+  return "__NONE__";
 }
 
 std::unordered_set<std::string> type_inference(effect e, Ptypes& ptypes, std::string var) {
@@ -205,13 +227,13 @@ Effects decompose_effects(Effect effect, Ptypes& ptypes) {
   if (effect.which() == 1) {
     auto e = boost::get<AndCEffect>(effect);
     for (auto const& c : e.c_effects) {
-      merge_vec(effects,decompose_ceffects(c,ptypes));
+      effects = merge_vec(effects,decompose_ceffects(c,ptypes));
     }
     return effects;
   }
   if (effect.which() == 2) {
     auto e = boost::get<CEffect>(effect);
-    merge_vec(effects,decompose_ceffects(e,ptypes));
+    effects = merge_vec(effects,decompose_ceffects(e,ptypes));
     return effects;
   }
   return effects;
@@ -314,7 +336,7 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
 
 std::string decompose_constraint(Constraint constraint) {
   if (which_constraint(constraint) == 0) {
-    return "()";
+    return "__NONE__";
   }
   if (which_constraint(constraint) == 1) {
     auto s = boost::get<EqualsSentence>(constraint);
@@ -352,26 +374,38 @@ std::string decompose_constraint(Constraint constraint) {
     }
     return "(not (= "+l+" "+r+"))";
   }
-  return "";
+  return "__NONE__";
 }
 
 std::string decompose_constraints(Constraints constraints) {
   std::string cs = "(and"; 
   if (which_constraints(constraints) == 0) {
-    return cs+" ())";
+    return "__NONE__";
   }
   if (which_constraints(constraints) == 1) {
     auto c = boost::get<Constraint>(constraints);
-    return cs+" "+decompose_constraint(c)+")";
+    std::string str = decompose_constraint(c);
+    if (str != "__NONE__") {
+      return cs+" "+decompose_constraint(c)+")";
+    }
+    return "__NONE__";
   }
   if (which_constraints(constraints) == 2) {
     auto cons = boost::get<std::vector<Constraint>>(constraints);
+    bool all_none = true;
     for (auto const& c : cons) {
-      cs += " "+decompose_constraint(c); 
+      std::string str = decompose_constraint(c);
+      if (str != "__NONE__") {
+        cs += " "+decompose_constraint(c); 
+        all_none = false;
+      }
+    }
+    if (all_none) {
+      return "__NONE__";
     }
     return cs+")"; 
   }
-  return "";
+  return "__NONE__";
 }
 
 TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
@@ -616,7 +650,9 @@ DomainDef createDomainDef(Domain dom) {
 
     if (m.task_network.constraints) {
       std::string cs = decompose_constraints(*m.task_network.constraints);
-      preconditions = "(and "+preconditions+" "+cs+")";
+      if (cs != "__NONE__") {
+        preconditions = "(and "+preconditions+" "+cs+")";
+      }
     }
     TaskDefs subtasks;
     if (m.task_network.subtasks) {
