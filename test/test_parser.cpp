@@ -264,13 +264,10 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     BOOST_TEST(prob.name == "delivery");
     BOOST_TEST(prob.domain_name == "domain_htn");
 
-    // Test requirements
-    BOOST_TEST(equals(prob.requirements, {"strips", "typing"}));
-
     // Test initial state
-    BOOST_TEST(boost::get<Init>(prob.init)[7].predicate == "at");
+    BOOST_TEST(prob.init[7].predicate == "at");
     BOOST_TEST(
-        equals(boost::get<Init>(prob.init)[7].args, {"truck_0", "city_loc_2"}));
+        equals(prob.init[7].args, {"truck_0", "city_loc_2"}));
 
     // Test objects
     BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 8);
@@ -279,15 +276,10 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
                       {"package_0"}));
     BOOST_TEST(boost::get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[0].type) == "package");
-    BOOST_TEST(prob.objects.implicitly_typed_list[0] ==
-               "location"); // default type = object
 
     // Test Problem HTN
     ProblemHTN  htn_f = prob.problem_htn;
     BOOST_TEST(htn_f.problem_class == ":htn");
-    auto htn_para = htn_f.parameters;
-    BOOST_TEST(boost::get<PrimitiveType>(
-          htn_para.explicitly_typed_lists[0].type) == "location");
 
     // Test Problem HTN Subtasks (brief test only)
     std::vector<SubTask> htn_subtasks = boost::get<vector<SubTask>>(
@@ -297,10 +289,4 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     std::vector<Term> htn_sub_para = htn_id.subtask.parameters;
     BOOST_TEST(name(htn_sub_para[0]) == "package_0");
 
-    // Test Problem Goal
-    Sentence goal_f = prob.goal;
-    ConnectedSentence goal_s = boost::get<ConnectedSentence>(goal_f);
-    auto goal_1 = boost::get<Literal<Term>>(goal_s.sentences[0]);
-    BOOST_TEST(goal_1.predicate == "at");
-    BOOST_TEST(name(goal_1.args[1]) == "city_loc_2");
 }
