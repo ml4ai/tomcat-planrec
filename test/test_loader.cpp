@@ -5,9 +5,9 @@
 
 BOOST_AUTO_TEST_CASE(test_domain_loading) {
     // Test loading of domain definition and its components
+    auto [storage_domain,storage_problem] = load("../../test/storage_domain_test.hddl",
+                                            "../../test/storage_problem_test.hddl");
 
-
-    DomainDef storage_domain = loadDomain("../../test/storage_domain_test.hddl");
     BOOST_TEST(storage_domain.head == "domain_htn");
 
     BOOST_TEST(storage_domain.types.size() == 2);
@@ -93,3 +93,31 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
       }
     }
 }// end of testing the domain
+
+BOOST_AUTO_TEST_CASE(test_problem_loading) {
+    // Test loading of problem definition and its components
+    auto [storage_domain,storage_problem] = load("../../test/storage_domain_test.hddl",
+                                            "../../test/storage_problem_test.hddl");
+
+    BOOST_TEST(storage_problem.head == "delivery");
+    BOOST_TEST(storage_problem.domain_name == "domain_htn");
+    
+    BOOST_TEST(storage_problem.initF[7] == "(at truck_0 city_loc_2)");
+
+    BOOST_TEST(storage_problem.objects.size() == 8);
+
+    BOOST_TEST(storage_problem.objects["package_0"] == "package");
+
+    BOOST_TEST(storage_problem.initM.get_head() == ":htn");
+
+    BOOST_TEST(storage_problem.initM.get_subtasks()[0].first == "deliver");
+    BOOST_TEST(storage_problem.initM.get_subtasks()[0].second[0].first == "package_0");
+}
+
+BOOST_AUTO_TEST_CASE(test_action_apply) {
+    // Test loading of problem definition and its components
+    auto [storage_domain,storage_problem] = load("../../test/storage_domain_test.hddl",
+                                            "../../test/storage_problem_test.hddl");
+    KnowledgeBase kb;
+
+}
