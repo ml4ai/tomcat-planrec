@@ -505,6 +505,7 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
   }
   return subs;
 }
+
 Domain dom_loader(std::string dom_file) {
   fs::path filePath = dom_file;
   if (filePath.extension() == ".hddl") {
@@ -521,7 +522,7 @@ Domain dom_loader(std::string dom_file) {
   throw fs::filesystem_error(filePath.extension().string() + " is an invalid extension, only .hddl is a valid extension!",std::error_code());
 }
 
-DomainDef createDomainDef(Domain dom) {
+std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
   std::string name = dom.name; 
   std::unordered_map<std::string,std::vector<std::string>> types;
   for (auto const& t : dom.types.explicitly_typed_lists) {
@@ -661,10 +662,103 @@ DomainDef createDomainDef(Domain dom) {
 
     methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks));
   }
-  return DomainDef(name,types,predicates,constants,tasks,actions,methods);
+  auto DD = DomainDef(name,types,predicates,constants,tasks,actions,methods);
+  return std::make_pair(DD,ttypes);
 }
 
-DomainDef loadDomain(std::string dom_file) {
+std::pair<DomainDef,Tasktypes> loadDomain(std::string dom_file) {
   Domain dom = dom_loader(dom_file);
   return createDomainDef(dom);
+}
+
+Problem prob_loader(std::string prob_file) {
+  fs::path filePath = prob_file;
+  if (filePath.extension() == ".hddl") {
+    std::error_code ec;
+    bool exists = fs::exists(filePath,ec);
+    if (exists) {
+      std::ifstream f(prob_file);
+      std::string s_prob((std::istreambuf_iterator<char>(f)),
+                        (std::istreambuf_iterator<char>()));
+      return parse<Problem>(s_prob);
+    }
+    throw fs::filesystem_error("No file "+filePath.filename().string()+" found!",ec);
+  }
+  throw fs::filesystem_error(filePath.extension().string() + " is an invalid extension, only .hddl is a valid extension!",std::error_code());
+}
+
+ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
+  std::string head = prob.name;
+  std::string domain_name = prob.domain_name;
+
+  Objects objects;
+  for (auto const& o : prob.objects.explicitly_typed_lists) {
+    std::string type = boost::get<PrimitiveType>(o.type);
+    for (auto const& e : o.entries) {
+      objects[e] = type;
+    }
+  }
+  for (auto const& io : prob.objects.implicitly_typed_list) {
+    objects[io] = "__Object__";
+  }
+  
+  std::string m_name = prob.problem_htn.problem_class;
+  TaskDef task;
+  task.first = head;
+  task.second = {};
+  Params params;
+  for (auto const& p : prob.problem_htn.parameters.explicitly_typed_lists) {
+    std::string type = boost::get<PrimitiveType>(p.type);
+    for (auto const& e : p.entries) {
+      params.push_back(std::make_pair(e.name,type));
+    }
+  }
+  for (auto const& pt : prob.problem_htn.parameters.implicitly_typed_list) {
+    params.push_back(std::make_pair(pt.name,"__Object__"));
+  }
+  Preconds preconditions;
+  if (prob.problem_htn.task_network.constraints) {
+    std::string cs = decompose_constraints(*prob.problem_htn.task_network.constraints);
+    preconditions = cs;
+  }
+  else {
+    preconditions = "__NONE__";
+  }
+
+  TaskDefs subtasks;
+  if (prob.problem_htn.task_network.subtasks) {
+    subtasks = get_subtasks(prob.problem_htn.task_network.subtasks->subtasks,ttypes);    
+  }
+  
+  MethodDef initM = MethodDef(m_name,task,params,preconditions,subtasks);
+
+  std::vector<std::string> initF;
+  for (auto const& i : prob.init) {
+    std::string pred = "("+i.predicate;
+    for (auto const& a : i.args) {
+      pred += " "+a;
+    }
+    pred += ")";
+    initF.push_back(pred);
+  }
+  return ProblemDef(head,domain_name,objects,initM,initF);
+}
+
+ProblemDef loadProblem(std::string prob_file, Tasktypes ttypes) {
+  Problem prob = prob_loader(prob_file);
+  return createProblemDef(prob,ttypes);
+}
+
+std::pair<DomainDef, ProblemDef> load(std::string dom_file, std::string prob_file) {
+  auto dom = loadDomain(dom_file);
+  auto probDef = loadProblem(prob_file,dom.second);
+  if (dom.first.head == probDef.domain_name) {
+    return std::make_pair(dom.first,probDef);
+  }
+  throw std::invalid_argument("Loaded Domain Definition is for "+
+                              dom.first.head+
+                              ", but was given a Problem Definition "+
+                              probDef.head+
+                              " for Domain Definition "+
+                              probDef.domain_name+"!");
 }
