@@ -269,6 +269,7 @@ class MethodDef {
     TaskDefs subtasks;
 
   public:
+    MethodDef() {}
     MethodDef(std::string head, TaskDef task, Params parameters, Preconds preconditions, TaskDefs subtasks) {
       this->head = head;
       this->task = task;
@@ -377,3 +378,21 @@ struct DomainDef {
   }
 };
 
+struct ProblemDef {
+  std::string head;
+  std::string domain_name;
+  Objects objects;
+  MethodDef initM;
+  std::vector<std::string> initF;
+  ProblemDef(std::string head,
+             std::string domain_name,
+             Objects objects,
+             MethodDef initM,
+             std::vector<std::string> initF) {
+    this->head = head;
+    this->domain_name = domain_name;
+    this->objects = objects;
+    this->initM = initM;
+    this->initF = initF;
+  } 
+};
