@@ -524,15 +524,26 @@ Domain dom_loader(std::string dom_file) {
 
 std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
   std::string name = dom.name; 
-  std::unordered_map<std::string,std::vector<std::string>> types;
+  TypeTree typetree;
+  typetree.add_root("__Object__");
   for (auto const& t : dom.types.explicitly_typed_lists) {
     std::string type = boost::get<PrimitiveType>(t.type); 
+    if (typetree.find_type(type) == -1) {
+      typetree.add_child(type,"__Object__");  
+    }
     for (auto const& e : t.entries) {
-      types[type].push_back(e);
+      if (typetree.find_type(e) == -1) {
+        typetree.add_child(e,type);
+      }
+      else {
+        typetree.add_ancestor(e,type);
+      }
     }
   }
   for (auto const& it : dom.types.implicitly_typed_list) {
-    types["__Object__"].push_back(it);
+    if (typetree.find_type(it) == -1) {
+      typetree.add_child(it,"__Object__");
+    }
   }
 
   Predicates predicates;
@@ -662,7 +673,7 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
 
     methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks));
   }
-  auto DD = DomainDef(name,types,predicates,constants,tasks,actions,methods);
+  auto DD = DomainDef(name,typetree,predicates,constants,tasks,actions,methods);
   return std::make_pair(DD,ttypes);
 }
 
