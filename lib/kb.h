@@ -15,9 +15,9 @@ struct Type {
   //Name of type
   std::string type;
   //Indexes of the types lineage. 
-  std::vector<int> lineage;
+  std::unordered_set<int> lineage;
   //Indexes of the types children
-  std::vector<int> children;
+  std::unordered_set<int> children;
 };
 
 //TypeTree struct. This keeps track of the type inheritence hierarchy
@@ -42,6 +42,65 @@ struct TypeTree {
     types[id] = type;
     return id;
   }
+  //This clears tree and adds just the root type!
+  void add_root(std::string type) {
+    this->types.clear();
+    this->freedIDs.clear();
+    this->nextID = 0;
+    Type new_t;
+    new_t.type = type;
+    this->add_type(new_t);
+  }
+
+  void add_child(std::string type, std::string ancestor) {
+    Type new_t;
+    new_t.type = type;
+    int a = this->find_type(ancestor); 
+    new_t.lineage.insert(a);
+    for (auto i : this->types[a].lineage) {
+      new_t.lineage.insert(i);
+    }
+    int t = this->add_type(new_t);
+    this->types[a].children.insert(t);  
+  }
+
+  void add_ancestor(std::string type, std::string ancestor) {
+    int a = this->find_type(ancestor);
+    int i = this->find_type(type);
+    for (auto &[id,t] : this->types) {
+      if (t.children.contains(i)) {
+        t.children.erase(i); 
+        t.children.insert(a);
+        this->types[a].lineage.clear();
+        this->types[a].lineage.insert(id);
+        for (auto l : t.lineage) {
+          this->types[a].lineage.insert(l);
+        }
+      }
+    }
+    this->types[a].children.insert(i);
+    this->types[i].lineage.clear();
+    this->types[i].lineage.insert(a);
+    for (auto l : this->types[a].lineage) {
+      this->types[i].lineage.insert(l);
+    }
+    propogate_new_lineage(i);
+  }
+  //Helper function for add_ancestor
+  void propogate_new_lineage(int i) {
+    if (this->types[i].children.empty()) {
+      return;
+    }
+    for (auto const& c : this->types[i].children) {
+      this->types[c].lineage.clear();
+      this->types[c].lineage.insert(i);
+      for (auto l : this->types[i].lineage) {
+        this->types[c].lineage.insert(l);
+      }
+      propogate_new_lineage(c);
+    } 
+  }
+
   //Returns index of Type struct with name type
   int find_type(std::string type) {
     for (auto const &[i,t] : this->types) {
@@ -49,14 +108,11 @@ struct TypeTree {
         return i;
       }  
     }
-    std::string msg = "Type ";
-    msg += type;
-    msg += " not found!";
-    throw std::logic_error(msg);
+    return -1;
   }
 };
 
-int find_var(std::vector<std::pair<std::string,std::string>> vars, std::string var) {
+int find_var(std::vector<std::pair<std::string, std::string>> vars, std::string var) {
   for (int i = 0; i < vars.size(); i++) {
     if (vars[i].first == var) {
       return i;
@@ -69,14 +125,10 @@ int find_var(std::vector<std::pair<std::string,std::string>> vars, std::string v
 //statements, and then run initialize before using the kb!
 class KnowledgeBase {
     private:
-      //Tracks type hierarchy
-      TypeTree typetree;
-      //Tree index for root node.
-      int root; 
       //header,{{var1,type1},{var2,type2},...}
       std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> predicates;
       //constant, type
-      std::unordered_map<std::string, std::string> objects;
+      std::unordered_map<std::string,std::string> objects;
       //header, (header arg1 arg2 ...), ... 
       std::unordered_map<std::string, std::unordered_set<std::string>> facts;
       //belief state in smt form;
@@ -87,14 +139,14 @@ class KnowledgeBase {
       //by ask when given a collection of params.
       std::vector<std::vector<std::pair<std::string,std::string>>> 
       get_bindings(std::string F, 
-                  const std::vector<std::pair<std::string,std::string>>& variables) {
+                  const std::vector<std::pair<std::string, std::string>>& variables) {
         std::vector<std::vector<std::pair<std::string,std::string>>> results;
         z3::context con;
         z3::solver s(con);
         s.from_string(F.c_str());
         while (s.check() == z3::sat) {
           auto m = s.get_model();
-          std::vector<std::pair<std::string,std::string>> bindings = variables;
+          std::vector<std::pair<std::string, std::string>> bindings = variables;
           for (unsigned i = 0; i < m.size(); i++) {
             auto v = m[i];
             auto v_name = v.name().str();
@@ -140,62 +192,36 @@ class KnowledgeBase {
         return std::make_pair(predicate, symbols);
       }
 
-    public:
-      //Constructor initializes the default type __Object__ and adds an object
-      //predicate for it. 
-      KnowledgeBase() {
-        Type type;
-        type.type = "__Object__";
-        this->root = this->typetree.add_type(type);
-        this->add_predicate("__Object__",{std::make_pair("?o","__Object__")});
-      }
-      //Takes the predicate head (e.g., At). Parameters are given as a
-      //unordered map of {variable, type} (e.g., {?x, location})  
-      //Adding duplicate predicates will clear facts with that predicate head
-      //from the KB!
-      void add_predicate(std::string head,std::vector<std::pair<std::string,std::string>> params) {
-        this->predicates.push_back(std::make_pair(head,params));
-        this->facts[head] = {};
-      }
-      
-      //Arguments are name of the object and type (e.g., Room1 - location).
-      void add_object(std::string name, std::string type) {
-        this->objects[name] = type;
-      }
-      //Types by default inherit type __Object__. If a ancestor type is
-      //specified, the type will inherit that ancestor and the lineage of that
-      //ancestor (including __Object__). Automatically adds object predicates.
-      void add_type(std::string type, std::string ancestor = "__Object__") {
-        Type new_t;
-        new_t.type = type;
-        this->add_predicate(type,{std::make_pair("?o","__Object__")});
-        int a = this->typetree.find_type(ancestor); 
-        new_t.lineage.push_back(a);
-        if (ancestor != "__Object__") {
-          for (auto i : this->typetree.types[a].lineage) {
-            new_t.lineage.push_back(i);
-          }
-        }
-        int t = this->typetree.add_type(new_t);
-        this->typetree.types[a].children.push_back(t);
-      }
-
-   
       // Initializes the KBs belief state with
       // closed world assumption. Call ONCE after adding all of the needed types, objects, and
       // predicate or else all tell() and ask() calls will crash or fail!   
-      void initialize() {
+      void initialize(TypeTree typetree) {
+        for (auto const& [t1, t2] : typetree.types) {
+          std::vector<std::pair<std::string, std::string>> params;
+          params.push_back(std::make_pair("?o","__Object__"));
+          this->predicates.push_back(std::make_pair(t2.type,params));
+        }
         for (auto const& [o1,o2] : this->objects) {
-          int t = this->typetree.find_type(o2);
-          for (auto const& [t1,t2] : this->typetree.types) {
+          int t = typetree.find_type(o2);
+          for (auto const& [t1,t2] : typetree.types) {
             std::string f = "("+t2.type+" "+o1+")";
-            if (in(t1,this->typetree.types[t].lineage) ||
+            if (in(t1,typetree.types[t].lineage) ||
                 t2.type == o2) {
               this->facts[t2.type].insert(f);
             } 
           }
         }
         this->update_state();
+      }
+
+    public:
+      KnowledgeBase() {}
+      KnowledgeBase(std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> predicates,
+                    std::unordered_map<std::string,std::string> objects,
+                    TypeTree typetree) {
+        this->predicates = predicates;
+        this->objects = objects;
+        this->initialize(typetree);
       }
 
       //Used by tell to update the smt_state string. tell() calls this
@@ -311,7 +337,7 @@ class KnowledgeBase {
       //params = {{"?x", "thing"}}
       std::vector<std::vector<std::pair<std::string,std::string>>>
       ask(std::string expr,
-          std::vector<std::pair<std::string,std::string>>& params) {
+          std::vector<std::pair<std::string, std::string>>& params) {
         std::string smt_expr = this->smt_state;
         for (auto const& p : params) {
           smt_expr += "(declare-const "+p.first+" __Object__)\n";
@@ -339,6 +365,14 @@ class KnowledgeBase {
       //prints smt_state string
       void print_smt_state() {
         std::cout << this->smt_state << std::endl;
+      }
+
+      void print_facts() {
+        for (auto const& [_,fset] : this->facts) {
+          for (auto const& fact : fset) {
+            std::cout << fact << std::endl;
+          }
+        }
       }
 
 };
