@@ -10,9 +10,14 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
 
     BOOST_TEST(storage_domain.head == "domain_htn");
 
-    BOOST_TEST(storage_domain.types.size() == 2);
-    BOOST_TEST(storage_domain.types["object"].size() == 4);
-    BOOST_TEST(storage_domain.types["object"][0] == "capacity_number");
+    BOOST_TEST(storage_domain.typetree.types.size() == 8);
+    for (auto const& [id, t] : storage_domain.typetree.types) {
+      std::cout << t.type << "->["; 
+      for (auto const& c : t.children) {
+        std::cout << storage_domain.typetree.types[c].type << " "; 
+      }
+      std::cout << "]" << std::endl;
+    }
 
     BOOST_TEST(storage_domain.predicates.size() == 5);
     BOOST_TEST(storage_domain.predicates[2].first == "in");
@@ -118,6 +123,10 @@ BOOST_AUTO_TEST_CASE(test_action_apply) {
     // Test loading of problem definition and its components
     auto [storage_domain,storage_problem] = load("../../test/storage_domain_test.hddl",
                                             "../../test/storage_problem_test.hddl");
-    KnowledgeBase kb;
+    storage_problem.objects.merge(storage_domain.constants);
+    KnowledgeBase kb(storage_domain.predicates,storage_problem.objects,storage_domain.typetree);
+    std::cout << "#INITIAL FACTS#" << std::endl; 
+    kb.print_facts();
+
 
 }

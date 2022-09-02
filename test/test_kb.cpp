@@ -1,6 +1,7 @@
 #define BOOST_TEST_MODULE TestKB
 
 #include "kb.h"
+#include "typedefs.h"
 #include <boost/test/included/unit_test.hpp>
 
 using boost::unit_test::framework::master_test_suite;
@@ -9,31 +10,35 @@ using namespace ast;
 using namespace fol;
 
 BOOST_AUTO_TEST_CASE(test_kb) {
-    KnowledgeBase kb;
-    kb.add_type("target");
-    kb.add_type("capacity_number");
-    kb.add_type("location");
-    kb.add_type("locatable");
-    kb.add_type("package","locatable");
-    kb.add_type("vehicle","locatable");
+    TypeTree typetree;
+    std::string root = "__Object__";
+    typetree.add_root(root);
+    typetree.add_child("target",root);
+    typetree.add_child("capacity_number",root);
+    typetree.add_child("location",root);
+    typetree.add_child("locatable",root);
+    typetree.add_child("package","locatable");
+    typetree.add_child("vehicle","locatable");
 
-    kb.add_object("package_0","package");
-    kb.add_object("package_1","package");
-    kb.add_object("capacity_0","capacity_number");
-    kb.add_object("capacity_1","capacity_number");
-    kb.add_object("city_loc_0","location");
-    kb.add_object("city_loc_1","location");
-    kb.add_object("city_loc_2","location");
-    kb.add_object("truck_0","vehicle");
-    kb.add_object("surprise","package");
+    Objects objects;
+    objects["package_0"] = "package";
+    objects["package_1"] = "package";
+    objects["capacity_0"] = "capacity_number";
+    objects["capacity_1"] = "capacity_number";
+    objects["city_loc_0"] = "location";
+    objects["city_loc_1"] = "location";
+    objects["city_loc_2"] = "location";
+    objects["truck_0"] = "vehicle";
+    objects["surprise"] = "package";
 
-    kb.add_predicate("road",{std::make_pair("?arg0","location"),std::make_pair("?arg1","location")});
-    kb.add_predicate("at",{std::make_pair("?arg0","locatable"),std::make_pair("?arg1","location")});
-    kb.add_predicate("in",{std::make_pair("?arg0","package"),std::make_pair("?arg1","vehicle")});
-    kb.add_predicate("capacity",{std::make_pair("?arg0","vehicle"),std::make_pair("?arg1","capacity_number")});
-    kb.add_predicate("capacity_predecessor",{std::make_pair("?arg0","capacity_number"),std::make_pair("?arg1","capacity_number")});
+    Predicates predicates;
+    predicates.push_back(create_predicate("road",{std::make_pair("?arg0","location"),std::make_pair("?arg1","location")}));
+    predicates.push_back(create_predicate("at",{std::make_pair("?arg0","locatable"),std::make_pair("?arg1","location")}));
+    predicates.push_back(create_predicate("in",{std::make_pair("?arg0","package"),std::make_pair("?arg1","vehicle")}));
+    predicates.push_back(create_predicate("capacity",{std::make_pair("?arg0","vehicle"),std::make_pair("?arg1","capacity_number")}));
+    predicates.push_back(create_predicate("capacity_predecessor",{std::make_pair("?arg0","capacity_number"),std::make_pair("?arg1","capacity_number")}));
 
-    kb.initialize();
+    KnowledgeBase kb(predicates,objects,typetree);
 
     BOOST_TEST(kb.tell("(capacity_predecessor capacity_0 capacity_1)",false,false));   
 
