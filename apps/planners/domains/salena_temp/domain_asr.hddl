@@ -50,8 +50,8 @@
         )
 
     (:method partially-ordered-wake
-        :parameters()
-        :task (wakeCritical ?qu ?c ?l)
+        :parameters (?qu ?an - player ?loc ?dest - location ?c - critical)
+        :task (wakeCritical ?qu ?c ?loc)
         :subtasks (and (t1 (clarify-critical-location ?qu ?c ?loc ?dest))
                        (t2 (request-destination ?qu ?an ?loc ?dest))
                        (t3 (clarify-location-repeat ?loc))
