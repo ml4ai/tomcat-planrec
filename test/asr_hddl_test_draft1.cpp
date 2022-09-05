@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 
     ; player intention to wake a critical victim
     (:task wake-critical
-        :parameters(?p - player ?c - critical ?l - location)
+        :parameters (?p - player ?c - critical ?l - location)
         )
 
     ; player intention to carry stabilized victims to sick bays
@@ -207,22 +207,22 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 
     (:method ordered-carry-stabilized
         :parameters()
-        :task(collaborate-carry-stabilized ?p ?v ?loc ?mark)
-        :ordered_subtasks(and (request-marker ?qu ?an ?v ?mark ?loc)
-                              (request-carry-stabilized ?qu ?v ?loc))
+        :task (collaborate-carry-stabilized ?p ?v ?loc ?mark)
+        :ordered_subtasks (and (request-marker ?qu ?an ?v ?mark ?loc)
+                               (request-carry-stabilized ?qu ?v ?loc))
         )
 
     (:method ordered-wake
-        :parameters(?qu ?an - player)
-        :task(wake-critical ?qu ?c ?l)
-        :ordered_subtasks(and (clarify-location-effect ?qu ?c ?loc ?dest)
-                              (request-destination ?qu ?an ?loc ?dest)
-                              (wake-critical ?qu ?an ?c ?dest))
+        :parameters (?qu ?an - player)
+        :task (wake-critical ?qu ?c ?l)
+        :ordered_subtasks (and (clarify-location-effect ?qu ?c ?loc ?dest)
+                               (request-destination ?qu ?an ?loc ?dest)
+                               (wake-critical ?qu ?an ?c ?dest))
         )
 
     (:method partially-ordered-wake
         :parameters()
-        :task(wakeCritical ?qu ?c ?l)
+        :task (wakeCritical ?qu ?c ?l)
         :subtasks (and (t1 (clarify-critical-location ?qu ?c ?loc ?dest))
                        (t2 (request-destination ?qu ?an ?loc ?dest))
                        (t3 (clarify-location-repeat ?loc))
@@ -237,89 +237,89 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
         ; thing as clarify-stabilized-status or clarify-victim-status. Those two
         ; are verbal requests for clarification, not the request of placing markers
     (:action request-marker
-      ;parameters(?qu ?an - player ?v - victim ?mark - marker ?loc - location)
-      :precondition(and (at ?v ?loc) (not(is_marked ?mark ?loc)))
-      :effect(is_marked ?v ?mark ?loc)
+      ;parameters (?qu ?an - player ?v - victim ?mark - marker ?loc - location)
+      :precondition (and (at ?v ?loc) (not(is_marked ?mark ?loc)))
+      :effect (is_marked ?v ?mark ?loc)
       )
 
     ;clarify-stabilized-status is an action that will execute for any type of stabilized victim
     (:action clarify-stabilized-status
-      ;parameters(?p - player ?v - victim ?mark -marker ?loc - location)
-      :precondition(and (is_marked ?v ?mark ?loc)
-                        (stabilized ?v)
-                        (not( can_be_carried ?v ?loc)
-                            (saved ?s)))
-      :effect(and (can_be_carried ?v ?loc)
-                  (at ?p ?loc))
+      ;parameters (?p - player ?v - victim ?mark -marker ?loc - location)
+      :precondition (and (is_marked ?v ?mark ?loc)
+                         (stabilized ?v)
+                         (not( can_be_carried ?v ?loc)
+                             (saved ?s)))
+      :effect (and (can_be_carried ?v ?loc)
+                   (at ?p ?loc))
       )
 
     ;clarify-status-victim is an action that will execute for any type of unstabilized victim
     (:action clarify-status-victim
-      ;parameters(?v - victim ?mark ?loc - location)
-      :precondition(and (not (saved ?v)
-                             (stabilized ?st))
-                        (and (can_be_carried ?v ?loc)))
-      :effect(can_be_carried ?v ?loc)
+      ;parameters (?v - victim ?mark ?loc - location)
+      :precondition (and (not (saved ?v)
+                              (stabilized ?st))
+                         (and (can_be_carried ?v ?loc)))
+      :effect (can_be_carried ?v ?loc)
       )
 
     ; request-carry-stabilized is a verbal request to carry healed victims to their proper bay
     ; can-be-carried remains in effect because it sometimes leads to status clarification again!
     (:action request-carry-stabilized
-      ;parameters(?p - player ?v - victim ?loc - location)
-      :precondition(and (can_be_carried ?v - victim ?loc - location)
+      ;parameters (?p - player ?v - victim ?loc - location)
+      :precondition (and (can_be_carried ?v - victim ?loc - location)
                         (stabilized ?st)
                         (not (saved ?v)))
-      :effect(and (carried ?p ?v ?loc)
-                  (at ?v ?loc)
-                  (at ?p ?loc))
+      :effect (and (carried ?p ?v ?loc)
+                   (at ?v ?loc)
+                   (at ?p ?loc))
       )
 
       
     ; request-destination is when one player asks another player to go to a specific location
     (:action request-destination
-      :parameters(?qu ?an - player ?loc ?dest - location)
-      :precondition(and ( at ?qu ?dest)(at ?an ?loc)(not (at ?an ?dest)))
-      :effect(and(at ?an ?dest)(not(at ?an ?loc))(not(in ?loc)))
+      :parameters (?qu ?an - player ?loc ?dest - location)
+      :precondition (and ( at ?qu ?dest)(at ?an ?loc)(not (at ?an ?dest)))
+      :effect (and(at ?an ?dest)(not(at ?an ?loc))(not(in ?loc)))
       )
 
     ; ask-location-teammate is when one player asks the location of another teammate, but does
         ; not request for them to go elsewhere
     (:action ask-locatin-teammate
-      :parameters(?qu ?an - player ?loc ?dest - location)
-      :precondition(at ?qu ?dest)
-      :effect(and (not( at ?an ?dest)(at ?an ?loc)))
+      :parameters (?qu ?an - player ?loc ?dest - location)
+      :precondition (at ?qu ?dest)
+      :effect (and (not( at ?an ?dest)(at ?an ?loc)))
       )
 
     ; used for clearing areas; however, many times players will not clarify, so this action
         ; is repeated half the time. This is shown as 'no effect'.
     (:action clarify-location-repeat
-      :parameters(?loc - location)
-      :precondition(not (in ?loc))
+      :parameters (?loc - location)
+      :precondition (not (in ?loc))
       :effect()
       )
 
     (:action clarify-location-effect
-      :parameters(?loc - location)
-      :precondition(not (in ?loc))
-      :effect(in ?loc)
+      :parameters (?loc - location)
+      :precondition (not (in ?loc))
+      :effect (in ?loc)
       )
 
     (:action clarify-critical-location
-      :parameters(?qu - player ?c - critical ?loc ?dest - location)
+      :parameters (?qu - player ?c - critical ?loc ?dest - location)
       :precondition()
-      :effect(and (at (?qu ?dest)(found ?c ?loc)))
+      :effect (and (at (?qu ?dest)(found ?c ?loc)))
       )
 
     (:action wake-critical
-      :parameters(?p1 ?p2 - player ?c - critical ?dest - location)
-      :precondition(and (at ?an ?dest)( at ?qu ?dest)(found ? ?dest))
-      :effect(awake ?c ?loc)
+      :parameters (?p1 ?p2 - player ?c - critical ?dest - location)
+      :precondition (and (at ?an ?dest)( at ?qu ?dest)(found ? ?dest))
+      :effect (awake ?c ?loc)
       )
 
     (:action save-critical
-      :parameters(?c - critical ?p - player ?loc - location)
-      :precondition(and (awake ?c ?loc)(is_medic ?p ?loc))
-      :effect(saved ?c)
+      :parameters (?c - critical ?p - player ?loc - location)
+      :precondition (and (awake ?c ?loc)(is_medic ?p ?loc))
+      :effect (saved ?c)
       )
 
   ); end domain definition

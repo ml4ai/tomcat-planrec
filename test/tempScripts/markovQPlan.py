@@ -47,27 +47,27 @@ print("New toyI:", toyI, hrule)
 # The data suggest that the probability of starting in 9, 8, or 4 are
 # respectively 0.5, 0.33 or 0.16.
 # See bottom of file for definitions of these task numbers
-I = numpy.matrix([[0.55, 0.33, 0.16, 0, 0]])
+print("[[clarCritLoc, reqDest, askLocTeammate, wakeCrit, clarLoc]]\n\n")
+I = numpy.matrix([[0.55, 0.33, 0.17, 0, 0]])
 
-T = numpy.matrix([[0, 1, 0, 0, 0],
-            [0.2, 0, 0, 0.2, 0.6],
-            [0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0.5, 0, 0, 0.5]])
+T = numpy.matrix([[0, 1, 0, 0, 0], # clarifyCriticalLocation
+            [0.2, 0, 0, 0.2, 0.6], # requestDestination
+            [0, 1, 0, 0, 0],       # askLocationTeammate
+            [0, 0, 0, 1, 0],       # wakeCritical
+            [0, 0.5, 0, 0.3, 0.2]])  # clarifyLocation
 
 print("Data-driven Domain Definition of Critical Wake\n\nT:", T)
+print(hrule, "Initial State:\n\n", I)
 
 for i in range(0, 10):
-    print("I:", I)
+    print("i:", i)
     prob = I * T
-    print("prob:", prob)
     final = prob
-    print("final:", final)
     I = prob
     print("New I:", I)
     print(hrule)
 
-
+print("[[clarCritLoc, reqDest, askLocTeammate, wakeCrit, clarLoc]]\n\n")
 
 """
 Description of Tasks that create the method "Critical Wake"
@@ -75,6 +75,6 @@ Description of Tasks that create the method "Critical Wake"
 Task 9: clarifyCriticalLocation
 Task 8: requestDestination
 Task 4: askLocationTeammate
-Task 18: clarifyThreatroom or askThreatroom
+Task 18: wakeCritical
 Task 5: clarifyLocation (of anything, not just victims)
 """
