@@ -51,9 +51,9 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     std::cout << methodprec_complex << std::endl;
     std::cout << std::endl;
 
-    // Test Parsing Method's SubTasks:
-    BOOST_TEST(storage_domain.methods["deliver"][0].get_subtasks()[2].first == "get_to");
-    BOOST_TEST(storage_domain.methods["deliver"][0].get_subtasks()[2].second[1].first == "l2");
+    // Test Parsing Method's SubTasks (in reverse order for planner):
+    BOOST_TEST(storage_domain.methods["deliver"][0].get_subtasks()[2].first == "load");
+    BOOST_TEST(storage_domain.methods["deliver"][0].get_subtasks()[2].second[1].first == "l1");
 
     // Test parsing of domain actions and their components:
     // Test parsing action names
@@ -77,6 +77,9 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     BOOST_TEST(effects[0].pred.first == "at");
     BOOST_TEST(effects[0].pred.second[0].first == "v");
     BOOST_TEST(effects[0].remove == true);
+
+    auto no_effects = storage_domain.actions.at("noop").get_effects();
+    BOOST_TEST(no_effects.size() == 0);
 
     std::cout <<"#TESTING COMPLEX EFFECTS#" << std::endl;
     auto effects_complex = storage_domain.actions.at("test_action").get_effects();
@@ -116,17 +119,72 @@ BOOST_AUTO_TEST_CASE(test_problem_loading) {
     BOOST_TEST(storage_problem.initM.get_head() == ":htn");
 
     BOOST_TEST(storage_problem.initM.get_subtasks()[0].first == "deliver");
-    BOOST_TEST(storage_problem.initM.get_subtasks()[0].second[0].first == "package_0");
+    BOOST_TEST(storage_problem.initM.get_subtasks()[0].second[0].first == "package_1");
 }
 
-BOOST_AUTO_TEST_CASE(test_action_apply) {
+BOOST_AUTO_TEST_CASE(test_apply) {
     // Test loading of problem definition and its components
     auto [storage_domain,storage_problem] = load("../../test/storage_domain_test.hddl",
                                             "../../test/storage_problem_test.hddl");
-    storage_problem.objects.merge(storage_domain.constants);
     KnowledgeBase kb(storage_domain.predicates,storage_problem.objects,storage_domain.typetree);
-    std::cout << "#INITIAL FACTS#" << std::endl; 
+    std::cout << std::endl;
+    std::cout << "#ONLY OBJECT FACTS#" << std::endl; 
     kb.print_facts();
+    BOOST_TEST(kb.get_facts("vehicle").contains("(vehicle truck_0)"));
+    auto actions = storage_domain.actions;
+    //test unmet preconditions
+    auto no_act = actions.at("drive").apply(kb,
+        {std::make_pair("v","truck_0"),std::make_pair("l1","city_loc_2"),std::make_pair("l2","city_loc_1")});
+    BOOST_TEST(no_act.second.empty());
 
+    for (auto const& f : storage_problem.initF) {
+      kb.tell(f,false,false);
+    }
+    kb.update_state();
+    std::cout << std::endl;
+    std::cout << "#INITIAL FACTS#" << std::endl;
+    kb.print_facts();
+    BOOST_TEST(kb.get_facts("road").contains("(road city_loc_2 city_loc_1)"));
+
+    //test action apply
+    auto drive_act = actions.at("drive").apply(kb,
+        {std::make_pair("v","truck_0"),std::make_pair("l1","city_loc_2"),std::make_pair("l2","city_loc_1")});
+    BOOST_TEST(drive_act.first == "(drive truck_0 city_loc_2 city_loc_1)");
+    BOOST_TEST(drive_act.second.size() == 1);
+    std::cout << std::endl;
+    std::cout << "#FACTS AFTER DRIVE#" << std::endl;
+    drive_act.second[0].print_facts();
+    std::cout << std::endl;
+    BOOST_TEST(drive_act.second[0].get_facts("at").contains("(at truck_0 city_loc_1)"));
+    BOOST_TEST(!drive_act.second[0].get_facts("at").contains("(at truck_0 city_loc_2)"));
+
+    //test method apply
+    auto deliver_method = storage_domain.methods["deliver"][0].apply(kb,
+        {std::make_pair("p","package_0"),std::make_pair("l2","city_loc_2")});
+    BOOST_TEST(deliver_method.first == "(deliver package_0 city_loc_2)");
+    std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
+    for (auto const& gts : deliver_method.second) {
+      for (auto const& gt : gts) {
+        std::cout << "(" << gt.first;
+        for (auto const& a : gt.second) {
+          std::cout << " " << a.second;
+        }
+        std::cout << ")" << std::endl;
+      }
+      std::cout << std::endl;
+    }
+
+    auto init_method = storage_problem.initM.apply(kb,{});
+    std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
+    for (auto const& gts : init_method.second) {
+      for (auto const& gt : gts) {
+        std::cout << "(" << gt.first;
+        for (auto const& a : gt.second) {
+          std::cout << " " << a.second;
+        }
+        std::cout << ")" << std::endl;
+      }
+      std::cout << std::endl;
+    }
 
 }
