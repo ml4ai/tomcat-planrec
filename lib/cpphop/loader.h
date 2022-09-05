@@ -699,7 +699,7 @@ Problem prob_loader(std::string prob_file) {
 }
 
 ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
-  std::string head = prob.name;
+  std::string head = "__"+prob.name+"__";
   std::string domain_name = prob.domain_name;
 
   Objects objects;
@@ -764,6 +764,8 @@ std::pair<DomainDef, ProblemDef> load(std::string dom_file, std::string prob_fil
   auto dom = loadDomain(dom_file);
   auto probDef = loadProblem(prob_file,dom.second);
   if (dom.first.head == probDef.domain_name) {
+    dom.first.methods[probDef.initM.get_task().first].push_back(probDef.initM);
+    probDef.objects.merge(dom.first.constants);
     return std::make_pair(dom.first,probDef);
   }
   throw std::invalid_argument("Loaded Domain Definition is for "+
