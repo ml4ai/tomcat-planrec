@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../util.h"
-#include "typedefs.h"
-#include "printing.h"
+#include "../typedefs.h"
+//#include "printing.h"
 #include <any>
 #include <iostream>
 #include <optional>
@@ -11,25 +11,25 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <limits>
 
-template <class State>
 struct pNode {
-    State state;
-    Tasks tasks;
-    cTasks cplan;
+    KnowledgeBase state;
+    Grounded_Tasks tasks;
+    std::vector<std::string> plan;
     int depth;
     double mean = 0.0;
     int sims = 0;
     int pred = -1;
+    bool deadend = false;
     std::vector<int> successors = {};
 };
 
-template <class State>
 struct pTree {
-  std::unordered_map<int,pNode<State>> nodes;
+  std::unordered_map<int,pNode> nodes;
   int nextID = 0;
   std::vector<int> freedIDs;
-  int add_node(pNode<State>& n) {
+  int add_node(pNode& n) {
     int id;
     if (!freedIDs.empty()) {
       id = freedIDs.back();
@@ -50,22 +50,24 @@ struct pTree {
   }
 };
 
-template <class State>
 int
-cselection(pTree<State>& t,
+cselection(pTree& t,
           int v,
           double eps,
-          int seed = 4021) {
+          std::mt19937_64& g) {
 
-    std::mt19937 gen(seed);
     std::uniform_real_distribution<> dis(0.0,1.0);
+    int original = v;
     while (!t.nodes[v].successors.empty()) {
-      double e = dis(gen);
+      if (t.nodes[v].deadend) {
+        return v;
+      }
+      double e = dis(g);
       if (e > eps) {
-        std::vector<double> r_maxes = {};
-        r_maxes.push_back(t.nodes[v].successors.front());
-        double r_max = t.nodes[r_maxes.back()].mean;
-        for (auto const & w : t.nodes[v].successors) {
+        std::vector<int> r_maxes = {};
+        double r_max = -std::numeric_limits<double>::infinity();
+        for (auto const &w : t.nodes[v].successors) {
+          if (!t.nodes[w].deadend) {
             if (t.nodes[w].sims == 0) {
               return w;
             }
@@ -80,8 +82,14 @@ cselection(pTree<State>& t,
                 r_maxes.push_back(w);
               }
             }
+          }
         }
-        std::vector<double> v_maxes = {};
+        if (r_maxes.empty()) {
+          t.nodes[v].deadend = true;
+          v = original;
+          continue;
+        }
+        std::vector<int> v_maxes = {};
         v_maxes.push_back(r_maxes.front());
         int v_max = t.nodes[v_maxes.back()].sims;
         for (auto const &w : r_maxes) {
@@ -97,26 +105,30 @@ cselection(pTree<State>& t,
             }
           }
         }
-        seed++;
-        v = *select_randomly(v_maxes.begin(), v_maxes.end(), seed);
-        seed++;
+        v = *select_randomly(v_maxes.begin(), v_maxes.end(), g);
       }
       else {
+        bool all_deadends = true;
         for (auto const &w : t.nodes[v].successors) {
-          if (t.nodes[w].sims == 0) {
-            return w;
+          if (!t.nodes[w].deadend) {
+            if (t.nodes[w].sims == 0) {
+              return w;
+            }
+            all_deadends = false;
           }
         }
-        seed++;
-        v = *select_randomly(t.nodes[v].successors.begin(), t.nodes[v].successors.end(), seed);
-        seed++;
+        if (all_deadends) {
+          t.nodes[v].deadend = true;
+          v = original;
+          continue;
+        }
+        v = *select_randomly(t.nodes[v].successors.begin(), t.nodes[v].successors.end(), g);
       }
     }
     return v;
 }
 
-template <class State>
-void cbackprop(pTree<State>& t, int n, double r) {
+void cbackprop(pTree& t, int n, double r) {
   do {
     if (t.nodes[n].successors.empty()) {
       t.nodes[n].mean = r;
@@ -132,150 +144,144 @@ void cbackprop(pTree<State>& t, int n, double r) {
   return;
 }
 
-template <class State, class Domain>
 double
 csimulation(int horizon,
-           State state,
-           Tasks tasks,
-           Domain& domain,
-           int seed) {
-
-    int h = 0;
-    while (!tasks.empty() && h < horizon) {
-      Task task = tasks.back();
-
-      if (in(task.task_id, domain.operators)) {
-          Operator<State> op = domain.operators[task.task_id];
-          std::optional<State> newstate = op(state, task.args);
-          if (newstate) {
-              tasks.pop_back();
-              seed++;
-              state = newstate.value();
-              h++;
-              continue;
-          }
-          return 0.0;
-      }
-
-      if (in(task.task_id, domain.cmethods)) {
-          auto relevant = domain.cmethods[task.task_id];
-          std::vector<cTasks> c = {};
-          for (auto const &cmethod : relevant) {
-              cTasks subtasks = cmethod(state, task.args);
-              if (subtasks.first != "NIL") {
-                c.push_back(subtasks);
-              }
-          }
-          seed++;
-          if (c.empty()) {
-            return 0.0;
-          }
-          cTasks r = *select_randomly(c.begin(), c.end(), seed);
-          seed++;
-          tasks.pop_back();
-          for (auto i = r.second.end();
-              i != r.second.begin();) {
-            tasks.push_back(*(--i));
-          }
-          h++;
-          continue;
-      }
-      std::string message = "Invalid task ";
-      message += task.task_id;
-      message += " during simulation!";
-      throw std::logic_error(message);
-    }
+           KnowledgeBase state,
+           Grounded_Tasks tasks,
+           DomainDef& domain,
+           std::mt19937_64& g,
+           int h = 0) {
+  if (tasks.empty() || h >= horizon) {
     return domain.score(state);
+  }
+  Grounded_Task task = tasks.back();
+  h++;
+  if (domain.actions.contains(task.first)) {
+    auto act = domain.actions.at(task.first).apply(state,task.second);
+    if (!act.second.empty()) {
+      std::shuffle(act.second.begin(),act.second.end(),g);
+      tasks.pop_back();
+      for (auto &ns : act.second) {
+        ns.update_state();
+        double rs = csimulation(horizon,ns,tasks,domain,g,h);
+        if (rs > -1.0) {
+          return rs;
+        }
+      }
+    }
+    return -1.0;
+  }
+
+  if (domain.methods.contains(task.first)) {
+    auto task_methods = domain.methods[task.first];
+    std::shuffle(task_methods.begin(),task_methods.end(),g);
+    for (auto &m : task_methods) {
+      auto all_gts = m.apply(state,task.second);
+      if (!all_gts.second.empty()) {
+        std::shuffle(all_gts.second.begin(),all_gts.second.end(),g);
+        tasks.pop_back();
+        for (auto const& gts : all_gts.second) {
+          tasks = merge_vec(tasks,gts);
+          double rs = csimulation(horizon,state,tasks,domain,g,h);
+          if (rs > -1.0) {
+            return rs;
+          }
+        }
+      }
+    }
+    return -1.0;
+  }
+  std::string message = "Invalid task ";
+  message += task.first;
+  message += " during simulation!";
+  throw std::logic_error(message);
 }
 
-template <class State, class Domain>
-int cexpansion(pTree<State>& t,
+int cexpansion(pTree& t,
               int n,
-              Domain& domain,
-              int seed = 4021) {
-
-    Task task = t.nodes[n].tasks.back();
-    if (in(task.task_id, domain.operators)) {
-        Operator<State> op = domain.operators[task.task_id];
-        std::optional<State> newstate = op(t.nodes[n].state, task.args);
-        if (newstate) {
-            pNode<State> v;
-            v.state = newstate.value();
-            v.tasks = t.nodes[n].tasks;
-            v.tasks.pop_back();
-            v.depth = t.nodes[n].depth + 1;
-            v.cplan = t.nodes[n].cplan;
-            v.cplan.second.push_back(task);
-            v.pred = n;
-            int w = t.add_node(v);
-            t.nodes[n].successors.push_back(w);
-            return w;
+              DomainDef& domain,
+              std::mt19937_64& g) {
+    Grounded_Task task = t.nodes[n].tasks.back();
+    if (domain.actions.contains(task.first)) {
+      auto act = domain.actions.at(task.first).apply(t.nodes[n].state,task.second);
+      if (!act.second.empty()) {
+        std::vector<int> a;
+        for (auto const& state : act.second) {
+          pNode v;
+          v.state = state;
+          v.state.update_state();
+          v.tasks = t.nodes[n].tasks;
+          v.tasks.pop_back();
+          v.depth = t.nodes[n].depth + 1;
+          v.plan = t.nodes[n].plan;
+          v.plan.push_back(act.first);
+          v.pred = n;
+          int w = t.add_node(v);
+          t.nodes[n].successors.push_back(w);
+          a.push_back(w);
         }
-        std::string message = task.task_id;
-        message += " preconditions failed during expansion!";
-        throw std::logic_error(
-            message);
+        int r = *select_randomly(a.begin(), a.end(), g);
+        return r;
+      }
+      t.nodes[n].deadend = true;
+      return n;
     }
 
-    if (in(task.task_id, domain.cmethods)) {
-        auto relevant = domain.cmethods[task.task_id];
-        std::vector<int> c = {};
-        for (auto const &cmethod : relevant) {
-          cTasks subtasks = cmethod(t.nodes[n].state,task.args);
-          if (subtasks.first != "NIL") {
-            pNode<State> v;
-            v.state = t.nodes[n].state;
-            v.tasks = t.nodes[n].tasks;
-            v.tasks.pop_back();
-            v.depth = t.nodes[n].depth + 1;
-            v.cplan = t.nodes[n].cplan;
-            for (auto i = subtasks.second.end();
-                i != subtasks.second.begin();) {
-              v.tasks.push_back(*(--i));
-            }
-            v.pred = n;
-            int w = t.add_node(v);
-            t.nodes[n].successors.push_back(w);
-            c.push_back(w);
-          }
+    if (domain.methods.contains(task.first)) {
+      std::vector<int> choices;
+      for (auto &m : domain.methods[task.first]) {
+        auto gts = m.apply(t.nodes[n].state,task.second);
+        for (auto const& g : gts.second) { 
+          pNode v;
+          v.state = t.nodes[n].state;
+          v.tasks = t.nodes[n].tasks;
+          v.tasks.pop_back();
+          v.depth = t.nodes[n].depth + 1;
+          v.plan = t.nodes[n].plan;
+          v.tasks = merge_vec(v.tasks,g);
+          v.pred = n;
+          int w = t.add_node(v);
+          t.nodes[n].successors.push_back(w);
+          choices.push_back(w);
         }
-        seed++;
-        if (c.empty()) {   
-          std::cout << task.task_id << std::endl;
-          return n;
-        }
-        int r = *select_randomly(c.begin(), c.end(), seed);
-        return r;
+      }
+      if (choices.empty()) {
+        t.nodes[n].deadend = true;
+        return n;
+      }
+      int r = *select_randomly(choices.begin(), choices.end(), g);
+      return r;
     }
     throw std::logic_error("Invalid task during expansion!");
 }
 
-template <class State, class Domain>
-cTasks
-cseek_planMCTS(pTree<State>& t,
+std::vector<std::string>
+cseek_planMCTS(pTree& t,
                  int v,
-                 Domain& domain,
-                 int R = 30,
-                 int plan_size = -1,
-                 double eps = 0.4,
-                 int seed = 4021,
-                 int aux_R = 10) {
+                 DomainDef& domain,
+                 int R,
+                 int plan_size,
+                 double eps,
+                 std::mt19937_64& g) {
 
-  std::mt19937 gen(seed);
   std::negative_binomial_distribution<int> nbd(50,0.75);
+  int prev_v;
   while (!t.nodes[v].tasks.empty()) {
-    pTree<State> m;
-    pNode<State> n_node;
+    pTree m;
+    pNode n_node;
     n_node.state = t.nodes[v].state;
     n_node.tasks = t.nodes[v].tasks;
     n_node.depth = t.nodes[v].depth;
-    n_node.cplan = t.nodes[v].cplan;
+    n_node.plan = t.nodes[v].plan;
+    std::cout << "Plan:";
+    for (auto const& p : n_node.plan) {
+      std::cout << " " << p;
+    }
+    std::cout << std::endl;
     int w = m.add_node(n_node);
-    int aux = aux_R;
-    int hzn = nbd(gen);
+    int hzn = nbd(g);
     for (int i = 0; i < R; i++) {
-      int n = cselection(m,w,eps,seed);
-      seed++;
+      int n = cselection(m,w,eps,g);
       if (m.nodes[n].tasks.empty()) {
           cbackprop(m,n,domain.score(m.nodes[n].state));
       }
@@ -284,75 +290,83 @@ cseek_planMCTS(pTree<State>& t,
           auto r = csimulation(hzn,
                                m.nodes[n].state, 
                                m.nodes[n].tasks, 
-                               domain, 
-                               seed);
-          seed++;
+                               domain,
+                               g);
+          if (r == -1.0) {
+            m.nodes[n].deadend = true;
+          }
           cbackprop(m,n,r);
         }
         else {
-          int n_p = cexpansion(m,n,domain,seed);
-          if (n_p == n) {
-            if (aux == 0) {
-              throw std::logic_error("Out of auxiliary resources, shutting down!");   
-            }
-            aux--;
-            i--;
-          }
-          else {
-            aux = aux_R;
-          }
-          seed++;
+          int n_p = cexpansion(m,n,domain,g);
           auto r = csimulation(hzn,
                                m.nodes[n_p].state, 
                                m.nodes[n_p].tasks, 
-                               domain, 
-                               seed);
-          seed++;
+                               domain,
+                               g);
+          if (r == -1.0) {
+            m.nodes[n_p].deadend = true;
+          }
           cbackprop(m,n_p,r);
         }
       }
     }
-
-    int arg_max = m.nodes[w].successors.front();
-    double max = m.nodes[arg_max].mean;
-    for (auto const &s : m.nodes[w].successors) {
-        double mean = m.nodes[s].mean;
-        if (mean > max) {
-            max = mean;
-            arg_max = s;
-        }
+    if (m.nodes[w].successors.empty()) {
+      continue;
     }
-
-    pNode<State> k;
+    std::vector<int> arg_maxes = {};
+    double max = -std::numeric_limits<double>::infinity();
+    for (auto const &s : m.nodes[w].successors) {
+      if (!m.nodes[s].deadend) {
+        double mean = m.nodes[s].mean;
+        if (mean >= max) {
+          if (mean > max) {
+            max = mean;
+            arg_maxes.clear();
+            arg_maxes.push_back(s);
+          }
+          else {
+            arg_maxes.push_back(s); 
+          }
+        }
+      }
+    }
+    if (arg_maxes.empty() || max == -1.0) {
+      continue;
+    }
+    int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
+    pNode k;
     k.state = m.nodes[arg_max].state;
     k.tasks = m.nodes[arg_max].tasks;
-    k.cplan = m.nodes[arg_max].cplan;
+    k.plan = m.nodes[arg_max].plan;
+
     k.depth = t.nodes[v].depth + 1;
     k.pred = v;
     int y = t.add_node(k);
     t.nodes[v].successors.push_back(y);
-    seed++;
     v = y;
-    if (t.nodes[v].cplan.second.size() >= plan_size && plan_size != -1) {
+    if (t.nodes[v].plan.size() >= plan_size && plan_size != -1) {
       break;
     }
       
     bool plan_break = false;
     while (m.nodes[arg_max].successors.size() == 1) {
+      if (m.nodes[arg_max].deadend) {
+        continue;
+      }
       arg_max = m.nodes[arg_max].successors.front();
 
-      pNode<State> j;
+      pNode j;
       j.state = m.nodes[arg_max].state;
       j.tasks = m.nodes[arg_max].tasks;
-      j.cplan = m.nodes[arg_max].cplan;
+      j.plan = m.nodes[arg_max].plan;
       j.depth = t.nodes[v].depth + 1;
       j.pred = v;
       int y = t.add_node(j);
       t.nodes[v].successors.push_back(y);
-      seed++;
       v = y;
 
-      if (t.nodes[v].cplan.second.size() >= plan_size && plan_size != -1) {
+      if (t.nodes[v].plan.size() >= plan_size && plan_size != -1) {
         plan_break = true;
         break;
       }
@@ -360,40 +374,49 @@ cseek_planMCTS(pTree<State>& t,
     if (plan_break) {
       break;
     }
-    seed++;
   }
   std::cout << "Plan found at depth " << t.nodes[v].depth;
   std::cout << std::endl;
   std::cout << "Final State:" << std::endl;
-  std::cout << t.nodes[v].state.to_json() << std::endl;
+  t.nodes[v].state.print_facts();
   std::cout << std::endl;
-  return t.nodes[v].cplan;
+  return t.nodes[v].plan;
 
 }
 
-template <class State, class Domain>
-std::pair<pTree<State>,int> 
-cppMCTShop(State state,
-           Tasks tasks,
-           Domain& domain,
+std::pair<pTree,int> 
+cppMCTShop(DomainDef& domain,
+           ProblemDef& problem,
+           Scorer scorer,
            int R,
            int plan_size = -1,
            double eps = 0.4,
-           int seed = 4021,
-           int aux_R = 10) {
-    pTree<State> t;
-    pNode<State> root;
-    root.state = state;
-    root.tasks = tasks;
-    root.cplan = {};
+           int seed = 4021) {
+    domain.set_scorer(scorer);
+    pTree t;
+    pNode root;
+    root.state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
+    for (auto const& f : problem.initF) {
+      root.state.tell(f,false,false);
+    }
+    root.state.update_state();
+    Grounded_Task init_t;
+    init_t.first = problem.head;
+    init_t.second = {};
+    root.tasks.push_back(init_t);
+    root.plan = {};
     root.depth = 0;
     int v = t.add_node(root);
+    static std::mt19937_64 g(seed);
     std::cout << std::endl;
     std::cout << "Initial State:" << std::endl;
-    std::cout << t.nodes[v].state.to_json() << std::endl;
+    t.nodes[v].state.print_facts();
     std::cout << std::endl;
-    auto plan = cseek_planMCTS(t, v, domain, R, plan_size, eps, seed, aux_R);
-    std::cout << "Plan:" << std::endl;
-    print(plan);
+    auto plan = cseek_planMCTS(t, v, domain, R, plan_size, eps, g);
+    std::cout << "Plan:";
+    for (auto const& p : plan) {
+      std::cout << " " << p;
+    }
+    std::cout << std::endl;
     return std::make_pair(t,v);
 }
