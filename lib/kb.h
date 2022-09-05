@@ -343,7 +343,9 @@ class KnowledgeBase {
           smt_expr += "(declare-const "+p.first+" __Object__)\n";
           smt_expr += "(assert ("+p.second+" "+p.first+"))\n";
         }
-        smt_expr += "(assert "+expr+")\n";
+        if (expr != "") {
+          smt_expr += "(assert "+expr+")\n";
+        }
         return get_bindings(smt_expr,params);
       }
 
@@ -366,6 +368,10 @@ class KnowledgeBase {
       void print_smt_state() {
         std::cout << this->smt_state << std::endl;
       }
+
+      std::unordered_set<std::string> get_facts(std::string head) {
+        return this->facts[head];
+      } 
 
       void print_facts() {
         for (auto const& [_,fset] : this->facts) {
