@@ -39,13 +39,13 @@ Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
 }
 
 template <typename Iter> Iter select_randomly(Iter start, Iter end, int seed) {
-    static std::mt19937 gen(seed);
+    static std::mt19937_64 gen(seed);
     return select_randomly(start, end, gen);
 }
 
 template <typename Iter> Iter select_randomly(Iter start, Iter end) {
     static std::random_device rd;
-    static std::mt19937 gen(rd());
+    static std::mt19937_64 gen(rd());
     return select_randomly(start, end, gen);
 }
 
