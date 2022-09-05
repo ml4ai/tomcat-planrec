@@ -36,7 +36,8 @@ using Grounded_Task = std::pair<std::string,Args>;
 using TaskDefs = std::vector<TaskDef>;
 using Grounded_Tasks = std::vector<Grounded_Task>;
 using Objects = std::unordered_map<std::string,std::string>;
-
+using Scorer = double (*)(KnowledgeBase&);
+using Scorers = std::unordered_map<std::string, Scorer>;
 std::string return_value(std::string var, Args args) {
   for (auto const& a : args) {
     if (var == a.first) {
@@ -258,9 +259,28 @@ class ActionDef {
 
       std::vector<KnowledgeBase> new_states = {};
       if (pc != "__NONE__") {
-        auto bindings = kb.ask(pc,this->parameters);
-        for (auto const& b : bindings) {
-          new_states.push_back(this->apply_binding(kb,b)); 
+        if (this->parameters.empty()) {
+          auto pass = kb.ask(pc);
+          if (pass) {
+            new_states.push_back(this->apply_binding(kb,{}));
+          }
+        }
+        else {
+          auto bindings = kb.ask(pc,this->parameters);
+          for (auto const& b : bindings) {
+            new_states.push_back(this->apply_binding(kb,b)); 
+          }
+        }
+      }
+      else {
+        if (this->parameters.empty()) {
+          new_states.push_back(this->apply_binding(kb,{}));
+        }
+        else {
+          auto bindings = kb.ask("",this->parameters);
+          for (auto const& b : bindings) {
+            new_states.push_back(this->apply_binding(kb,b));
+          }
         }
       }
       return std::make_pair(token,new_states);
@@ -274,15 +294,19 @@ class MethodDef {
     Params parameters;
     Preconds preconditions;
     TaskDefs subtasks;
+    bool init;
 
   public:
     MethodDef() {}
-    MethodDef(std::string head, TaskDef task, Params parameters, Preconds preconditions, TaskDefs subtasks) {
+    MethodDef(std::string head, TaskDef task, Params parameters, Preconds preconditions, TaskDefs subtasks, bool init = false) {
       this->head = head;
       this->task = task;
       this->parameters = parameters;
       this->preconditions = preconditions;
+      //Reverse order for planning algorithm
       this->subtasks = subtasks;
+      std::reverse(this->subtasks.begin(),this->subtasks.end());
+      this->init = init;
     }
 
     std::string get_head() {
@@ -315,7 +339,7 @@ class MethodDef {
           arg.first = pt.first;
           std::string val = return_value(pt.first,args);
           if (val == "__CONST__") {
-            arg.second = pt.second;
+            arg.second = pt.first;
           }
           else {
             arg.second = val;
@@ -336,10 +360,12 @@ class MethodDef {
           pc += "(= "+this->task.second[i].first+" "+args[i].second+") ";
           token += " "+args[i].second;
         }
-        if (pc != "__NONE__") {
+        if (this->preconditions != "__NONE__") {
           pc += this->preconditions + ")";
         }
-        pc += ")";
+        else {
+          pc += ")";
+        }
       }
       else {
         pc = this->preconditions;
@@ -347,9 +373,28 @@ class MethodDef {
       token += ")";
       std::vector<Grounded_Tasks> groundings;
       if (pc != "__NONE__") {
-        auto bindings = kb.ask(pc,this->parameters);
-        for (auto const& b : bindings) {
-          groundings.push_back(this->apply_binding(b)); 
+        if (this->parameters.empty()) {
+          auto pass = kb.ask(pc);
+          if (pass) {
+            groundings.push_back(this->apply_binding({}));
+          }
+        }
+        else {
+          auto bindings = kb.ask(pc,this->parameters);
+          for (auto const& b : bindings) {
+            groundings.push_back(this->apply_binding(b)); 
+          }
+        }
+      }
+      else {
+        if (this->parameters.empty()) {
+          groundings.push_back(this->apply_binding({}));
+        }
+        else {
+          auto bindings = kb.ask("",this->parameters);
+          for (auto const& b : bindings) {
+            groundings.push_back(this->apply_binding(b));
+          }
         }
       }
       return std::make_pair(token,groundings);
@@ -368,6 +413,7 @@ struct DomainDef {
   ActionDefs actions;
   MethodDefs methods;
   Objects constants;
+  Scorer scorer;
   DomainDef(std::string head,
             TypeTree typetree,
             Predicates predicates,
@@ -382,6 +428,13 @@ struct DomainDef {
     this->tasks = tasks;
     this->actions = actions;
     this->methods = methods;
+  }
+  void set_scorer(Scorer scorer) {
+    this->scorer = scorer;
+  }
+
+  double score(KnowledgeBase state) {
+    return this->scorer(state); 
   }
 };
 
