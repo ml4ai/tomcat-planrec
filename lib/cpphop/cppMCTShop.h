@@ -273,11 +273,6 @@ cseek_planMCTS(pTree& t,
     n_node.tasks = t.nodes[v].tasks;
     n_node.depth = t.nodes[v].depth;
     n_node.plan = t.nodes[v].plan;
-    std::cout << "Plan:";
-    for (auto const& p : n_node.plan) {
-      std::cout << " " << p;
-    }
-    std::cout << std::endl;
     int w = m.add_node(n_node);
     int hzn = nbd(g);
     for (int i = 0; i < R; i++) {
