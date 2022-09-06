@@ -15,6 +15,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_set>
+#include <optional>
 
 // TODO Enforce optionality wherever appropriate, based on EBNF specification.
 
@@ -68,7 +69,7 @@ namespace ast {
         bool operator==(const Nil& nil) const;
     };
 
-    // AtomicFormula EBNF Definition: 
+    // AtomicFormula EBNF Definition:
         // <atomic formula(t)> ::= (<predicate> t*)
     template <class T> struct AtomicFormula {
         Predicate predicate;
@@ -80,6 +81,7 @@ namespace ast {
     struct NotSentence;
     struct ImplySentence;
     struct QuantifiedSentence;
+    struct NotEqualsSentence;
 
     // EqualsSentence EBNF Definition:  <gd> ::= (= <term> <term>)
     struct EqualsSentence {
@@ -99,7 +101,8 @@ namespace ast {
                        boost::recursive_wrapper<NotSentence>,
                        boost::recursive_wrapper<ImplySentence>,
                        boost::recursive_wrapper<QuantifiedSentence>,
-                       EqualsSentence>;
+                       EqualsSentence,
+                       boost::recursive_wrapper<NotEqualsSentence>>;
 
     // ConnectedSentence EBNF Definition: requires disjunctive-preconditions
         // <gd> ::= (and <gd>*)
@@ -122,7 +125,7 @@ namespace ast {
         Sentence sentence2;
     };
 
-    // QuantifiedSentence EBNF Definition of exists and forall; 
+    // QuantifiedSentence EBNF Definition of exists and forall;
     // exists requires existential-preconditions
         // <gd> ::= (exists (<typed list (variable)>*) <gd>)
     // forall requires universal-preconditions
@@ -163,7 +166,7 @@ namespace ast {
         Name name;
         std::vector<Term> parameters;
     };
-  
+
     // SubTaskWithId EBNF Definition:
         // <subtask-def> ::= (<subtask-id> (<task-symbol> <term>*))
     struct SubTaskWithId : x3::position_tagged {
@@ -174,7 +177,7 @@ namespace ast {
     // SubTask EBNF Definition:
         // <subtask-def> ::= (<task-symbol> <term>*)
         //                 | (<subtask-id> (<task-symbol> <term>*))
-    
+
     struct SubTask : x3::variant<MTask, SubTaskWithId> {
         using base_type::base_type;
         using base_type::operator=;
@@ -218,19 +221,19 @@ namespace ast {
     };
 
     // Method EBNF Definition:
-        // (<method-def> ::= 
+        // (<method-def> ::=
         //     method <name>
         //     (<typed list (variable)>)
         //     (<task-symbol> <term>*)
         //     [:precondition <gd>]
         //     <tasknetwork-def>)
     struct Method : x3::position_tagged {
-        Name name;                     
-        TypedList<Variable> parameters; 
-        MTask task;                    
-        Sentence precondition;        
-        TaskNetwork task_network;    
-    };                                  
+        Name name;
+        TypedList<Variable> parameters;
+        MTask task;
+        Sentence precondition;
+        TaskNetwork task_network;
+    };
 
     // Conditional effects
     using PEffect = Literal<Term>;
@@ -259,7 +262,7 @@ namespace ast {
     };
 
     // ForallCEffect EBNF Definition: requires conditional-effects
-        // <c-effect> ::= (forall (<variable>*) <effect>) 
+        // <c-effect> ::= (forall (<variable>*) <effect>)
     struct ForallCEffect : x3::position_tagged {
         std::vector<Variable> variables;
         Effect effect;
@@ -272,7 +275,7 @@ namespace ast {
 
     // Primitive Actions
     // Action EBNF Definition:
-        // <action-def> ::= (:action 
+        // <action-def> ::= (:action
         //     <task-def>
         //     [:precondition <gd>]
         //     [:effects <effect>])
@@ -307,8 +310,8 @@ namespace ast {
         // <p-htn> ::= (<p-class>
         //     [:parameters (<typed list (variable)>)]
         //     <tasknetwork-def>)
-        
-        // <p-class> ::= :htn 
+
+        // <p-class> ::= :htn
     struct ProblemHTN : x3::position_tagged {
         std::string problem_class;
         TypedList<Variable> parameters;

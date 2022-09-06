@@ -1,292 +1,386 @@
 #pragma once
 
-#include "Clause.h"
-#include "fol/Literal.h"
-#include "fol/Predicate.h"
-#include "fol/Term.h"
-#include "util.h"
 #include "parsing/ast.hpp"
-#include "CNF.h"
-#include <iostream>
+#include "util.h"
+#include "z3++.h"
+#include <map>
+#include <unordered_set>
 #include <string>
 #include <tuple>
-#include <variant>
 #include <vector>
-#include "unification.h"
+#include <unordered_map>
 
-
-using namespace std;
-using namespace fol;
-
-// base data structs of the knowledge base to be populated using tell()
-struct KnowledgeBase {
-    vector<ast::Sentence> sentences; // this should be changed to the data type of CNF sentences 
-    vector<Clause> clauses;
-    vector<Clause> definite_clauses;
-    vector<Literal<Term>> facts;
+//Type struct
+struct Type {
+  //Name of type
+  std::string type;
+  //Indexes of the types lineage. 
+  std::unordered_set<int> lineage;
+  //Indexes of the types children
+  std::unordered_set<int> children;
 };
 
-// this method returns whether clause is definite or not, namely, if there is only exactly one positive literal.
-bool isDefiniteClause(Clause c) {
-    Literal<Term> lit;
-    int i=0;
-    for (auto lit : c.literals) {
-        if (!lit.is_negative) {
-            i+=1;
-        }
-    }
-    if (i == 1) {
-        return true;
+//TypeTree struct. This keeps track of the type inheritence hierarchy
+struct TypeTree {
+  //Unordered map of the form {index,Type struct}
+  std::unordered_map<int,Type> types;
+  //Keeps track of next newly usable ID
+  int nextID = 0;
+  //Keeps track of usable freed IDs
+  std::vector<int> freedIDs;
+  //Adds type to TypeTree and returns its index. 
+  int add_type(Type& type) {
+    int id;
+    if (!freedIDs.empty()) {
+      id = freedIDs.back();
+      freedIDs.pop_back();
     }
     else {
-        return false;
+      id = nextID;
+      nextID++;
     }
-}
+    types[id] = type;
+    return id;
+  }
+  //This clears tree and adds just the root type!
+  void add_root(std::string type) {
+    this->types.clear();
+    this->freedIDs.clear();
+    this->nextID = 0;
+    Type new_t;
+    new_t.type = type;
+    this->add_type(new_t);
+  }
 
-void tell(KnowledgeBase& kb, ast::Sentence sentence) {
-    // CNF converter to run on the sentence first
-    ast::CNF cnf_tell = ast::to_CNF(sentence);
-
-    kb.sentences.push_back(sentence); // store original sentence
-
-    for (Clause c : cnf_tell.conjunctionOfClauses) {
-        kb.clauses.push_back(c);
+  void add_child(std::string type, std::string ancestor) {
+    Type new_t;
+    new_t.type = type;
+    int a = this->find_type(ancestor); 
+    new_t.lineage.insert(a);
+    for (auto i : this->types[a].lineage) {
+      new_t.lineage.insert(i);
     }
-}; 
+    int t = this->add_type(new_t);
+    this->types[a].children.insert(t);  
+  }
 
-void tell(KnowledgeBase& kb, Literal<Term> lit_in) {
-    // add literal to knowledge base as a fact
-    kb.facts.push_back(lit_in);
+  void add_ancestor(std::string type, std::string ancestor) {
+    int a = this->find_type(ancestor);
+    int i = this->find_type(type);
+    for (auto &[id,t] : this->types) {
+      if (t.children.contains(i)) {
+        t.children.erase(i); 
+        t.children.insert(a);
+        this->types[a].lineage.clear();
+        this->types[a].lineage.insert(id);
+        for (auto l : t.lineage) {
+          this->types[a].lineage.insert(l);
+        }
+      }
+    }
+    this->types[a].children.insert(i);
+    this->types[i].lineage.clear();
+    this->types[i].lineage.insert(a);
+    for (auto l : this->types[a].lineage) {
+      this->types[i].lineage.insert(l);
+    }
+    propogate_new_lineage(i);
+  }
+  //Helper function for add_ancestor
+  void propogate_new_lineage(int i) {
+    if (this->types[i].children.empty()) {
+      return;
+    }
+    for (auto const& c : this->types[i].children) {
+      this->types[c].lineage.clear();
+      this->types[c].lineage.insert(i);
+      for (auto l : this->types[i].lineage) {
+        this->types[c].lineage.insert(l);
+      }
+      propogate_new_lineage(c);
+    } 
+  }
+
+  //Returns index of Type struct with name type
+  int find_type(std::string type) {
+    for (auto const &[i,t] : this->types) {
+      if (t.type == type) {
+        return i;
+      }  
+    }
+    return -1;
+  }
 };
 
-// This is part of my permutation algorithm for permuting the literals to get CNF from DNF
-// c1 should get appended by each literal in c2, making c2.literals.size() number of output clauses
-// example: c1: [a, b] | c2: [d,e] then output: [[a,d],[a,e], [b,d], [b,e]]
-ast::CNF permute_step(Clause c1, Clause c2) {
-    ast::Sentence for_cnf;
-    ast::CNF output = ast::construct(for_cnf);
-    output.conjunctionOfClauses.clear();
-    Clause temp;
-    for(Literal<Term> l : c2.literals) {
-        temp.literals.insert(temp.literals.begin(), c1.literals.begin(), c1.literals.end());
-        temp.literals.push_back(l); // append literal in c2 to c1 
-        output.conjunctionOfClauses.push_back(temp); // append that new clause to CNF
-        temp.literals.clear(); // reset the clause
+int find_var(std::vector<std::pair<std::string, std::string>> vars, std::string var) {
+  for (int i = 0; i < vars.size(); i++) {
+    if (vars[i].first == var) {
+      return i;
     }
-    return output;
+  }
+  return -1;
 }
 
+//Add objects from the problem definition, then ungrounded predicate
+//statements, and then run initialize before using the kb!
+class KnowledgeBase {
+    private:
+      //header,{{var1,type1},{var2,type2},...}
+      std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> predicates;
+      //constant, type
+      std::unordered_map<std::string,std::string> objects;
+      //header, (header arg1 arg2 ...), ... 
+      std::unordered_map<std::string, std::unordered_set<std::string>> facts;
+      //belief state in smt form;
+      std::string smt_state;
 
-// this method not's a CNF sentence
-ast::CNF not_CNF(ast::CNF cnf) {
-    // after not'ing the cnf we get a disjunction of conjuctions since all the or's go to and's and vice versa. All the literals are not'd too
-    for (int j=0; j < cnf.conjunctionOfClauses.size(); j++) {
-        for (int i=0; i < cnf.conjunctionOfClauses.at(j).literals.size(); i++) {
-            if (cnf.conjunctionOfClauses.at(j).literals.at(i).is_negative == false) {
-                cnf.conjunctionOfClauses.at(j).literals.at(i).is_negative = true;
+      //Gets all bindings for smt_statement and set of variables
+      //A set of bindings is an vector of pairs of form {variable,value}. Called
+      //by ask when given a collection of params.
+      std::vector<std::vector<std::pair<std::string,std::string>>> 
+      get_bindings(std::string F, 
+                  const std::vector<std::pair<std::string, std::string>>& variables) {
+        std::vector<std::vector<std::pair<std::string,std::string>>> results;
+        z3::context con;
+        z3::solver s(con);
+        s.from_string(F.c_str());
+        while (s.check() == z3::sat) {
+          auto m = s.get_model();
+          std::vector<std::pair<std::string, std::string>> bindings = variables;
+          for (unsigned i = 0; i < m.size(); i++) {
+            auto v = m[i];
+            auto v_name = v.name().str();
+            auto index = find_var(bindings, v_name);
+            if(index != -1) {
+              bindings[index].second = m.get_const_interp(v).to_string();
+            }
+          }
+          results.push_back(bindings);
+          z3::expr_vector block(con);
+          for (unsigned j = 0; j < m.size(); j++) {
+            auto d = m[j];
+            if (d.arity() > 0) {
+              continue;
+            } 
+            auto c = d();
+            if (c.is_array() || c.get_sort().sort_kind() == Z3_UNINTERPRETED_SORT) {
+              throw std::logic_error("arrays and uninterpreted sorts are not supported");
+            }
+            block.push_back(c != m.get_const_interp(d));
+          }
+          s.add(z3::mk_or(block));
+        }
+        return results;
+      }
+      
+      //Parses (header arg1 arg2 ...) into {header,{arg1, arg2, ...}}
+      std::pair<std::string, std::vector<std::string>> 
+      parse_predicate(std::string pred) {
+        std::vector<std::string> symbols = {};
+        size_t pos = 0;
+        std::string p = pred.substr(1,pred.size() - 2);
+        std::string space_delimiter = " ";
+        while ((pos = p.find(space_delimiter)) != std::string::npos) {
+          symbols.push_back(p.substr(0, pos));
+          p.erase(0, pos + space_delimiter.length());
+        }
+        if (!p.empty()) {
+          symbols.push_back(p);
+        }
+        std::string predicate = symbols.at(0);
+        symbols.erase(symbols.begin());
+        return std::make_pair(predicate, symbols);
+      }
+
+      // Initializes the KBs belief state with
+      // closed world assumption. Call ONCE after adding all of the needed types, objects, and
+      // predicate or else all tell() and ask() calls will crash or fail!   
+      void initialize(TypeTree typetree) {
+        for (auto const& [t1, t2] : typetree.types) {
+          std::vector<std::pair<std::string, std::string>> params;
+          params.push_back(std::make_pair("?o","__Object__"));
+          this->predicates.push_back(std::make_pair(t2.type,params));
+        }
+        for (auto const& [o1,o2] : this->objects) {
+          int t = typetree.find_type(o2);
+          for (auto const& [t1,t2] : typetree.types) {
+            std::string f = "("+t2.type+" "+o1+")";
+            if (in(t1,typetree.types[t].lineage) ||
+                t2.type == o2) {
+              this->facts[t2.type].insert(f);
+            } 
+          }
+        }
+        this->update_state();
+      }
+
+    public:
+      KnowledgeBase() {}
+      KnowledgeBase(std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> predicates,
+                    std::unordered_map<std::string,std::string> objects,
+                    TypeTree typetree) {
+        this->predicates = predicates;
+        this->objects = objects;
+        this->initialize(typetree);
+      }
+
+      //Used by tell to update the smt_state string. tell() calls this
+      //automatically by default, but it can be called manually too (see tell()
+      //for default settings).
+      void update_state() {
+        this->smt_state = "(declare-datatype __Object__ (";
+        for (auto const& [o1,o2] : this->objects) {
+          this->smt_state += o1+" ";
+        }
+        this->smt_state += "))\n";
+        for (auto const& p : this->predicates) {
+          if (this->facts.find(p.first) != this->facts.end()) {
+            if (!this->facts[p.first].empty()) {
+              this->smt_state += "(declare-fun "+p.first+" (";
+              std::string pred_assert = "(assert (forall (";
+              int i = 0;
+              std::string var_assert = "";
+              for (auto const& pars : p.second) {
+                this->smt_state += "__Object__ ";
+                pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
+                var_assert += " x_"+std::to_string(i);
+                i++;
+              }
+              pred_assert += ") (= ("+p.first+var_assert+") (or ";
+              for (auto const& f : this->facts[p.first]) {
+                auto pp = this->parse_predicate(f);
+                pred_assert += "(and ";
+                int j = 0;
+                for (auto const& vals : pp.second) {
+                  pred_assert += "(= x_"+std::to_string(j)+" "+vals+") ";
+                  j++;
+                }
+                pred_assert += ") ";
+              }
+              pred_assert += "))))\n";
+              this->smt_state += ") Bool)\n";
+              this->smt_state += pred_assert;
             }
             else {
-                cnf.conjunctionOfClauses.at(j).literals.at(i).is_negative = false;
+              this->smt_state += "(declare-fun "+p.first+" (";
+              std::string pred_assert = "(assert (forall (";
+              int i = 0;
+              std::string var_assert = "";
+              for (auto const& vars : p.second) {
+                this->smt_state += "__Object__ ";
+                pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
+                var_assert += " x_"+std::to_string(i);
+                i++;
+              }
+              pred_assert += ") (not ("+p.first+var_assert+"))))\n";
+              this->smt_state += ") Bool)\n";
+              this->smt_state += pred_assert;
             }
-        }
-    }
-    // after having swapped all the negations, we now interpret cnf as dnf, and clause as a conjuction of literals not disjunction
-
-    // the application of the distribution rule over the disjunctions and conjuctions now results in taking one literal from each "conjuctive-clause"
-    // in the dnf sentence and making a clause out of it, and then permuting through all options conjucting each clause, which is a cnf sentence at the end
-    ast::Sentence for_cnf;
-    ast::CNF temp1 = ast::construct(for_cnf);
-    temp1.conjunctionOfClauses.clear();
-    ast::CNF temp2 = ast::construct(for_cnf); // these are adding empty clauses, need to clear them 
-    temp2.conjunctionOfClauses.clear();
-    ast::CNF output = ast::construct(for_cnf);
-    for (Clause c : cnf.conjunctionOfClauses) {
-        for(Clause c1 : output.conjunctionOfClauses) {
-            temp1 = permute_step(c1,c);
-            temp2.conjunctionOfClauses.insert(temp2.conjunctionOfClauses.end(), temp1.conjunctionOfClauses.begin(), temp1.conjunctionOfClauses.end());
-            temp1.conjunctionOfClauses.clear();
-        }
-        output.conjunctionOfClauses.clear();
-        output.conjunctionOfClauses.insert(output.conjunctionOfClauses.end(), temp2.conjunctionOfClauses.begin(), temp2.conjunctionOfClauses.end());
-        temp2.conjunctionOfClauses.clear();
-    }
-    return output;
-}
-
-// This will be the ask function for non-variable resolution
-// Have an overloaded ask, one that takes a parsed sentence and one that takes CNF sentence
-bool ask(KnowledgeBase& kb, ast::Sentence query) {
-    // convert the input query into CNF form
-    ast::CNF cnf_query = ast::to_CNF(query); // does this convert it to a CNF too?
-    // now we not the input, note this causes an expoential increase in the sentence size, do I need a sentence to make CNF's?
-    ast::CNF query_clauses = not_CNF(cnf_query);
-    
-    // we compile a large list of all clauses in KB, including one clause of 
-    typedef vector<Clause> clause_vector;
-    clause_vector clause_vec;
-    clause_vector temp_vec;
-    clause_vector fact_vec;
-    Clause kb_facts, temp, resolvant;
-    // Each fact is a seperate clause
-    for(Literal<Term> l1 : kb.facts) {
-        kb_facts.literals.push_back(l1);
-        fact_vec.push_back(kb_facts);
-        kb_facts.literals.clear();
-    }
-    clause_vec.insert(clause_vec.end(), fact_vec.begin(), fact_vec.end());
-    // adding the clauses of the query
-    for (Clause c_q : query_clauses.conjunctionOfClauses) {
-        clause_vec.push_back(c_q);
-    }
-    // adding the rule clauses of the KB
-    for (Clause c_kb : kb.clauses) {
-        clause_vec.push_back(c_kb);
-    }
-
-    bool cond=false;
-    bool found=false;
-    // now to run the resolution 
-    while (cond == false) {
-        for (int i=0; i < clause_vec.size(); i++) {
-            for (int j=0; j < clause_vec.size(); j++) {
-                if (i!=j) {
-                    resolvant = clause_vec.at(i)==clause_vec.at(j);
-                    if (resolvant.literals.size() == 0) {
-                        return true;
-                        cond = true;
-                    }
-                    else { 
-                        for (Clause c_o : clause_vec) {
-                            bool vec_eq=false;
-                            int found_count=0;
-                            if (resolvant.literals.size() == c_o.literals.size()) {
-                                for (int l=0; l < resolvant.literals.size(); l++) {
-                                    for (int ll=0; ll < resolvant.literals.size(); ll++){
-                                        if (resolvant.literals.at(l)==c_o.literals.at(ll)) {
-                                            found_count = found_count + 1;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (found_count == resolvant.literals.size()) {
-                                    vec_eq=true;
-                                }
-                            }
-                            if (vec_eq==true) {
-                                found = true; // check if resolvant is a new clause
-                            }
-                        }
-                        if (found == false) { // if new, add it to list
-                            temp_vec.push_back(resolvant);
-                        }
-                        found = false; // reset found condition
-                    }
-                }
+          }
+          else {
+            this->smt_state += "(declare-fun "+p.first+" (";
+            std::string pred_assert = "(assert (forall (";
+            int i = 0;
+            std::string var_assert = "";
+            for (auto const& vars : p.second) {
+              this->smt_state += "__Object__ ";
+              pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
+              var_assert += " x_"+std::to_string(i);
+              i++;
             }
+            pred_assert += ") (not ("+p.first+var_assert+"))))\n";
+            this->smt_state += ") Bool)\n";
+            this->smt_state += pred_assert;
+          }
         }
-        // resolution fail condition is no new resolutions are produced, thus KB is self consistant 
-        if (temp_vec.size() == 0) { // This should be the case that all resolvants have been added and no new ones are created
-            return false;
-            cond = true;
+      }
+
+      //Returns false if predicate type is not found. Only give it a single grounded
+      //predicate in (header arg1 arg2 ...) form. Adding facts requires that remove = false (default) and 
+      //deleting facts require that remove = true. 
+      //Do not give it a (not (pred)), the "not" will be
+      //handled by the parser!
+      //By Default, it calls update_state(). If you are calling this in a long
+      //series or loop, set update_state = false and then call update_state()
+      //manually after all the tells for more optimal performance! 
+      bool tell(std::string pred, bool remove = false, bool update_state = true) {
+        auto pp = this->parse_predicate(pred);
+        bool not_found = true;
+        for (auto const& p : this->predicates) {
+          if (pp.first == p.first and pp.second.size() == p.second.size()) {
+            not_found = false;
+          }  
         }
-        clause_vec.insert(clause_vec.end(), temp_vec.begin(), temp_vec.end());
-        temp_vec.clear();
-    }
-}
- // overloaded option for CNF input instead of parsed sentence
-bool ask(KnowledgeBase& kb, ast::CNF query) {
-    // convert the input query into CNF form
-    ast::CNF query_clauses = not_CNF(query);
-    // now to start the resolution inference algorithm, this is just checking clauses
-    // only need one clause to return empty because then the whole sentence is false, if want to check each clause, ask for each clause
-
-    // we compile a large list of all clauses in KB, including one clause of 
-    typedef vector<Clause> clause_vector;
-    clause_vector clause_vec;
-    clause_vector temp_vec;
-    clause_vector fact_vec;
-    Clause kb_facts, temp, resolvant;
-    // Each fact is a seperate clause
-    for(Literal<Term> l1 : kb.facts) {
-        kb_facts.literals.push_back(l1);
-        fact_vec.push_back(kb_facts);
-        kb_facts.literals.clear();
-    }
-    clause_vec.insert(clause_vec.end(), fact_vec.begin(), fact_vec.end());
-    // adding the clauses of the query
-    for (Clause c_q : query_clauses.conjunctionOfClauses) {
-        clause_vec.push_back(c_q);
-    }
-    // adding the rule clauses of the KB
-    for (Clause c_kb : kb.clauses) {
-        clause_vec.push_back(c_kb);
-    }
-
-    bool cond=false;
-    bool found=false;
-    // now to run the resolution 
-    while (cond == false) {
-        for (int i=0; i < clause_vec.size(); i++) {
-            for (int j=0; j < clause_vec.size(); j++) {
-                if (i!=j) {
-                    resolvant = clause_vec.at(i)==clause_vec.at(j);
-                    if (resolvant.literals.size() == 0) {
-                        return true;
-                        cond = true;
-                    }
-                    else { 
-                        for (Clause c_o : clause_vec) {
-                            bool vec_eq=false;
-                            int found_count=0;
-                            if (resolvant.literals.size() == c_o.literals.size()) {
-                                for (int l=0; l < resolvant.literals.size(); l++) {
-                                    for (int ll=0; ll < resolvant.literals.size(); ll++){
-                                        if (resolvant.literals.at(l)==c_o.literals.at(ll)) {
-                                            found_count = found_count + 1;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (found_count == resolvant.literals.size()) {
-                                    vec_eq=true;
-                                }
-                            }
-                            if (vec_eq==true) {
-                                found = true; // check if resolvant is a new clause
-                            }
-                        }
-                        if (found == false) { // if new, add it to list
-                            temp_vec.push_back(resolvant);
-                        }
-                        found = false; // reset found condition
-                    }
-                }
-            }
+        if (not_found) {
+          return false;
         }
-        // resolution fail condition is no new resolutions are produced, thus KB is self consistant 
-        if (temp_vec.size() == 0) { // This should be the case that all resolvants have been added and no new ones are created
-            return false;
-            cond = true;
+        if (remove) {
+          this->facts[pp.first].erase(pred);
+          if (update_state) { 
+            this->update_state();
+          }
+          return true;
         }
-        clause_vec.insert(clause_vec.end(), temp_vec.begin(), temp_vec.end());
-        temp_vec.clear();
-    }
-}
+        this->facts[pp.first].insert(pred);
+        if (update_state) {
+          this->update_state();
+        }
+        return true;
+      }
 
-// now for the ask_vars method, which will return a substitution list for a variable in the query, if resolute 
-// we do not have the standard aparting implemented right now, we are operating on each variable input will have a 
-// unqiue name
+      //This adds the assert to expr, but the rest of expr must be made smt
+      //compatible prior to this call. Z3 will give an error if a variable is not
+      //found in params is used, which complies with HDDLs specifications for method and
+      //action definitions. Params must be {{var1,type1},{var2,type2},...} 
+      //This returns {{{var1,val1},{var2,val2},...},...}
+      //EX: expr = (and (A ?x) (or (B ?x y) (C z)))
+      //params = {{"?x", "thing"}}
+      std::vector<std::vector<std::pair<std::string,std::string>>>
+      ask(std::string expr,
+          std::vector<std::pair<std::string, std::string>>& params) {
+        std::string smt_expr = this->smt_state;
+        for (auto const& p : params) {
+          smt_expr += "(declare-const "+p.first+" __Object__)\n";
+          smt_expr += "(assert ("+p.second+" "+p.first+"))\n";
+        }
+        if (expr != "") {
+          smt_expr += "(assert "+expr+")\n";
+        }
+        return get_bindings(smt_expr,params);
+      }
 
-// unless we restrict ourselves to horn clauses the inputs to the ask_vars will have to be a literal and it will just be unified against the facts
-// of the kb. AIMA p.301 for detials.
+      //This adds the assert to expr, but the rest of expr must be made smt
+      //compatible prior to this call. 
+      //This is mostly an issue for things like forall and exist, which have different
+      //syntax in smt compared to hddl. 
+      //Only grounded statements are allowed here!
+      //EX: (and (A x) (or (B x y) (C z)))
+      bool ask(std::string expr) {
+        z3::context con;
+        z3::solver s(con);
+        std::string smt_expr = this->smt_state+"(assert "+expr+")\n";
+        s.from_string(smt_expr.c_str());
+        return s.check() == z3::sat;
+      }
 
-// UNDER CONSTRUCTION
 
-// This will return a vector of substitutions all of which are allowed for the given input
-/* ask_vars(KnowledgeBase& kb, Literal<Term> query) {
-    // sub_optional sub;
-    for(Literal lit : kb.facts) {
-        auto sub = unify(lit, query);
-    }
-    return sub;
-} */
+      //prints smt_state string
+      void print_smt_state() {
+        std::cout << this->smt_state << std::endl;
+      }
+
+      std::unordered_set<std::string> get_facts(std::string head) {
+        return this->facts[head];
+      } 
+
+      void print_facts() {
+        for (auto const& [_,fset] : this->facts) {
+          for (auto const& fact : fset) {
+            std::cout << fact << std::endl;
+          }
+        }
+      }
+
+};
+
+

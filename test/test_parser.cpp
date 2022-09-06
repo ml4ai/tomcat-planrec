@@ -147,6 +147,9 @@ BOOST_AUTO_TEST_CASE(test_fol_sentence_parsing) {
     auto fs2 = boost::get<QuantifiedSentence>(cs.sentence2);
     BOOST_TEST(fs2.quantifier == "exists");
     BOOST_TEST(fs2.variables.implicitly_typed_list[0].name == "y");
+
+    auto eq = parse<Sentence>("(= ?arg1 ?arg2)");
+    auto eqes = boost::get<EqualsSentence>(eq);
 }
 
 BOOST_AUTO_TEST_CASE(test_domain_parsing) {
@@ -155,110 +158,25 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     // Additional elements added to this domain for parser testing purposes
     //     only, and may not make logical sense.
 
-    storage = R"(
 
-  (define (domain domain-htn)
-	(:requirements :negative-preconditions :typing :hierarchy)
-	(:types
-		package - locatable
-		capacity_number - object
-		location - object
-		target - object
-		vehicle - locatable
-		locatable - object
-	)
-
-    (:constants surprise - package)
-	
-    (:predicates
-		(road ?arg0 - location ?arg1 - location)
-		(at ?arg0 - locatable ?arg1 - location)
-		(in ?arg0 - package ?arg1 ?arg2 - vehicle)
-		(capacity ?arg0 - vehicle ?arg1 - capacity_number)
-		(capacity_predecessor ?arg0 - capacity_number ?arg1 - capacity_number)
-	)
-
-	(:task deliver
-		:parameters (?p - package ?l - location)
-	)
-
-	(:task get_to
-		:parameters (?v - vehicle ?l - location)
-	)
-
-	(:method m_deliver_ordering_0
-		:parameters (?loc1 - location ?loc2 - location ?p - package ?v - vehicle)
-		:task (deliver ?p ?loc2) 
-
-        :precondition (or
-          (at ?l)
-          (at ?s)
-          )
-
-        :subtasks (and
-         (task0 (get_to ?v ?loc1))
-         (task1 (load ?v ?loc1 ?p))
-         (task2 (get_to ?v ?loc2))
-         (task3 (unload ?v ?loc1 ?p))
-         )
-
-		:ordering (and
-			( < task0 task1)
-			( < task1 task2)
-			( < task2 task3)
-		)
-	)
-
-	(:method m_unload_ordering_0
-		:parameters (?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number ?v - vehicle)
-		:task (unload ?v ?l ?p)
-		:subtasks (and
-		 (task0 (drop ?v ?l ?p ?s1 ?s2))
-		)
-	)
-
-	(:action pick_up
-		:parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
-		:precondition
-			(and
-				(at ?v ?l)
-				(at ?p ?l)
-				(capacity_predecessor ?s1 ?s2)
-				(capacity ?v ?s2)
-			)
-		:effect
-			(and
-				(not (at ?p ?l))
-				(in ?p ?v)
-				(capacity ?v ?s1)
-				(not (capacity ?v ?s2))
-			)
-	); end action pick_up
-  ); end domain definition
-    )";
-
-
-    auto dom = parse<Domain>(storage);
+    std::ifstream f("../../domains/transport_domain.hddl");
+    std::string t_transport( (std::istreambuf_iterator<char>(f)),
+                           (std::istreambuf_iterator<char>()));
+    auto dom = parse<Domain>(t_transport);
 
     // Test Domain Name:
-    BOOST_TEST(dom.name == "domain-htn");
+    BOOST_TEST(dom.name == "domain_htn");
 
     // Test requirements
     BOOST_TEST(equals(dom.requirements, {"negative-preconditions", "typing", "hierarchy"}));
 
-    // Test constants
-    BOOST_TEST(dom.constants.explicitly_typed_lists[0].entries[0] ==
-               "surprise");
-    BOOST_TEST(boost::get<PrimitiveType>(
-                   dom.constants.explicitly_typed_lists[0].type) == "package");
-    
     // Test parsing of predicates
     BOOST_TEST(dom.predicates.size() == 5);
     BOOST_TEST(dom.predicates[2].predicate == "in");
+    BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[0].entries[0].name ==
+        "arg0");
     BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[1].entries[0].name ==
         "arg1");
-    BOOST_TEST(dom.predicates[2].variables.explicitly_typed_lists[1].entries[1].name ==
-        "arg2");
     BOOST_TEST(
         boost::get<PrimitiveType>(
             dom.predicates[2].variables.explicitly_typed_lists[1].type) ==
@@ -283,14 +201,10 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto methodtask = dom.methods[0].task;
     BOOST_TEST(methodtask.name == "deliver");
     BOOST_TEST(boost::get<Variable>(methodtask.parameters[0]).name == "p");
-
     // Test parsing method's precondition:
-    auto methodprec_f = dom.methods[0].precondition;
-    auto methodprec_s = boost::get<ConnectedSentence>(methodprec_f);
-    auto methodprec1_os = boost::get<Literal<Term>>(methodprec_s.sentences[0]);
-    auto methodprec2_os = boost::get<Literal<Term>>(methodprec_s.sentences[1]);
+    auto methodprec_f = boost::get<ConnectedSentence>(dom.methods[0].precondition);
+    auto methodprec1_os = boost::get<Literal<Term>>(methodprec_f.sentences[0]);
     BOOST_TEST(methodprec1_os.predicate == "at");
-    BOOST_TEST(name(methodprec2_os.args[0]) == "s");
 
     // Test Parsing Method's SubTasks:
     std::vector<ast::SubTask> subtask_v = boost::get<vector<SubTask>>(
@@ -300,8 +214,8 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(subtask_id.id == "task2");
     BOOST_TEST(subtask_id.subtask.name == "get_to");
     std::vector<ast::Term> subtask_p = subtask_id.subtask.parameters;
-    BOOST_TEST(name(subtask_p[1]) == "loc2");
-   
+    BOOST_TEST(name(subtask_p[1]) == "l2");
+
     // Test Parsing Method's Ordering:
     vector<ast::Ordering> ordering_v = boost::get<vector<Ordering>>(
         dom.methods[0].task_network.orderings.value());
@@ -311,16 +225,16 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     // Test parsing of domain actions and their components:
     // Test parsing action names
     auto actname1 = dom.actions[0].name;
-    BOOST_TEST(actname1 == "pick_up");
+    BOOST_TEST(actname1 == "drive");
 
     // Test parsing action parameters
     auto actpara1 = dom.actions[0].parameters;
     BOOST_TEST(boost::get<PrimitiveType>(
                    actpara1.explicitly_typed_lists[0].type) == "vehicle");
     BOOST_TEST(boost::get<PrimitiveType>(
-                   actpara1.explicitly_typed_lists[2].type) == "package");
+                   actpara1.explicitly_typed_lists[2].type) == "location");
     BOOST_TEST(actpara1.explicitly_typed_lists[0].entries[0].name == "v");
-    BOOST_TEST(actpara1.explicitly_typed_lists[2].entries[0].name == "p");
+    BOOST_TEST(actpara1.explicitly_typed_lists[2].entries[0].name == "l2");
 
     // Test parsing action precondition
     auto actprec1_f = dom.actions[0].precondition;
@@ -334,70 +248,27 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto effect1_s = boost::get<AndCEffect>(effect1_f);
     auto effect1_af = boost::get<Literal<Term>>(effect1_s.c_effects[0]);
     BOOST_TEST(effect1_af.predicate == "at");
-    BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "p");
+    BOOST_TEST(boost::get<Variable>(effect1_af.args[0]).name == "v");
+    BOOST_TEST(effect1_af.is_negative == true);
 }// end of testing the domain
 
 
 BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     //  Test parsing of problem definition and its components
-    storage = R"(
-    (define
-        (problem delivery)
-        (:domain domain_htn)
-        (:requirements :strips :typing)
 
-   	(:objects
-        package_0 - package
-	    package_1 - package
-	    capacity_0 - capacity_number
-	    capacity_1 - capacity_number
-	    city_loc_0 - location
-	    city_loc_1 - location
-	    city_loc_2 - location
-	    truck_0 - vehicle
-        location
-	    )
-	(:htn
-		;:parameters ()
-		:parameters (?loc1 - location ?p - package ?v - vehicle)
-		:subtasks (and
-		 (task0 (deliver package_0 city_loc_0))
-		 (task1 (deliver package_1 city_loc_2))
-		)
-		:ordering (and
-			(< task0 task1)
-		)
-	)
-	(:init
-		(capacity_predecessor capacity_0 capacity_1)
-		(road city_loc_0 city_loc_1)
-		(road city_loc_1 city_loc_0)
-		(road city_loc_1 city_loc_2)
-		(road city_loc_2 city_loc_1)
-		(at package_0 city_loc_1)
-		(at package_1 city_loc_1)
-		(at truck_0 city_loc_2)
-		(capacity truck_0 capacity_1)
-	)
-    (:goal
-         (and (at package_1 city_loc_2)
-              (at truck_1 city_loc_2)
-    ))
-  ); end problem definition
- )";
+    std::ifstream f("../../domains/transport_problem.hddl");
+    std::string t_transport( (std::istreambuf_iterator<char>(f)),
+                           (std::istreambuf_iterator<char>()));
 
-    auto prob = parse<Problem>(storage);
+    auto prob = parse<Problem>(t_transport);
 
     BOOST_TEST(prob.name == "delivery");
     BOOST_TEST(prob.domain_name == "domain_htn");
 
-    // Test requirements
-    BOOST_TEST(equals(prob.requirements, {"strips", "typing"}));
-
     // Test initial state
-    BOOST_TEST(boost::get<Init>(prob.init)[7].predicate == "at");
+    BOOST_TEST(prob.init[7].predicate == "at");
     BOOST_TEST(
-        equals(boost::get<Init>(prob.init)[7].args, {"truck_0", "city_loc_2"}));
+        equals(prob.init[7].args, {"truck_0", "city_loc_2"}));
 
     // Test objects
     BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 8);
@@ -406,28 +277,17 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
                       {"package_0"}));
     BOOST_TEST(boost::get<ast::PrimitiveType>(
                    prob.objects.explicitly_typed_lists[0].type) == "package");
-    BOOST_TEST(prob.objects.implicitly_typed_list[0] ==
-               "location"); // default type = object
 
     // Test Problem HTN
-    ProblemHTN  htn_f = prob.problem_htn; 
+    ProblemHTN  htn_f = prob.problem_htn;
     BOOST_TEST(htn_f.problem_class == ":htn");
-    auto htn_para = htn_f.parameters;
-    BOOST_TEST(boost::get<PrimitiveType>(
-          htn_para.explicitly_typed_lists[0].type) == "location");
 
     // Test Problem HTN Subtasks (brief test only)
     std::vector<SubTask> htn_subtasks = boost::get<vector<SubTask>>(
-        htn_f.task_network.subtasks.value().subtasks); 
+        htn_f.task_network.subtasks.value().subtasks);
     SubTask htn_subtask_0 = htn_subtasks[0];
     SubTaskWithId htn_id = boost::get<SubTaskWithId>(htn_subtask_0);
     std::vector<Term> htn_sub_para = htn_id.subtask.parameters;
     BOOST_TEST(name(htn_sub_para[0]) == "package_0");
 
-    // Test Problem Goal
-    Sentence goal_f = prob.goal;
-    ConnectedSentence goal_s = boost::get<ConnectedSentence>(goal_f);
-    auto goal_1 = boost::get<Literal<Term>>(goal_s.sentences[0]);
-    BOOST_TEST(goal_1.predicate == "at");
-    BOOST_TEST(name(goal_1.args[1]) == "city_loc_2");
 }

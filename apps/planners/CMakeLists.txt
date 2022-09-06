@@ -9,9 +9,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 find_package(Boost REQUIRED program_options)
 find_package(Graphviz)
 find_package(nlohmann_json REQUIRED)
+find_package(Z3 REQUIRED)
 
 # Comp Team SAR domain using Monte Carlo Tree Search
-add_executable(team_comp_sar_MCTS_planner team_comp_sar_MCTS_planner.cpp)
-target_include_directories(team_comp_sar_MCTS_planner PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIR}
-    ../../lib/cpphop)
-target_link_libraries(team_comp_sar_MCTS_planner PRIVATE ${GRAPHVIZ_LIBS} Boost::program_options nlohmann_json::nlohmann_json)
+add_executable(MCTS_planner MCTS_planner.cpp)
+target_include_directories(MCTS_planner PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS}
+    ../../lib/)
+target_link_libraries(MCTS_planner PRIVATE tomcat ${GRAPHVIZ_LIBS} Boost::program_options nlohmann_json::nlohmann_json ${Z3_LIBRARIES})
