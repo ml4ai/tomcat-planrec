@@ -18,20 +18,24 @@ int main(int argc, char* argv[]) {
   int plan_size = -1;
   int R = 30;
   double eps = 0.4;
+  int successes = 19;
+  double prob = 0.75;
   int seed = 2022;
-  std::string dom_file = "../domains/storage_domain.hddl";
-  std::string prob_file = "../domains/storage_problem.hddl";
+  std::string dom_file = "../domains/transport_domain.hddl";
+  std::string prob_file = "../domains/transport_problem.hddl";
   std::string score_fun = "delivery_one";
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
-      ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int)")
+      ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int), default = 30")
       ("plan_size,ps",po::value<int>(),"Number of actions to return (int), default value of -1 returns full plan")
-      ("exp_param,e",po::value<double>(),"The exploration parameter for the planner (double)")
-      ("dom_file,D", po::value<std::string>(),"domain file (string)")
-      ("prob_file,P",po::value<std::string>(),"problem file (string)")
-      ("score_fun,F",po::value<std::string>(),"name of score function (string)")
+      ("exp_param,e",po::value<double>(),"The exploration parameter for the planner (double), default = 0.4")
+      ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
+      ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
+      ("score_fun,F",po::value<std::string>(),"name of score function (string), default = delivery_one")
+      ("horizon_s,hs",po::value<int>(),"Average depth number for horizon sampler(int), default = 19")
+      ("horizon_prob,hp",po::value<double>(),"Failure probability for horizon sampler(double), default = 0.75")
       ("seed,s", po::value<int>(),"Random Seed (int)")
     ;
 
@@ -67,6 +71,15 @@ int main(int argc, char* argv[]) {
     if (vm.count("score_fun")) {
       score_fun = vm["score_fun"].as<std::string>();
     }
+
+    if (vm.count("horizon_s")) {
+      successes = vm["horizon_s"].as<int>();
+    }
+
+    if (vm.count("horizon_prob")) {
+      prob = vm["horizon_prob"].as<double>();
+    }
+
     if (vm.count("seed")) {
       seed = vm["seed"].as<int>();
     }
@@ -79,6 +92,6 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
   auto [domain,problem] = load(dom_file,prob_file);
-  cppMCTShop(domain,problem,scorers[score_fun],R,plan_size,eps,seed); 
+  cppMCTShop(domain,problem,scorers[score_fun],R,plan_size,eps,successes,prob,seed); 
   return EXIT_SUCCESS;
 }
