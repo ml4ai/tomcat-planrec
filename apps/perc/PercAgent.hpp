@@ -1,6 +1,7 @@
 #pragma once
 
 #include "kb.h"
+#include "typedefs.h"
 #include "Agent.hpp"
 
 

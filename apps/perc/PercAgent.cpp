@@ -287,14 +287,16 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     //?v - victim
                     //This is what I assumed to be the original functionality
                     //of clear_fov_facts() - Loren
-                    auto v_bindings = this->kb.ask("(fov_victim medic ?v)",{{"?v","Victim"}});
+                    std::vector<std::pair<std::string,std::string>> v_arg = {std::make_pair("?v","Victim")};
+                    auto v_bindings = this->kb.ask("(fov_victim medic ?v)",v_arg);
                     for (auto const& b : v_bindings) {
-                      this->kb.tell("(fov_victim medic "+b.at("?v")+")",true,false);
+                      this->kb.tell("(fov_victim medic "+b[0].second+")",true,false);
                     }
                     this->kb.tell("(fov_rubble medic)",true,false);
-                    auto m_bindings = this->kb.ask("(fov_marker medic ?m)",{{"?m","Marker_Type"}});
+                    std::vector<std::pair<std::string,std::string>> m_arg = {std::make_pair("?m","Marker_Type")};
+                    auto m_bindings = this->kb.ask("(fov_marker medic ?m)",m_arg);
                     for (auto const& b : m_bindings) {
-                      this->kb.tell("(fov_marker medic "+b.at("?m")+")",true,false);
+                      this->kb.tell("(fov_marker medic "+b[0].second+")",true,false);
                     }
                     set<int> int_set(this->fov_medic.begin(), this->fov_medic.end());
 //                    this->fov_medic.assign(int_set.begin(), int_set.end());
@@ -333,14 +335,16 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     //?v - victim
                     //This is what I assumed to be the original functionality
                     //of clear_fov_facts() - Loren
-                    auto v_bindings = this->kb.ask("(fov_victim engineer ?v)",{{"?v","Victim"}});
+                    std::vector<std::pair<std::string,std::string>> v_arg = {std::make_pair("?v","Victim")};
+                    auto v_bindings = this->kb.ask("(fov_victim engineer ?v)",v_arg);
                     for (auto const& b : v_bindings) {
-                      this->kb.tell("(fov_victim engineer "+b.at("?v")+")",true,false);
+                      this->kb.tell("(fov_victim engineer "+b[0].second+")",true,false);
                     }
                     this->kb.tell("(fov_rubble engineer)",true,false);
-                    auto m_bindings = this->kb.ask("(fov_marker engineer ?m)",{{"?m","Marker_Type"}});
+                    std::vector<std::pair<std::string,std::string>> m_arg = {std::make_pair("?m","Marker_Type")};
+                    auto m_bindings = this->kb.ask("(fov_marker engineer ?m)",m_arg);
                     for (auto const& b : m_bindings) {
-                      this->kb.tell("(fov_marker engineer "+b.at("?m")+")",true,false);
+                      this->kb.tell("(fov_marker engineer "+b[0].second+")",true,false);
                     }
                     set<int> int_set(this->fov_engineer.begin(), this->fov_engineer.end());
 //                    this->fov_engineer.assign(int_set.begin(), int_set.end());
@@ -379,14 +383,16 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
                     //?v - victim
                     //This is what I assumed to be the original functionality
                     //of clear_fov_facts() - Loren
-                    auto v_bindings = this->kb.ask("(fov_victim transporter ?v)",{{"?v","Victim"}});
+                    std::vector<std::pair<std::string,std::string>> v_arg = {std::make_pair("?v","Victim")};
+                    auto v_bindings = this->kb.ask("(fov_victim transporter ?v)",v_arg);
                     for (auto const& b : v_bindings) {
-                      this->kb.tell("(fov_victim transporter "+b.at("?v")+")",true,false);
+                      this->kb.tell("(fov_victim transporter "+b[0].second+")",true,false);
                     }
                     this->kb.tell("(fov_rubble transporter)",true,false);
-                    auto m_bindings = this->kb.ask("(fov_marker transporter ?m)",{{"?m","Marker_Type"}});
+                    std::vector<std::pair<std::string,std::string>> m_arg = {std::make_pair("?m","Marker_Type")};
+                    auto m_bindings = this->kb.ask("(fov_marker transporter ?m)",m_arg);
                     for (auto const& b : m_bindings) {
-                      this->kb.tell("(fov_marker transporter "+b.at("?m")+")",true,false);
+                      this->kb.tell("(fov_marker transporter "+b[0].second+")",true,false);
                     }
                     set<int> int_set(this->fov_transporter.begin(), this->fov_transporter.end());
 //                    this->fov_transporter.assign(int_set.begin(), int_set.end());
@@ -543,51 +549,56 @@ PercAgent::PercAgent(string
     }
     location_ids.emplace_back("UNKNOWN");
     //Adding types and objects to KB
-    this->kb.add_type("Location");
+    TypeTree typetree;
+    Objects objects;
+    std::string root;
+    typetree.add_root(root);
+    typetree.add_child("Location",root);
     for (auto const& l: location_ids) {
-      this->kb.add_object(l,"Location");
+      objects[l] = "Location";
     }
-    this->kb.add_type("Player_Status"); 
-    this->kb.add_object("safe","Player_Status");
-    this->kb.add_object("trapped","Player_Status");
+    typetree.add_child("Player_Status",root); 
+    objects["safe"] = "Player_Status";
+    objects["trapped"] = "Player_Status";
     std::vector<std::string> vic_ids;
     for (int i = 1; i <= 35; i++) {
         vic_ids.push_back("vic_" + to_string(i));
     }
-    this->kb.add_type("Victim"); 
+    typetree.add_child("Victim",root); 
     for (auto const& v: vic_ids) {
-      this->kb.add_object(v,"Victim");
+      objects[v] = "Victim";
     }
-    this->kb.add_type("Victim_Type"); 
-    this->kb.add_object("a","Victim_Type");
-    this->kb.add_object("b","Victim_Type");
-    this->kb.add_object("c","Victim_Type");
+    typetree.add_child("Victim_Type",root); 
+    objects["a"] = "Victim_Type";
+    objects["b"] = "Victim_Type";
+    objects["c"] = "Victim_Type";
 
-    this->kb.add_type("Victim_Status"); 
-    this->kb.add_object("unsaved","Victim_Status");
-    this->kb.add_object("saved","Victim_Status");
+    typetree.add_child("Victim_Status",root); 
+    objects["unsaved"] = "Victim_Status";
+    objects["saved"] = "Victim_Status";
 
-    this->kb.add_type("Marker_Type");
-    this->kb.add_object("novictim","Marker_Type");
-    this->kb.add_object("regularvictim","Marker_Type");
-    this->kb.add_object("criticalvictim","Marker_Type");
-    this->kb.add_object("threat","Marker_Type");
-    this->kb.add_object("bonedamage","Marker_Type");
+    typetree.add_child("Marker_Type",root);
+    objects["novictim"] = "Marker_Type";
+    objects["regularvictim"] = "Marker_Type";
+    objects["criticalvictim"] =  "Marker_Type";
+    objects["threat"] = "Marker_Type";
+    objects["bonedamage"] = "Marker_Type";
 
-    this->kb.add_type("Role"); 
-    this->kb.add_object("medic","Role");
-    this->kb.add_object("transporter","Role");
-    this->kb.add_object("engineer","Role");
+    typetree.add_child("Role",root); 
+    objects["medic"] = "Role";
+    objects["transporter"] = "Role";
+    objects["engineer"] = "Role";
     //Adding predicates to KB
-    this->kb.add_predicate("player_at", {{"?r","Role"}, {"?l","Location"}});
-    this->kb.add_predicate("player_status", {{"?r","Role"}, {"?ps","Player_Status"}});
-    this->kb.add_predicate("victim_type", {{"?v","Victim"}, {"?vt","Victim_Type"}});
-    this->kb.add_predicate("victim_status", {{"?v","Victim"}, {"?vs","Victim_Status"}});
-    this->kb.add_predicate("fov_victim", {{"?r","Role"}, {"?v","Victim"}});
-    this->kb.add_predicate("fov_rubble", {{"?r","Role"}});
-    this->kb.add_predicate("fov_marker", {{"?r","Role"}, {"?m","Marker_Type"}});
+    Predicates predicates;
+    predicates.push_back(create_predicate("player_at", {std::make_pair("?r","Role"), std::make_pair("?l","Location")}));
+    predicates.push_back(create_predicate("player_status", {std::make_pair("?r","Role"), std::make_pair("?ps","Player_Status")}));
+    predicates.push_back(create_predicate("victim_type", {std::make_pair("?v","Victim"), std::make_pair("?vt","Victim_Type")}));
+    predicates.push_back(create_predicate("victim_status", {std::make_pair("?v","Victim"), std::make_pair("?vs","Victim_Status")}));
+    predicates.push_back(create_predicate("fov_victim", {std::make_pair("?r","Role"), std::make_pair("?v","Victim")}));
+    predicates.push_back(create_predicate("fov_rubble", {std::make_pair("?r","Role")}));
+    predicates.push_back(create_predicate("fov_marker", {std::make_pair("?r","Role"), std::make_pair("?m","Marker_Type")}));
     //Initialize KB
-    this->kb.initialize();
+    this->kb = KnowledgeBase(predicates,objects,typetree) 
     //Can add facts now that KB is initialized.
     //Asked tell not to update the smt state string on its own to save time.
     this->kb.tell("(player_status medic safe)",false,false);

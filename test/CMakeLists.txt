@@ -18,18 +18,19 @@ target_link_libraries(test_kb PRIVATE tomcat)
 target_link_libraries(test_kb PRIVATE ${Z3_LIBRARIES})
 target_include_directories(test_kb PRIVATE ${Boost_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS} ../lib)
 
+# loader testing
+add_executable(test_loader test_loader.cpp)
+target_link_libraries(test_loader PRIVATE tomcat)
+target_link_libraries(test_loader PRIVATE ${Z3_LIBRARIES})
+target_include_directories(test_loader PRIVATE ${Boost_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS} ../lib)
 
-# Test unification
-add_executable(test_unification test_unification.cpp)
-target_link_libraries(test_unification tomcat Boost::log)
-target_include_directories(test_unification PRIVATE ${Boost_INCLUDE_DIR} ../lib)
-
-# Test cnf_conversion
-add_executable(test_cnf_conversion test_cnf_conversion.cpp ../lib/fol/FOLDomain.h)
-target_link_libraries(test_cnf_conversion tomcat)
-target_include_directories(test_cnf_conversion PRIVATE ${Boost_INCLUDE_DIR} ../lib)
+# planner testing
+add_executable(test_MCTS_planner test_MCTS_planner.cpp)
+target_link_libraries(test_MCTS_planner PRIVATE tomcat)
+target_link_libraries(test_MCTS_planner PRIVATE ${Z3_LIBRARIES})
+target_include_directories(test_MCTS_planner PRIVATE ${Boost_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS} ../lib)
 
 add_test(NAME test_parser COMMAND test_parser)
 add_test(NAME test_kb COMMAND test_kb)
-add_test(NAME test_unification COMMAND test_unification)
-add_test(NAME test_cnf_conversion COMMAND test_cnf_conversion)
+add_test(NAME test_loader COMMAND test_loader)
+add_test(NAME test_MCTS_planner COMMAND test_MCTS_planner)

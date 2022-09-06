@@ -7,6 +7,7 @@
 #include <variant>
 #include <vector>
 #include <algorithm>
+#include "parsing/ast.hpp"
 
 // Utility method to see if an element is in an associative container
 template <class Element, class AssociativeContainer>
@@ -19,6 +20,15 @@ template <class Element> bool in(Element element, std::vector<Element> v) {
     return std::find(v.begin(), v.end(), element) != v.end();
 }
 
+// Utility method to merge two vectors (duplicates allowed)
+template <class Element> std::vector<Element> merge_vec(std::vector<Element> v1, std::vector<Element> v2) {
+  std::vector<Element> v1v2;
+  v1v2.reserve(v1.size() + v2.size());
+  v1v2.insert(v1v2.end(),v1.begin(),v1.end());
+  v1v2.insert(v1v2.end(),v2.begin(),v2.end());
+  return v1v2;
+}
+
 // select_randomly taken from
 // https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
 template <typename Iter, typename RandomGenerator>
@@ -29,13 +39,13 @@ Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
 }
 
 template <typename Iter> Iter select_randomly(Iter start, Iter end, int seed) {
-    static std::mt19937 gen(seed);
+    static std::mt19937_64 gen(seed);
     return select_randomly(start, end, gen);
 }
 
 template <typename Iter> Iter select_randomly(Iter start, Iter end) {
     static std::random_device rd;
-    static std::mt19937 gen(rd());
+    static std::mt19937_64 gen(rd());
     return select_randomly(start, end, gen);
 }
 
@@ -85,6 +95,49 @@ std::string rtrim(const std::string &s)
  
 std::string trim(const std::string &s) {
     return rtrim(ltrim(s));
+}
+
+struct constraints_type : public boost::static_visitor<int> {
+  int operator()(const ast::Nil& n) const { return 0; }
+  int operator()(const ast::Constraint& c) const { return 1; }
+  int operator()(const std::vector<ast::Constraint>& vc) const { return 2; }
+
+};
+
+int which_constraints(ast::Constraints c) {
+  return boost::apply_visitor(constraints_type(),c);
+}
+
+struct constraint_type : public boost::static_visitor<int> {
+  int operator()(const ast::Nil& n) const { return 0; }
+  int operator()(const ast::EqualsSentence& es) const { return 1; }
+  int operator()(const ast::NotEqualsSentence& nes) const { return 2; }
+
+};
+
+int which_constraint(ast::Constraint c) {
+  return boost::apply_visitor(constraint_type(),c);
+}
+
+struct subtasks_type : public boost::static_visitor<int> {
+  int operator()(const ast::Nil& n) const { return 0; }
+  int operator()(const ast::SubTask& st) const { return 1; }
+  int operator()(const std::vector<ast::SubTask>& vst) const { return 2; }
+
+};
+
+int which_subtasks(ast::SubTasks s) {
+  return boost::apply_visitor(subtasks_type(),s);
+}
+
+struct subtask_type : public boost::static_visitor<int> {
+  int operator()(const ast::MTask& m) const { return 0; }
+  int operator()(const ast::SubTaskWithId& stwid) const { return 1; }
+
+};
+
+int which_subtask(ast::SubTask s) {
+  return boost::apply_visitor(subtask_type(),s);
 }
 
 template <typename T> constexpr auto type_name() noexcept {

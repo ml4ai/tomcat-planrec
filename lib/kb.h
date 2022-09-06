@@ -10,15 +10,14 @@
 #include <vector>
 #include <unordered_map>
 
-using namespace fol;
 //Type struct
 struct Type {
   //Name of type
   std::string type;
   //Indexes of the types lineage. 
-  std::vector<int> lineage;
+  std::unordered_set<int> lineage;
   //Indexes of the types children
-  std::vector<int> children;
+  std::unordered_set<int> children;
 };
 
 //TypeTree struct. This keeps track of the type inheritence hierarchy
@@ -43,6 +42,65 @@ struct TypeTree {
     types[id] = type;
     return id;
   }
+  //This clears tree and adds just the root type!
+  void add_root(std::string type) {
+    this->types.clear();
+    this->freedIDs.clear();
+    this->nextID = 0;
+    Type new_t;
+    new_t.type = type;
+    this->add_type(new_t);
+  }
+
+  void add_child(std::string type, std::string ancestor) {
+    Type new_t;
+    new_t.type = type;
+    int a = this->find_type(ancestor); 
+    new_t.lineage.insert(a);
+    for (auto i : this->types[a].lineage) {
+      new_t.lineage.insert(i);
+    }
+    int t = this->add_type(new_t);
+    this->types[a].children.insert(t);  
+  }
+
+  void add_ancestor(std::string type, std::string ancestor) {
+    int a = this->find_type(ancestor);
+    int i = this->find_type(type);
+    for (auto &[id,t] : this->types) {
+      if (t.children.contains(i)) {
+        t.children.erase(i); 
+        t.children.insert(a);
+        this->types[a].lineage.clear();
+        this->types[a].lineage.insert(id);
+        for (auto l : t.lineage) {
+          this->types[a].lineage.insert(l);
+        }
+      }
+    }
+    this->types[a].children.insert(i);
+    this->types[i].lineage.clear();
+    this->types[i].lineage.insert(a);
+    for (auto l : this->types[a].lineage) {
+      this->types[i].lineage.insert(l);
+    }
+    propogate_new_lineage(i);
+  }
+  //Helper function for add_ancestor
+  void propogate_new_lineage(int i) {
+    if (this->types[i].children.empty()) {
+      return;
+    }
+    for (auto const& c : this->types[i].children) {
+      this->types[c].lineage.clear();
+      this->types[c].lineage.insert(i);
+      for (auto l : this->types[i].lineage) {
+        this->types[c].lineage.insert(l);
+      }
+      propogate_new_lineage(c);
+    } 
+  }
+
   //Returns index of Type struct with name type
   int find_type(std::string type) {
     for (auto const &[i,t] : this->types) {
@@ -50,48 +108,51 @@ struct TypeTree {
         return i;
       }  
     }
-    std::string msg = "Type ";
-    msg += type;
-    msg += " not found!";
-    throw std::logic_error(msg);
+    return -1;
   }
 };
+
+int find_var(std::vector<std::pair<std::string, std::string>> vars, std::string var) {
+  for (int i = 0; i < vars.size(); i++) {
+    if (vars[i].first == var) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 //Add objects from the problem definition, then ungrounded predicate
 //statements, and then run initialize before using the kb!
 class KnowledgeBase {
     private:
-      //Tracks type hierarchy
-      TypeTree typetree;
-      //Tree index for root node.
-      int root; 
       //header,{{var1,type1},{var2,type2},...}
-      std::unordered_map<std::string, std::unordered_map<std::string,std::string>> predicates;
+      std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> predicates;
       //constant, type
-      std::unordered_map<std::string, std::string> objects;
+      std::unordered_map<std::string,std::string> objects;
       //header, (header arg1 arg2 ...), ... 
       std::unordered_map<std::string, std::unordered_set<std::string>> facts;
       //belief state in smt form;
       std::string smt_state;
 
       //Gets all bindings for smt_statement and set of variables
-      //A set of bindings is an unordered map of form {variable,value}. Called
+      //A set of bindings is an vector of pairs of form {variable,value}. Called
       //by ask when given a collection of params.
-      std::vector<std::unordered_map<std::string,std::string>> 
+      std::vector<std::vector<std::pair<std::string,std::string>>> 
       get_bindings(std::string F, 
-                  const std::unordered_map<std::string,std::string>& variables) {
-        std::vector<std::unordered_map<std::string,std::string>> results;
+                  const std::vector<std::pair<std::string, std::string>>& variables) {
+        std::vector<std::vector<std::pair<std::string,std::string>>> results;
         z3::context con;
         z3::solver s(con);
         s.from_string(F.c_str());
         while (s.check() == z3::sat) {
           auto m = s.get_model();
-          std::unordered_map<std::string,std::string> bindings;
+          std::vector<std::pair<std::string, std::string>> bindings = variables;
           for (unsigned i = 0; i < m.size(); i++) {
             auto v = m[i];
             auto v_name = v.name().str();
-            if(variables.find(v_name) != variables.end()) {
-              bindings[v_name] = m.get_const_interp(v).to_string();
+            auto index = find_var(bindings, v_name);
+            if(index != -1) {
+              bindings[index].second = m.get_const_interp(v).to_string();
             }
           }
           results.push_back(bindings);
@@ -131,62 +192,36 @@ class KnowledgeBase {
         return std::make_pair(predicate, symbols);
       }
 
-    public:
-      //Constructor initializes the default type __Object__ and adds an object
-      //predicate for it. 
-      KnowledgeBase() {
-        Type type;
-        type.type = "__Object__";
-        this->root = this->typetree.add_type(type);
-        this->add_predicate("__Object__",{{"?o","__Object__"}});
-      }
-      //Takes the predicate head (e.g., At). Parameters are given as a
-      //unordered map of {variable, type} (e.g., {?x, location})  
-      //Adding duplicate predicates will clear facts with that predicate head
-      //from the KB!
-      void add_predicate(std::string head,std::unordered_map<std::string,std::string> params) {
-        this->predicates[head] = params;
-        this->facts[head] = {};
-      }
-      
-      //Arguments are name of the object and type (e.g., Room1 - location).
-      void add_object(std::string name, std::string type) {
-        this->objects[name] = type;
-      }
-      //Types by default inherit type __Object__. If a ancestor type is
-      //specified, the type will inherit that ancestor and the lineage of that
-      //ancestor (including __Object__). Automatically adds object predicates.
-      void add_type(std::string type, std::string ancestor = "__Object__") {
-        Type new_t;
-        new_t.type = type;
-        this->add_predicate(type,{{"?o","__Object__"}});
-        int a = this->typetree.find_type(ancestor); 
-        new_t.lineage.push_back(a);
-        if (ancestor != "__Object__") {
-          for (auto i : this->typetree.types[a].lineage) {
-            new_t.lineage.push_back(i);
-          }
-        }
-        int t = this->typetree.add_type(new_t);
-        this->typetree.types[a].children.push_back(t);
-      }
-
-   
       // Initializes the KBs belief state with
       // closed world assumption. Call ONCE after adding all of the needed types, objects, and
       // predicate or else all tell() and ask() calls will crash or fail!   
-      void initialize() {
+      void initialize(TypeTree typetree) {
+        for (auto const& [t1, t2] : typetree.types) {
+          std::vector<std::pair<std::string, std::string>> params;
+          params.push_back(std::make_pair("?o","__Object__"));
+          this->predicates.push_back(std::make_pair(t2.type,params));
+        }
         for (auto const& [o1,o2] : this->objects) {
-          int t = this->typetree.find_type(o2);
-          for (auto const& [t1,t2] : this->typetree.types) {
+          int t = typetree.find_type(o2);
+          for (auto const& [t1,t2] : typetree.types) {
             std::string f = "("+t2.type+" "+o1+")";
-            if (in(t1,this->typetree.types[t].lineage) ||
+            if (in(t1,typetree.types[t].lineage) ||
                 t2.type == o2) {
               this->facts[t2.type].insert(f);
             } 
           }
         }
         this->update_state();
+      }
+
+    public:
+      KnowledgeBase() {}
+      KnowledgeBase(std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> predicates,
+                    std::unordered_map<std::string,std::string> objects,
+                    TypeTree typetree) {
+        this->predicates = predicates;
+        this->objects = objects;
+        this->initialize(typetree);
       }
 
       //Used by tell to update the smt_state string. tell() calls this
@@ -198,22 +233,22 @@ class KnowledgeBase {
           this->smt_state += o1+" ";
         }
         this->smt_state += "))\n";
-        for (auto const& [h,a] : this->predicates) {
-          if (this->facts.find(h) != this->facts.end()) {
-            if (!this->facts[h].empty()) {
-              this->smt_state += "(declare-fun "+h+" (";
+        for (auto const& p : this->predicates) {
+          if (this->facts.find(p.first) != this->facts.end()) {
+            if (!this->facts[p.first].empty()) {
+              this->smt_state += "(declare-fun "+p.first+" (";
               std::string pred_assert = "(assert (forall (";
               int i = 0;
               std::string var_assert = "";
-              for (auto const& [v,t] : a) {
+              for (auto const& pars : p.second) {
                 this->smt_state += "__Object__ ";
                 pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
                 var_assert += " x_"+std::to_string(i);
                 i++;
               }
-              pred_assert += ") (= ("+h+var_assert+") (or ";
-              for (auto const& p : this->facts[h]) {
-                auto pp = this->parse_predicate(p);
+              pred_assert += ") (= ("+p.first+var_assert+") (or ";
+              for (auto const& f : this->facts[p.first]) {
+                auto pp = this->parse_predicate(f);
                 pred_assert += "(and ";
                 int j = 0;
                 for (auto const& vals : pp.second) {
@@ -227,33 +262,33 @@ class KnowledgeBase {
               this->smt_state += pred_assert;
             }
             else {
-              this->smt_state += "(declare-fun "+h+" (";
+              this->smt_state += "(declare-fun "+p.first+" (";
               std::string pred_assert = "(assert (forall (";
               int i = 0;
               std::string var_assert = "";
-              for (auto const& [v,t] : a) {
+              for (auto const& vars : p.second) {
                 this->smt_state += "__Object__ ";
                 pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
                 var_assert += " x_"+std::to_string(i);
                 i++;
               }
-              pred_assert += ") (not ("+h+var_assert+"))))\n";
+              pred_assert += ") (not ("+p.first+var_assert+"))))\n";
               this->smt_state += ") Bool)\n";
               this->smt_state += pred_assert;
             }
           }
           else {
-            this->smt_state += "(declare-fun "+h+" (";
+            this->smt_state += "(declare-fun "+p.first+" (";
             std::string pred_assert = "(assert (forall (";
             int i = 0;
             std::string var_assert = "";
-            for (auto const& [v,t] : a) {
+            for (auto const& vars : p.second) {
               this->smt_state += "__Object__ ";
               pred_assert += "(x_"+std::to_string(i)+" __Object__) ";
               var_assert += " x_"+std::to_string(i);
               i++;
             }
-            pred_assert += ") (not ("+h+var_assert+"))))\n";
+            pred_assert += ") (not ("+p.first+var_assert+"))))\n";
             this->smt_state += ") Bool)\n";
             this->smt_state += pred_assert;
           }
@@ -270,7 +305,13 @@ class KnowledgeBase {
       //manually after all the tells for more optimal performance! 
       bool tell(std::string pred, bool remove = false, bool update_state = true) {
         auto pp = this->parse_predicate(pred);
-        if (this->predicates.find(pp.first) == this->predicates.end()) {
+        bool not_found = true;
+        for (auto const& p : this->predicates) {
+          if (pp.first == p.first and pp.second.size() == p.second.size()) {
+            not_found = false;
+          }  
+        }
+        if (not_found) {
           return false;
         }
         if (remove) {
@@ -288,6 +329,27 @@ class KnowledgeBase {
       }
 
       //This adds the assert to expr, but the rest of expr must be made smt
+      //compatible prior to this call. Z3 will give an error if a variable is not
+      //found in params is used, which complies with HDDLs specifications for method and
+      //action definitions. Params must be {{var1,type1},{var2,type2},...} 
+      //This returns {{{var1,val1},{var2,val2},...},...}
+      //EX: expr = (and (A ?x) (or (B ?x y) (C z)))
+      //params = {{"?x", "thing"}}
+      std::vector<std::vector<std::pair<std::string,std::string>>>
+      ask(std::string expr,
+          std::vector<std::pair<std::string, std::string>>& params) {
+        std::string smt_expr = this->smt_state;
+        for (auto const& p : params) {
+          smt_expr += "(declare-const "+p.first+" __Object__)\n";
+          smt_expr += "(assert ("+p.second+" "+p.first+"))\n";
+        }
+        if (expr != "") {
+          smt_expr += "(assert "+expr+")\n";
+        }
+        return get_bindings(smt_expr,params);
+      }
+
+      //This adds the assert to expr, but the rest of expr must be made smt
       //compatible prior to this call. 
       //This is mostly an issue for things like forall and exist, which have different
       //syntax in smt compared to hddl. 
@@ -301,28 +363,22 @@ class KnowledgeBase {
         return s.check() == z3::sat;
       }
 
-      //This adds the assert to expr, but the rest of expr must be made smt
-      //compatible prior to this call. Z3 will give an error if a variable is not
-      //found in params is used, which complies with HDDLs specifications for method and
-      //action definitions. Params must be {{var1,type1},{var2,type2},...} 
-      //This returns {{{var1,val1},{var2,val2},...},...}
-      //EX: expr = (and (A ?x) (or (B ?x y) (C z)))
-      //params = {{"?x", "thing"}}
-      std::vector<std::unordered_map<std::string,std::string>>
-      ask(std::string expr,
-          std::unordered_map<std::string,std::string> params) {
-        std::string smt_expr = this->smt_state;
-        for (auto const& [v,t] : params) {
-          smt_expr += "(declare-const "+v+" __Object__)\n";
-          smt_expr += "(assert ("+t+" "+v+"))\n";
-        }
-        smt_expr += "(assert "+expr+")\n";
-        return get_bindings(smt_expr,params);
-      }
 
       //prints smt_state string
       void print_smt_state() {
         std::cout << this->smt_state << std::endl;
+      }
+
+      std::unordered_set<std::string> get_facts(std::string head) {
+        return this->facts[head];
+      } 
+
+      void print_facts() {
+        for (auto const& [_,fset] : this->facts) {
+          for (auto const& fact : fset) {
+            std::cout << fact << std::endl;
+          }
+        }
       }
 
 };
