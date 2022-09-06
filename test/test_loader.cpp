@@ -5,8 +5,8 @@
 
 BOOST_AUTO_TEST_CASE(test_domain_loading) {
     // Test loading of domain definition and its components
-    auto [storage_domain,storage_problem] = load("../../test/storage_domain_test.hddl",
-                                            "../../test/storage_problem_test.hddl");
+    auto [storage_domain,storage_problem] = load("../../domains/storage_domain.hddl",
+                                            "../../domains/storage_problem.hddl");
 
     BOOST_TEST(storage_domain.head == "domain_htn");
 
@@ -44,12 +44,7 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     BOOST_TEST(methodtask.second[0].first == "p");
     // Test parsing method's precondition:
     auto methodprec_f = storage_domain.methods["deliver"][0].get_preconditions();
-    BOOST_TEST(methodprec_f == "__NONE__");
-
-    auto methodprec_complex = storage_domain.methods["test_task"][0].get_preconditions();
-    std::cout <<"#TESTING COMPLEX PRECONDITIONS#" << std::endl;
-    std::cout << methodprec_complex << std::endl;
-    std::cout << std::endl;
+    BOOST_TEST(methodprec_f == "(and (at p l1))");
 
     // Test Parsing Method's SubTasks (in reverse order for planner):
     BOOST_TEST(storage_domain.methods["deliver"][0].get_subtasks()[2].first == "load");
@@ -81,33 +76,14 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     auto no_effects = storage_domain.actions.at("noop").get_effects();
     BOOST_TEST(no_effects.size() == 0);
 
-    std::cout <<"#TESTING COMPLEX EFFECTS#" << std::endl;
-    auto effects_complex = storage_domain.actions.at("test_action").get_effects();
-    for (auto const& e : effects_complex) {
-      std::cout << "condition for " << e.pred.first << ": "<< e.condition << std::endl;
-      if (e.remove) {
-        std::cout << e.pred.first << " is being removed." << std::endl; 
-      }
-      else {
-        std::cout << e.pred.first << " is being added." << std::endl;
-      }
-      std::cout << "Forall types for " << e.pred.first << ": " << std::endl;
-      for (auto const& [var,types] : e.forall) {
-        std::cout << var << " -";
-        for (auto const& t : types) {
-          std::cout << " " << t;
-        }
-        std::cout << std::endl;
-      }
-    }
 }// end of testing the domain
 
 BOOST_AUTO_TEST_CASE(test_problem_loading) {
     // Test loading of problem definition and its components
-    auto [storage_domain,storage_problem] = load("../../test/storage_domain_test.hddl",
-                                            "../../test/storage_problem_test.hddl");
+    auto [storage_domain,storage_problem] = load("../../domains/storage_domain.hddl",
+                                            "../../domains/storage_problem.hddl");
 
-    BOOST_TEST(storage_problem.head == "delivery");
+    BOOST_TEST(storage_problem.head == "__delivery__");
     BOOST_TEST(storage_problem.domain_name == "domain_htn");
     
     BOOST_TEST(storage_problem.initF[7] == "(at truck_0 city_loc_2)");
@@ -124,8 +100,8 @@ BOOST_AUTO_TEST_CASE(test_problem_loading) {
 
 BOOST_AUTO_TEST_CASE(test_apply) {
     // Test loading of problem definition and its components
-    auto [storage_domain,storage_problem] = load("../../test/storage_domain_test.hddl",
-                                            "../../test/storage_problem_test.hddl");
+    auto [storage_domain,storage_problem] = load("../../domains/storage_domain.hddl",
+                                            "../../domains/storage_problem.hddl");
     KnowledgeBase kb(storage_domain.predicates,storage_problem.objects,storage_domain.typetree);
     std::cout << std::endl;
     std::cout << "#ONLY OBJECT FACTS#" << std::endl; 

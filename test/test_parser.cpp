@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     //     only, and may not make logical sense.
 
 
-    std::ifstream f("../../test/storage_domain_test.hddl");
+    std::ifstream f("../../domains/storage_domain.hddl");
     std::string t_storage( (std::istreambuf_iterator<char>(f)),
                            (std::istreambuf_iterator<char>()));
     auto dom = parse<Domain>(t_storage);
@@ -202,8 +202,9 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     BOOST_TEST(methodtask.name == "deliver");
     BOOST_TEST(boost::get<Variable>(methodtask.parameters[0]).name == "p");
     // Test parsing method's precondition:
-    auto methodprec_f = dom.methods[0].precondition;
-    BOOST_TEST(boost::get<Nil>(methodprec_f) == Nil());
+    auto methodprec_f = boost::get<ConnectedSentence>(dom.methods[0].precondition);
+    auto methodprec1_os = boost::get<Literal<Term>>(methodprec_f.sentences[0]);
+    BOOST_TEST(methodprec1_os.predicate == "at");
 
     // Test Parsing Method's SubTasks:
     std::vector<ast::SubTask> subtask_v = boost::get<vector<SubTask>>(
@@ -255,7 +256,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     //  Test parsing of problem definition and its components
 
-    std::ifstream f("../../test/storage_problem_test.hddl");
+    std::ifstream f("../../domains/storage_problem.hddl");
     std::string t_storage( (std::istreambuf_iterator<char>(f)),
                            (std::istreambuf_iterator<char>()));
 
