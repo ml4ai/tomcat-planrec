@@ -255,16 +255,18 @@ int cexpansion(pTree& t,
     throw std::logic_error("Invalid task during expansion!");
 }
 
-std::vector<std::string>
+int
 cseek_planMCTS(pTree& t,
                  int v,
                  DomainDef& domain,
                  int R,
                  int plan_size,
                  double eps,
+                 int successes,
+                 double prob,
                  std::mt19937_64& g) {
 
-  std::negative_binomial_distribution<int> nbd(50,0.75);
+  std::negative_binomial_distribution<int> nbd(successes,prob);
   int prev_v;
   while (!t.nodes[v].tasks.empty()) {
     pTree m;
@@ -375,17 +377,19 @@ cseek_planMCTS(pTree& t,
   std::cout << "Final State:" << std::endl;
   t.nodes[v].state.print_facts();
   std::cout << std::endl;
-  return t.nodes[v].plan;
+  return v;
 
 }
 
-std::pair<pTree,int> 
+std::pair<pTree,std::pair<int,int>> 
 cppMCTShop(DomainDef& domain,
            ProblemDef& problem,
            Scorer scorer,
-           int R,
+           int R = 30,
            int plan_size = -1,
            double eps = 0.4,
+           int successes = 19,
+           double prob = 0.75,
            int seed = 4021) {
     domain.set_scorer(scorer);
     pTree t;
@@ -407,11 +411,11 @@ cppMCTShop(DomainDef& domain,
     std::cout << "Initial State:" << std::endl;
     t.nodes[v].state.print_facts();
     std::cout << std::endl;
-    auto plan = cseek_planMCTS(t, v, domain, R, plan_size, eps, g);
+    auto end = cseek_planMCTS(t, v, domain, R, plan_size, eps, successes,prob,g);
     std::cout << "Plan:";
-    for (auto const& p : plan) {
+    for (auto const& p : t.nodes[end].plan) {
       std::cout << " " << p;
     }
     std::cout << std::endl;
-    return std::make_pair(t,v);
+    return std::make_pair(t,std::make_pair(v,end));
 }
