@@ -1,4 +1,4 @@
-#include "domains/score_functions.h"
+#include "../../domains/score_functions.h"
 #include <math.h>
 #include <stdlib.h>
 //#include "plan_trace.h"
@@ -19,8 +19,8 @@ int main(int argc, char* argv[]) {
   int R = 30;
   double eps = 0.4;
   int seed = 2022;
-  std::string dom_file = "../apps/planners/domains/storage_domain.hddl";
-  std::string prob_file = "../apps/planners/domains/storage_problem.hddl";
+  std::string dom_file = "../domains/storage_domain.hddl";
+  std::string prob_file = "../domains/storage_problem.hddl";
   std::string score_fun = "delivery_one";
   try {
     po::options_description desc("Allowed options");
