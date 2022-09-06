@@ -1,0 +1,31 @@
+    (define
+        (problem wakeCritical-1)
+        (:domain question-plan)
+        (:requirements :strips :typing)
+
+   	(:objects
+        questioner - player
+        answerer - player
+        critical - critical
+        origin - location
+        dest - location
+	    )
+
+	(:htn
+		:parameters (?qu ?an - player ?loc ?dest - location ?c - critical)
+		:task
+            (wake-critical answerer critical dest)
+		)
+	)
+
+	(:init
+        (location origin)
+        (at questioner dest)
+        (at critical dest)
+        (at answerer origin)
+	)
+    (:goal
+         (at answerer dest)
+    )
+  ); end problem definition
+

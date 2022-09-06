@@ -1,0 +1,201 @@
+  (define (domain question-plan)
+	(:requirements :negative-preconditions :typing :hierarchy)
+	(:types
+		location - object
+        victim - object
+        player - object
+        marker - object
+        critical - victim
+        stabilized - victim
+        questioner - player
+        answerer - player
+	)
+
+    (:predicates
+        (at ?p - player ?loc - location)
+        (in ?loc - location)
+        (found ?v - victim ?loc - location)
+        (awake ?c - critical ?loc - location)
+        (is_medic ?med - player)
+        (saved ?v - victim)
+        (stabilized ?st - victim)
+        (carried ?p - player ?v - victim ?loc1 ?loc2 - location)
+        (can_be_carried ?v - victim ?loc - location)
+        (is_marked ?v - victim ?mark - marker ?loc - location)
+	)
+
+    ; player intention to wake a critical victim
+    (:task wake-critical
+        :parameters (?p - player ?c - critical ?l - location)
+        )
+
+    ; player intention to carry stabilized victims to sick bays
+    (:task collaborate-carry-stabilized
+        :parameters(?p - player ?v - victim ?loc - location ?mark - marker)
+        )
+
+    (:method ordered-carry-stabilized
+        :parameters()
+        :task (collaborate-carry-stabilized ?p ?v ?loc ?mark)
+        :ordered_subtasks (and (request-marker ?qu ?an ?v ?mark ?loc)
+                               (request-carry-stabilized ?qu ?v ?loc))
+        )
+
+    (:method ordered-wake
+        :parameters (?qu ?an - player)
+        :task (wake-critical ?qu ?c ?l)
+        :ordered_subtasks (and (clarify-location-effect ?qu ?c ?loc ?dest)
+                               (request-destination ?qu ?an ?loc ?dest)
+                               (wake-critical ?qu ?an ?c ?dest))
+        )
+
+    (:method partially-ordered-wake
+        :parameters (?qu ?an - player ?loc ?dest - location ?c - critical)
+        :task (wakeCritical ?qu ?c ?loc)
+        :subtasks (and (t1 (clarify-critical-location ?qu ?c ?loc ?dest))
+                       (t2 (request-destination ?qu ?an ?loc ?dest))
+                       (t3 (clarify-location-repeat ?loc))
+                       (t4 (wake-critical ?qu ?an ?c ?dest)))
+        :ordering (and(< t1 t2)
+                      (< t2 t4)
+                      (< t3 t4))
+        
+
+    ; request-marker means to request a teammate to place a marker down to indicate
+        ; status of a victim or stabilized victim. This does not mean the same 
+        ; thing as clarify-stabilized-status or clarify-victim-status. Those two
+        ; are verbal requests for clarification, not the request of placing markers
+    (:action request-marker
+      ;parameters (?qu ?an - player ?v - victim ?mark - marker ?loc - location)
+      :precondition (and (at ?v ?loc) (not(is_marked ?mark ?loc)))
+      :effect (is_marked ?v ?mark ?loc)
+      )
+
+    ;clarify-stabilized-status is an action that will execute for any type of stabilized victim
+    (:action clarify-stabilized-status
+      ;parameters (?p - player ?v - victim ?mark -marker ?loc - location)
+      :precondition (and (is_marked ?v ?mark ?loc)
+                         (stabilized ?v)
+                         (not( can_be_carried ?v ?loc)
+                             (saved ?s)))
+      :effect (and (can_be_carried ?v ?loc)
+                   (at ?p ?loc))
+      )
+
+    ;clarify-status-victim is an action that will execute for any type of unstabilized victim
+    (:action clarify-status-victim
+      ;parameters (?v - victim ?mark ?loc - location)
+      :precondition (and (not (saved ?v)
+                              (stabilized ?st))
+                         (and (can_be_carried ?v ?loc)))
+      :effect (can_be_carried ?v ?loc)
+      )
+
+    ; request-carry-stabilized is a verbal request to carry healed victims to their proper bay
+    ; can-be-carried remains in effect because it sometimes leads to status clarification again!
+    (:action request-carry-stabilized
+      ;parameters (?p - player ?v - victim ?loc - location)
+      :precondition (and (can_be_carried ?v - victim ?loc - location)
+                        (stabilized ?st)
+                        (not (saved ?v)))
+      :effect (and (carried ?p ?v ?loc)
+                   (at ?v ?loc)
+                   (at ?p ?loc))
+      )
+
+      
+    ; request-destination is when one player asks another player to go to a specific location
+    (:action request-destination
+      :parameters (?qu ?an - player ?loc ?dest - location)
+      :precondition (and ( at ?qu ?dest)(at ?an ?loc)(not (at ?an ?dest)))
+      :effect (and(at ?an ?dest)(not(at ?an ?loc))(not(in ?loc)))
+      )
+
+    ; ask-location-teammate is when one player asks the location of another teammate, but does
+        ; not request for them to go elsewhere
+    (:action ask-locatin-teammate
+      :parameters (?qu ?an - player ?loc ?dest - location)
+      :precondition (at ?qu ?dest)
+      :effect (and (not( at ?an ?dest)(at ?an ?loc)))
+      )
+
+    ; used for clearing areas; however, many times players will not clarify, so this action
+        ; is repeated half the time. This is shown as 'no effect'.
+    (:action clarify-location-repeat
+      :parameters (?loc - location)
+      :precondition (not (in ?loc))
+      :effect()
+      )
+
+    (:action clarify-location-effect
+      :parameters (?loc - location)
+      :precondition (not (in ?loc))
+      :effect (in ?loc)
+      )
+
+    (:action clarify-critical-location
+      :parameters (?qu - player ?c - critical ?loc ?dest - location)
+      :precondition()
+      :effect (and (at (?qu ?dest)(found ?c ?loc)))
+      )
+
+    (:action wake-critical
+      :parameters (?p1 ?p2 - player ?c - critical ?dest - location)
+      :precondition (and (at ?an ?dest)( at ?qu ?dest)(found ? ?dest))
+      :effect (awake ?c ?loc)
+      )
+
+    (:action save-critical
+      :parameters (?c - critical ?p - player ?loc - location)
+      :precondition (and (awake ?c ?loc)(is_medic ?p ?loc))
+      :effect (saved ?c)
+      )
+
+  ); end domain definition
+    )";
+
+    storage = R"(
+    (define
+        (problem delivery)
+        (:domain domain_htn)
+        (:requirements :strips :typing)
+
+   	(:objects
+        package_0 - package
+	    package_1 - package
+	    capacity_0 - capacity_number
+	    capacity_1 - capacity_number
+	    city_loc_0 - location
+	    city_loc_1 - location
+	    city_loc_2 - location
+	    truck_0 - vehicle
+        location
+	    )
+	(:htn
+		;:parameters ()
+		:parameters (?loc1 - location ?p - package ?v - vehicle)
+		:subtasks (and
+		 (task0 (deliver package_0 city_loc_0))
+		 (task1 (deliver package_1 city_loc_2))
+		)
+		:ordering (and
+			(< task0 task1)
+		)
+	)
+	(:init
+		(capacity_predecessor capacity_0 capacity_1)
+		(road city_loc_0 city_loc_1)
+		(road city_loc_1 city_loc_0)
+		(road city_loc_1 city_loc_2)
+		(road city_loc_2 city_loc_1)
+		(at package_0 city_loc_1)
+		(at package_1 city_loc_1)
+		(at truck_0 city_loc_2)
+		(capacity truck_0 capacity_1)
+	)
+    (:goal
+         (and (at package_1 city_loc_2)
+              (at truck_1 city_loc_2)
+    ))
+  ); end problem definition
+
