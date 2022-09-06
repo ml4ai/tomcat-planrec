@@ -159,10 +159,10 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     //     only, and may not make logical sense.
 
 
-    std::ifstream f("../../domains/storage_domain.hddl");
-    std::string t_storage( (std::istreambuf_iterator<char>(f)),
+    std::ifstream f("../../domains/transport_domain.hddl");
+    std::string t_transport( (std::istreambuf_iterator<char>(f)),
                            (std::istreambuf_iterator<char>()));
-    auto dom = parse<Domain>(t_storage);
+    auto dom = parse<Domain>(t_transport);
 
     // Test Domain Name:
     BOOST_TEST(dom.name == "domain_htn");
@@ -256,11 +256,11 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
 BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     //  Test parsing of problem definition and its components
 
-    std::ifstream f("../../domains/storage_problem.hddl");
-    std::string t_storage( (std::istreambuf_iterator<char>(f)),
+    std::ifstream f("../../domains/transport_problem.hddl");
+    std::string t_transport( (std::istreambuf_iterator<char>(f)),
                            (std::istreambuf_iterator<char>()));
 
-    auto prob = parse<Problem>(t_storage);
+    auto prob = parse<Problem>(t_transport);
 
     BOOST_TEST(prob.name == "delivery");
     BOOST_TEST(prob.domain_name == "domain_htn");
