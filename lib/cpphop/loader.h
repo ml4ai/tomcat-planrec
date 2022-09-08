@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-
+#include <queue>
 #include "parsing/api.hpp"
 #include "parsing/ast.hpp"
 #include "parsing/ast_adapted.hpp"
@@ -433,7 +433,7 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
           t.second.push_back(arg);
         }
       }
-      subs.push_back(t);
+      subs["__task0__"] = t;
     }
     else {
       auto sbtid = boost::get<SubTaskWithId>(s);
@@ -454,11 +454,12 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
           t.second.push_back(arg);
         }
       }
-      subs.push_back(t);
+      subs[sbtid.id] = t;
     }
   }
   if (which_subtasks(subtasks) == 2) {
     auto vs = boost::get<std::vector<SubTask>>(subtasks);
+    int j = 0;
     for (auto const& s : vs) {
       if (which_subtask(s) == 0) {
         auto st = boost::get<MTask>(s);
@@ -478,7 +479,7 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
             t.second.push_back(arg);
           }
         }
-        subs.push_back(t);
+        subs["__task"+j+"__"] = t;
       }
       else {
         auto sbtid = boost::get<SubTaskWithId>(s);
@@ -499,7 +500,7 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
             t.second.push_back(arg);
           }
         }
-        subs.push_back(t);
+        subs[sbtid.id] = t;
       }
     }
   }
@@ -578,53 +579,38 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
     constants[ic] = "__Object__";
   }
 
-  TaskDefs tasks;
   Tasktypes ttypes;
   for (auto const& t : dom.tasks) {
-    TaskDef task;
-    task.first = t.name;
-    Params params;
     for (auto const& p : t.parameters.explicitly_typed_lists) {
       std::string type = boost::get<PrimitiveType>(p.type);
       for (auto const& e : p.entries) {
-        params.push_back(std::make_pair(e.name,type));
         ttypes[t.name].push_back(type); 
       }
     }
     for (auto const& pt : t.parameters.implicitly_typed_list) {
-      params.push_back(std::make_pair(pt.name,"__Object__"));
       ttypes[t.name].push_back("__Object__");
     }
-    task.second = params;
-    tasks.push_back(task);
   }
 
   ActionDefs actions;
   for (auto const& a : dom.actions) {
-    TaskDef task;
     std::string name = a.name;
-    task.first = a.name;
     Params params;
-    Params tparams;
     for (auto const& p : a.parameters.explicitly_typed_lists) {
       std::string type = boost::get<PrimitiveType>(p.type);
       for (auto const& e : p.entries) {
         params.push_back(std::make_pair(e.name,type));
-        tparams.push_back(std::make_pair(e.name,type));
         ttypes[a.name].push_back(type);
       }
     }
     for (auto const& pt : a.parameters.implicitly_typed_list) {
       params.push_back(std::make_pair(pt.name,"__Object__"));
-      tparams.push_back(std::make_pair(pt.name,"__Object__"));
       ttypes[a.name].push_back("__Object__");
     }
 
     Preconds preconditions = sentence_to_SMT(a.precondition,ptypes); 
     Effects effects = decompose_effects(a.effect,ptypes);
     actions.emplace(std::make_pair(name, ActionDef(name,params,preconditions,effects))); 
-    task.second = tparams;
-    tasks.push_back(task);
   }
   
   MethodDefs methods;
@@ -667,13 +653,18 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
       }
     }
     TaskDefs subtasks;
+    bool ordered_kw = false;
     if (m.task_network.subtasks) {
       subtasks = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
+      if (m.task_network.subtasks->ordering_kw == "ordered-tasks" || 
+          m.task_network.subtasks->ordering_kw == "ordered-subtasks") {
+        ordered_kw = true; 
+      }
     }
 
-    methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks));
+    methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks,ordered_kw));
   }
-  auto DD = DomainDef(name,typetree,predicates,constants,tasks,actions,methods);
+  auto DD = DomainDef(name,typetree,predicates,constants,actions,methods);
   return std::make_pair(DD,ttypes);
 }
 
