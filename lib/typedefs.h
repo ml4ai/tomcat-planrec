@@ -3,6 +3,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <queue>
 #include <map>
 #include <vector>
 #include <iterator>
@@ -33,11 +34,13 @@ using Effects = std::vector<effect>;
 using task_token = std::string;
 using TaskDef = std::pair<std::string, Params>;
 using Grounded_Task = std::pair<std::string,Args>;
-using TaskDefs = std::vector<TaskDef>;
-using Grounded_Tasks = std::vector<Grounded_Task>;
+using TaskDefs = std::unordered_map<std::string,TaskDef>;
 using Objects = std::unordered_map<std::string,std::string>;
 using Scorer = double (*)(KnowledgeBase&);
 using Scorers = std::unordered_map<std::string, Scorer>;
+using Ordering_id = std::pair<int, std::string>;
+using Ordering_ids = std::vector<Ordering_id>;
+
 std::string return_value(std::string var, Args args) {
   for (auto const& a : args) {
     if (var == a.first) {
@@ -286,7 +289,7 @@ class ActionDef {
       return std::make_pair(token,new_states);
     }
 };
-//Ignores task ordering for now! It just assumes that tasks are fully ordered
+
 class MethodDef {
   private:
     std::string head;
@@ -294,11 +297,17 @@ class MethodDef {
     Params parameters;
     Preconds preconditions;
     TaskDefs subtasks;
-    bool init;
+    Ordering_ids ordering_ids;
+    bool ordered_kw;
 
   public:
     MethodDef() {}
-    MethodDef(std::string head, TaskDef task, Params parameters, Preconds preconditions, TaskDefs subtasks, bool init = false) {
+    MethodDef(std::string head, 
+              TaskDef task, 
+              Params parameters, 
+              Preconds preconditions, 
+              TaskDefs subtasks, 
+              bool ordered_kw) {
       this->head = head;
       this->task = task;
       this->parameters = parameters;
@@ -306,7 +315,7 @@ class MethodDef {
       //Reverse order for planning algorithm
       this->subtasks = subtasks;
       std::reverse(this->subtasks.begin(),this->subtasks.end());
-      this->init = init;
+      this->ordered_kw = ordered_kw;
     }
 
     std::string get_head() {
@@ -409,7 +418,6 @@ struct DomainDef {
   std::string head;
   TypeTree typetree;
   Predicates predicates;
-  TaskDefs tasks;
   ActionDefs actions;
   MethodDefs methods;
   Objects constants;
@@ -418,14 +426,12 @@ struct DomainDef {
             TypeTree typetree,
             Predicates predicates,
             Objects constants,
-            TaskDefs tasks,
             ActionDefs actions,
             MethodDefs methods) {
     this->head = head;
     this->typetree = typetree;
     this->predicates = predicates;
     this->constants = constants;
-    this->tasks = tasks;
     this->actions = actions;
     this->methods = methods;
   }
