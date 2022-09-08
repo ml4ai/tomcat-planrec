@@ -25,11 +25,6 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     BOOST_TEST(transport_domain.predicates[2].second[1].first == "arg1");
     BOOST_TEST(transport_domain.predicates[2].second[1].second == "vehicle");
 
-    // Test parsing of abstract tasks
-    BOOST_TEST(transport_domain.tasks[0].first == "deliver");
-    auto taskpara1 = transport_domain.tasks[0].second;
-    BOOST_TEST(taskpara1[0].second == "package");
-
     // Test methods and their components (totally-ordered):
     // Test methods name:
     BOOST_TEST(transport_domain.methods["deliver"][0].get_head() == "m_deliver_ordering_0");
