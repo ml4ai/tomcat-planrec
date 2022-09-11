@@ -24,6 +24,106 @@ using std::string, std::vector, std::unordered_set;
 using Ptypes = std::unordered_map<std::string,std::vector<std::string>>;
 using Tasktypes = std::unordered_map<std::string,std::vector<std::string>>;
 
+struct Task_ID {
+  //Name of Task_ID
+  ID id;
+  std::unordered_set<int> incoming;
+  //Indexes of the Task_IDs children
+  std::unordered_set<int> outgoing;
+};
+
+struct OrderGraph {
+  std::unordered_map<int,Task_ID> Task_IDs;
+  //Keeps track of next newly usable ID
+  int nextID = 0;
+  //Keeps track of usable freed IDs
+  std::vector<int> freedIDs;
+
+  int add_Task_ID(Task_ID& Task_ID) {
+    int id;
+    if (!freedIDs.empty()) {
+      id = freedIDs.back();
+      freedIDs.pop_back();
+    }
+    else {
+      id = nextID;
+      nextID++;
+    }
+    Task_IDs[id] = Task_ID;
+    return id;
+  }
+  //This clears tree and adds just the root type!
+  int add_node(ID id) {
+    Task_ID task_id;
+    task_id.id = id;
+    return this->add_Task_ID(task_id);
+  }
+  //id1 -> id2
+  std::pair<int,int> add_edge(ID id1, ID id2) {
+    int iid1 = this->find_Task_ID(id1);
+    int iid2 = this->find_Task_ID(id2);
+    if (iid1 == -1) {
+      if (iid2 == -1) {
+        iid1 = this->add_single(id1);
+        iid2 = this->add_single(id2);
+        this->Task_IDs[iid1].outgoing.insert(iid2);
+        this->Task_IDs[iid2].incoming.insert(iid1);
+        return std::make_pair(iid1,iid2);
+      }
+      iid1 = this->add_single(id1);
+      this->Task_IDs[iid1].outgoing.insert(iid2);
+      this->Task_IDs[iid2].incoming.insert(iid1);
+      return std::make_pair(iid1,iid2);
+    }
+    if (iid2 == -1) {
+      iid2 = this->add_single(id2);
+      this->Task_IDs[iid1].outgoing.insert(iid2);
+      this->Task_IDs[iid2].incoming.insert(iid1);
+      return std::make_pair(iid1,iid2);
+    }
+    this->Task_IDs[iid1].outgoing.insert(iid2);
+    this->Task_IDs[iid2].incoming.insert(iid1);
+    return std::make_pair(iid1,iid2);
+  } 
+  //Returns index of Type struct with name Task_ID
+  int find_Task_ID(ID id) {
+    for (auto const &[i,t] : this->Task_IDs) {
+      if (t.id == id) {
+        return i;
+      }  
+    }
+    return -1;
+  }
+
+  bool empty() {
+    return Task_IDs.empty();
+  } 
+};
+
+OrderGraph get_orderings(Orderings orderings, std::unordered_set<ID> task_ids) {
+  OrderGraph og;
+  for (auto const &ti : task_ids) {
+    og.add_node(ti);
+  }
+
+  if (which_orderings(orderings) == 0) {
+    return og;
+  }
+  if (which_orderings(orderings) == 1) {
+    auto o = boost::get<Ordering>(orderings);
+    og.add_edge(o.first,o.second);
+    return og;
+  }
+  if (which_orderings(orderings) == 2) {
+    auto ov = boost::get<std::vector<Ordering>>(orderings);
+    for (auto const &o : ov) {
+      og.add_edge(o.first,o.second);
+    }
+    return og;
+  }
+  return og;
+};
+
 std::unordered_set<std::string> type_inference(Sentence sentence, Ptypes& ptypes, std::string var) {
   std::unordered_set<std::string> types;
   types.insert("__Object__");
@@ -408,8 +508,8 @@ std::string decompose_constraints(Constraints constraints) {
   return "__NONE__";
 }
 
-TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
-  TaskDefs subs;
+std::vector<std::pair<ID,TaskDef>> get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
+  std::vector<std::pair<ID,TaskDef>> subs;
   if (which_subtasks(subtasks) == 0) {
     return subs;
   }
@@ -433,7 +533,7 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
           t.second.push_back(arg);
         }
       }
-      subs["__task0__"] = t;
+      subs.push_back(std::make_pair("__task0__",t));
     }
     else {
       auto sbtid = boost::get<SubTaskWithId>(s);
@@ -454,7 +554,7 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
           t.second.push_back(arg);
         }
       }
-      subs[sbtid.id] = t;
+      subs.push_back(std::make_pair(sbtid.id,t));
     }
   }
   if (which_subtasks(subtasks) == 2) {
@@ -479,7 +579,8 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
             t.second.push_back(arg);
           }
         }
-        subs["__task"+j+"__"] = t;
+        subs.push_back(std::make_pair("__task"+j+"__",t));
+        j++;
       }
       else {
         auto sbtid = boost::get<SubTaskWithId>(s);
@@ -500,7 +601,7 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
             t.second.push_back(arg);
           }
         }
-        subs[sbtid.id] = t;
+        subs.push_back(std::make_pair(sbtid.id,t));
       }
     }
   }
@@ -652,17 +753,38 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
         preconditions = "(and "+preconditions+" "+cs+")";
       }
     }
+     
     TaskDefs subtasks;
-    bool ordered_kw = false;
+    OrderGraph id_orderings;
     if (m.task_network.subtasks) {
-      subtasks = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
+      auto sts = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
       if (m.task_network.subtasks->ordering_kw == "ordered-tasks" || 
           m.task_network.subtasks->ordering_kw == "ordered-subtasks") {
-        ordered_kw = true; 
+        subtasks[sts[0].first] = sts[0].second;
+        for (int i = 1; i < sts.size(); i++) {
+          subtasks[sts[i].first] = sts[i].second;
+          id_orderings.add_edge(sts[i - 1].first,sts[i].first);
+        }
+      }
+      else {
+        if (!m.task_network.orderings) {
+          for (auto const &st : sts) {
+            subtasks[st.first] = st.second;
+            id_orderings.add_node(st.first);
+          }
+        } 
+        else {
+          std::unordered_set<ID> task_ids
+          for (auto const &st : sts) {
+            subtasks[st.first] = st.second;
+            task_ids.insert(st.first);
+          }
+          id_orderings = get_orderings(m.task_network.orderings, task_ids); 
+        }
       }
     }
 
-    methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks,ordered_kw));
+    methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks,id_orderings));
   }
   auto DD = DomainDef(name,typetree,predicates,constants,actions,methods);
   return std::make_pair(DD,ttypes);
