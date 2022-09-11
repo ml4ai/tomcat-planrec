@@ -41,18 +41,18 @@ struct OrderGraph {
 
   int add_Task_ID(Task_ID& Task_ID) {
     int id;
-    if (!freedIDs.empty()) {
-      id = freedIDs.back();
-      freedIDs.pop_back();
+    if (!this->freedIDs.empty()) {
+      id = this->freedIDs.back();
+      this->freedIDs.pop_back();
     }
     else {
-      id = nextID;
-      nextID++;
+      id = this->nextID;
+      this->nextID++;
     }
-    Task_IDs[id] = Task_ID;
+    this->Task_IDs[id] = Task_ID;
     return id;
   }
-  //This clears tree and adds just the root type!
+
   int add_node(ID id) {
     Task_ID task_id;
     task_id.id = id;
@@ -64,19 +64,19 @@ struct OrderGraph {
     int iid2 = this->find_Task_ID(id2);
     if (iid1 == -1) {
       if (iid2 == -1) {
-        iid1 = this->add_single(id1);
-        iid2 = this->add_single(id2);
+        iid1 = this->add_node(id1);
+        iid2 = this->add_node(id2);
         this->Task_IDs[iid1].outgoing.insert(iid2);
         this->Task_IDs[iid2].incoming.insert(iid1);
         return std::make_pair(iid1,iid2);
       }
-      iid1 = this->add_single(id1);
+      iid1 = this->add_node(id1);
       this->Task_IDs[iid1].outgoing.insert(iid2);
       this->Task_IDs[iid2].incoming.insert(iid1);
       return std::make_pair(iid1,iid2);
     }
     if (iid2 == -1) {
-      iid2 = this->add_single(id2);
+      iid2 = this->add_node(id2);
       this->Task_IDs[iid1].outgoing.insert(iid2);
       this->Task_IDs[iid2].incoming.insert(iid1);
       return std::make_pair(iid1,iid2);
@@ -96,7 +96,7 @@ struct OrderGraph {
   }
 
   bool empty() {
-    return Task_IDs.empty();
+    return this->Task_IDs.empty();
   } 
 };
 
