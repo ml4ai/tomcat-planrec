@@ -10,6 +10,7 @@
 #include "kb.h"
 #include <optional>
 #include "util.h"
+#include <boost/variant/recursive_wrapper.hpp>
 
 //{var,type}
 using Params = std::vector<std::pair<std::string, std::string>>; 
@@ -38,8 +39,65 @@ using TaskDefs = std::unordered_map<std::string,TaskDef>;
 using Objects = std::unordered_map<std::string,std::string>;
 using Scorer = double (*)(KnowledgeBase&);
 using Scorers = std::unordered_map<std::string, Scorer>;
-using Ordering_id = std::pair<int, std::string>;
-using Ordering_ids = std::vector<Ordering_id>;
+using ID = std::string;
+
+struct Grounded_Task {
+  std::string head;
+  Args args;
+  std::unordered_set<int> incoming;
+  std::unordered_set<int> outgoing;
+};
+
+struct TaskGraph {
+  std::unordered_map<int,Grounded_Task> GTs;
+  //Keeps track of next newly usable ID
+  int nextID = 0;
+  //Keeps track of usable freed IDs
+  std::vector<int> freedIDs;
+
+  int add_node(Grounded_Task& GT) {
+    int id;
+    if (!this->freedIDs.empty()) {
+      id = this-?freedIDs.back();
+      this->freedIDs.pop_back();
+    }
+    else {
+      id = this->nextID;
+      this->nextID++;
+    }
+    this->GTs[id] = GT;
+    return id;
+  }
+
+  // gt1 -> gt2
+  bool add_edge(int gt1, int gt2) {
+    if (this->GTs.contains(gt1) && this->GTs.contains(gt2)) {
+      this->GTs[gt1].outgoing.insert(gt2);
+      this->GTs[gt2].incoming.insert(gt1);
+      return true;
+    }
+    return false;
+  } 
+
+  bool remove_node(int gt) {
+    if(this->GTs.contains(gt)) {
+      for (auto &og : this->GTs[gt].outgoing) {
+        this->GTs[og].incoming.erase(gt);
+      }
+      for (auto &ic : this->GTs[gt].incoming) {
+        this->GTs[ic].outgoing.erase(gt);
+      }
+      this->GTs.erase(gt);
+      return true;
+    }
+    return false;
+  }
+
+  bool empty() {
+    return this->GTs.empty();
+  } 
+
+};
 
 std::string return_value(std::string var, Args args) {
   for (auto const& a : args) {
@@ -297,8 +355,7 @@ class MethodDef {
     Params parameters;
     Preconds preconditions;
     TaskDefs subtasks;
-    Ordering_ids ordering_ids;
-    bool ordered_kw;
+    OrderGraph id_orderings;
 
   public:
     MethodDef() {}
@@ -307,15 +364,13 @@ class MethodDef {
               Params parameters, 
               Preconds preconditions, 
               TaskDefs subtasks, 
-              bool ordered_kw) {
+              OrderGraph id_orderings) {
       this->head = head;
       this->task = task;
       this->parameters = parameters;
       this->preconditions = preconditions;
-      //Reverse order for planning algorithm
       this->subtasks = subtasks;
-      std::reverse(this->subtasks.begin(),this->subtasks.end());
-      this->ordered_kw = ordered_kw;
+      this->id_orderings = id_orderings;
     }
 
     std::string get_head() {
@@ -337,10 +392,15 @@ class MethodDef {
     TaskDefs get_subtasks() {
       return this->subtasks;
     }
+    
+    OrderGraph get_id_orderings() {
+      return this->id_orderings;
+    }
 
-    Grounded_Tasks apply_binding(Args args) {
-      Grounded_Tasks gts = {};
-      for (auto const& s: this->subtasks) {
+    TaskGraph apply_binding(Args args) {
+      TaskGraph taskgraph;
+      std::unordered_map<int,int> gts;
+      for (auto const& [id,s]: this->subtasks) {
         Grounded_Task gt;
         gt.first = s.first;
         for (auto const& pt : s.second) {
@@ -355,12 +415,17 @@ class MethodDef {
           }
           gt.second.push_back(arg);
         }
-        gts.push_back(gt);
+        gts[id] = taskgraph.add_node(gt);
       }
-      return gts;
+      for (auto const &[i,o] : this->id_orderings.Task_IDs) {
+        for (auto const &og : o.outgoing) {
+          taskgraph.add_edge(gts[o.id],gts[this->id_orderings.Task_IDs[og].id]);
+        } 
+      }
+      return taskgraph;
     }
 
-    std::pair<task_token,std::vector<Grounded_Tasks>> apply(KnowledgeBase& kb, Args args) {
+    std::pair<task_token,std::vector<TaskGraph>> apply(KnowledgeBase& kb, Args args) {
       std::string pc;
       std::string token = "("+this->task.first;
       if (!args.empty()) {
@@ -380,7 +445,7 @@ class MethodDef {
         pc = this->preconditions;
       }
       token += ")";
-      std::vector<Grounded_Tasks> groundings;
+      std::vector<TaskGraph> groundings;
       if (pc != "__NONE__") {
         if (this->parameters.empty()) {
           auto pass = kb.ask(pc);
