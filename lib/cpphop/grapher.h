@@ -37,7 +37,8 @@ Agnode_t *add_node(Agraph_t *g, std::string node_name) {
   return agnode(g, const_cast<char *>(node_name.c_str()), 1);
 }
 
-int build_graph(Agraph_t *g, Agnode_t *n,json j,int count) {
+template<class Graph>
+int build_graph(Agraph_t *g, Agnode_t *n,Graph g,int count) {
   if (j["children"].empty()) {
     return count;
   }
