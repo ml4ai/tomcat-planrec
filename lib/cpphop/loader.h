@@ -24,82 +24,6 @@ using std::string, std::vector, std::unordered_set;
 using Ptypes = std::unordered_map<std::string,std::vector<std::string>>;
 using Tasktypes = std::unordered_map<std::string,std::vector<std::string>>;
 
-struct Task_ID {
-  //Name of Task_ID
-  ID id;
-  std::unordered_set<int> incoming;
-  //Indexes of the Task_IDs children
-  std::unordered_set<int> outgoing;
-};
-
-struct OrderGraph {
-  std::unordered_map<int,Task_ID> Task_IDs;
-  //Keeps track of next newly usable ID
-  int nextID = 0;
-  //Keeps track of usable freed IDs
-  std::vector<int> freedIDs;
-
-  int add_Task_ID(Task_ID& Task_ID) {
-    int id;
-    if (!this->freedIDs.empty()) {
-      id = this->freedIDs.back();
-      this->freedIDs.pop_back();
-    }
-    else {
-      id = this->nextID;
-      this->nextID++;
-    }
-    this->Task_IDs[id] = Task_ID;
-    return id;
-  }
-
-  int add_node(ID id) {
-    Task_ID task_id;
-    task_id.id = id;
-    return this->add_Task_ID(task_id);
-  }
-  //id1 -> id2
-  std::pair<int,int> add_edge(ID id1, ID id2) {
-    int iid1 = this->find_Task_ID(id1);
-    int iid2 = this->find_Task_ID(id2);
-    if (iid1 == -1) {
-      if (iid2 == -1) {
-        iid1 = this->add_node(id1);
-        iid2 = this->add_node(id2);
-        this->Task_IDs[iid1].outgoing.insert(iid2);
-        this->Task_IDs[iid2].incoming.insert(iid1);
-        return std::make_pair(iid1,iid2);
-      }
-      iid1 = this->add_node(id1);
-      this->Task_IDs[iid1].outgoing.insert(iid2);
-      this->Task_IDs[iid2].incoming.insert(iid1);
-      return std::make_pair(iid1,iid2);
-    }
-    if (iid2 == -1) {
-      iid2 = this->add_node(id2);
-      this->Task_IDs[iid1].outgoing.insert(iid2);
-      this->Task_IDs[iid2].incoming.insert(iid1);
-      return std::make_pair(iid1,iid2);
-    }
-    this->Task_IDs[iid1].outgoing.insert(iid2);
-    this->Task_IDs[iid2].incoming.insert(iid1);
-    return std::make_pair(iid1,iid2);
-  } 
-  //Returns index of Type struct with name Task_ID
-  int find_Task_ID(ID id) {
-    for (auto const &[i,t] : this->Task_IDs) {
-      if (t.id == id) {
-        return i;
-      }  
-    }
-    return -1;
-  }
-
-  bool empty() {
-    return this->Task_IDs.empty();
-  } 
-};
-
 OrderGraph get_orderings(Orderings orderings, std::unordered_set<ID> task_ids) {
   OrderGraph og;
   for (auto const &ti : task_ids) {
@@ -579,7 +503,7 @@ std::vector<std::pair<ID,TaskDef>> get_subtasks(SubTasks subtasks, Tasktypes tty
             t.second.push_back(arg);
           }
         }
-        subs.push_back(std::make_pair("__task"+j+"__",t));
+        subs.push_back(std::make_pair("__task"+std::to_string(j)+"__",t));
         j++;
       }
       else {
@@ -774,7 +698,7 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
           }
         } 
         else {
-          std::unordered_set<ID> task_ids
+          std::unordered_set<ID> task_ids;
           for (auto const &st : sts) {
             subtasks[st.first] = st.second;
             task_ids.insert(st.first);
@@ -869,7 +793,7 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
         }
       } 
       else {
-        std::unordered_set<ID> task_ids
+        std::unordered_set<ID> task_ids;
         for (auto const &st : sts) {
           subtasks[st.first] = st.second;
           task_ids.insert(st.first);
