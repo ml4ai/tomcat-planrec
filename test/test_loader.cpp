@@ -42,9 +42,24 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     BOOST_TEST(methodprec_f == "(and (at p l1))");
 
     // Test Parsing Method's SubTasks (in reverse order for planner):
-    BOOST_TEST(transport_domain.methods["deliver"][0].get_subtasks()[2].first == "load");
-    BOOST_TEST(transport_domain.methods["deliver"][0].get_subtasks()[2].second[1].first == "l1");
+    BOOST_TEST(transport_domain.methods["deliver"][0].get_subtasks()["task1"].first == "load");
+    BOOST_TEST(transport_domain.methods["deliver"][0].get_subtasks()["task1"].second[1].first == "l1");
 
+    // Ordering constraints
+    auto og1 = transport_domain.methods["deliver"][0].get_id_orderings();
+    int t0 = og1.find_Task_ID("task0");
+    int t1 = og1.find_Task_ID("task1");
+    BOOST_TEST((t0 != -1 && t1 != -1));
+
+    BOOST_TEST(og1[t0].outgoing.contains(t1));
+    BOOST_TEST(og1[t1].incoming.contains(t0));
+    for (auto const &[id,o] : og1.Task_IDs) {
+      std::cout << o.id << "->["; 
+      for (auto const& out : o.outgoing) {
+        std::cout << og1[out].id << " ";
+      }
+      std::cout << "]" << std::endl;
+    }
     // Test parsing of domain actions and their components:
     // Test parsing action names
     auto actname1 = transport_domain.actions.at("drive").get_head();
@@ -89,8 +104,8 @@ BOOST_AUTO_TEST_CASE(test_problem_loading) {
 
     BOOST_TEST(transport_problem.initM.get_head() == ":htn");
 
-    BOOST_TEST(transport_problem.initM.get_subtasks()[0].first == "deliver");
-    BOOST_TEST(transport_problem.initM.get_subtasks()[0].second[0].first == "package_1");
+    BOOST_TEST(transport_problem.initM.get_subtasks()["task1"].first == "deliver");
+    BOOST_TEST(transport_problem.initM.get_subtasks()["task1"].second[0].first == "package_1");
 }
 
 BOOST_AUTO_TEST_CASE(test_apply) {
@@ -134,26 +149,26 @@ BOOST_AUTO_TEST_CASE(test_apply) {
         {std::make_pair("p","package_0"),std::make_pair("l2","city_loc_2")});
     BOOST_TEST(deliver_method.first == "(deliver package_0 city_loc_2)");
     std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
-    for (auto const& gts : deliver_method.second) {
-      for (auto const& gt : gts) {
-        std::cout << "(" << gt.first;
-        for (auto const& a : gt.second) {
-          std::cout << " " << a.second;
+    for (auto &gts : deliver_method.second) {
+      for (auto const &[id,gt] : gts.GTs) {
+        std::cout << gt.to_string() << "->["; 
+        for (auto &out : gt.outgoing) {
+          std::cout << gts[out].to_string() << " ";
         }
-        std::cout << ")" << std::endl;
+        std::cout << "]" << std::endl;
       }
       std::cout << std::endl;
     }
 
     auto init_method = transport_problem.initM.apply(kb,{});
     std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
-    for (auto const& gts : init_method.second) {
-      for (auto const& gt : gts) {
-        std::cout << "(" << gt.first;
-        for (auto const& a : gt.second) {
-          std::cout << " " << a.second;
+    for (auto &gts : init_method.second) {
+      for (auto const &[id,gt] : gts.GTs) {
+        std::cout << gt.to_string() << "->["; 
+        for (auto &out : gt.outgoing) {
+          std::cout << gts[out].to_string() << " ";
         }
-        std::cout << ")" << std::endl;
+        std::cout << "]" << std::endl;
       }
       std::cout << std::endl;
     }
