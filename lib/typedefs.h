@@ -34,18 +34,105 @@ struct effect {
 using Effects = std::vector<effect>;
 using task_token = std::string;
 using TaskDef = std::pair<std::string, Params>;
-using Grounded_Task = std::pair<std::string,Args>;
 using TaskDefs = std::unordered_map<std::string,TaskDef>;
 using Objects = std::unordered_map<std::string,std::string>;
 using Scorer = double (*)(KnowledgeBase&);
 using Scorers = std::unordered_map<std::string, Scorer>;
 using ID = std::string;
 
+struct Task_ID {
+  //Name of Task_ID
+  ID id;
+  std::unordered_set<int> incoming;
+  //Indexes of the Task_IDs children
+  std::unordered_set<int> outgoing;
+};
+
+struct OrderGraph {
+  std::unordered_map<int,Task_ID> Task_IDs;
+  //Keeps track of next newly usable ID
+  int nextID = 0;
+  //Keeps track of usable freed IDs
+  std::vector<int> freedIDs;
+
+  Task_ID& operator[](int i) {
+    return this->Task_IDs[i]; 
+  }
+
+  int add_Task_ID(Task_ID& Task_ID) {
+    int id;
+    if (!this->freedIDs.empty()) {
+      id = this->freedIDs.back();
+      this->freedIDs.pop_back();
+    }
+    else {
+      id = this->nextID;
+      this->nextID++;
+    }
+    this->Task_IDs[id] = Task_ID;
+    return id;
+  }
+
+  int add_node(ID id) {
+    Task_ID task_id;
+    task_id.id = id;
+    return this->add_Task_ID(task_id);
+  }
+  //id1 -> id2
+  std::pair<int,int> add_edge(ID id1, ID id2) {
+    int iid1 = this->find_Task_ID(id1);
+    int iid2 = this->find_Task_ID(id2);
+    if (iid1 == -1) {
+      if (iid2 == -1) {
+        iid1 = this->add_node(id1);
+        iid2 = this->add_node(id2);
+        this->Task_IDs[iid1].outgoing.insert(iid2);
+        this->Task_IDs[iid2].incoming.insert(iid1);
+        return std::make_pair(iid1,iid2);
+      }
+      iid1 = this->add_node(id1);
+      this->Task_IDs[iid1].outgoing.insert(iid2);
+      this->Task_IDs[iid2].incoming.insert(iid1);
+      return std::make_pair(iid1,iid2);
+    }
+    if (iid2 == -1) {
+      iid2 = this->add_node(id2);
+      this->Task_IDs[iid1].outgoing.insert(iid2);
+      this->Task_IDs[iid2].incoming.insert(iid1);
+      return std::make_pair(iid1,iid2);
+    }
+    this->Task_IDs[iid1].outgoing.insert(iid2);
+    this->Task_IDs[iid2].incoming.insert(iid1);
+    return std::make_pair(iid1,iid2);
+  } 
+  //Returns index of Type struct with name Task_ID
+  int find_Task_ID(ID id) {
+    for (auto const &[i,t] : this->Task_IDs) {
+      if (t.id == id) {
+        return i;
+      }  
+    }
+    return -1;
+  }
+
+  bool empty() {
+    return this->Task_IDs.empty();
+  } 
+};
+
 struct Grounded_Task {
   std::string head;
   Args args;
   std::unordered_set<int> incoming;
   std::unordered_set<int> outgoing;
+  std::string to_string() const {
+    std::string s = "("+this->head;
+    for (auto const &a : args) {
+      s += " "+a.second;
+    }
+    s += ")";
+    return s;
+  }
 };
 
 struct TaskGraph {
@@ -55,10 +142,14 @@ struct TaskGraph {
   //Keeps track of usable freed IDs
   std::vector<int> freedIDs;
 
+  Grounded_Task& operator[](int i) {
+    return this->GTs[i];
+  }
+
   int add_node(Grounded_Task& GT) {
     int id;
     if (!this->freedIDs.empty()) {
-      id = this-?freedIDs.back();
+      id = this->freedIDs.back();
       this->freedIDs.pop_back();
     }
     else {
@@ -399,10 +490,10 @@ class MethodDef {
 
     TaskGraph apply_binding(Args args) {
       TaskGraph taskgraph;
-      std::unordered_map<int,int> gts;
+      std::unordered_map<std::string,int> gts;
       for (auto const& [id,s]: this->subtasks) {
         Grounded_Task gt;
-        gt.first = s.first;
+        gt.head = s.first;
         for (auto const& pt : s.second) {
           std::pair<std::string,std::string> arg;
           arg.first = pt.first;
@@ -413,7 +504,7 @@ class MethodDef {
           else {
             arg.second = val;
           }
-          gt.second.push_back(arg);
+          gt.args.push_back(arg);
         }
         gts[id] = taskgraph.add_node(gt);
       }
