@@ -46,17 +46,13 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     BOOST_TEST(transport_domain.methods["deliver"][0].get_subtasks()["task1"].second[1].first == "l1");
 
     // Ordering constraints
-    auto og1 = transport_domain.methods["deliver"][0].get_id_orderings();
-    int t0 = og1.find_Task_ID("task0");
-    int t1 = og1.find_Task_ID("task1");
-    BOOST_TEST((t0 != -1 && t1 != -1));
+    auto og1 = transport_domain.methods["deliver"][0].get_orderings();
+    BOOST_TEST(og1["task0"][0] == "task1");
 
-    BOOST_TEST(og1[t0].outgoing.contains(t1));
-    BOOST_TEST(og1[t1].incoming.contains(t0));
-    for (auto const &[id,o] : og1.Task_IDs) {
-      std::cout << o.id << "->["; 
-      for (auto const& out : o.outgoing) {
-        std::cout << og1[out].id << " ";
+    for (auto const &[t1,o] : og1) {
+      std::cout << t1 << "->["; 
+      for (auto const& t2 : o) {
+        std::cout << t2 << " ";
       }
       std::cout << "]" << std::endl;
     }
@@ -145,8 +141,12 @@ BOOST_AUTO_TEST_CASE(test_apply) {
     BOOST_TEST(!drive_act.second[0].get_facts("at").contains("(at truck_0 city_loc_2)"));
 
     //test method apply
-    auto deliver_method = transport_domain.methods["deliver"][0].apply(kb,
-        {std::make_pair("p","package_0"),std::make_pair("l2","city_loc_2")});
+    TaskGraph tg1; 
+    Grounded_Task d;
+    d.head = "deliver";
+    d.args = {std::make_pair("p","package_0"),std::make_pair("l2","city_loc_2")};
+    int i = tg1.add_node(d);
+    auto deliver_method = transport_domain.methods["deliver"][0].apply(kb,d.args,tg1,i);
     BOOST_TEST(deliver_method.first == "(deliver package_0 city_loc_2)");
     std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
     for (auto &gts : deliver_method.second) {
@@ -159,8 +159,12 @@ BOOST_AUTO_TEST_CASE(test_apply) {
       }
       std::cout << std::endl;
     }
-
-    auto init_method = transport_problem.initM.apply(kb,{});
+    TaskGraph tg2;
+    Grounded_Task init_d;
+    init_d.head = "__delivery__";
+    init_d.args = {};
+    int j = tg2.add_node(init_d);
+    auto init_method = transport_problem.initM.apply(kb,init_d.args,tg2,j);
     std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
     for (auto &gts : init_method.second) {
       for (auto const &[id,gt] : gts.GTs) {
