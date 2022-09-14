@@ -40,86 +40,6 @@ using Scorer = double (*)(KnowledgeBase&);
 using Scorers = std::unordered_map<std::string, Scorer>;
 using ID = std::string;
 
-struct Task_ID {
-  //Name of Task_ID
-  ID id;
-  std::unordered_set<int> incoming;
-  //Indexes of the Task_IDs children
-  std::unordered_set<int> outgoing;
-};
-
-struct OrderGraph {
-  std::unordered_map<int,Task_ID> Task_IDs;
-  //Keeps track of next newly usable ID
-  int nextID = 0;
-  //Keeps track of usable freed IDs
-  std::vector<int> freedIDs;
-
-  Task_ID& operator[](int i) {
-    return this->Task_IDs[i]; 
-  }
-
-  int add_Task_ID(Task_ID& Task_ID) {
-    int id;
-    if (!this->freedIDs.empty()) {
-      id = this->freedIDs.back();
-      this->freedIDs.pop_back();
-    }
-    else {
-      id = this->nextID;
-      this->nextID++;
-    }
-    this->Task_IDs[id] = Task_ID;
-    return id;
-  }
-
-  int add_node(ID id) {
-    Task_ID task_id;
-    task_id.id = id;
-    return this->add_Task_ID(task_id);
-  }
-  //id1 -> id2
-  std::pair<int,int> add_edge(ID id1, ID id2) {
-    int iid1 = this->find_Task_ID(id1);
-    int iid2 = this->find_Task_ID(id2);
-    if (iid1 == -1) {
-      if (iid2 == -1) {
-        iid1 = this->add_node(id1);
-        iid2 = this->add_node(id2);
-        this->Task_IDs[iid1].outgoing.insert(iid2);
-        this->Task_IDs[iid2].incoming.insert(iid1);
-        return std::make_pair(iid1,iid2);
-      }
-      iid1 = this->add_node(id1);
-      this->Task_IDs[iid1].outgoing.insert(iid2);
-      this->Task_IDs[iid2].incoming.insert(iid1);
-      return std::make_pair(iid1,iid2);
-    }
-    if (iid2 == -1) {
-      iid2 = this->add_node(id2);
-      this->Task_IDs[iid1].outgoing.insert(iid2);
-      this->Task_IDs[iid2].incoming.insert(iid1);
-      return std::make_pair(iid1,iid2);
-    }
-    this->Task_IDs[iid1].outgoing.insert(iid2);
-    this->Task_IDs[iid2].incoming.insert(iid1);
-    return std::make_pair(iid1,iid2);
-  } 
-  //Returns index of Type struct with name Task_ID
-  int find_Task_ID(ID id) {
-    for (auto const &[i,t] : this->Task_IDs) {
-      if (t.id == id) {
-        return i;
-      }  
-    }
-    return -1;
-  }
-
-  bool empty() {
-    return this->Task_IDs.empty();
-  } 
-};
-
 struct Grounded_Task {
   std::string head;
   Args args;
@@ -179,11 +99,12 @@ struct TaskGraph {
         this->GTs[ic].outgoing.erase(gt);
       }
       this->GTs.erase(gt);
+      this->freedIDs.push_back(gt);
       return true;
     }
     return false;
   }
-
+  
   bool empty() {
     return this->GTs.empty();
   } 
@@ -446,7 +367,7 @@ class MethodDef {
     Params parameters;
     Preconds preconditions;
     TaskDefs subtasks;
-    OrderGraph id_orderings;
+    std::unordered_map<std::string,std::vector<std::string>> orderings;
 
   public:
     MethodDef() {}
@@ -455,13 +376,13 @@ class MethodDef {
               Params parameters, 
               Preconds preconditions, 
               TaskDefs subtasks, 
-              OrderGraph id_orderings) {
+              std::unordered_map<std::string,std::vector<std::string>> orderings) {
       this->head = head;
       this->task = task;
       this->parameters = parameters;
       this->preconditions = preconditions;
       this->subtasks = subtasks;
-      this->id_orderings = id_orderings;
+      this->orderings = orderings;
     }
 
     std::string get_head() {
@@ -484,12 +405,11 @@ class MethodDef {
       return this->subtasks;
     }
     
-    OrderGraph get_id_orderings() {
-      return this->id_orderings;
+    std::unordered_map<std::string,std::vector<std::string>> get_orderings() {
+      return this->orderings;
     }
 
-    TaskGraph apply_binding(Args args) {
-      TaskGraph taskgraph;
+    TaskGraph apply_binding(Args args, TaskGraph tasks, std::unordered_set<int>& out) {
       std::unordered_map<std::string,int> gts;
       for (auto const& [id,s]: this->subtasks) {
         Grounded_Task gt;
@@ -506,17 +426,22 @@ class MethodDef {
           }
           gt.args.push_back(arg);
         }
-        gts[id] = taskgraph.add_node(gt);
+        gts[id] = tasks.add_node(gt);
+        if (this->orderings[id].empty()) {
+          for (auto const& o : out) {
+            tasks.add_edge(gts[id],o);
+          }
+        }
       }
-      for (auto const &[i,o] : this->id_orderings.Task_IDs) {
-        for (auto const &og : o.outgoing) {
-          taskgraph.add_edge(gts[o.id],gts[this->id_orderings.Task_IDs[og].id]);
+      for (auto const &[t1,ot] : this->orderings) {
+        for (auto const &t2 : ot) {
+          tasks.add_edge(gts[t1],gts[t2]);
         } 
       }
-      return taskgraph;
+      return tasks;
     }
 
-    std::pair<task_token,std::vector<TaskGraph>> apply(KnowledgeBase& kb, Args args) {
+    std::pair<task_token,std::vector<TaskGraph>> apply(KnowledgeBase& kb, Args args, TaskGraph tasks, int i) {
       std::string pc;
       std::string token = "("+this->task.first;
       if (!args.empty()) {
@@ -537,28 +462,30 @@ class MethodDef {
       }
       token += ")";
       std::vector<TaskGraph> groundings;
+      std::unordered_set<int> out = tasks[i].outgoing;
+      tasks.remove_node(i);
       if (pc != "__NONE__") {
         if (this->parameters.empty()) {
           auto pass = kb.ask(pc);
           if (pass) {
-            groundings.push_back(this->apply_binding({}));
+            groundings.push_back(this->apply_binding({},tasks,out));
           }
         }
         else {
           auto bindings = kb.ask(pc,this->parameters);
           for (auto const& b : bindings) {
-            groundings.push_back(this->apply_binding(b)); 
+            groundings.push_back(this->apply_binding(b,tasks,out)); 
           }
         }
       }
       else {
         if (this->parameters.empty()) {
-          groundings.push_back(this->apply_binding({}));
+          groundings.push_back(this->apply_binding({},tasks,out));
         }
         else {
           auto bindings = kb.ask("",this->parameters);
           for (auto const& b : bindings) {
-            groundings.push_back(this->apply_binding(b));
+            groundings.push_back(this->apply_binding(b,tasks,out));
           }
         }
       }
