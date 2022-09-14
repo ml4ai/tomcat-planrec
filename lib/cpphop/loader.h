@@ -24,28 +24,23 @@ using std::string, std::vector, std::unordered_set;
 using Ptypes = std::unordered_map<std::string,std::vector<std::string>>;
 using Tasktypes = std::unordered_map<std::string,std::vector<std::string>>;
 
-OrderGraph get_orderings(Orderings orderings, std::unordered_set<ID> task_ids) {
-  OrderGraph og;
-  for (auto const &ti : task_ids) {
-    og.add_node(ti);
-  }
-
+void get_orderings(Orderings orderings,std::unordered_map<std::string,std::vector<std::string>>& og) {
   if (which_orderings(orderings) == 0) {
-    return og;
+    return;
   }
   if (which_orderings(orderings) == 1) {
     auto o = boost::get<Ordering>(orderings);
-    og.add_edge(o.first,o.second);
-    return og;
+    og[o.first].push_back(o.second);
+    return;
   }
   if (which_orderings(orderings) == 2) {
     auto ov = boost::get<std::vector<Ordering>>(orderings);
     for (auto const &o : ov) {
-      og.add_edge(o.first,o.second);
+      og[o.first].push_back(o.second);
     }
-    return og;
+    return;
   }
-  return og;
+  return;
 };
 
 std::unordered_set<std::string> type_inference(Sentence sentence, Ptypes& ptypes, std::string var) {
@@ -679,7 +674,7 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
     }
      
     TaskDefs subtasks;
-    OrderGraph id_orderings;
+    std::unordered_map<std::string,std::vector<std::string>> orderings;
     if (m.task_network.subtasks) {
       auto sts = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
       if (m.task_network.subtasks->ordering_kw == "ordered-tasks" || 
@@ -687,28 +682,28 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
         subtasks[sts[0].first] = sts[0].second;
         for (int i = 1; i < sts.size(); i++) {
           subtasks[sts[i].first] = sts[i].second;
-          id_orderings.add_edge(sts[i - 1].first,sts[i].first);
+          orderings[sts[i-1].first].push_back(sts[i].first);
         }
+        orderings[sts[sts.size()-1].first] = {};
       }
       else {
         if (!m.task_network.orderings) {
           for (auto const &st : sts) {
             subtasks[st.first] = st.second;
-            id_orderings.add_node(st.first);
+            orderings[st.first] = {};
           }
         } 
         else {
-          std::unordered_set<ID> task_ids;
           for (auto const &st : sts) {
             subtasks[st.first] = st.second;
-            task_ids.insert(st.first);
+            orderings[st.first] = {};
           }
-          id_orderings = get_orderings(*m.task_network.orderings, task_ids); 
+          get_orderings(*m.task_network.orderings,orderings); 
         }
       }
     }
 
-    methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks,id_orderings));
+    methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks,orderings));
   }
   auto DD = DomainDef(name,typetree,predicates,constants,actions,methods);
   return std::make_pair(DD,ttypes);
@@ -774,7 +769,7 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
   }
 
   TaskDefs subtasks;
-  OrderGraph id_orderings;
+  std::unordered_map<std::string,std::vector<std::string>> orderings;
   if (prob.problem_htn.task_network.subtasks) {
     auto sts = get_subtasks(prob.problem_htn.task_network.subtasks->subtasks,ttypes);    
     if (prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-tasks" || 
@@ -782,28 +777,28 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
       subtasks[sts[0].first] = sts[0].second;
       for (int i = 1; i < sts.size(); i++) {
         subtasks[sts[i].first] = sts[i].second;
-        id_orderings.add_edge(sts[i - 1].first,sts[i].first);
+        orderings[sts[i-1].first].push_back(sts[i].first);
       }
+      orderings[sts[sts.size()-1].first] = {};
     }
     else {
       if (!prob.problem_htn.task_network.orderings) {
         for (auto const &st : sts) {
           subtasks[st.first] = st.second;
-          id_orderings.add_node(st.first);
+          orderings[st.first] = {};
         }
       } 
       else {
-        std::unordered_set<ID> task_ids;
         for (auto const &st : sts) {
           subtasks[st.first] = st.second;
-          task_ids.insert(st.first);
+          orderings[st.first] = {};
         }
-        id_orderings = get_orderings(*prob.problem_htn.task_network.orderings, task_ids); 
+        get_orderings(*prob.problem_htn.task_network.orderings, orderings); 
       }
     }
   }
 
-  MethodDef initM = MethodDef(m_name,task,params,preconditions,subtasks,id_orderings);
+  MethodDef initM = MethodDef(m_name,task,params,preconditions,subtasks,orderings);
 
   std::vector<std::string> initF;
   for (auto const& i : prob.init) {
