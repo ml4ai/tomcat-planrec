@@ -25,33 +25,7 @@ struct pNode {
     std::vector<int> successors = {};
 };
 
-struct pTree {
-  std::unordered_map<int,pNode> nodes;
-  int nextID = 0;
-  std::vector<int> freedIDs;
-  pNode& operator[](int i) {
-    return this->nodes[i];
-  }
-  int add_node(pNode& n) {
-    int id;
-    if (!this->freedIDs.empty()) {
-      id = this->freedIDs.back();
-      this->freedIDs.pop_back();
-    }
-    else {
-      id = this->nextID;
-      this->nextID++;
-    }
-    this->nodes[id] = n;
-    return id;
-  }
-  void delete_node(int id) {
-    if (this->nodes.erase(id)) {
-      this->freedIDs.push_back(id);
-    }
-    return;
-  }
-};
+using pTree = std::unordered_map<int,pNode>;
 
 int
 cselection(pTree& t,
@@ -233,7 +207,8 @@ int cexpansion(pTree& t,
           v.plan = t[n].plan;
           v.plan.push_back(act.first);
           v.pred = n;
-          int w = t.add_node(v);
+          int w = t.size();
+          t[w] = v;
           t[n].successors.push_back(w);
           a.push_back(w);
         }
@@ -255,7 +230,8 @@ int cexpansion(pTree& t,
           v.depth = t[n].depth + 1;
           v.plan = t[n].plan;
           v.pred = n;
-          int w = t.add_node(v);
+          int w = t.size();
+          t[w] = v;
           t[n].successors.push_back(w);
           choices.push_back(w);
         }
@@ -290,7 +266,8 @@ cseek_planMCTS(pTree& t,
     n_node.tasks = t[v].tasks;
     n_node.depth = t[v].depth;
     n_node.plan = t[v].plan;
-    int w = m.add_node(n_node);
+    int w = m.size();
+    m[w] = n_node;
     int hzn = nbd(g);
     for (int i = 0; i < R; i++) {
       int n = cselection(m,w,eps,g);
@@ -353,7 +330,8 @@ cseek_planMCTS(pTree& t,
     k.plan = m[arg_max].plan;
     k.depth = t[v].depth + 1;
     k.pred = v;
-    int y = t.add_node(k);
+    int y = t.size();
+    t[y] = k;
     t[v].successors.push_back(y);
     v = y;
     if (t[v].plan.size() >= plan_size && plan_size != -1) {
@@ -373,7 +351,8 @@ cseek_planMCTS(pTree& t,
       j.plan = m[arg_max].plan;
       j.depth = t[v].depth + 1;
       j.pred = v;
-      int y = t.add_node(j);
+      int y = t.size();
+      t[y] = j;
       t[v].successors.push_back(y);
       v = y;
 
@@ -418,7 +397,8 @@ cppMCTShop(DomainDef& domain,
     root.tasks.add_node(init_t);
     root.plan = {};
     root.depth = 0;
-    int v = t.add_node(root);
+    int v = t.size();
+    t[v] = root;
     static std::mt19937_64 g(seed);
     std::cout << std::endl;
     std::cout << "Initial State:" << std::endl;
