@@ -3,8 +3,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../apps/
 
 add_definitions(-DBOOST_LOG_DYN_LINK)
 find_package(Boost COMPONENTS log REQUIRED)
-find_package(Graphviz)
-find_package(nlohmann_json REQUIRED)
 find_package(Z3 REQUIRED)
 
 # Parser testing

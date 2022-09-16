@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-
+#include <queue>
 #include "parsing/api.hpp"
 #include "parsing/ast.hpp"
 #include "parsing/ast_adapted.hpp"
@@ -23,6 +23,25 @@ using boost::get;
 using std::string, std::vector, std::unordered_set;
 using Ptypes = std::unordered_map<std::string,std::vector<std::string>>;
 using Tasktypes = std::unordered_map<std::string,std::vector<std::string>>;
+
+void get_orderings(Orderings orderings,std::unordered_map<std::string,std::vector<std::string>>& og) {
+  if (which_orderings(orderings) == 0) {
+    return;
+  }
+  if (which_orderings(orderings) == 1) {
+    auto o = boost::get<Ordering>(orderings);
+    og[o.first].push_back(o.second);
+    return;
+  }
+  if (which_orderings(orderings) == 2) {
+    auto ov = boost::get<std::vector<Ordering>>(orderings);
+    for (auto const &o : ov) {
+      og[o.first].push_back(o.second);
+    }
+    return;
+  }
+  return;
+};
 
 std::unordered_set<std::string> type_inference(Sentence sentence, Ptypes& ptypes, std::string var) {
   std::unordered_set<std::string> types;
@@ -408,8 +427,8 @@ std::string decompose_constraints(Constraints constraints) {
   return "__NONE__";
 }
 
-TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
-  TaskDefs subs;
+std::vector<std::pair<ID,TaskDef>> get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
+  std::vector<std::pair<ID,TaskDef>> subs;
   if (which_subtasks(subtasks) == 0) {
     return subs;
   }
@@ -433,7 +452,7 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
           t.second.push_back(arg);
         }
       }
-      subs.push_back(t);
+      subs.push_back(std::make_pair("__task0__",t));
     }
     else {
       auto sbtid = boost::get<SubTaskWithId>(s);
@@ -454,11 +473,12 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
           t.second.push_back(arg);
         }
       }
-      subs.push_back(t);
+      subs.push_back(std::make_pair(sbtid.id,t));
     }
   }
   if (which_subtasks(subtasks) == 2) {
     auto vs = boost::get<std::vector<SubTask>>(subtasks);
+    int j = 0;
     for (auto const& s : vs) {
       if (which_subtask(s) == 0) {
         auto st = boost::get<MTask>(s);
@@ -478,7 +498,8 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
             t.second.push_back(arg);
           }
         }
-        subs.push_back(t);
+        subs.push_back(std::make_pair("__task"+std::to_string(j)+"__",t));
+        j++;
       }
       else {
         auto sbtid = boost::get<SubTaskWithId>(s);
@@ -499,7 +520,7 @@ TaskDefs get_subtasks(SubTasks subtasks, Tasktypes ttypes) {
             t.second.push_back(arg);
           }
         }
-        subs.push_back(t);
+        subs.push_back(std::make_pair(sbtid.id,t));
       }
     }
   }
@@ -578,53 +599,38 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
     constants[ic] = "__Object__";
   }
 
-  TaskDefs tasks;
   Tasktypes ttypes;
   for (auto const& t : dom.tasks) {
-    TaskDef task;
-    task.first = t.name;
-    Params params;
     for (auto const& p : t.parameters.explicitly_typed_lists) {
       std::string type = boost::get<PrimitiveType>(p.type);
       for (auto const& e : p.entries) {
-        params.push_back(std::make_pair(e.name,type));
         ttypes[t.name].push_back(type); 
       }
     }
     for (auto const& pt : t.parameters.implicitly_typed_list) {
-      params.push_back(std::make_pair(pt.name,"__Object__"));
       ttypes[t.name].push_back("__Object__");
     }
-    task.second = params;
-    tasks.push_back(task);
   }
 
   ActionDefs actions;
   for (auto const& a : dom.actions) {
-    TaskDef task;
     std::string name = a.name;
-    task.first = a.name;
     Params params;
-    Params tparams;
     for (auto const& p : a.parameters.explicitly_typed_lists) {
       std::string type = boost::get<PrimitiveType>(p.type);
       for (auto const& e : p.entries) {
         params.push_back(std::make_pair(e.name,type));
-        tparams.push_back(std::make_pair(e.name,type));
         ttypes[a.name].push_back(type);
       }
     }
     for (auto const& pt : a.parameters.implicitly_typed_list) {
       params.push_back(std::make_pair(pt.name,"__Object__"));
-      tparams.push_back(std::make_pair(pt.name,"__Object__"));
       ttypes[a.name].push_back("__Object__");
     }
 
     Preconds preconditions = sentence_to_SMT(a.precondition,ptypes); 
     Effects effects = decompose_effects(a.effect,ptypes);
     actions.emplace(std::make_pair(name, ActionDef(name,params,preconditions,effects))); 
-    task.second = tparams;
-    tasks.push_back(task);
   }
   
   MethodDefs methods;
@@ -666,14 +672,40 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
         preconditions = "(and "+preconditions+" "+cs+")";
       }
     }
+     
     TaskDefs subtasks;
+    std::unordered_map<std::string,std::vector<std::string>> orderings;
     if (m.task_network.subtasks) {
-      subtasks = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
+      auto sts = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
+      if (m.task_network.subtasks->ordering_kw == "ordered-tasks" || 
+          m.task_network.subtasks->ordering_kw == "ordered-subtasks") {
+        subtasks[sts[0].first] = sts[0].second;
+        for (int i = 1; i < sts.size(); i++) {
+          subtasks[sts[i].first] = sts[i].second;
+          orderings[sts[i-1].first].push_back(sts[i].first);
+        }
+        orderings[sts[sts.size()-1].first] = {};
+      }
+      else {
+        if (!m.task_network.orderings) {
+          for (auto const &st : sts) {
+            subtasks[st.first] = st.second;
+            orderings[st.first] = {};
+          }
+        } 
+        else {
+          for (auto const &st : sts) {
+            subtasks[st.first] = st.second;
+            orderings[st.first] = {};
+          }
+          get_orderings(*m.task_network.orderings,orderings); 
+        }
+      }
     }
 
-    methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks));
+    methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks,orderings));
   }
-  auto DD = DomainDef(name,typetree,predicates,constants,tasks,actions,methods);
+  auto DD = DomainDef(name,typetree,predicates,constants,actions,methods);
   return std::make_pair(DD,ttypes);
 }
 
@@ -737,11 +769,36 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
   }
 
   TaskDefs subtasks;
+  std::unordered_map<std::string,std::vector<std::string>> orderings;
   if (prob.problem_htn.task_network.subtasks) {
-    subtasks = get_subtasks(prob.problem_htn.task_network.subtasks->subtasks,ttypes);    
+    auto sts = get_subtasks(prob.problem_htn.task_network.subtasks->subtasks,ttypes);    
+    if (prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-tasks" || 
+        prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-subtasks") {
+      subtasks[sts[0].first] = sts[0].second;
+      for (int i = 1; i < sts.size(); i++) {
+        subtasks[sts[i].first] = sts[i].second;
+        orderings[sts[i-1].first].push_back(sts[i].first);
+      }
+      orderings[sts[sts.size()-1].first] = {};
+    }
+    else {
+      if (!prob.problem_htn.task_network.orderings) {
+        for (auto const &st : sts) {
+          subtasks[st.first] = st.second;
+          orderings[st.first] = {};
+        }
+      } 
+      else {
+        for (auto const &st : sts) {
+          subtasks[st.first] = st.second;
+          orderings[st.first] = {};
+        }
+        get_orderings(*prob.problem_htn.task_network.orderings, orderings); 
+      }
+    }
   }
-  
-  MethodDef initM = MethodDef(m_name,task,params,preconditions,subtasks);
+
+  MethodDef initM = MethodDef(m_name,task,params,preconditions,subtasks,orderings);
 
   std::vector<std::string> initF;
   for (auto const& i : prob.init) {

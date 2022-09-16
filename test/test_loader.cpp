@@ -25,11 +25,6 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     BOOST_TEST(transport_domain.predicates[2].second[1].first == "arg1");
     BOOST_TEST(transport_domain.predicates[2].second[1].second == "vehicle");
 
-    // Test parsing of abstract tasks
-    BOOST_TEST(transport_domain.tasks[0].first == "deliver");
-    auto taskpara1 = transport_domain.tasks[0].second;
-    BOOST_TEST(taskpara1[0].second == "package");
-
     // Test methods and their components (totally-ordered):
     // Test methods name:
     BOOST_TEST(transport_domain.methods["deliver"][0].get_head() == "m_deliver_ordering_0");
@@ -47,9 +42,20 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     BOOST_TEST(methodprec_f == "(and (at p l1))");
 
     // Test Parsing Method's SubTasks (in reverse order for planner):
-    BOOST_TEST(transport_domain.methods["deliver"][0].get_subtasks()[2].first == "load");
-    BOOST_TEST(transport_domain.methods["deliver"][0].get_subtasks()[2].second[1].first == "l1");
+    BOOST_TEST(transport_domain.methods["deliver"][0].get_subtasks()["task1"].first == "load");
+    BOOST_TEST(transport_domain.methods["deliver"][0].get_subtasks()["task1"].second[1].first == "l1");
 
+    // Ordering constraints
+    auto og1 = transport_domain.methods["deliver"][0].get_orderings();
+    BOOST_TEST(og1["task0"][0] == "task1");
+
+    for (auto const &[t1,o] : og1) {
+      std::cout << t1 << "->["; 
+      for (auto const& t2 : o) {
+        std::cout << t2 << " ";
+      }
+      std::cout << "]" << std::endl;
+    }
     // Test parsing of domain actions and their components:
     // Test parsing action names
     auto actname1 = transport_domain.actions.at("drive").get_head();
@@ -86,16 +92,16 @@ BOOST_AUTO_TEST_CASE(test_problem_loading) {
     BOOST_TEST(transport_problem.head == "__delivery__");
     BOOST_TEST(transport_problem.domain_name == "domain_htn");
     
-    BOOST_TEST(transport_problem.initF[7] == "(at truck_0 city_loc_2)");
+    BOOST_TEST(transport_problem.initF[7] == "(road city_loc_2 city_loc_0)");
 
-    BOOST_TEST(transport_problem.objects.size() == 8);
+    BOOST_TEST(transport_problem.objects.size() == 9);
 
     BOOST_TEST(transport_problem.objects["package_0"] == "package");
 
     BOOST_TEST(transport_problem.initM.get_head() == ":htn");
 
-    BOOST_TEST(transport_problem.initM.get_subtasks()[0].first == "deliver");
-    BOOST_TEST(transport_problem.initM.get_subtasks()[0].second[0].first == "package_1");
+    BOOST_TEST(transport_problem.initM.get_subtasks()["task1"].first == "deliver");
+    BOOST_TEST(transport_problem.initM.get_subtasks()["task1"].second[0].first == "package_1");
 }
 
 BOOST_AUTO_TEST_CASE(test_apply) {
@@ -109,8 +115,8 @@ BOOST_AUTO_TEST_CASE(test_apply) {
     BOOST_TEST(kb.get_facts("vehicle").contains("(vehicle truck_0)"));
     auto actions = transport_domain.actions;
     //test unmet preconditions
-    auto no_act = actions.at("drive").apply(kb,
-        {std::make_pair("v","truck_0"),std::make_pair("l1","city_loc_2"),std::make_pair("l2","city_loc_1")});
+    Args b = {std::make_pair("v","truck_0"),std::make_pair("l1","city_loc_2"),std::make_pair("l2","city_loc_1")};
+    auto no_act = actions.at("drive").apply(kb,b);
     BOOST_TEST(no_act.second.empty());
 
     for (auto const& f : transport_problem.initF) {
@@ -123,8 +129,7 @@ BOOST_AUTO_TEST_CASE(test_apply) {
     BOOST_TEST(kb.get_facts("road").contains("(road city_loc_2 city_loc_1)"));
 
     //test action apply
-    auto drive_act = actions.at("drive").apply(kb,
-        {std::make_pair("v","truck_0"),std::make_pair("l1","city_loc_2"),std::make_pair("l2","city_loc_1")});
+    auto drive_act = actions.at("drive").apply(kb,b);
     BOOST_TEST(drive_act.first == "(drive truck_0 city_loc_2 city_loc_1)");
     BOOST_TEST(drive_act.second.size() == 1);
     std::cout << std::endl;
@@ -135,30 +140,38 @@ BOOST_AUTO_TEST_CASE(test_apply) {
     BOOST_TEST(!drive_act.second[0].get_facts("at").contains("(at truck_0 city_loc_2)"));
 
     //test method apply
-    auto deliver_method = transport_domain.methods["deliver"][0].apply(kb,
-        {std::make_pair("p","package_0"),std::make_pair("l2","city_loc_2")});
+    TaskGraph tg1; 
+    Grounded_Task d;
+    d.head = "deliver";
+    d.args = {std::make_pair("p","package_0"),std::make_pair("l2","city_loc_2")};
+    int i = tg1.add_node(d);
+    auto deliver_method = transport_domain.methods["deliver"][0].apply(kb,d.args,tg1,i);
     BOOST_TEST(deliver_method.first == "(deliver package_0 city_loc_2)");
     std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
-    for (auto const& gts : deliver_method.second) {
-      for (auto const& gt : gts) {
-        std::cout << "(" << gt.first;
-        for (auto const& a : gt.second) {
-          std::cout << " " << a.second;
+    for (auto &gts : deliver_method.second) {
+      for (auto const &[id,gt] : gts.GTs) {
+        std::cout << gt.to_string() << "->["; 
+        for (auto &out : gt.outgoing) {
+          std::cout << gts[out].to_string() << " ";
         }
-        std::cout << ")" << std::endl;
+        std::cout << "]" << std::endl;
       }
       std::cout << std::endl;
     }
-
-    auto init_method = transport_problem.initM.apply(kb,{});
+    TaskGraph tg2;
+    Grounded_Task init_d;
+    init_d.head = "__delivery__";
+    init_d.args = {};
+    int j = tg2.add_node(init_d);
+    auto init_method = transport_problem.initM.apply(kb,init_d.args,tg2,j);
     std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
-    for (auto const& gts : init_method.second) {
-      for (auto const& gt : gts) {
-        std::cout << "(" << gt.first;
-        for (auto const& a : gt.second) {
-          std::cout << " " << a.second;
+    for (auto &gts : init_method.second) {
+      for (auto const &[id,gt] : gts.GTs) {
+        std::cout << gt.to_string() << "->["; 
+        for (auto &out : gt.outgoing) {
+          std::cout << gts[out].to_string() << " ";
         }
-        std::cout << ")" << std::endl;
+        std::cout << "]" << std::endl;
       }
       std::cout << std::endl;
     }

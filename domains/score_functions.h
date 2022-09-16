@@ -8,7 +8,13 @@ double delivery_one(KnowledgeBase& kb) {
     return 1.0;
   }
   if (kb.ask("(or (at package_0 city_loc_0) (at package_1 city_loc_2))")) {
+    return 0.75;
+  }
+  if (kb.ask("(capacity truck_0 capacity_0)")) {
     return 0.5;
+  }
+  if (kb.ask("(at truck_0 city_loc_1)")) {
+    return 0.25;
   }
   return 0.0;
 }

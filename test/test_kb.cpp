@@ -32,11 +32,16 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     objects["surprise"] = "package";
 
     Predicates predicates;
-    predicates.push_back(create_predicate("road",{std::make_pair("?arg0","location"),std::make_pair("?arg1","location")}));
-    predicates.push_back(create_predicate("at",{std::make_pair("?arg0","locatable"),std::make_pair("?arg1","location")}));
-    predicates.push_back(create_predicate("in",{std::make_pair("?arg0","package"),std::make_pair("?arg1","vehicle")}));
-    predicates.push_back(create_predicate("capacity",{std::make_pair("?arg0","vehicle"),std::make_pair("?arg1","capacity_number")}));
-    predicates.push_back(create_predicate("capacity_predecessor",{std::make_pair("?arg0","capacity_number"),std::make_pair("?arg1","capacity_number")}));
+    Args a1 = {std::make_pair("?arg0","location"),std::make_pair("?arg1","location")};
+    Args a2 = {std::make_pair("?arg0","locatable"),std::make_pair("?arg1","location")};
+    Args a3 = {std::make_pair("?arg0","package"),std::make_pair("?arg1","vehicle")};
+    Args a4 = {std::make_pair("?arg0","vehicle"),std::make_pair("?arg1","capacity_number")};
+    Args a5 = {std::make_pair("?arg0","capacity_number"),std::make_pair("?arg1","capacity_number")};
+    predicates.push_back(create_predicate("road", a1));
+    predicates.push_back(create_predicate("at", a2));
+    predicates.push_back(create_predicate("in", a3));
+    predicates.push_back(create_predicate("capacity", a4));
+    predicates.push_back(create_predicate("capacity_predecessor", a5));
 
     KnowledgeBase kb(predicates,objects,typetree);
 

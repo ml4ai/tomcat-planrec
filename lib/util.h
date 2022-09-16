@@ -49,10 +49,6 @@ template <typename Iter> Iter select_randomly(Iter start, Iter end) {
     return select_randomly(start, end, gen);
 }
 
-int sample_method(std::vector<int> mds, std::vector<double> wts, int seed);
-
-int sample_method(std::vector<int> mds, std::vector<double> wts);
-
 // Helpers for std::visit
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
@@ -138,6 +134,17 @@ struct subtask_type : public boost::static_visitor<int> {
 
 int which_subtask(ast::SubTask s) {
   return boost::apply_visitor(subtask_type(),s);
+}
+
+struct orderings_type : public boost::static_visitor<int> {
+  int operator()(const ast::Nil& n) const { return 0; }
+  int operator()(const ast::Ordering& o) const { return 1; }
+  int operator()(const std::vector<ast::Ordering>& ov) const { return 2; }
+
+};
+
+int which_orderings(ast::Orderings os) {
+  return boost::apply_visitor(orderings_type(),os);
 }
 
 template <typename T> constexpr auto type_name() noexcept {
