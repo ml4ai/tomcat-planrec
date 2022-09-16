@@ -92,9 +92,9 @@ BOOST_AUTO_TEST_CASE(test_problem_loading) {
     BOOST_TEST(transport_problem.head == "__delivery__");
     BOOST_TEST(transport_problem.domain_name == "domain_htn");
     
-    BOOST_TEST(transport_problem.initF[7] == "(at truck_0 city_loc_2)");
+    BOOST_TEST(transport_problem.initF[7] == "(road city_loc_2 city_loc_0)");
 
-    BOOST_TEST(transport_problem.objects.size() == 8);
+    BOOST_TEST(transport_problem.objects.size() == 9);
 
     BOOST_TEST(transport_problem.objects["package_0"] == "package");
 
@@ -115,8 +115,8 @@ BOOST_AUTO_TEST_CASE(test_apply) {
     BOOST_TEST(kb.get_facts("vehicle").contains("(vehicle truck_0)"));
     auto actions = transport_domain.actions;
     //test unmet preconditions
-    auto no_act = actions.at("drive").apply(kb,
-        {std::make_pair("v","truck_0"),std::make_pair("l1","city_loc_2"),std::make_pair("l2","city_loc_1")});
+    Args b = {std::make_pair("v","truck_0"),std::make_pair("l1","city_loc_2"),std::make_pair("l2","city_loc_1")};
+    auto no_act = actions.at("drive").apply(kb,b);
     BOOST_TEST(no_act.second.empty());
 
     for (auto const& f : transport_problem.initF) {
@@ -129,8 +129,7 @@ BOOST_AUTO_TEST_CASE(test_apply) {
     BOOST_TEST(kb.get_facts("road").contains("(road city_loc_2 city_loc_1)"));
 
     //test action apply
-    auto drive_act = actions.at("drive").apply(kb,
-        {std::make_pair("v","truck_0"),std::make_pair("l1","city_loc_2"),std::make_pair("l2","city_loc_1")});
+    auto drive_act = actions.at("drive").apply(kb,b);
     BOOST_TEST(drive_act.first == "(drive truck_0 city_loc_2 city_loc_1)");
     BOOST_TEST(drive_act.second.size() == 1);
     std::cout << std::endl;

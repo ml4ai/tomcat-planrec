@@ -14,9 +14,9 @@ BOOST_AUTO_TEST_CASE(test_MCTS_planner) {
 
     auto [plantree,indexes] = cppMCTShop(domain,problem,scorers["delivery_one"],30,-1,0.4,19,0.75,2022);
     auto [root,end] = indexes;
-    BOOST_TEST(plantree.nodes[end].plan.size() == 9);
-    BOOST_TEST(plantree.nodes[end].state.get_facts("at").contains("(at package_0 city_loc_0)"));
-    BOOST_TEST(plantree.nodes[end].state.get_facts("at").contains("(at package_1 city_loc_2)"));
+    BOOST_TEST(plantree[end].plan.size() == 8);
+    BOOST_TEST(plantree[end].state.get_facts("at").contains("(at package_0 city_loc_0)"));
+    BOOST_TEST(plantree[end].state.get_facts("at").contains("(at package_1 city_loc_2)"));
 
 }// end of testing the planner
 
