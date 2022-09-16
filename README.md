@@ -1,5 +1,12 @@
 # tomcat-planrec
 
+# Requirements
+- cmake (Minimum requirement is 3.16, https://cmake.org/)
+- Boost (Minimum requirement is 1.79, https://www.boost.org/)
+  - Specific Boost Libraries to build: filesystem, log, date\_time, chrono, program\_options, coroutine, json
+- Z3 (Minimum requirement is 4.8.17, specifically the libraries for c++, https://github.com/Z3Prover/z3)
+- Tested on Apple clang version 14.0.0 and GNU 9.3.0
+
 Code for the plan recognition and planning effort in ToMCAT.
 
 To build, do the following:
