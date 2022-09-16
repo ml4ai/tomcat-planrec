@@ -43,8 +43,8 @@ using ID = std::string;
 struct Grounded_Task {
   std::string head;
   Args args;
-  std::unordered_set<int> incoming;
-  std::unordered_set<int> outgoing;
+  std::vector<int> incoming;
+  std::vector<int> outgoing;
   std::string to_string() const {
     std::string s = "("+this->head;
     for (auto const &a : args) {
@@ -81,28 +81,20 @@ struct TaskGraph {
   }
 
   // gt1 -> gt2
-  bool add_edge(int gt1, int gt2) {
-    if (this->GTs.contains(gt1) && this->GTs.contains(gt2)) {
-      this->GTs[gt1].outgoing.insert(gt2);
-      this->GTs[gt2].incoming.insert(gt1);
-      return true;
-    }
-    return false;
+  void add_edge(int gt1, int gt2) {
+    this->GTs[gt1].outgoing.push_back(gt2);
+    this->GTs[gt2].incoming.push_back(gt1);
   } 
 
-  bool remove_node(int gt) {
-    if(this->GTs.contains(gt)) {
-      for (auto &og : this->GTs[gt].outgoing) {
-        this->GTs[og].incoming.erase(gt);
-      }
-      for (auto &ic : this->GTs[gt].incoming) {
-        this->GTs[ic].outgoing.erase(gt);
-      }
-      this->GTs.erase(gt);
-      this->freedIDs.push_back(gt);
-      return true;
+  void remove_node(int gt) {
+    for (auto &og : this->GTs[gt].outgoing) {
+      this->GTs[og].incoming.erase(std::remove(GTs[og].incoming.begin(),GTs[og].incoming.end(),gt),GTs[og].incoming.end());
     }
-    return false;
+    for (auto &ic : this->GTs[gt].incoming) {
+      this->GTs[ic].outgoing.erase(std::remove(GTs[ic].outgoing.begin(),GTs[ic].outgoing.end(),gt),GTs[ic].outgoing.end());
+    }
+    this->GTs.erase(gt);
+    this->freedIDs.push_back(gt);
   }
   
   bool empty() {
@@ -111,7 +103,7 @@ struct TaskGraph {
 
 };
 
-std::string return_value(std::string var, Args args) {
+std::string return_value(std::string var, Args& args) {
   for (auto const& a : args) {
     if (var == a.first) {
       return a.second;
@@ -120,7 +112,7 @@ std::string return_value(std::string var, Args args) {
   return "__CONST__";
 }
 
-Pred create_predicate(std::string head, Params params) {
+Pred create_predicate(std::string head, Params& params) {
   Pred pred;
   pred.first = head;
   pred.second = params;
@@ -134,7 +126,7 @@ class ActionDef {
     Preconds preconditions;
     Effects effects;
 
-    KnowledgeBase apply_binding(KnowledgeBase& kb, Args args) {
+    KnowledgeBase apply_binding(KnowledgeBase& kb, Args& args) {
       KnowledgeBase new_kb = kb;
       for (auto const& e : this->effects) {
         auto faparams = e.forall;
@@ -197,7 +189,7 @@ class ActionDef {
             }
             vt += ")";
             auto bindings = new_kb.ask(vt,params);
-            for (auto const& b : bindings) {
+            for (auto &b : bindings) {
               auto pred = e.pred;
               std::string et = "("+pred.first;
               for (auto const& p : pred.second) {
@@ -242,7 +234,7 @@ class ActionDef {
             }
             vt += ")";
             auto bindings = new_kb.ask(vt,params);
-            for (auto const& b : bindings) {
+            for (auto &b : bindings) {
               for (auto const& b_args : b) {
                 args.push_back(b_args); 
               }
@@ -309,7 +301,7 @@ class ActionDef {
       return this->effects;
     }
 
-    std::pair<task_token,std::vector<KnowledgeBase>> apply(KnowledgeBase& kb, Args args) {
+    std::pair<task_token,std::vector<KnowledgeBase>> apply(KnowledgeBase& kb, Args& args) {
       std::string pc;
       std::string token = "("+this->head;
       if (!args.empty()) {
@@ -335,23 +327,25 @@ class ActionDef {
         if (this->parameters.empty()) {
           auto pass = kb.ask(pc);
           if (pass) {
-            new_states.push_back(this->apply_binding(kb,{}));
+            Args b = {};
+            new_states.push_back(this->apply_binding(kb,b));
           }
         }
         else {
           auto bindings = kb.ask(pc,this->parameters);
-          for (auto const& b : bindings) {
+          for (auto &b : bindings) {
             new_states.push_back(this->apply_binding(kb,b)); 
           }
         }
       }
       else {
         if (this->parameters.empty()) {
-          new_states.push_back(this->apply_binding(kb,{}));
+          Args b = {};
+          new_states.push_back(this->apply_binding(kb,b));
         }
         else {
           auto bindings = kb.ask("",this->parameters);
-          for (auto const& b : bindings) {
+          for (auto &b : bindings) {
             new_states.push_back(this->apply_binding(kb,b));
           }
         }
@@ -409,7 +403,7 @@ class MethodDef {
       return this->orderings;
     }
 
-    TaskGraph apply_binding(Args args, TaskGraph tasks, std::unordered_set<int>& out) {
+    TaskGraph apply_binding(Args& args, TaskGraph tasks, std::vector<int>& out) {
       std::unordered_map<std::string,int> gts;
       for (auto const& [id,s]: this->subtasks) {
         Grounded_Task gt;
@@ -441,7 +435,7 @@ class MethodDef {
       return tasks;
     }
 
-    std::pair<task_token,std::vector<TaskGraph>> apply(KnowledgeBase& kb, Args args, TaskGraph tasks, int i) {
+    std::pair<task_token,std::vector<TaskGraph>> apply(KnowledgeBase& kb, Args& args, TaskGraph tasks, int i) {
       std::string pc;
       std::string token = "("+this->task.first;
       if (!args.empty()) {
@@ -462,29 +456,31 @@ class MethodDef {
       }
       token += ")";
       std::vector<TaskGraph> groundings;
-      std::unordered_set<int> out = tasks[i].outgoing;
+      std::vector<int> out = tasks[i].outgoing;
       tasks.remove_node(i);
       if (pc != "__NONE__") {
         if (this->parameters.empty()) {
           auto pass = kb.ask(pc);
           if (pass) {
-            groundings.push_back(this->apply_binding({},tasks,out));
+            Args b = {};
+            groundings.push_back(this->apply_binding(b,tasks,out));
           }
         }
         else {
           auto bindings = kb.ask(pc,this->parameters);
-          for (auto const& b : bindings) {
+          for (auto &b : bindings) {
             groundings.push_back(this->apply_binding(b,tasks,out)); 
           }
         }
       }
       else {
         if (this->parameters.empty()) {
-          groundings.push_back(this->apply_binding({},tasks,out));
+          Args b = {};
+          groundings.push_back(this->apply_binding(b,tasks,out));
         }
         else {
           auto bindings = kb.ask("",this->parameters);
-          for (auto const& b : bindings) {
+          for (auto &b : bindings) {
             groundings.push_back(this->apply_binding(b,tasks,out));
           }
         }
