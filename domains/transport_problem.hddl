@@ -26,6 +26,8 @@
 		(road city_loc_1 city_loc_0)
 		(road city_loc_1 city_loc_2)
 		(road city_loc_2 city_loc_1)
+        (road city_loc_0 city_loc_2)
+        (road city_loc_2 city_loc_0)
 		(at package_0 city_loc_1)
 		(at package_1 city_loc_1)
 		(at truck_0 city_loc_2)
