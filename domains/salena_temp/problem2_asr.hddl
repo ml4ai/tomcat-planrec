@@ -5,13 +5,13 @@
             qu - player
             an - player
             c - critical
-            orig - location
-            dest - location
+            l - location
+            m - marker
         )
 
         (:htn
             :parameters ()
-            :task (collaborate-carry-stabilized)
+            :task (collaborate-carry-stabilized qu c l m)
         )
 
         (:init
