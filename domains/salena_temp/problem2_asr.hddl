@@ -1,0 +1,21 @@
+    (define
+        (problem carry-Stabilized)
+        (:domain question-2)
+        (:objects
+            qu - player
+            an - player
+            c - critical
+            orig - location
+            dest - location
+        )
+
+        (:htn
+            :parameters ()
+            :task (collaborate-carry-stabilized)
+        )
+
+        (:init
+            (found ?v ?l)
+        )
+  ); end problem definition
+
