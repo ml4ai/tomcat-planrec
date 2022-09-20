@@ -15,3 +15,8 @@ add_executable(team_comp_sar_MCTS_planner team_comp_sar_MCTS_planner.cpp)
 target_include_directories(team_comp_sar_MCTS_planner PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIR}
     ../../lib/cpphop)
 target_link_libraries(team_comp_sar_MCTS_planner PRIVATE ${GRAPHVIZ_LIBS} Boost::program_options nlohmann_json::nlohmann_json)
+
+add_executable(simple_travel_planner simple_travel_planner.cpp)
+target_include_directories(simple_travel_planner PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIR}
+    ../../lib/cpphop)
+target_link_libraries(simple_travel_planner PRIVATE ${GRAPHVIZ_LIBS} Boost::program_options nlohmann_json::nlohmann_json)
