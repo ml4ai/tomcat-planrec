@@ -19,4 +19,15 @@ double delivery_one(KnowledgeBase& kb) {
   return 0.0;
 }
 
-Scorers scorers = Scorers({{"delivery_one", delivery_one}});
+double travel_one(KnowledgeBase& kb) {
+  if (kb.ask("(and (loc me park) (cash me twenty))")) {
+    return 1;
+  }
+  if (kb.ask("(loc me park)")) {
+    return 0.5;
+  }
+  return 0.0;
+}
+
+Scorers scorers = Scorers({{"delivery_one", delivery_one},
+                           {"travel_one", travel_one}});
