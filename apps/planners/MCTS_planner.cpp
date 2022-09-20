@@ -8,6 +8,7 @@
 #include <boost/program_options.hpp>
 #include "cpphop/loader.h"
 #include "cpphop/cppMCTShop.h"
+#include <chrono>
 namespace po = boost::program_options;
 
 using json = nlohmann::json;
@@ -92,6 +93,11 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
   auto [domain,problem] = load(dom_file,prob_file);
+  auto start = std::chrono::high_resolution_clock::now();
   cppMCTShop(domain,problem,scorers[score_fun],R,plan_size,eps,successes,prob,seed); 
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  cout << "Time taken by planner: "
+       << duration.count() << " microseconds" << endl;
   return EXIT_SUCCESS;
 }
