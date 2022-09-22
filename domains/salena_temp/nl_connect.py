@@ -3,6 +3,7 @@
 """
 --------------------------------------------------------------------------
 Purpose:
+    Connect natural language to action prediction for plan recogition algorithm.
 
 Author:
     Salena T. Ashton
@@ -10,8 +11,10 @@ Author:
     University of Arizona
 
 Date Created:
+    8 September 2022
 
 Last Updated:
+    8 September 2022
 
 Affiliation:
     Theory of Mind-based Cognitive Architecture for Teams (ToMCAT)
@@ -138,8 +141,8 @@ def get_trigram(data):
     import re
     nltk.download('punkt')
 
-    #file = "HSR/doNotCommit2_HSR_readyForUse.csv"
-    file = "just_638.csv"
+    #file = "just_638.csv"
+    file = "doNotCommit3_HSR_replacedTerms_readyToUse.csv"
     data = pandas.read_csv(file)
     data = pandas.DataFrame(data)
 
@@ -155,31 +158,34 @@ def get_trigram(data):
     trigrams = nltk.trigrams(tokens)
     bigrams = nltk.bigrams(tokens)
 
-    print("\n\nBigram Frequency Distribution:\n")
-    ffreq_2 = nltk.FreqDist(bigrams)
-    freq = dict(ffreq_2)
 
-    # Subset by frequency > 2
-    freq_2 = {key:value for key, value in freq.items() if value > 2}
+    print("\n\n\n Interactive, for now, for developing\n\n")
+    answer = input("\n\tb - bigram or t - trigram \t?")
+    if answer == "b":
+        print("\n\nBigram Frequency Distribution:\n")
+        ffreq_2 = nltk.FreqDist(bigrams)
+        freq = dict(ffreq_2)
 
-    for w in sorted(freq_2, key=freq_2.get):
-        print(w, freq_2[w])
+        # Subset by frequency > 2
+        freq_2 = {key:value for key, value in freq.items() if value > 3}
 
-    return freq_2
+        for w in sorted(freq_2, key=freq_2.get):
+            print(w, freq_2[w])
 
-    """
-    print("\n\nTrigram Frequency Distribution:\n")
-    ffreq_3 = nltk.FreqDist(trigrams)
-    freq = dict(ffreq_3)
+        return freq_2
 
-    # Subset by frequency > 2
-    freq_3 = {key:value for key, value in freq.items() if value > 2}
+    else:
+        print("\n\nTrigram Frequency Distribution:\n")
+        ffreq_3 = nltk.FreqDist(trigrams)
+        freq = dict(ffreq_3)
 
-    for w in sorted(freq_3, key=freq_3.get):
-        print(w, freq_3[w])
+        # Subset by frequency > 2
+        freq_3 = {key:value for key, value in freq.items() if value > 2}
 
-    return freq_3
-    """
+        for w in sorted(freq_3, key=freq_3.get):
+            print(w, freq_3[w])
+
+        return freq_3
 
 
 ###############################################################################
@@ -194,15 +200,12 @@ def nl_conn(unsorted_df):
 
     mydf = unsorted_df[['question_verbatim', 'abstractLabels', 'questionLabels']]
 
-    """
-    1. Import replaced data frame 
-    2. Subset them by trigram
-        youWantTo
-    3. Find probabilities of action, given trigram
-    4. Find probabilities of intention, given trigram
-    5. Markov model of plan recognition and action prediction
-    6. Write HDDL tasks and actions based off of this model
-    """
+    # DONE            1. Import replaced data frame 
+    # DONE            2. Subset them by trigram
+    # DONE NECESSARY? 3. Find probabilities of action, given trigram
+    # DONE necessary? 4. Find probabilities of intention, given trigram
+    # TODO            5. Markov model of plan recognition and action prediction
+    # TODO            6. Write HDDL tasks and actions based off of this model
 
     trigram = {}
     trigram = get_trigram(trigram)

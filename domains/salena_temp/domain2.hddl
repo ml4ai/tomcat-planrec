@@ -23,7 +23,7 @@
         )
 
         (:task wake-critical
-                :parameters (?c - critical ?p - player ?l - location))
+                :parameters (?c - critical ?p - player ?l - location)
         )
 
         (:task collaborate-carry-stabilized
@@ -34,11 +34,11 @@
         (:method carry-stabilized
                 :parameters (?p - player ?v - victim ?l - location ?m - marker)
                 :task (collaborate-carry-stabilized ?p ?v ?l ?m)
- ;               :precondition (and (saved ?v)
+ ;              :precondition (and (saved ?v)
  ;                                  (is-marked ?v))
  ;               :subtasks ()
  ;               :ordering () 
-                 ordered-subtasks (and (request-marker ?v ?m ?l)
+                :ordered-subtasks (and (request-marker ?v ?m ?l)
                                        (request-carry-saved ?p ?v ?l)) 
        )
 

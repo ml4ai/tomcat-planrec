@@ -4,18 +4,18 @@
         (:objects
             qu - player
             an - player
-            c - critical
-            l - location
-            m - marker
+            crit - critical
+            loc - location
+            mark - marker
         )
 
         (:htn
             :parameters ()
-            :task (collaborate-carry-stabilized qu c l m)
+            :task (collaborate-carry-stabilized qu crit loc mark)
         )
 
         (:init
-            (found ?v ?l)
+            (found crit loc)
         )
-  ); end problem definition
+  )
 
