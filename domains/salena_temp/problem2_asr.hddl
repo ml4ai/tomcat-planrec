@@ -1,6 +1,6 @@
     (define
-        (problem carry-Stabilized)
-        (:domain question-2)
+        (problem carry_Stabilized)
+        (:domain question_2)
         (:objects
             qu - player
             an - player
@@ -11,11 +11,13 @@
 
         (:htn
             :parameters ()
-            :task (collaborate-carry-stabilized qu crit loc mark)
+            :task (collaborate_carry_stabilized qu crit loc mark)
         )
 
         (:init
-            (found crit loc)
+            (and (found crit loc)
+                 (saved crit)
+                 (is_marked crit))
         )
   )
 
