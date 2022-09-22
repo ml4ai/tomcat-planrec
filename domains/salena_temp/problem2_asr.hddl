@@ -2,22 +2,18 @@
         (problem carry_Stabilized)
         (:domain question_2)
         (:objects
-            qu - player
-            an - player
             crit - critical
             loc - location
-            mark - marker
         )
 
         (:htn
             :parameters ()
-            :task (collaborate_carry_stabilized qu crit loc mark)
+            :task (collaborate_carry_stabilized crit loc)
         )
 
         (:init
             (and (found crit loc)
-                 (saved crit)
-                 (is_marked crit))
+                 (saved crit))
         )
   )
 

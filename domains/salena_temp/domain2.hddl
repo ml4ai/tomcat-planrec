@@ -7,8 +7,6 @@
                 marker - object
                 critical - victim
                 stabilized - victim
-                questioner - player
-                answerer - player
         )
 
         (:predicates
@@ -18,7 +16,7 @@
                 (awake ?c - critical ?l - location)
                 (is_medic ?m - player)
                 (saved ?v - victim)
-                (carried ?v - victim ?p - player ?l - location)
+                (carried ?v - victim ?l - location)
                 (is_marked ?v - victim)
         )
 
@@ -27,35 +25,33 @@
         )
 
         (:task collaborate_carry_stabilized
-                :parameters (?p - player ?v - victim ?l - location ?m - marker)
+                :parameters (?v - victim ?l - location)
         )
 
        
         (:method carry_stabilized
-                :parameters (?p - player ?v - victim ?l - location ?m - marker)
-                :task (collaborate_carry_stabilized ?p ?v ?l ?m)
- ;              :precondition (and (saved ?v)
- ;                                  (is_marked ?v))
+                :parameters (?v - victim ?l - location)
+                :task (collaborate_carry_stabilized ?v ?l)
+                :precondition (saved ?v)
  ;               :subtasks ()
  ;               :ordering () 
-                :ordered-subtasks (and (request-marker ?v ?m ?l)
-                                       (request-carry-saved ?p ?v ?l)) 
+                :ordered-subtasks (and (request-marker ?v ?l)
+                                       (request-carry-saved ?v ?l)) 
        )
 
 
         (:action request_marker
-                :parameters (?v - victim ?m - marker ?l - location)
+                :parameters (?v - victim ?l - location)
                 :precondition (found ?v ?l)
                 :effect (is_marked ?v)
         )
 
         (:action request_carry_saved
-                :parameters (?p - player ?v - victim ?l - location)
+                :parameters (?v - victim ?l - location)
                 :precondition (and (saved ?v)
-                                   (is_marked ?m)
+                                   (is_marked ?v)
                                    (found ?v ?l))
-                :effect (and (carried ?v ?p ?l)
-                             (positioned ?p ?l))
+                :effect (carried ?v ?l)
         )
 
 );end define domain
