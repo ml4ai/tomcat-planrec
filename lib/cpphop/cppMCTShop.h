@@ -13,26 +13,11 @@
 #include <vector>
 #include <limits>
 
-struct pNode {
-    KnowledgeBase state;
-    TaskGraph tasks;
-    std::vector<std::string> plan;
-    int depth = 0;
-    double mean = 0.0;
-    int sims = 0;
-    int pred = -1;
-    bool deadend = false;
-    std::vector<int> successors = {};
-};
-
-using pTree = std::unordered_map<int,pNode>;
-
 int
-cselection(pTree& t,
+selection(pTree& t,
           int v,
           double eps,
           std::mt19937_64& g) {
-
     std::uniform_real_distribution<> dis(0.0,1.0);
     int original = v;
     while (!t[v].successors.empty()) {
@@ -105,7 +90,7 @@ cselection(pTree& t,
     return v;
 }
 
-void cbackprop(pTree& t, int n, double r) {
+void backprop(pTree& t, int n, double r) {
   do {
     if (t[n].successors.empty()) {
       t[n].mean = r;
@@ -122,7 +107,7 @@ void cbackprop(pTree& t, int n, double r) {
 }
 
 double
-csimulation(int horizon,
+simulation(int horizon,
            KnowledgeBase state,
            TaskGraph tasks,
            DomainDef& domain,
@@ -142,7 +127,7 @@ csimulation(int horizon,
           gtasks.remove_node(i);
           for (auto &ns : act.second) {
             ns.update_state();
-            double rs = csimulation(horizon,ns,gtasks,domain,g,h);
+            double rs = simulation(horizon,ns,gtasks,domain,g,h);
             if (rs > -1.0) {
               return rs;
             }
@@ -157,10 +142,10 @@ csimulation(int horizon,
         std::shuffle(task_methods.begin(),task_methods.end(),g);
         for (auto &m : task_methods) {
           auto all_gts = m.apply(state,gt.args,tasks,i);
-          if (!all_gts.second.empty()) {
-            std::shuffle(all_gts.second.begin(),all_gts.second.end(),g);
-            for (auto &gts : all_gts.second) {
-              double rs = csimulation(horizon,state,gts,domain,g,h);
+          if (!all_gts.empty()) {
+            std::shuffle(all_gts.begin(),all_gts.end(),g);
+            for (auto &gts : all_gts) {
+              double rs = simulation(horizon,state,gts.second,domain,g,h);
               if (rs > -1.0) {
                 return rs;
               }
@@ -182,7 +167,7 @@ csimulation(int horizon,
   return -1.0;
 }
 
-int cexpansion(pTree& t,
+int expansion(pTree& t,
               int n,
               DomainDef& domain,
               std::mt19937_64& g) {
@@ -223,12 +208,14 @@ int cexpansion(pTree& t,
       std::vector<int> choices;
       for (auto &m : domain.methods[t[n].tasks[tid].head]) {
         auto gts = m.apply(t[n].state,t[n].tasks[tid].args,t[n].tasks,tid);
-        for (auto &g : gts.second) { 
+        for (auto &g : gts) { 
           pNode v;
           v.state = t[n].state;
-          v.tasks = g;
+          v.tasks = g.second;
           v.depth = t[n].depth + 1;
           v.plan = t[n].plan;
+          v.addedTIDs = g.first;
+          v.prevTID = tid;
           v.pred = n;
           int w = t.size();
           t[w] = v;
@@ -247,7 +234,8 @@ int cexpansion(pTree& t,
 }
 
 int
-cseek_planMCTS(pTree& t,
+seek_planMCTS(pTree& t,
+              TaskTree& tasktree,
                  int v,
                  DomainDef& domain,
                  int R,
@@ -270,13 +258,13 @@ cseek_planMCTS(pTree& t,
     m[w] = n_node;
     int hzn = nbd(g);
     for (int i = 0; i < R; i++) {
-      int n = cselection(m,w,eps,g);
+      int n = selection(m,w,eps,g);
       if (m[n].tasks.empty()) {
-          cbackprop(m,n,domain.score(m[n].state));
+          backprop(m,n,domain.score(m[n].state));
       }
       else {
         if (m[n].sims == 0) {
-          auto r = csimulation(hzn,
+          auto r = simulation(hzn,
                                m[n].state, 
                                m[n].tasks, 
                                domain,
@@ -284,11 +272,11 @@ cseek_planMCTS(pTree& t,
           if (r == -1.0) {
             m[n].deadend = true;
           }
-          cbackprop(m,n,r);
+          backprop(m,n,r);
         }
         else {
-          int n_p = cexpansion(m,n,domain,g);
-          auto r = csimulation(hzn,
+          int n_p = expansion(m,n,domain,g);
+          auto r = simulation(hzn,
                                m[n_p].state, 
                                m[n_p].tasks, 
                                domain,
@@ -296,7 +284,7 @@ cseek_planMCTS(pTree& t,
           if (r == -1.0) {
             m[n_p].deadend = true;
           }
-          cbackprop(m,n_p,r);
+          backprop(m,n_p,r);
         }
       }
     }
@@ -329,6 +317,13 @@ cseek_planMCTS(pTree& t,
     k.tasks = m[arg_max].tasks;
     k.plan = m[arg_max].plan;
     k.depth = t[v].depth + 1;
+    for (auto& i : m[arg_max].addedTIDs) {
+      TaskNode tasknode;
+      tasknode.task = k.tasks[i].head;
+      tasknode.token = k.tasks[i].to_string();
+      tasktree[i] = tasknode;
+      tasktree[m[arg_max].prevTID].children.push_back(i);
+    }
     k.pred = v;
     int y = t.size();
     t[y] = k;
@@ -350,6 +345,13 @@ cseek_planMCTS(pTree& t,
       j.tasks = m[arg_max].tasks;
       j.plan = m[arg_max].plan;
       j.depth = t[v].depth + 1;
+      for (auto& i : m[arg_max].addedTIDs) {
+        TaskNode tasknode;
+        tasknode.task = j.tasks[i].head;
+        tasknode.token = j.tasks[i].to_string();
+        tasktree[i] = tasknode;
+        tasktree[m[arg_max].prevTID].children.push_back(i);
+      }
       j.pred = v;
       int y = t.size();
       t[y] = j;
@@ -374,7 +376,7 @@ cseek_planMCTS(pTree& t,
 
 }
 
-std::pair<pTree,std::pair<int,int>> 
+Results 
 cppMCTShop(DomainDef& domain,
            ProblemDef& problem,
            Scorer scorer,
@@ -386,6 +388,7 @@ cppMCTShop(DomainDef& domain,
            int seed = 4021) {
     domain.set_scorer(scorer);
     pTree t;
+    TaskTree tasktree;
     pNode root;
     root.state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
     for (auto const& f : problem.initF) {
@@ -394,7 +397,11 @@ cppMCTShop(DomainDef& domain,
     root.state.update_state();
     Grounded_Task init_t;
     init_t.head = problem.head;
-    root.tasks.add_node(init_t);
+    int TID = root.tasks.add_node(init_t);
+    TaskNode tasknode;
+    tasknode.task = init_t.head;
+    tasknode.token = init_t.to_string();
+    tasktree[TID] = tasknode;
     root.plan = {};
     root.depth = 0;
     int v = t.size();
@@ -404,11 +411,11 @@ cppMCTShop(DomainDef& domain,
     std::cout << "Initial State:" << std::endl;
     t[v].state.print_facts();
     std::cout << std::endl;
-    auto end = cseek_planMCTS(t, v, domain, R, plan_size, eps, successes,prob,g);
+    auto end = seek_planMCTS(t, tasktree, v, domain, R, plan_size, eps, successes,prob,g);
     std::cout << "Plan:";
     for (auto const& p : t[end].plan) {
       std::cout << " " << p;
     }
     std::cout << std::endl;
-    return std::make_pair(t,std::make_pair(v,end));
+    return Results(t,v,end,tasktree,TID);
 }
