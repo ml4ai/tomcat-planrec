@@ -1,19 +1,22 @@
-    (define
-        (problem carry_Stabilized)
-        (:domain question_2)
-        (:objects
-            vic - victim
-            loc - location
-        )
+(define
+    (problem carry_stabilized)
+    (:domain question_2)
+    (:objects
+        vic - victim
+        loc - location
+    )
 
-        (:htn
-            :parameters ()
-            :task (collaborate_carry_stabilized vic loc)
-        )
+    (:htn
+        :parameters ()
+        :subtasks (and 
+                    (task0 (request_marker ?v ?l)) 
+                    (task1 (request_carry_saved ?v ?l)))
+        :ordering (and 
+                    (< task0 task1))
+    )
 
-        (:init
-            (and (found vic loc)
-                 (saved vic))
-        )
-  )
-
+    (:init
+        (and (found vic loc)
+             (saved vic))
+    )
+)
