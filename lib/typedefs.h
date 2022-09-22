@@ -59,8 +59,6 @@ struct TaskGraph {
   std::unordered_map<int,Grounded_Task> GTs;
   //Keeps track of next newly usable ID
   int nextID = 0;
-  //Keeps track of usable freed IDs
-  std::vector<int> freedIDs;
 
   Grounded_Task& operator[](int i) {
     return this->GTs[i];
@@ -68,14 +66,8 @@ struct TaskGraph {
 
   int add_node(Grounded_Task& GT) {
     int id;
-    if (!this->freedIDs.empty()) {
-      id = this->freedIDs.back();
-      this->freedIDs.pop_back();
-    }
-    else {
-      id = this->nextID;
-      this->nextID++;
-    }
+    id = this->nextID;
+    this->nextID++;
     this->GTs[id] = GT;
     return id;
   }
@@ -94,13 +86,51 @@ struct TaskGraph {
       this->GTs[ic].outgoing.erase(std::remove(GTs[ic].outgoing.begin(),GTs[ic].outgoing.end(),gt),GTs[ic].outgoing.end());
     }
     this->GTs.erase(gt);
-    this->freedIDs.push_back(gt);
   }
   
   bool empty() {
     return this->GTs.empty();
   } 
 
+};
+
+struct TaskNode {
+  std::string task;
+  std::string token;
+  std::vector<int> children;
+};
+
+using TaskTree = std::unordered_map<int,TaskNode>;
+
+struct pNode {
+    KnowledgeBase state;
+    TaskGraph tasks;
+    int prevTID = -1;
+    std::vector<int> addedTIDs;
+    std::vector<std::string> plan;
+    int depth = 0;
+    double mean = 0.0;
+    int sims = 0;
+    int pred = -1;
+    bool deadend = false;
+    std::vector<int> successors = {};
+};
+
+using pTree = std::unordered_map<int,pNode>;
+
+struct Results{
+  pTree t;
+  int root;
+  int end;
+  TaskTree tasktree;
+  int ttRoot;
+  Results(pTree t, int root, int end, TaskTree tasktree, int ttRoot) {
+    this->t = t;
+    this->root = root;
+    this->end = end;
+    this->tasktree = tasktree;
+    this->ttRoot = ttRoot;
+  }
 };
 
 std::string return_value(std::string var, Args& args) {
@@ -403,8 +433,9 @@ class MethodDef {
       return this->orderings;
     }
 
-    TaskGraph apply_binding(Args& args, TaskGraph tasks, std::vector<int>& out) {
+    std::pair<std::vector<int>,TaskGraph> apply_binding(Args& args, TaskGraph tasks, std::vector<int>& out) {
       std::unordered_map<std::string,int> gts;
+      std::vector<int> addedTIDs;
       for (auto const& [id,s]: this->subtasks) {
         Grounded_Task gt;
         gt.head = s.first;
@@ -421,6 +452,7 @@ class MethodDef {
           gt.args.push_back(arg);
         }
         gts[id] = tasks.add_node(gt);
+        addedTIDs.push_back(gts[id]);
         if (this->orderings[id].empty()) {
           for (auto const& o : out) {
             tasks.add_edge(gts[id],o);
@@ -432,10 +464,10 @@ class MethodDef {
           tasks.add_edge(gts[t1],gts[t2]);
         } 
       }
-      return tasks;
+      return std::make_pair(addedTIDs,tasks);
     }
 
-    std::pair<task_token,std::vector<TaskGraph>> apply(KnowledgeBase& kb, Args& args, TaskGraph tasks, int i) {
+    std::vector<std::pair<std::vector<int>,TaskGraph>> apply(KnowledgeBase& kb, Args& args, TaskGraph tasks, int i) {
       std::string pc;
       std::string token = "("+this->task.first;
       if (!args.empty()) {
@@ -455,7 +487,7 @@ class MethodDef {
         pc = this->preconditions;
       }
       token += ")";
-      std::vector<TaskGraph> groundings;
+      std::vector<std::pair<std::vector<int>,TaskGraph>> groundings;
       std::vector<int> out = tasks[i].outgoing;
       tasks.remove_node(i);
       if (pc != "__NONE__") {
@@ -485,7 +517,7 @@ class MethodDef {
           }
         }
       }
-      return std::make_pair(token,groundings);
+      return groundings;
     }
 };
 
