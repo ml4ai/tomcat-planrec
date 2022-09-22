@@ -3,42 +3,28 @@
         (:types
                 location - object
                 victim - object
-                player - object
-                marker - object
-                critical - victim
-                stabilized - victim
         )
 
         (:predicates
-                (positioned ?p - player ?l - location)
                 (found ?v - victim ?l - location)
-                (in ?l - location)
-                (awake ?c - critical ?l - location)
-                (is_medic ?m - player)
                 (saved ?v - victim)
                 (carried ?v - victim ?l - location)
                 (is_marked ?v - victim)
-        )
-
-        (:task wake_critical
-                :parameters (?c - critical ?p - player ?l - location)
         )
 
         (:task collaborate_carry_stabilized
                 :parameters (?v - victim ?l - location)
         )
 
-       
         (:method carry_stabilized
                 :parameters (?v - victim ?l - location)
                 :task (collaborate_carry_stabilized ?v ?l)
                 :precondition (saved ?v)
- ;               :subtasks ()
- ;               :ordering () 
-                :ordered-subtasks (and (request-marker ?v ?l)
-                                       (request-carry-saved ?v ?l)) 
-       )
-
+                :subtasks (and (task0 (request-marker ?v ?l))
+                               (task1 (request-carry-saved ?v ?l)) 
+                          )
+                :ordering (and (< task0 task1))
+        ) 
 
         (:action request_marker
                 :parameters (?v - victim ?l - location)

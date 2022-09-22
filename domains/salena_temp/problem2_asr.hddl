@@ -2,18 +2,18 @@
         (problem carry_Stabilized)
         (:domain question_2)
         (:objects
-            crit - critical
+            vic - victim
             loc - location
         )
 
         (:htn
             :parameters ()
-            :task (collaborate_carry_stabilized crit loc)
+            :task (collaborate_carry_stabilized vic loc)
         )
 
         (:init
-            (and (found crit loc)
-                 (saved crit))
+            (and (found vic loc)
+                 (saved vic))
         )
   )
 
