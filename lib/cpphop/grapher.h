@@ -1,5 +1,4 @@
 #pragma once
-#include <nlohmann/json.hpp>
 #include <graphviz/gvc.h>
 #include <string>
 
@@ -37,30 +36,23 @@ Agnode_t *add_node(Agraph_t *g, std::string node_name) {
   return agnode(g, const_cast<char *>(node_name.c_str()), 1);
 }
 
-template<class Graph>
-int build_graph(Agraph_t *g, Agnode_t *n,Graph g,int count) {
-  if (j["children"].empty()) {
-    return count;
+void build_graph(Agraph_t *g, Agnode_t *n, DomainDef& domain, TaskTree& t,int w) {
+  std::string tmp = std::to_string(w);
+  n = add_node(g,tmp);
+  set_property(n,"label",t[w].token);
+  if (domain.actions.contains(t[w].task)) {
+    set_property(n,"shape","rectangle");
+    set_property(n,"color","blue");
   }
-  Agnode_t *m;
-  Agedge_t *v;
-  for (auto& e : j["children"]) {
-    std::string tmp = std::to_string(count);
-    m = add_node(g,tmp);
-    std::string task = e["task"].get<std::string>();
-    set_property(m,"label",task);
-    if (task[1] == '!') {
-      set_property(m,"shape","rectangle");
-      set_property(m,"color","blue");
-    } 
-    v = agedge(g,n,m,0,1);
-    count++;
-    count = build_graph(g,m,e,count);
+  for (auto& e : t[w].children) {
+    Agnode_t *m;
+    build_graph(g,m,domain,t,e);
+    agedge(g,n,m,0,1);
   }
-  return count;
+  return;
 }
 
-void generate_graph_from_json(json j, std::string filename) {
+void generate_graph(DomainDef& domain, TaskTree&, int root, std::string filename) {
   Agraph_t *g;
   Agnode_t *n;
   Agsym_t *a;
