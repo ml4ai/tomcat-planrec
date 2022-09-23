@@ -1,0 +1,37 @@
+(define (domain question_2)
+        (:requirements :negative-preconditions :typing :hierarchy)
+        (:types
+                victim - object
+        )
+
+        (:predicates
+                (carried ?v - victim)
+                (saved ?v - victim)
+                (marked ?v - victim)
+        )
+
+        (:task collaborate_carry_stabilized
+                :parameters (?v - victim)
+        )
+
+        (:method m_carry_stabilized_125
+                :parameters (?v - victim)
+                :task (collaborate_carry_stabilized ?v)
+                :precondition (saved ?v)
+                :ordered-subtasks (and 
+                         (request_marker_1 ?v)
+                         (request_carrySaved_25 ?v)) 
+        ) 
+
+        (:action request_marker_1
+                :parameters (?v - victim)
+                :precondition ()
+                :effect (marked ?v)
+        )
+
+        (:action request_carrySaved_25
+                :parameters (?v - victim)
+                :precondition (marked ?v)
+                :effect (carried ?v)
+        )
+);end define domain

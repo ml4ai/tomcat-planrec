@@ -1,0 +1,17 @@
+(define (problem p_carry_stabilized)
+    (:domain question_2)
+    (:objects
+        vic - victim
+    )
+
+    (:htn
+        :parameters ()
+        :tasks (and 
+                    (request_marker_1 ?v) 
+                    (request_carrySaved_25 ?v))
+        :ordering ()
+    )
+
+    (:init
+        (saved vic))
+)
