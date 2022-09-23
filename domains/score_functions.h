@@ -13,4 +13,9 @@ double delivery_one(KnowledgeBase& kb) {
   return 0.0;
 }
 
-Scorers scorers = Scorers({{"delivery_one", delivery_one}});
+double simple(KnowledgeBase& kb) {
+  return 1.0;
+}
+
+Scorers scorers = Scorers({{"delivery_one", delivery_one},
+                           {"simple", simple}});
