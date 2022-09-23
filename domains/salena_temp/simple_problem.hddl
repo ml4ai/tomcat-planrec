@@ -7,8 +7,8 @@
     (:htn
         :parameters ()
         :tasks (and 
-                    (request_marker_1 ?v) 
-                    (request_carrySaved_25 ?v))
+                    (request_marker_1 vic) 
+                    (request_carrySaved_25 vic))
         :ordering ()
     )
 
