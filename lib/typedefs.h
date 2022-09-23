@@ -98,6 +98,7 @@ struct TaskNode {
   std::string task;
   std::string token;
   std::vector<int> children;
+  std::vector<int> outgoing;
 };
 
 using TaskTree = std::unordered_map<int,TaskNode>;
