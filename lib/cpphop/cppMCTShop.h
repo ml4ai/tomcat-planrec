@@ -321,6 +321,7 @@ seek_planMCTS(pTree& t,
       TaskNode tasknode;
       tasknode.task = k.tasks[i].head;
       tasknode.token = k.tasks[i].to_string();
+      tasknode.outgoing = k.tasks[i].outgoing;
       tasktree[i] = tasknode;
       tasktree[m[arg_max].prevTID].children.push_back(i);
     }
@@ -349,6 +350,7 @@ seek_planMCTS(pTree& t,
         TaskNode tasknode;
         tasknode.task = j.tasks[i].head;
         tasknode.token = j.tasks[i].to_string();
+        tasknode.outgoing = j.tasks[i].outgoing;
         tasktree[i] = tasknode;
         tasktree[m[arg_max].prevTID].children.push_back(i);
       }
