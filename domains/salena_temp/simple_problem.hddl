@@ -13,5 +13,6 @@
     )
 
     (:init
-        (saved vic))
+        (saved vic)
+    )
 )
