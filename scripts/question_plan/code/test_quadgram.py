@@ -1,4 +1,36 @@
 # Salena: Based on tutorial from https://medium.com/swlh/language-modelling-with-nltk-20eac7e70853
+"""
+Note to self:
+    file can be defined as either questionLabels or question_verbatim. just
+    uncomment whichever I want.
+
+    turn into list, then string for the code to clean properly
+
+    questionLabels doesn't workw ith preprocessing that is in forloop soI just
+    wrote my own with re.sub()
+
+    sents should be defined as either file_p, the preprocessed file for
+    question verbatim, or it should be defined as file_s, which is my version
+    of a file string for questionLabels.
+
+
+TODO:
+    Do an argparse. 
+
+    if arg == questionlabels:
+        file = data[questionlabels]
+        file_s = salena_process(file)
+        sents = nltk.sent_tokenize(file_s)
+
+    elif arg == abstractlabels:
+        repeat for questionlables
+
+    else: # assume question_verbatim
+        file = data[question_verbatim]
+        # Then use file_p, not file_s
+        sents = nltk.sent_tokenize(file_p)
+
+"""
 
 import nltk, re, pprint, string
 import pandas
@@ -7,24 +39,51 @@ from nltk import word_tokenize, sent_tokenize
 # For ease in reading terminal output
 hrule = ("\n" + "-"*72 + "\n")
 
+def salena_process(my_stuff):
+    t1 = str(my_stuff)
+    t1 = re.sub("\'", "", t1)
+    t1 = re.sub(":", "", t1)
+    t1 = re.sub("\"", "", t1)
+    t1 = re.sub("\,", "", t1)
+    t1 = re.sub("\?", "", t1)
+    return t1
+
+
+
+
 # Import and clean data:
 string.punctuation = string.punctuation +'“'+'”'+'-'+'’'+'‘'+'—'
 string.punctuation = string.punctuation.replace('.', '')
-data = "../data/HDDL_dataset.csv"
+data = "../data/HDDL2_dataset.csv"
 data = pandas.read_csv(data)
 data = pandas.DataFrame(data)
-file = data["question_verbatim"]
 
-for f in file:
+ask = input("\nA - abstractLabels\nL - questionLabels\nV - question_verbatim\n")
+if ask == "V":
+    file = data["question_verbatim"]
+
+    # preprocess data
+    file_nl_removed = ""
+
+    for line in file:
+        line_nl_removed = line.replace("\n", " ")      #removes newlines
+        file_nl_removed += line_nl_removed
+        file_p = "".join([char for char in file_nl_removed if char not in string.punctuation]) 
+
+elif ask == "A":
+    file = data["abstractLabels"]
+    file = list(file)
+    file_p = salena_process(file)
+else:
+    file = data["questionLabels"]
+    file = list(file)
+    file_p = salena_process(file)
+
+
+
+
+for f in file_p:
     print(f)
-
-# preprocess data
-file_nl_removed = ""
-
-for line in file:
-    line_nl_removed = line.replace("\n", " ")      #removes newlines
-    file_nl_removed += line_nl_removed
-    file_p = "".join([char for char in file_nl_removed if char not in string.punctuation]) 
 
 sents = nltk.sent_tokenize(file_p)
 print("The number of sentences is", len(sents))
@@ -175,5 +234,75 @@ for i in range(1,5):
     test = list(ngrams_prob[i][:10])
     for t in test:
         print(t)
+
+##### MODEL PREDICTION
+
+# From https://medium.com/swlh/language-modelling-with-nltk-20eac7e70853
+
+str1 = 'what room should we'
+str2 = 'first we should find all the criticals then collect them'
+
+#smoothed models without stopwords removed are used
+token_1 = word_tokenize(str1)
+token_2 = word_tokenize(str2)
+ngram_1 = {1:[], 2:[], 3:[]}   #to store the n-grams formed
+ngram_2 = {1:[], 2:[], 3:[]}
+for i in range(3):
+    ngram_1[i+1] = list(ngrams(token_1, i+1))[-1]
+    ngram_2[i+1] = list(ngrams(token_2, i+1))[-1]
+print(hrule, "String 1: ", ngram_1,"\nString 2: ",ngram_2)
+
+# Now we use the n-grams of the strings to get the next word predictions based on the highest probabilities.
+for i in range(4):
+    ngrams_prob[i+1] = sorted(ngrams_prob[i+1], key = lambda x:x[1], reverse = True)
+
+pred_1 = {1:[], 2:[], 3:[]}
+for i in range(3):
+    count = 0
+    for each in ngrams_prob[i+2]:
+        if each[0][:-1] == ngram_1[i+1]:
+#to find predictions based on highest probability of n-grams  
+
+            count +=1
+            pred_1[i+1].append(each[0][-1])
+            if count ==5:
+                break
+    if count<5:
+        while(count!=5):
+            pred_1[i+1].append("NOT FOUND")
+#if no word prediction is found, replace with NOT FOUND
+            count +=1
+for i in range(4):
+    ngrams_prob[i+1] = sorted(ngrams_prob[i+1], key = lambda x:x[1], reverse = True)
+
+pred_2 = {1:[], 2:[], 3:[]}
+
+for i in range(3):
+    count = 0
+    for each in ngrams_prob[i+2]:
+        if each[0][:-1] == ngram_2[i+1]:
+            count +=1
+            pred_2[i+1].append(each[0][-1])
+            if count ==5:
+                break
+    if count<5:
+        while(count!=5):
+            pred_2[i+1].append("\0")
+            count +=1
+
+
+
+# Now we can call the above method for each n-gram to get the next word predictions according to each model.
+
+print("Next word predictions for the strings using the probability models of bigrams, trigrams, and fourgrams\n")
+print("Bigram model predictions: {}\nTrigram model predictions: {}\nFourgram model predictions: {}\n" .format(pred_1[1], pred_1[2], pred_1[3]))
+print("Bigram model predictions: {}\nTrigram model predictions: {}\nFourgram model predictions: {}" .format(pred_2[1], pred_2[2], pred_2[3]))
+
+
+
+
+
+
+
 
 
