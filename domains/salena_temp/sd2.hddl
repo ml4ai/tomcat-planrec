@@ -16,37 +16,66 @@
         )
 
         (:task collaborate_carry_stabilized
-                :parameters (?p - player ?v - victim ?l1 - location ?l2 - location)
+                :parameters (?p1 - player ?p2 - player 
+                             ?v - victim 
+                             ?l1 - location ?l2 - location)
         )
 
         (:method m_carry_unmarked_stabilized_134
-                :parameters (?p - player ?v - victim ?l1 - location ?l2 - location)
+                :parameters (?p - player 
+                             ?v - victim 
+                             ?l1 - location ?l2 - location)
                 :task (collaborate_carry_stabilized ?p ?v ?l1 ?l2)
                 :precondition (healed ?v)
                 :ordered-subtasks (and 
                          (request_marker_1 ?v)
+                         (mark_victim_2)
                          (request_carry_stabilized_3 ?p ?v ?l1)
                          (carry_stabilized_4 ?p ?v ?l1 ?l2)) 
-        ) 
+        ) ;end m134
 
         (:method m_carry_stabilized_34
-                :parameters (?p - player ?v - victim ?l1 - location ?l2 - location)
+                :parameters (?p - player 
+                             ?v - victim 
+                             ?l1 - location ?l2 - location)
                 :task (collaborate_carry_stabilized ?p ?v ?l1 ?l2)
                 :precondition (and (marked ?v) 
                                    (healed ?v))
                 :ordered-subtasks (and 
                          (request_carry_stabilized_3 ?p ?v ?l1)
                          (carry_stabilized_4 ?p ?v ?l1 ?l2)) 
-        )
+        );end m34
+
+;        (:method m_carry_stabilized_5634
+;                :parameters(?p1 - player ?p2 - player
+;                            ?v - victim
+;                            ?l1 - location ?l2 - location)
+;                :task (collaborate_carry_stabilized ?p1 ?p2 ?v ?l1 ?l2)
+;                :precondition (and (marked ?v)
+;                                   (healed ?v))
+;                :ordered-subtasks (and 
+;                         (ask_loc_teammate_5 ?p1 ?p2 ?l1)
+;                         (request_destination_6 ?p1 ?p2 ?l1 ?l2)
+;                         (request_carry_stabilized_3 ?p ?v ?l1)
+;                         (carry_stabilized_4 ?p ?v ?l1 ?l2)) 
+;        ); end m5634
 
         (:action request_marker_1
+                :parameters (?v - victim)
+                :precondition ()
+                :effect ()
+        )
+
+        (:action mark_victim_2
                 :parameters (?v - victim)
                 :precondition ()
                 :effect (marked ?v)
         )
 
         (:action request_carry_stabilized_3
-                :parameters (?p - player ?v - victim ?l1 - location)
+                :parameters (?p - player 
+                             ?v - victim 
+                             ?l1 - location)
                 :precondition (marked ?v)
                 :effect (and (can_be_carried ?v)
                              (at ?v ?l1)
@@ -54,7 +83,9 @@
         )
 
         (:action carry_stabilized_4
-                :parameters (?p - player ?v - victim ?l1 - location ?l2 - location)
+                :parameters (?p - player 
+                             ?v - victim 
+                             ?l1 - location ?l2 - location)
                 :precondition (and (healed ?v)
                                    (marked ?v)
                                    (can_be_carried ?v)
@@ -66,4 +97,28 @@
                              (not (at ?v ?l1))
                              (not (positioned ?p ?l2)))
         )
+
+        (:action ask_loc_teammate_5
+                :parameters (?p1 - player ?p2 - player
+                             ?l1 - location)
+                :precondition (not (positioned ?p2 ?l1))
+                :effect ()
+        )
+
+        (:action request_destination_6
+                :parameters (?p1 - player ?p2 - player
+                             ?l1 - location ?l2 - location)
+                :precondition (and
+                         (positioned ?p1 ?l2)
+                         (not (positioned ?p2 ?l2)))
+                :effect (and (positioned ?p2 ?l2)
+                             (not (positioned ?p2 ?l1)))
+        )
+
+
+
+
+
+
+
 );end define domain
