@@ -59,7 +59,7 @@ simulation_rec(int horizon,
           for (auto &ns : act.second) {
             ns.update_state();
             plan.push_back(act.first);
-            double rs = simulation(horizon,given_plan,plan,ns,gtasks,domain,g,h);
+            double rs = simulation_rec(horizon,given_plan,plan,ns,gtasks,domain,g,h);
             if (rs > -1.0) {
               return rs;
             }
@@ -74,10 +74,10 @@ simulation_rec(int horizon,
         std::shuffle(task_methods.begin(),task_methods.end(),g);
         for (auto &m : task_methods) {
           auto all_gts = m.apply(state,gt.args,tasks,i);
-          if (!all_gts.second.empty()) {
-            std::shuffle(all_gts.second.begin(),all_gts.second.end(),g);
-            for (auto &gts : all_gts.second) {
-              double rs = simulation(horizon,given_plan,plan,state,gts,domain,g,h);
+          if (!all_gts.empty()) {
+            std::shuffle(all_gts.begin(),all_gts.end(),g);
+            for (auto &gts : all_gts) {
+              double rs = simulation_rec(horizon,given_plan,plan,state,gts.second,domain,g,h);
               if (rs > -1.0) {
                 return rs;
               }
@@ -114,7 +114,7 @@ seek_planrecMCTS(pTree& t,
 
   std::negative_binomial_distribution<int> nbd(successes,prob);
   int prev_v;
-  while (!t[v].tasks.empty() && t[v].plan.size() == given_plan.size()) {
+  while (!t[v].tasks.empty() && t[v].plan.size() != given_plan.size()) {
     pTree m;
     pNode n_node;
     n_node.state = t[v].state;
@@ -126,16 +126,24 @@ seek_planrecMCTS(pTree& t,
     int hzn = nbd(g);
     for (int i = 0; i < R; i++) {
       int n = selection(m,w,eps,g);
-      if (m[n].tasks.empty()) {
+      if (m[n].tasks.empty() || m[n].plan.size() == given_plan.size()) {
+        if (is_subseq(m[n].plan,given_plan)) {
           backprop(m,n,domain.score(m[n].state));
+        }
+        else {
+          backprop(m,n,-1.0);
+          m[n].deadend = true;
+        }
       }
       else {
         if (m[n].sims == 0) {
-          auto r = simulation(hzn,
-                               m[n].state, 
-                               m[n].tasks, 
-                               domain,
-                               g);
+          auto r = simulation_rec(hzn,
+                                  given_plan,
+                                  m[n].plan,
+                                  m[n].state, 
+                                  m[n].tasks, 
+                                  domain,
+                                  g);
           if (r == -1.0) {
             m[n].deadend = true;
           }
@@ -143,11 +151,13 @@ seek_planrecMCTS(pTree& t,
         }
         else {
           int n_p = expansion(m,n,domain,g);
-          auto r = simulation(hzn,
-                               m[n_p].state, 
-                               m[n_p].tasks, 
-                               domain,
-                               g);
+          auto r = simulation_rec(hzn,
+                              given_plan,
+                              m[n].plan,
+                              m[n_p].state, 
+                              m[n_p].tasks, 
+                              domain,
+                              g);
           if (r == -1.0) {
             m[n_p].deadend = true;
           }
@@ -197,7 +207,7 @@ seek_planrecMCTS(pTree& t,
     t[y] = k;
     t[v].successors.push_back(y);
     v = y;
-    if (t[v].plan.size() >= plan_size && plan_size != -1) {
+    if (t[v].plan.size() == given_plan.size()) {
       break;
     }
       
@@ -207,7 +217,6 @@ seek_planrecMCTS(pTree& t,
         continue;
       }
       arg_max = m[arg_max].successors.front();
-
       pNode j;
       j.state = m[arg_max].state;
       j.tasks = m[arg_max].tasks;
@@ -227,7 +236,7 @@ seek_planrecMCTS(pTree& t,
       t[v].successors.push_back(y);
       v = y;
 
-      if (t[v].plan.size() >= plan_size && plan_size != -1) {
+      if (t[v].plan.size() == given_plan.size()) {
         plan_break = true;
         break;
       }
@@ -236,25 +245,21 @@ seek_planrecMCTS(pTree& t,
       break;
     }
   }
-  std::cout << "Plan found at depth " << t[v].depth;
-  std::cout << std::endl;
-  std::cout << "Final State:" << std::endl;
-  t[v].state.print_facts();
-  std::cout << std::endl;
   return v;
 
 }
 
 Results 
-cppMCTShop(DomainDef& domain,
-           ProblemDef& problem,
-           Scorer scorer,
-           int R = 30,
-           int plan_size = -1,
-           double eps = 0.4,
-           int successes = 19,
-           double prob = 0.75,
-           int seed = 4021) {
+cppMCTSplanrec(DomainDef& domain,
+              ProblemDef& problem,
+              std::vector<std::string> given_plan,
+              Scorer scorer,
+              int R = 30,
+              int plan_size = -1,
+              double eps = 0.4,
+              int successes = 19,
+              double prob = 0.75,
+              int seed = 4021) {
     domain.set_scorer(scorer);
     pTree t;
     TaskTree tasktree;
@@ -276,15 +281,15 @@ cppMCTShop(DomainDef& domain,
     int v = t.size();
     t[v] = root;
     static std::mt19937_64 g(seed);
-    std::cout << std::endl;
-    std::cout << "Initial State:" << std::endl;
-    t[v].state.print_facts();
-    std::cout << std::endl;
-    auto end = seek_planMCTS(t, tasktree, v, domain, R, plan_size, eps, successes,prob,g);
-    std::cout << "Plan:";
-    for (auto const& p : t[end].plan) {
-      std::cout << " " << p;
-    }
-    std::cout << std::endl;
+    auto end = seek_planrecMCTS(t, 
+                                given_plan,
+                                tasktree, 
+                                v, 
+                                domain, 
+                                R, 
+                                eps, 
+                                successes,
+                                prob,
+                                g);
     return Results(t,v,end,tasktree,TID);
 }
