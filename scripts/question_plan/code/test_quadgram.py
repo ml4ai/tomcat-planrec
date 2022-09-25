@@ -35,6 +35,7 @@ TODO:
 import nltk, re, pprint, string
 import pandas
 from nltk import word_tokenize, sent_tokenize
+import probability, cleanTheData
 
 # For ease in reading terminal output
 hrule = ("\n" + "-"*72 + "\n")
@@ -54,13 +55,24 @@ def salena_process(my_stuff):
 # Import and clean data:
 string.punctuation = string.punctuation +'“'+'”'+'-'+'’'+'‘'+'—'
 string.punctuation = string.punctuation.replace('.', '')
-data = "../data/HDDL2_dataset.csv"
-data = pandas.read_csv(data)
-data = pandas.DataFrame(data)
+raw_data = "../data/HDDL2_dataset.csv"
+raw_data = pandas.read_csv(raw_data)
+dataframe = pandas.DataFrame(raw_data)
 
-ask = input("\nA - abstractLabels\nL - questionLabels\nV - question_verbatim\n")
-if ask == "V":
-    file = data["question_verbatim"]
+print(dataframe.head())
+
+replace = input("Less granularity in labels?\ny - yes\n")
+if replace == "y":
+    dataframe = probability.replaceTerms(dataframe)
+    probability.reclean(dataframe, "abstractLabels", "abstractLabels")
+    probability.reclean(dataframe, "questionLabels", "questionLabels")
+    print(dataframe)
+
+
+
+ask = input("\na - abstractLabels\nl - questionLabels\nv - question_verbatim\n")
+if ask == "v":
+    file = dataframe["question_verbatim"]
 
     # preprocess data
     file_nl_removed = ""
@@ -70,20 +82,19 @@ if ask == "V":
         file_nl_removed += line_nl_removed
         file_p = "".join([char for char in file_nl_removed if char not in string.punctuation]) 
 
-elif ask == "A":
-    file = data["abstractLabels"]
+elif ask == "a":
+    file = dataframe["abstractLabels"]
     file = list(file)
     file_p = salena_process(file)
 else:
-    file = data["questionLabels"]
+    file = dataframe["questionLabels"]
     file = list(file)
     file_p = salena_process(file)
 
 
 
 
-for f in file_p:
-    print(f)
+
 
 sents = nltk.sent_tokenize(file_p)
 print("The number of sentences is", len(sents))
@@ -168,74 +179,76 @@ def print_ngram_freq(freq, x=3, n=3):
         print(f)
 
 
-count = 4
-print(hrule*2, "KEEPING STOP WORDS")
+count = 6
+print(hrule*2, "KEEPING STOP WORDS (No smoothing)")
 print_ngram_freq(freq_bigram, 2, count)
 print_ngram_freq(freq_trigram, 3, count)
 print_ngram_freq(freq_fourgram, 4, count)
 
-print(hrule*2, "REMOVING STOP WORDS")
+print(hrule*2, "REMOVING STOP (No smoothing) WORDS")
 print_ngram_freq(freq_biX, 2, count)
 print_ngram_freq(freq_triX, 3, count)
 print_ngram_freq(freq_fourX, 4, count)
 
 
+def smoothing(my_tokenized_text):
+    # TODO: Look into zero probability for natural language when
+        # teams talk about plans, actions, or questions
 
-# TODO: Look into zero probability for natural language when
-    # teams talk about plans, actions, or questions
+    # Add-1 smoothing is performed here.
+    # Salena: Based on tutorial from https://medium.com/swlh/language-modelling-with-nltk-20eac7e70853
+    ngrams_all = {1:[], 2:[], 3:[], 4:[]}
 
-# Add-1 smoothing is performed here.
-# Salena: Based on tutorial from https://medium.com/swlh/language-modelling-with-nltk-20eac7e70853
-ngrams_all = {1:[], 2:[], 3:[], 4:[]}
+    # Return back to original tokenized text
+    for i in range(4):
+        for each in my_tokenized_text:
+            for j in ngrams(each, i+1):
+                ngrams_all[i+1].append(j);
+    ngrams_voc = {1:set([]), 2:set([]), 3:set([]), 4:set([])}
 
-# Return back to original tokenized text
-for i in range(4):
-    for each in tokenized_text:
-        for j in ngrams(each, i+1):
-            ngrams_all[i+1].append(j);
-ngrams_voc = {1:set([]), 2:set([]), 3:set([]), 4:set([])}
+    for i in range(4):
+        for gram in ngrams_all[i+1]:
+            if gram not in ngrams_voc[i+1]:
+                ngrams_voc[i+1].add(gram)
 
-for i in range(4):
-    for gram in ngrams_all[i+1]:
-        if gram not in ngrams_voc[i+1]:
-            ngrams_voc[i+1].add(gram)
+    total_ngrams = {1:-1, 2:-1, 3:-1, 4:-1}
+    total_voc = {1:-1, 2:-1, 3:-1, 4:-1}
 
-total_ngrams = {1:-1, 2:-1, 3:-1, 4:-1}
-total_voc = {1:-1, 2:-1, 3:-1, 4:-1}
+    for i in range(4):
+        total_ngrams[i+1] = len(ngrams_all[i+1])
+        total_voc[i+1] = len(ngrams_voc[i+1])
 
-for i in range(4):
-    total_ngrams[i+1] = len(ngrams_all[i+1])
-    total_voc[i+1] = len(ngrams_voc[i+1])
+    ngrams_prob = {1:[], 2:[], 3:[], 4:[]}
 
-ngrams_prob = {1:[], 2:[], 3:[], 4:[]}
+    for i in range(4):
+        for ngram in ngrams_voc[i+1]:
+            tlist = [ngram]
+            tlist.append(ngrams_all[i+1].count(ngram))
+            ngrams_prob[i+1].append(tlist)
 
-for i in range(4):
-    for ngram in ngrams_voc[i+1]:
-        tlist = [ngram]
-        tlist.append(ngrams_all[i+1].count(ngram))
-        ngrams_prob[i+1].append(tlist)
+    for i in range(4):
+        for ngram in ngrams_prob[i+1]:
+            # Add the +1 Smoothing:
+            temp = (ngram[-1]+1)/(total_ngrams[i+1]+total_voc[i+1])
 
-for i in range(4):
-    for ngram in ngrams_prob[i+1]:
-        # Add the +1 Smoothing:
-        temp = (ngram[-1]+1)/(total_ngrams[i+1]+total_voc[i+1])
+            # Round for ease of reading:
+            ngram[-1] = round(temp, 2)
 
-        # Round for ease of reading:
-        ngram[-1] = round(temp, 4)
+    for i in range(4):
+        ngrams_prob[i+1] = sorted(ngrams_prob[i+1], key = lambda x:x[1], reverse = True)
 
-        #Prints top 10 unigram, bigram, trigram, fourgram after smoothing
-print("Most common n-grams without stopword removal and with add-1 smoothing: \n")
-for i in range(4):
-    ngrams_prob[i+1] = sorted(ngrams_prob[i+1], key = lambda x:x[1], reverse = True)
+    # Salena todo
+    for i in range(1,5):
+        print(hrule, "Most common", i, "sequence WITH smoothing: \n")
+        test = list(ngrams_prob[i][:10])
+        for t in test:
+            print(t)
 
-# Salena todo
-for i in range(1,5):
-    print(hrule, "Most common", i, "-grams: \n")
-    test = list(ngrams_prob[i][:10])
-    for t in test:
-        print(t)
+smoothing(tokenized_text)
 
-##### MODEL PREDICTION
+
+"""
+##### MODEL PREDICTION TODO: needs work
 
 # From https://medium.com/swlh/language-modelling-with-nltk-20eac7e70853
 
@@ -291,17 +304,39 @@ for i in range(3):
             count +=1
 
 
-
 # Now we can call the above method for each n-gram to get the next word predictions according to each model.
-
 print("Next word predictions for the strings using the probability models of bigrams, trigrams, and fourgrams\n")
 print("Bigram model predictions: {}\nTrigram model predictions: {}\nFourgram model predictions: {}\n" .format(pred_1[1], pred_1[2], pred_1[3]))
 print("Bigram model predictions: {}\nTrigram model predictions: {}\nFourgram model predictions: {}" .format(pred_2[1], pred_2[2], pred_2[3]))
 
+"""
 
 
 
+def investigate_subset(df, col= "abstractLabels", token_name = "critical"):
+    """
+    Purpose:
+        To investigate subsets of dataframe, given an action or player
+        intention.
 
+    Args:
+        df: dataframe before cleaning or processing, but after optional
+            replacement of granular terms.
+        colA: feature of interest (abstractLabels or questionLabels)
+            Default column set to abstractLabels (player intention)
+        token_name: substring of interest within column. Default
+            interest is set to critical victims.
+
+    Returns: none
+    """
+
+    df1= df[col].str.contains(token_name, case=False)
+    df1 = df[df1] # Ensure new dataframe
+    print(hrule, "Dataframe Subset:\n", df1.head(40))
+
+
+
+investigate_subset(dataframe)
 
 
 

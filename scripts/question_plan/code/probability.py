@@ -224,6 +224,13 @@ def replaceTerms(df):
     df = replaceSubstring_Global(df, "Collaborationcollaborate",
             "Collaboration")
     df = replaceSubstring_Global(df, "wakeCritical", "collaborateCriticalWake")
+    df = replaceSubstring_Global(df, "roomroom", "room")
+    df = replaceSubstring_Global(df, "clarify", "ask")
+    df = replaceSubstring_Global(df, "direct", "tell")
+    df = replaceSubstring_Global(df, "suggest", "tell")
+    #df = replaceSubstring_Global(df, "", "")
+    time.sleep(1)
+    print("from prob.replace:\n", df.tail())
     return df
 
 
