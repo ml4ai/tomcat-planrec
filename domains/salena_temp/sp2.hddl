@@ -1,0 +1,22 @@
+(define (problem p_carry_stabilized)
+    (:domain question_2)
+    (:objects
+        vic - victim
+        loc1 - location
+        loc2 - location
+    )
+
+    (:htn
+        :parameters ()
+        :tasks (and 
+                    (request_marker_1 vic) 
+                    (request_carry_stabilized_3 vic loc1)
+                    (carry_stabilized_4 vic loc1 loc2))
+        :ordering ()
+    )
+
+    (:init
+        (healed vic)
+        (at vic loc1)
+    )
+)
