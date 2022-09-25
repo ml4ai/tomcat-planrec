@@ -35,6 +35,10 @@ TODO:
 import nltk, re, pprint, string
 import pandas
 from nltk import word_tokenize, sent_tokenize
+from nltk.util import ngrams
+from nltk.corpus import stopwords
+nltk.download('stopwords')
+
 import probability, cleanTheData
 
 # For ease in reading terminal output
@@ -55,20 +59,28 @@ def salena_process(my_stuff):
 # Import and clean data:
 string.punctuation = string.punctuation +'“'+'”'+'-'+'’'+'‘'+'—'
 string.punctuation = string.punctuation.replace('.', '')
-raw_data = "../data/HDDL2_dataset.csv"
+raw_data = "../data/final_raw_dataset.csv"
 raw_data = pandas.read_csv(raw_data)
-dataframe = pandas.DataFrame(raw_data)
+dataframe_0 = pandas.DataFrame(raw_data)
 
-print(dataframe.head())
+################################################################################
+def less_granularity(df):
+    """
+    Purpose:
+        Remove granularity from dataframe.
+    """
+    replace = input("Less granularity in labels?\ny - yes\n")
+    if replace == "y":
+        df = probability.replaceTerms(df)
+    return df
 
-replace = input("Less granularity in labels?\ny - yes\n")
-if replace == "y":
-    dataframe = probability.replaceTerms(dataframe)
-    probability.reclean(dataframe, "abstractLabels", "abstractLabels")
-    probability.reclean(dataframe, "questionLabels", "questionLabels")
-    print(dataframe)
+################################################################################
 
+dataframe = less_granularity(dataframe_0)
 
+### Reclean Labels
+probability.reclean(dataframe, "abstractLabels", "abstractLabels")
+probability.reclean(dataframe, "questionLabels", "questionLabels")
 
 ask = input("\na - abstractLabels\nl - questionLabels\nv - question_verbatim\n")
 if ask == "v":
@@ -86,15 +98,11 @@ elif ask == "a":
     file = dataframe["abstractLabels"]
     file = list(file)
     file_p = salena_process(file)
+
 else:
     file = dataframe["questionLabels"]
     file = list(file)
     file_p = salena_process(file)
-
-
-
-
-
 
 sents = nltk.sent_tokenize(file_p)
 print("The number of sentences is", len(sents))
@@ -106,13 +114,9 @@ average_tokens = round(len(words)/len(sents))
 print("The average number of tokens per sentence is",average_tokens)
 
 unique_tokens = set(words)
-print("The number of unique tokens are", len(unique_tokens))
+print("The number of unique tokens are", len(unique_tokens), hrule)
 
 
-
-from nltk.util import ngrams
-from nltk.corpus import stopwords
-nltk.download('stopwords')
 
 # No need for unigrams or stopwords, but I'll keep this part of the code since
 # it comes with the tutorial (for now). --Salena
@@ -191,6 +195,7 @@ print_ngram_freq(freq_triX, 3, count)
 print_ngram_freq(freq_fourX, 4, count)
 
 
+################################################################################
 def smoothing(my_tokenized_text):
     # TODO: Look into zero probability for natural language when
         # teams talk about plans, actions, or questions
@@ -246,6 +251,7 @@ def smoothing(my_tokenized_text):
 
 smoothing(tokenized_text)
 
+################################################################################
 
 """
 ##### MODEL PREDICTION TODO: needs work
@@ -311,6 +317,7 @@ print("Bigram model predictions: {}\nTrigram model predictions: {}\nFourgram mod
 
 """
 
+################################################################################
 
 
 def investigate_subset(df, col= "abstractLabels", token_name = "critical"):
@@ -329,15 +336,24 @@ def investigate_subset(df, col= "abstractLabels", token_name = "critical"):
 
     Returns: none
     """
+    # Set some display options for entire subset
+    pandas.set_option('display.max_rows', 400)
+    pandas.set_option('display.float_format', '{:.2}'.format)
+    pandas.set_option('display.max_columns', 10)
+    pandas.set_option('display.colheader_justify', 'center')
 
-    df1= df[col].str.contains(token_name, case=False)
-    df1 = df[df1] # Ensure new dataframe
-    print(hrule, "Dataframe Subset:\n", df1.head(40))
+    df1 = df[["abstractLabels", "questionLabels", "question_verbatim"]]
+    df2= df1[col].str.contains(token_name, case=False)
+    df2 = df1[df2] # Ensure new dataframe
+    print(hrule, df2.groupby("questionLabels").value_counts())
 
 
 
-investigate_subset(dataframe)
+investigate_subset(dataframe, "abstractLabels", "collaborateCriticalWake")
 
+# Do not put token_name as collaborateCarryVictim or *Stabilized. This will
+    #yield false results if less granular or not!
+investigate_subset(dataframe, "abstractLabels", "collaborateCarry")
 
 
 
