@@ -7,6 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 #set(CMAKE_CXX_FLAGS "-glldb")
 
 find_package(Boost REQUIRED program_options)
+find_package(Graphviz)
 find_package(Z3 REQUIRED)
 
 # Comp Team SAR domain using Monte Carlo Tree Search

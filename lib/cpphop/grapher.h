@@ -1,9 +1,7 @@
 #pragma once
-#include <nlohmann/json.hpp>
 #include <graphviz/gvc.h>
 #include <string>
-
-using json = nlohmann::json;
+#include "typedefs.h"
 
 void set_property(Agnode_t *node,
                   std::string property_name,
@@ -36,45 +34,60 @@ void set_property(Agraph_t *g,
 Agnode_t *add_node(Agraph_t *g, std::string node_name) {
   return agnode(g, const_cast<char *>(node_name.c_str()), 1);
 }
-
-template<class Graph>
-int build_graph(Agraph_t *g, Agnode_t *n,Graph g,int count) {
-  if (j["children"].empty()) {
-    return count;
+ 
+void  build_graph(Agraph_t *g, 
+                  Agnode_t *n, 
+                  DomainDef& domain, 
+                  TaskTree& t,
+                  int w,
+                  std::unordered_map<std::string,std::string>& action_map) {
+  std::string tmp = std::to_string(w);
+  n = add_node(g,tmp);
+  set_property(n,"label",t[w].token);
+  if (domain.actions.contains(t[w].task)) {
+    set_property(n,"shape","rectangle");
+    set_property(n,"color","blue");
+    action_map[t[w].token] = tmp;
   }
-  Agnode_t *m;
-  Agedge_t *v;
-  for (auto& e : j["children"]) {
-    std::string tmp = std::to_string(count);
-    m = add_node(g,tmp);
-    std::string task = e["task"].get<std::string>();
-    set_property(m,"label",task);
-    if (task[1] == '!') {
-      set_property(m,"shape","rectangle");
-      set_property(m,"color","blue");
-    } 
-    v = agedge(g,n,m,0,1);
-    count++;
-    count = build_graph(g,m,e,count);
+  for (int i = t[w].children.size() - 1; i >= 0; i--) {
+    Agnode_t *m;
+    build_graph(g,m,domain,t,t[w].children[i],action_map);
+    std::string ctmp = std::to_string(t[w].children[i]);
+    m = add_node(g,ctmp);
+    if (m != NULL) {
+      Agedge_t *e;
+      e = agedge(g,n,m,0,1);
+      set_property(e,"style","dotted");
+    }
+    for (auto& o : t[t[w].children[i]].outgoing) {
+      Agnode_t *u;
+      Agedge_t *p;
+      std::string otmp = std::to_string(o);
+      u = add_node(g,otmp);
+      p = agedge(g,m,u,0,1);
+      set_property(p,"color","green");
+    }
   }
-  return count;
+  return;
 }
 
-void generate_graph_from_json(json j, std::string filename) {
+void generate_graph(std::vector<std::string>& plan,DomainDef& domain, TaskTree& t, int root, std::string filename) {
   Agraph_t *g;
   Agnode_t *n;
-  Agsym_t *a;
   GVC_t *gvc;
   gvc = gvContext();
   g = agopen(const_cast<char*>("g"), Agdirected,NULL);
-
-  std::string tmp = std::to_string(0);
-
-  n = add_node(g,tmp);
-  set_property(n,"label",j["task"]);
-
-  build_graph(g,n,j,1);
-
+  std::unordered_map<std::string,std::string> action_map;
+  build_graph(g,n,domain,t,root,action_map);
+  for (int i = 1; i < plan.size(); i++) {
+    Agnode_t *v;
+    Agnode_t *w;
+    Agedge_t *e;
+    v = add_node(g,action_map[plan[i-1]]);
+    w = add_node(g,action_map[plan[i]]);
+    e = agedge(g,v,w,0,1);
+    set_property(e,"color","red");
+  }
   gvLayout(gvc,g,"dot");
   gvRenderFilename(gvc,g,"png", const_cast<char*>(filename.c_str()));
   gvFreeLayout(gvc, g);

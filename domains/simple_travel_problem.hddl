@@ -1,0 +1,22 @@
+(define (problem get_to_park)
+  (:domain simple_travel) 
+  (:objects
+    me - person
+    taxi_0 - taxi
+    twenty - money
+    home - location
+    park - location
+  )
+  (:htn
+    :parameters ()
+    :subtasks (and 
+                (travel me home park)
+              )
+  )
+  (:init
+    (loc me home)
+    (cash me twenty)
+    (dist_one home park)
+    (dist_one park home)
+  )
+)

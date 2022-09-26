@@ -1,0 +1,96 @@
+(define (domain simple_travel)
+  (:requirements :negative-preconditions :typing :hierarchy)
+  (:types
+    locatable - object
+    money - object
+    location - object
+    person - locatable
+    taxi - locatable
+  )
+
+  (:predicates
+    (loc ?arg0 - locatable ?arg1 - location)
+    (cash ?arg0 - person ?arg1 - money)
+    (owe ?arg0 - person  ?arg1 - taxi ?arg2 - money)
+    (dist_one ?arg0 ?arg1 - location)
+    (dist_two ?arg0 ?arg1 - location)
+    (dist_three ?arg0 ?arg1 - location)
+  )
+
+  (:task travel
+    :parameters (?p - person ?l1 ?l2 - location)
+  )
+
+  (:method travel_by_foot
+    :parameters (?p - person ?l1 ?l2 - location)
+    :task (travel ?p ?l1 ?l2)
+    :precondition (and 
+                    (loc ?p ?l1)
+                    (or
+                      (dist_one ?l1 ?l2)
+                      (dist_two ?l1 ?l2)
+                    )
+                  )
+    :subtasks (and
+                (walk ?p ?l1 ?l2)
+              )
+  )
+
+  (:method travel_by_taxi
+    :parameters (?p - person ?t - taxi ?l1 ?l2 - location ?m - money)
+    :task (travel ?p ?l1 ?l2)
+    :precondition (and
+                    (cash ?p ?m)
+                  )
+    :ordered-subtasks (and 
+                        (call_taxi ?t ?l1)
+                        (ride_taxi ?p ?t ?l1 ?l2 ?m)
+                        (pay_driver ?p ?t ?m)
+                      )
+  )
+
+  (:action walk
+    :parameters (?p - person ?l1 ?l2 - location)
+    :precondition (and
+                    (loc ?p ?l1)
+                  )
+    :effect (and
+              (not (loc ?p ?l1))
+              (loc ?p ?l2)
+            )
+  )
+
+  (:action call_taxi
+    :parameters (?t - taxi ?l - location)
+    :effect (and
+              (loc ?t ?l)
+            )
+  )
+
+  (:action ride_taxi 
+    :parameters (?p - person ?t - taxi ?l1 ?l2 - location ?m - money)
+    :precondition (and
+                    (loc ?p ?l1)
+                    (loc ?t ?l1)
+                  )
+    :effect (and
+              (not (loc ?p ?l1))
+              (not (loc ?t ?l1))
+              (loc ?p ?l2)
+              (loc ?t ?l2)
+              (owe ?p ?t ?m)
+            )
+  )
+
+  (:action pay_driver 
+    :parameters (?p - person ?t - taxi ?m - money)
+    :precondition (and
+                    (cash ?p ?m)
+                    (owe ?p ?t ?m)
+                  )
+    :effect (and
+              (not (owe ?p ?t ?m))
+              (not (cash ?p ?m))
+            )
+  )
+)

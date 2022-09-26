@@ -146,13 +146,12 @@ BOOST_AUTO_TEST_CASE(test_apply) {
     d.args = {std::make_pair("p","package_0"),std::make_pair("l2","city_loc_2")};
     int i = tg1.add_node(d);
     auto deliver_method = transport_domain.methods["deliver"][0].apply(kb,d.args,tg1,i);
-    BOOST_TEST(deliver_method.first == "(deliver package_0 city_loc_2)");
     std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
-    for (auto &gts : deliver_method.second) {
-      for (auto const &[id,gt] : gts.GTs) {
+    for (auto &gts : deliver_method) {
+      for (auto const &[id,gt] : gts.second.GTs) {
         std::cout << gt.to_string() << "->["; 
         for (auto &out : gt.outgoing) {
-          std::cout << gts[out].to_string() << " ";
+          std::cout << gts.second[out].to_string() << " ";
         }
         std::cout << "]" << std::endl;
       }
@@ -165,11 +164,11 @@ BOOST_AUTO_TEST_CASE(test_apply) {
     int j = tg2.add_node(init_d);
     auto init_method = transport_problem.initM.apply(kb,init_d.args,tg2,j);
     std::cout <<"#GROUNDED TASKS FOR DELIVER#" << std::endl; 
-    for (auto &gts : init_method.second) {
-      for (auto const &[id,gt] : gts.GTs) {
+    for (auto &gts : init_method) {
+      for (auto const &[id,gt] : gts.second.GTs) {
         std::cout << gt.to_string() << "->["; 
         for (auto &out : gt.outgoing) {
-          std::cout << gts[out].to_string() << " ";
+          std::cout << gts.second[out].to_string() << " ";
         }
         std::cout << "]" << std::endl;
       }
