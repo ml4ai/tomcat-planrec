@@ -72,9 +72,11 @@ simulation_rec(int horizon,
       else if (domain.methods.contains(gt.head)) {
         auto task_methods = domain.methods[gt.head];
         std::shuffle(task_methods.begin(),task_methods.end(),g);
+        bool not_applicable = true;
         for (auto &m : task_methods) {
           auto all_gts = m.apply(state,gt.args,tasks,i);
           if (!all_gts.empty()) {
+            not_applicable = false;
             std::shuffle(all_gts.begin(),all_gts.end(),g);
             for (auto &gts : all_gts) {
               double rs = simulation_rec(horizon,given_plan,plan,state,gts.second,domain,g,h);
@@ -83,9 +85,9 @@ simulation_rec(int horizon,
               }
             }
           }
-          else {
-            return -1.0;
-          }
+        }
+        if (not_applicable) {
+          return -1.0;
         }
       }
       else {
