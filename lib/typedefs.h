@@ -11,6 +11,9 @@
 #include <optional>
 #include "util.h"
 #include <boost/variant/recursive_wrapper.hpp>
+#include <boost/json.hpp>
+
+namespace json = boost::json;
 
 //{var,type}
 using Params = std::vector<std::pair<std::string, std::string>>; 
@@ -100,6 +103,15 @@ struct TaskNode {
   std::vector<int> children;
   std::vector<int> outgoing;
 };
+
+void tag_invoke(const json::value_from_tag&, json::value& jv, TaskNode const& t) {
+  jv = {
+      {"task",t.task},
+      {"token",t.token},
+      {"children",json::value_from(t.children)},
+      {"outgoing",json::value_from(t.outgoing)}
+  };
+}
 
 using TaskTree = std::unordered_map<int,TaskNode>;
 
