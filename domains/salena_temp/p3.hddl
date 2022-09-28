@@ -16,8 +16,8 @@
 
     (:init
         (healed vic)
-        (at vic loc2)
-        (positioned questioner loc2)
+;        (at vic loc2)
+;        (positioned questioner loc2)
 ;        (positioned answerer loc1)
         (lost answerer)
         (marked vic) ;uncomment to test m_34, m5634

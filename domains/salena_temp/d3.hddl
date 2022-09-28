@@ -11,6 +11,7 @@
                 (can_be_carried ?arg0 - victim)
                 (healed ?arg0 - victim)
                 (marked ?arg0 - victim)
+                (unmarked ?arg0 - victim)
                 (at ?arg0 - victim ?arg1 - location)
                 (positioned ?arg0 - player ?arg1 - location)
                 (lost ?arg0 - player)
@@ -27,12 +28,13 @@
                              ?v - victim 
                              ?l1 - location ?l2 - location)
                 :task (collaborate_carry_stabilized ?qu ?v ?l1 ?l2)
-                :precondition (healed ?v)
+                :precondition (and (healed ?v)
+                                   (unmarked ?v))
                 :ordered-subtasks (and 
                          (request_marker_1 ?v)
                          (mark_victim_2)
                          (request_carry_stabilized_3 ?qu ?v ?l1)
-                         (carry_stabilized_4 ?qu ?v ?l1 ?l2)) 
+                         (carry_stabilized_4 ?qu ?v ?l2)) 
         ) ;end m134
 
         (:method m_carry_stabilized_34
@@ -52,11 +54,9 @@
                             ?v - victim
                             ?l1 - location ?l2 - location)
                 :task (collaborate_carry_stabilized ?qu ?an ?v ?l1 ?l2)
-                :precondition (and (marked ?v)
-                                   (healed ?v)
-                                   (positioned ?an ?l1))
+                :precondition (healed ?v)
                 :ordered-subtasks (and 
-                         (ask_loc_teammate_5 ?qu ?an ?l1)
+                         (ask_loc_teammate_5 ?qu ?an ?l1 ?l2)
                          (request_destination_6 ?qu ?an ?l1 ?l2)
                          (request_carry_stabilized_3 ?qu ?v ?l1)
                          (carry_stabilized_4 ?qu ?v ?l1 ?l2)) 
@@ -64,7 +64,7 @@
 
         (:action request_marker_1
                 :parameters (?v - victim)
-                :precondition (not (marked ?v))
+                :precondition (unmarked ?v)
                 :effect ()
         )
 
@@ -75,29 +75,30 @@
         )
 
         (:action request_carry_stabilized_3
-                :parameters (?an - player 
+                :parameters (?qu - player 
                              ?v - victim 
                              ?l1 - location)
-                :precondition (and (not (lost ?an)) 
-                                   (marked ?v))
+                :precondition (marked ?v)
                 :effect (and (can_be_carried ?v)
-                             (at ?v ?l1))
+                             (at ?v ?l1)
+                             (not (lost ?qu))
+                             (positioned ?qu ?l1))
         )
 
         (:action carry_stabilized_4
-                :parameters (?qu - player 
+                :parameters (?an - player 
                              ?v - victim 
                              ?l1 - location ?l2 - location)
                 :precondition (and (healed ?v)
                                    (marked ?v)
                                    (can_be_carried ?v)
                                    (at ?v ?l1)
-                                   (positioned ?qu ?l1))
+                                   (positioned ?an ?l1))
                 :effect (and (at ?v ?l2) 
-                             (positioned ?qu ?l2)
                              (rescued ?v)
                              (not (at ?v ?l1))
-                             (not (positioned ?qu ?l2)))
+                             (positioned ?an ?l2)
+                             (not (positioned ?an ?l2)))
         )
 
         (:action ask_loc_teammate_5
@@ -105,7 +106,8 @@
                              ?l1 - location ?l2 - location)
                 :precondition (lost ?an)
                 :effect (and (positioned ?an ?l1)
-                             (positioned ?qu ?l2))
+                             (positioned ?qu ?l2)
+                             (not (lost ?an)))
         ; the logic is that if asked, they are in different areas
         )
 
@@ -114,11 +116,10 @@
                              ?l1 - location ?l2 - location)
                 :precondition (and
                          (positioned ?qu ?l2)
-                         (positioned ?an ?l1)
-                         (not (positioned ?qu ?l1))
-                         (not (positioned ?an ?l2)))
+                         (positioned ?an ?l1))
+;                         (not (positioned ?qu ?l1))
+;                         (not (positioned ?an ?l2)))
                 :effect (and (positioned ?an ?l2)
                              (not (positioned ?an ?l1)))
         )
-
 );end define domain
