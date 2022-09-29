@@ -14,9 +14,9 @@
 #include <limits>
 #include <boost/json.hpp>
 
-using json = boost::json;
+namespace json = boost::json;
 
-void seek_planDFS(json::array& planlib, 
+void seek_planDFS(json::object& planlib, 
                   std::vector<std::string>& plan,
                   TaskTree& tasktree,
                   KnowledgeBase& state,
@@ -24,10 +24,14 @@ void seek_planDFS(json::array& planlib,
                   DomainDef& domain) {
   if (tasks.empty()) {
     json::object obj; 
-    obj.emplace("tasktree",json::value_from(tasktree));
-    obj.emplace("plan",json::value_from(plan));
-    obj.emplace("score",domain.score(state)*(1.0/plan.size()));
-    planlib.emplace_back(obj);
+    obj["tasktree"] = json::value_from(tasktree);
+    obj["plan"] = json::value_from(plan);
+    double score = domain.score(state)*(1.0/plan.size());
+    obj["score"] = score;
+    planlib["library"].as_array().emplace_back(obj);
+    if (score > planlib["max_score"].as_double()) {
+      planlib["max_score"] = score;
+    }
     return;
   }
 
@@ -53,19 +57,46 @@ void seek_planDFS(json::array& planlib,
           if (!all_gts.empty()) {
             for (auto &gts : all_gts) {
               auto gtasktree = tasktree;
-              for (auto& ai : g.first) {
+              for (auto& ai : gts.first) {
                 TaskNode t;
-                t.task = g.second[ai].head;
-                t.token = g.second[ai].to_string();
-                t.outgoing = g.second[ai].outgoing;
+                t.task = gts.second[ai].head;
+                t.token = gts.second[ai].to_string();
+                t.outgoing = gts.second[ai].outgoing;
                 gtasktree[ai] = t;
                 gtasktree[i].children.push_back(ai);
               }
-              seek_planDFS(planlib,plan,gtasktree,state,g.second,domain);
+              seek_planDFS(planlib,plan,gtasktree,state,gts.second,domain);
             }
           }
         }
       }
     }
   }
+}
+
+json::object cppDFShop(DomainDef& domain,
+                       ProblemDef& problem,
+                       Scorer scorer) {
+  domain.set_scorer(scorer);
+  json::object planlib;
+  json::array library;
+  planlib["library"] = library;
+  planlib["max_score"] = -std::numeric_limits<double>::infinity();
+  std::vector<std::string> plan;
+  TaskTree tasktree;
+  KnowledgeBase state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
+  for (auto const& f : problem.initF) {
+    state.tell(f,false,false);
+  }
+  state.update_state();
+  TaskGraph tasks;
+  Grounded_Task init_t;
+  init_t.head = problem.head;
+  int TID = tasks.add_node(init_t);
+  TaskNode tasknode;
+  tasknode.task = init_t.head;
+  tasknode.token = init_t.to_string();
+  tasktree[TID] = tasknode;
+  seek_planDFS(planlib,plan,tasktree,state,tasks,domain);
+  return planlib;
 }
