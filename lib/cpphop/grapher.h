@@ -100,7 +100,7 @@ void generate_graph(std::vector<std::string>& plan,DomainDef& domain, TaskTree& 
 
 void  build_graph_from_json(Agraph_t *g, 
                   Agnode_t *n, 
-                  DomainDef& domain, 
+                  json::array& acts, 
                   json::object& t,
                   std::string w,
                   std::unordered_map<std::string,std::string>& action_map) {
@@ -108,7 +108,14 @@ void  build_graph_from_json(Agraph_t *g,
   std::string token = json::value_to<std::string>(t[w].as_object()["token"]);
   std::string task = json::value_to<std::string>(t[w].as_object()["task"]);
   set_property(n,"label",token);
-  if (domain.actions.contains(task)) {
+  bool contains_act = false;
+  for (auto const& a : acts) {
+    if (a.as_string() == task) {
+      contains_act = true;
+      break;
+    }
+  } 
+  if (contains_act) {
     set_property(n,"shape","rectangle");
     set_property(n,"color","blue");
     action_map[token+"_"+w] = w;
@@ -116,7 +123,7 @@ void  build_graph_from_json(Agraph_t *g,
   for (int i = t[w].as_object()["children"].as_array().size() - 1; i >= 0; i--) {
     Agnode_t *m;
     std::string c = json::value_to<std::string>(t[w].as_object()["children"].as_array()[i]);
-    build_graph_from_json(g,m,domain,t,c,action_map);
+    build_graph_from_json(g,m,acts,t,c,action_map);
     m = add_node(g,c);
     if (m != NULL) {
       Agedge_t *e;
@@ -135,14 +142,14 @@ void  build_graph_from_json(Agraph_t *g,
   return;
 }
 
-void generate_graph_from_json(json::object& t,int O, DomainDef& domain, std::string root, std::string filename) {
+void generate_graph_from_json(json::object& t, int O, json::array& acts, std::string root, std::string filename) {
   Agraph_t *g;
   Agnode_t *n;
   GVC_t *gvc;
   gvc = gvContext();
   g = agopen(const_cast<char*>("g"), Agdirected,NULL);
   std::unordered_map<std::string,std::string> action_map;
-  build_graph_from_json(g,n,domain,t,root,action_map);
+  build_graph_from_json(g,n,acts,t,root,action_map);
 
   for (int i = 1; i < t["plan"].as_array().size(); i++) {
     Agnode_t *v;
