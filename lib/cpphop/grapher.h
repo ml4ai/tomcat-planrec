@@ -2,6 +2,9 @@
 #include <graphviz/gvc.h>
 #include <string>
 #include "typedefs.h"
+#include <boost/json.hpp>
+
+namespace json = boost::json;
 
 void set_property(Agnode_t *node,
                   std::string property_name,
@@ -95,6 +98,74 @@ void generate_graph(std::vector<std::string>& plan,DomainDef& domain, TaskTree& 
   gvFreeContext(gvc);
 }
 
+void  build_graph_from_json(Agraph_t *g, 
+                  Agnode_t *n, 
+                  DomainDef& domain, 
+                  json::object& t,
+                  std::string w,
+                  std::unordered_map<std::string,std::string>& action_map) {
+  n = add_node(g,w);
+  std::string token = json::value_to<std::string>(t[w].as_object()["token"]);
+  std::string task = json::value_to<std::string>(t[w].as_object()["task"]);
+  set_property(n,"label",token);
+  if (domain.actions.contains(task)) {
+    set_property(n,"shape","rectangle");
+    set_property(n,"color","blue");
+    action_map[token+"_"+w] = w;
+  }
+  for (int i = t[w].as_object()["children"].as_array().size() - 1; i >= 0; i--) {
+    Agnode_t *m;
+    std::string c = json::value_to<std::string>(t[w].as_object()["children"].as_array()[i]);
+    build_graph_from_json(g,m,domain,t,c,action_map);
+    m = add_node(g,c);
+    if (m != NULL) {
+      Agedge_t *e;
+      e = agedge(g,n,m,0,1);
+      set_property(e,"style","dotted");
+    }
+    for (auto& o : t[c].as_object()["outgoing"].as_array()) {
+      Agnode_t *u;
+      Agedge_t *p;
+      std::string so = json::value_to<std::string>(o);
+      u = add_node(g,so);
+      p = agedge(g,m,u,0,1);
+      set_property(p,"color","green");
+    }
+  }
+  return;
+}
 
+void generate_graph_from_json(json::object& t,int O, DomainDef& domain, std::string root, std::string filename) {
+  Agraph_t *g;
+  Agnode_t *n;
+  GVC_t *gvc;
+  gvc = gvContext();
+  g = agopen(const_cast<char*>("g"), Agdirected,NULL);
+  std::unordered_map<std::string,std::string> action_map;
+  build_graph_from_json(g,n,domain,t,root,action_map);
+
+  for (int i = 1; i < t["plan"].as_array().size(); i++) {
+    Agnode_t *v;
+    Agnode_t *w;
+    Agedge_t *e;
+    std::string vs = json::value_to<std::string>(t["plan"].as_array()[i-1]);
+    std::string ws = json::value_to<std::string>(t["plan"].as_array()[i]);
+    v = add_node(g,action_map[vs]);
+    w = add_node(g,action_map[ws]);
+    e = agedge(g,v,w,0,1);
+    set_property(e,"color","red");
+  }
+  for (int i = 0; i < O; i++) {
+    std::string ws = json::value_to<std::string>(t["plan"].as_array()[i]);
+    Agnode_t *v;
+    v = add_node(g,action_map[ws]);
+    set_property(v,"color","darkgreen");
+  }
+  gvLayout(gvc,g,"dot");
+  gvRenderFilename(gvc,g,"png", const_cast<char*>(filename.c_str()));
+  gvFreeLayout(gvc, g);
+  agclose(g);
+  gvFreeContext(gvc);
+}
 
 
