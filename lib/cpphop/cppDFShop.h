@@ -26,7 +26,7 @@ void seek_planDFS(json::object& planlib,
     json::object obj; 
     obj["tasktree"] = json::value_from(tasktree);
     obj["plan"] = json::value_from(plan);
-    double score = domain.score(state)*(1.0/plan.size());
+    double score = domain.score(state,plan);
     obj["score"] = score;
     planlib["library"].as_array().emplace_back(obj);
     if (score > planlib["max_score"].as_double()) {
@@ -45,7 +45,7 @@ void seek_planDFS(json::object& planlib,
           for (auto &ns : act.second) {
             ns.update_state();
             auto gplan = plan;
-            gplan.push_back(act.first);
+            gplan.push_back(act.first+"_"+std::to_string(i));
             seek_planDFS(planlib,gplan,tasktree,ns,gtasks,domain);
           }
         }
@@ -98,5 +98,6 @@ json::object cppDFShop(DomainDef& domain,
   tasknode.token = init_t.to_string();
   tasktree[TID] = tasknode;
   seek_planDFS(planlib,plan,tasktree,state,tasks,domain);
+  planlib["root"] = std::to_string(TID);
   return planlib;
 }
