@@ -20,7 +20,7 @@ json::object seek_explanation(json::object planlib, std::vector<std::string> O) 
       }
       if (match) {
         if (p.as_object()["score"].as_double() > max_score) {
-          arg_max = p.as_object();
+          arg_max = *p.if_object();
           max_score = json::value_to<double>(p.as_object()["score"]);
         }
       }
