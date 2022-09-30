@@ -19,6 +19,10 @@ double delivery_one(KnowledgeBase& kb,std::vector<std::string>& plan) {
   return 0.0;
 }
 
+double simple(KnowledgeBase& kb, std::vector<std::string>& plan) {
+  return 1.0;
+}
+
 double travel_one(KnowledgeBase& kb, std::vector<std::string>& plan) {
   if (kb.ask("(and (loc me park) (cash me twenty))")) {
     return 1;
@@ -30,4 +34,5 @@ double travel_one(KnowledgeBase& kb, std::vector<std::string>& plan) {
 }
 
 Scorers scorers = Scorers({{"delivery_one", delivery_one},
-                           {"travel_one", travel_one}});
+                           {"travel_one", travel_one},
+                           {"simple", simple}});
