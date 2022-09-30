@@ -149,7 +149,7 @@ void generate_graph_from_json(json::object& t, int O, json::array& acts, std::st
   gvc = gvContext();
   g = agopen(const_cast<char*>("g"), Agdirected,NULL);
   std::unordered_map<std::string,std::string> action_map;
-  build_graph_from_json(g,n,acts,t,root,action_map);
+  build_graph_from_json(g,n,acts,t["tasktree"].as_object(),root,action_map);
 
   for (int i = 1; i < t["plan"].as_array().size(); i++) {
     Agnode_t *v;
@@ -166,7 +166,8 @@ void generate_graph_from_json(json::object& t, int O, json::array& acts, std::st
     std::string ws = json::value_to<std::string>(t["plan"].as_array()[i]);
     Agnode_t *v;
     v = add_node(g,action_map[ws]);
-    set_property(v,"color","darkgreen");
+    set_property(v,"color","yellow");
+    set_property(v,"style","filled");
   }
   gvLayout(gvc,g,"dot");
   gvRenderFilename(gvc,g,"png", const_cast<char*>(filename.c_str()));
