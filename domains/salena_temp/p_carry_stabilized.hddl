@@ -19,7 +19,7 @@
 ;        (at vic loc2)
 ;        (positioned answerer loc1)
 ;        (lost answerer)
-        ;(marked vic) 
+;        (marked vic) 
         (unmarked vic)
     )
 )

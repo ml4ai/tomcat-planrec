@@ -1,4 +1,4 @@
-(define (problem p_carry_stabilized)
+(define (problem p_wake_critical)
     (:domain question_2)
     (:objects
         vic - victim
@@ -10,16 +10,15 @@
 
     (:htn
         :parameters ()
-        :tasks (collaborate_carry_stabilized)
+        :tasks (collaborate_critical_wake)
         :ordering ()
     )
 
     (:init
-        (healed vic)
-;        (at vic loc2)
+        (at vic loc2)
 ;        (positioned answerer loc1)
 ;        (lost answerer)
-        ;(marked vic) 
-        (unmarked vic)
+;        (marked vic) 
+;        (unmarked vic)
     )
 )
