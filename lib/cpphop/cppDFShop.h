@@ -98,6 +98,11 @@ json::object cppDFShop(DomainDef& domain,
   tasknode.token = init_t.to_string();
   tasktree[TID] = tasknode;
   seek_planDFS(planlib,plan,tasktree,state,tasks,domain);
+  json::array actions;
+  for (auto const& [a,_] : domain.actions) {
+    actions.emplace_back(a);
+  }
+  planlib["actions"] = actions;
   planlib["root"] = std::to_string(TID);
   return planlib;
 }
