@@ -1,4 +1,6 @@
 #include <string>
+#include <vector>
+#include <unordered_map>
 
 std::vector<std::string> delivery_sample= {"(drive truck_0 city_loc_2 city_loc_1)", 
                             "(pick_up truck_0 city_loc_1 package_0 capacity_1 capacity_2)", 
