@@ -14,17 +14,17 @@
 #include <limits>
 #include "cppMCTShop.h"
 
-bool is_subseq(std::vector<std::string> v1, std::vector<std::string> v2) {
-  if (v1.size() <= v2.size()) {
-    for (int i = 0; i < v1.size(); i++) {
-      if (v1[i] != v2[i]) {
+bool is_subseq(std::vector<std::string> plan, std::vector<std::string> O) {
+  if (plan.size() <= O.size()) {
+    for (int i = 0; i < plan.size(); i++) {
+      if (plan[i].find(O[i]) == std::string::npos) {
         return false;
       }
     }
     return true;
   }
-  for (int i = 0; i < v2.size(); i++) {
-    if (v1[i] != v2[i]) {
+  for (int i = 0; i < O.size(); i++) {
+    if (plan[i].find(O[i]) == std::string::npos) {
       return false;
     }
   }
@@ -58,7 +58,7 @@ simulation_rec(int horizon,
           gtasks.remove_node(i);
           for (auto &ns : act.second) {
             ns.update_state();
-            plan.push_back(act.first);
+            plan.push_back(act.first+"_"+std::to_string(i));
             double rs = simulation_rec(horizon,given_plan,plan,ns,gtasks,domain,g,h);
             if (rs > -1.0) {
               return rs;

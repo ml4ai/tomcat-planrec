@@ -50,7 +50,7 @@ void  build_graph(Agraph_t *g,
   if (domain.actions.contains(t[w].task)) {
     set_property(n,"shape","rectangle");
     set_property(n,"color","blue");
-    action_map[t[w].token] = tmp;
+    action_map[t[w].token+"_"+tmp] = tmp;
   }
   for (int i = t[w].children.size() - 1; i >= 0; i--) {
     Agnode_t *m;

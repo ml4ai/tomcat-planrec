@@ -129,7 +129,7 @@ simulation(int horizon,
           for (auto &ns : act.second) {
             ns.update_state();
             auto gplan = plan;
-            gplan.push_back(act.first);
+            gplan.push_back(act.first+"_"+std::to_string(i));
             double rs = simulation(horizon,gplan,ns,gtasks,domain,g,h);
             if (rs > -1.0) {
               return rs;
@@ -193,7 +193,7 @@ int expansion(pTree& t,
           v.tasks.remove_node(tid);
           v.depth = t[n].depth + 1;
           v.plan = t[n].plan;
-          v.plan.push_back(act.first);
+          v.plan.push_back(act.first+"_"+std::to_string(tid));
           v.pred = n;
           int w = t.size();
           t[w] = v;
