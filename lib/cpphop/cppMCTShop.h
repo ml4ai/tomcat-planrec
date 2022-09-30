@@ -108,13 +108,14 @@ void backprop(pTree& t, int n, double r) {
 
 double
 simulation(int horizon,
+           std::vector<std::string>& plan,
            KnowledgeBase state,
            TaskGraph tasks,
            DomainDef& domain,
            std::mt19937_64& g,
            int h = 0) {
   if (tasks.empty() || h >= horizon) {
-    return domain.score(state);
+    return domain.score(state,plan);
   }
   h++;
   for (auto &[i,gt] : tasks.GTs) {
@@ -127,7 +128,9 @@ simulation(int horizon,
           gtasks.remove_node(i);
           for (auto &ns : act.second) {
             ns.update_state();
-            double rs = simulation(horizon,ns,gtasks,domain,g,h);
+            auto gplan = plan;
+            gplan.push_back(act.first);
+            double rs = simulation(horizon,gplan,ns,gtasks,domain,g,h);
             if (rs > -1.0) {
               return rs;
             }
@@ -145,7 +148,7 @@ simulation(int horizon,
           if (!all_gts.empty()) {
             std::shuffle(all_gts.begin(),all_gts.end(),g);
             for (auto &gts : all_gts) {
-              double rs = simulation(horizon,state,gts.second,domain,g,h);
+              double rs = simulation(horizon,plan,state,gts.second,domain,g,h);
               if (rs > -1.0) {
                 return rs;
               }
@@ -260,11 +263,12 @@ seek_planMCTS(pTree& t,
     for (int i = 0; i < R; i++) {
       int n = selection(m,w,eps,g);
       if (m[n].tasks.empty()) {
-          backprop(m,n,domain.score(m[n].state));
+          backprop(m,n,domain.score(m[n].state,m[n].plan));
       }
       else {
         if (m[n].sims == 0) {
           auto r = simulation(hzn,
+                               m[n].plan,
                                m[n].state, 
                                m[n].tasks, 
                                domain,
@@ -277,6 +281,7 @@ seek_planMCTS(pTree& t,
         else {
           int n_p = expansion(m,n,domain,g);
           auto r = simulation(hzn,
+                               m[n_p].plan,
                                m[n_p].state, 
                                m[n_p].tasks, 
                                domain,

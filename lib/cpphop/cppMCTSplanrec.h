@@ -45,7 +45,7 @@ simulation_rec(int horizon,
     return -1.0;
   }
   if (tasks.empty() || h >= horizon) {
-    return domain.score(state);
+    return domain.score(state,plan);
   }
   h++;
   for (auto &[i,gt] : tasks.GTs) {
@@ -128,7 +128,7 @@ seek_planrecMCTS(pTree& t,
       int n = selection(m,w,eps,g);
       if (m[n].tasks.empty() || m[n].plan.size() == given_plan.size()) {
         if (is_subseq(m[n].plan,given_plan)) {
-          backprop(m,n,domain.score(m[n].state));
+          backprop(m,n,domain.score(m[n].state,m[n].plan));
         }
         else {
           backprop(m,n,-1.0);
