@@ -1,6 +1,6 @@
 project(tomcat-planrec-apps)
 cmake_minimum_required(VERSION 3.16)
 add_subdirectory(planners)
-#add_subdirectory(planrec)
+add_subdirectory(planrec)
 #add_subdirectory(data_parsing)
 #add_subdirectory(perc)
