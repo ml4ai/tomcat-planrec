@@ -166,6 +166,8 @@ def reclean(df, col, newCol):
     """
     df = ctd.cleanLabels(df, col)
     df = df.rename(columns={col: newCol})
+    print("\n I cleaned up", newCol)
+    time.sleep(1)
     return df
 
 
@@ -220,10 +222,33 @@ def replaceTerms(df):
     df = replaceSubstring_Global(df, "Knowledge", "Information")
     df = replaceSubstring_Global(df, "clarifyInformation", "clarify")
     df = replaceSubstring_Global(df, "askInformationLocation", 'askLocation')
-#    df = replaceSubstring_Global(df, "Stabilized", "Victim") # see notes above
     df = replaceSubstring_Global(df, "Collaborationcollaborate",
             "Collaboration")
     df = replaceSubstring_Global(df, "wakeCritical", "collaborateCriticalWake")
+    df = replaceSubstring_Global(df, "roomroom", "room")
+    df = replaceSubstring_Global(df, "clarify", "ask")
+    df = replaceSubstring_Global(df, "direct", "tell")
+    df = replaceSubstring_Global(df, "suggest", "tell")
+    #df = replaceSubstring_Global(df, "", "")
+    df = replaceSubstring_Global(df, "informCarryCollaboration", "informCarryVictim")
+    time.sleep(1)
+    ask = input("\n Replace stabilized with victim?\n stabilized = healed; victim = not healed.\ny - to replace\n")
+    time.sleep(1)
+    if ask == "y":
+        df = replaceSubstring_Global(df, "Stabilized", "Victim") # see notes above
+        # Next line is hardcoded because the bug is not worth fixing for the
+        # tail end of this project. If I scale it later, I will need to
+        # completely rewrite cleanTheData.py, where the bug resides. For now,
+        # it is more efficient to hardcode around this bug.
+        df = replaceSubstring_Global(df, "VictimStatus", "StatusVictim") 
+        df = replaceSubstring_Global(df, "VictimType", "TypeVictim") 
+        df = replaceSubstring_Global(df, "VictimCarry", "CarryVictim") 
+
+    ask = input("\n Replace inform with tell?\n \ny - to replace\n")
+    time.sleep(1)
+    if ask == "y":
+        df = replaceSubstring_Global(df, "inform", "tell") 
+
     return df
 
 

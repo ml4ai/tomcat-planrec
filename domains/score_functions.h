@@ -13,6 +13,10 @@ double delivery_one(KnowledgeBase& kb) {
   return 0.0;
 }
 
+double simple(KnowledgeBase& kb) {
+  return 1.0;
+}
+
 double travel_one(KnowledgeBase& kb) {
   if (kb.ask("(and (loc me park) (cash me twenty))")) {
     return 1;
@@ -24,4 +28,5 @@ double travel_one(KnowledgeBase& kb) {
 }
 
 Scorers scorers = Scorers({{"delivery_one", delivery_one},
-                           {"travel_one", travel_one}});
+                           {"travel_one", travel_one},
+                           {"simple", simple}});
