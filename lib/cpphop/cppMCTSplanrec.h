@@ -14,17 +14,17 @@
 #include <limits>
 #include "cppMCTShop.h"
 
-bool is_subseq(std::vector<std::string> v1, std::vector<std::string> v2) {
-  if (v1.size() <= v2.size()) {
-    for (int i = 0; i < v1.size(); i++) {
-      if (v1[i] != v2[i]) {
+bool is_subseq(std::vector<std::string> plan, std::vector<std::string> O) {
+  if (plan.size() <= O.size()) {
+    for (int i = 0; i < plan.size(); i++) {
+      if (plan[i].find(O[i]) == std::string::npos) {
         return false;
       }
     }
     return true;
   }
-  for (int i = 0; i < v2.size(); i++) {
-    if (v1[i] != v2[i]) {
+  for (int i = 0; i < O.size(); i++) {
+    if (plan[i].find(O[i]) == std::string::npos) {
       return false;
     }
   }
@@ -45,7 +45,7 @@ simulation_rec(int horizon,
     return -1.0;
   }
   if (tasks.empty() || h >= horizon) {
-    return domain.score(state);
+    return domain.score(state,plan);
   }
   h++;
   for (auto &[i,gt] : tasks.GTs) {
@@ -58,7 +58,7 @@ simulation_rec(int horizon,
           gtasks.remove_node(i);
           for (auto &ns : act.second) {
             ns.update_state();
-            plan.push_back(act.first);
+            plan.push_back(act.first+"_"+std::to_string(i));
             double rs = simulation_rec(horizon,given_plan,plan,ns,gtasks,domain,g,h);
             if (rs > -1.0) {
               return rs;
@@ -72,9 +72,11 @@ simulation_rec(int horizon,
       else if (domain.methods.contains(gt.head)) {
         auto task_methods = domain.methods[gt.head];
         std::shuffle(task_methods.begin(),task_methods.end(),g);
+        bool not_applicable = true;
         for (auto &m : task_methods) {
           auto all_gts = m.apply(state,gt.args,tasks,i);
           if (!all_gts.empty()) {
+            not_applicable = false;
             std::shuffle(all_gts.begin(),all_gts.end(),g);
             for (auto &gts : all_gts) {
               double rs = simulation_rec(horizon,given_plan,plan,state,gts.second,domain,g,h);
@@ -83,9 +85,9 @@ simulation_rec(int horizon,
               }
             }
           }
-          else {
-            return -1.0;
-          }
+        }
+        if (not_applicable) {
+          return -1.0;
         }
       }
       else {
@@ -128,7 +130,7 @@ seek_planrecMCTS(pTree& t,
       int n = selection(m,w,eps,g);
       if (m[n].tasks.empty() || m[n].plan.size() == given_plan.size()) {
         if (is_subseq(m[n].plan,given_plan)) {
-          backprop(m,n,domain.score(m[n].state));
+          backprop(m,n,domain.score(m[n].state,m[n].plan));
         }
         else {
           backprop(m,n,-1.0);

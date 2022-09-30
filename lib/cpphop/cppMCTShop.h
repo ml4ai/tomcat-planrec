@@ -108,13 +108,14 @@ void backprop(pTree& t, int n, double r) {
 
 double
 simulation(int horizon,
+           std::vector<std::string>& plan,
            KnowledgeBase state,
            TaskGraph tasks,
            DomainDef& domain,
            std::mt19937_64& g,
            int h = 0) {
   if (tasks.empty() || h >= horizon) {
-    return domain.score(state);
+    return domain.score(state,plan);
   }
   h++;
   for (auto &[i,gt] : tasks.GTs) {
@@ -127,7 +128,9 @@ simulation(int horizon,
           gtasks.remove_node(i);
           for (auto &ns : act.second) {
             ns.update_state();
-            double rs = simulation(horizon,ns,gtasks,domain,g,h);
+            auto gplan = plan;
+            gplan.push_back(act.first+"_"+std::to_string(i));
+            double rs = simulation(horizon,gplan,ns,gtasks,domain,g,h);
             if (rs > -1.0) {
               return rs;
             }
@@ -140,20 +143,22 @@ simulation(int horizon,
       else if (domain.methods.contains(gt.head)) {
         auto task_methods = domain.methods[gt.head];
         std::shuffle(task_methods.begin(),task_methods.end(),g);
+        bool not_applicable = true;
         for (auto &m : task_methods) {
           auto all_gts = m.apply(state,gt.args,tasks,i);
           if (!all_gts.empty()) {
+            not_applicable = false;
             std::shuffle(all_gts.begin(),all_gts.end(),g);
             for (auto &gts : all_gts) {
-              double rs = simulation(horizon,state,gts.second,domain,g,h);
+              double rs = simulation(horizon,plan,state,gts.second,domain,g,h);
               if (rs > -1.0) {
                 return rs;
               }
             }
           }
-          else {
-            return -1.0;
-          }
+        }
+        if (not_applicable) {
+          return -1.0;
         }
       }
       else {
@@ -190,7 +195,7 @@ int expansion(pTree& t,
           v.tasks.remove_node(tid);
           v.depth = t[n].depth + 1;
           v.plan = t[n].plan;
-          v.plan.push_back(act.first);
+          v.plan.push_back(act.first+"_"+std::to_string(tid));
           v.pred = n;
           int w = t.size();
           t[w] = v;
@@ -260,11 +265,12 @@ seek_planMCTS(pTree& t,
     for (int i = 0; i < R; i++) {
       int n = selection(m,w,eps,g);
       if (m[n].tasks.empty()) {
-          backprop(m,n,domain.score(m[n].state));
+          backprop(m,n,domain.score(m[n].state,m[n].plan));
       }
       else {
         if (m[n].sims == 0) {
           auto r = simulation(hzn,
+                               m[n].plan,
                                m[n].state, 
                                m[n].tasks, 
                                domain,
@@ -277,6 +283,7 @@ seek_planMCTS(pTree& t,
         else {
           int n_p = expansion(m,n,domain,g);
           auto r = simulation(hzn,
+                               m[n_p].plan,
                                m[n_p].state, 
                                m[n_p].tasks, 
                                domain,
