@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/json.hpp>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <random>
@@ -8,6 +10,30 @@
 #include <vector>
 #include <algorithm>
 #include "parsing/ast.hpp"
+#include "file.hpp"
+
+namespace json = boost::json;
+
+json::value
+parse_file( char const* filename )
+{
+    file f( filename, "r" );
+    json::stream_parser p;
+    json::error_code ec;
+    do
+    {
+        char buf[4096];
+        auto const nread = f.read( buf, sizeof(buf) );
+        p.write( buf, nread, ec );
+    }
+    while( ! f.eof() );
+    if( ec )
+        return nullptr;
+    p.finish( ec );
+    if( ec )
+        return nullptr;
+    return p.release();
+}
 
 // Utility method to see if an element is in an associative container
 template <class Element, class AssociativeContainer>

@@ -11,6 +11,9 @@
 #include <optional>
 #include "util.h"
 #include <boost/variant/recursive_wrapper.hpp>
+#include <boost/json.hpp>
+
+namespace json = boost::json;
 
 //{var,type}
 using Params = std::vector<std::pair<std::string, std::string>>; 
@@ -36,7 +39,7 @@ using task_token = std::string;
 using TaskDef = std::pair<std::string, Params>;
 using TaskDefs = std::unordered_map<std::string,TaskDef>;
 using Objects = std::unordered_map<std::string,std::string>;
-using Scorer = double (*)(KnowledgeBase&);
+using Scorer = double (*)(KnowledgeBase&,std::vector<std::string>&);
 using Scorers = std::unordered_map<std::string, Scorer>;
 using ID = std::string;
 
@@ -101,7 +104,32 @@ struct TaskNode {
   std::vector<int> outgoing;
 };
 
+void tag_invoke(const json::value_from_tag&, json::value& jv, TaskNode const& t) {
+  json::array schildren;
+  for (auto const& c : t.children) {
+    schildren.emplace_back(std::to_string(c));
+  } 
+  json::array soutgoing;
+  for (auto const& o : t.outgoing) {
+    soutgoing.emplace_back(std::to_string(o));
+  }
+  jv = {
+      {"task",t.task},
+      {"token",t.token},
+      {"children",schildren},
+      {"outgoing",soutgoing}
+  };
+}
+
 using TaskTree = std::unordered_map<int,TaskNode>;
+
+void tag_invoke(const json::value_from_tag&, json::value& jv, TaskTree const& t) {
+  std::unordered_map<std::string, TaskNode> stasktree;
+  for (auto const& [id,n] : t) {
+    stasktree[std::to_string(id)] = n;
+  }
+  jv = json::value_from(stasktree);
+}
 
 struct pNode {
     KnowledgeBase state;
@@ -551,8 +579,8 @@ struct DomainDef {
     this->scorer = scorer;
   }
 
-  double score(KnowledgeBase state) {
-    return this->scorer(state); 
+  double score(KnowledgeBase& state, std::vector<std::string>& plan) {
+    return this->scorer(state,plan); 
   }
 };
 
