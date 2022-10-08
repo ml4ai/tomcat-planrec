@@ -13,7 +13,6 @@ namespace po = boost::program_options;
 using namespace std;
 
 int main(int argc, char* argv[]) {
-  int plan_size = -1;
   int R = 30;
   double eps = 0.4;
   int successes = 19;
@@ -31,7 +30,6 @@ int main(int argc, char* argv[]) {
     desc.add_options()
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int), default = 30")
-      ("plan_size,ps",po::value<int>(),"Number of actions to return (int), default value of -1 returns full plan")
       ("exp_param,e",po::value<double>(),"The exploration parameter for the planner (double), default = 0.4")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
@@ -56,10 +54,6 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("resource_cycles")) {
       R = vm["resource_cycles"].as<int>();
-    }
-
-    if (vm.count("plan_size")) {
-      plan_size = vm["plan_size"].as<int>();
     }
 
     if (vm.count("exp_param")) {
@@ -121,19 +115,19 @@ int main(int argc, char* argv[]) {
       graph_file = problem.head +".png"; 
     }
     auto start = std::chrono::high_resolution_clock::now();
-    auto results = cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,plan_size,eps,successes,prob,seed); 
+    auto results = cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,eps,successes,prob,seed); 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by planner: "
+    cout << "Time taken by plan recognizer: "
         << duration.count() << " microseconds" << endl;
     generate_graph(results.t[results.end].plan,domain,results.tasktree,results.ttRoot,graph_file);
   }
   else {
     auto start = std::chrono::high_resolution_clock::now();
-    cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,plan_size,eps,successes,prob,seed); 
+    cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,eps,successes,prob,seed); 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by planner: "
+    cout << "Time taken by plan recognizer: "
         << duration.count() << " microseconds" << endl;
   } 
   return EXIT_SUCCESS;
