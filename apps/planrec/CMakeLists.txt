@@ -15,7 +15,17 @@ target_include_directories(MCTS_planrec PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_
     ../../lib/)
 target_link_libraries(MCTS_planrec PRIVATE tomcat ${GRAPHVIZ_LIBS} ${Boost_LIBRARIES} ${Z3_LIBRARIES})
 
+add_executable(MCTS_prEval MCTS_prEval.cpp)
+target_include_directories(MCTS_prEval PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS}
+    ../../lib/)
+target_link_libraries(MCTS_prEval PRIVATE tomcat ${GRAPHVIZ_LIBS} ${Boost_LIBRARIES} ${Z3_LIBRARIES})
+
 add_executable(planlib_planrec planlib_planrec.cpp)
 target_include_directories(planlib_planrec PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS}
     ../../lib/)
 target_link_libraries(planlib_planrec PRIVATE tomcat ${GRAPHVIZ_LIBS} ${Boost_LIBRARIES} ${Z3_LIBRARIES})
+
+add_executable(planlib_prEval planlib_prEval.cpp)
+target_include_directories(planlib_prEval PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS}
+    ../../lib/)
+target_link_libraries(planlib_prEval PRIVATE tomcat ${GRAPHVIZ_LIBS} ${Boost_LIBRARIES} ${Z3_LIBRARIES})
