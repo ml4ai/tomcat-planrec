@@ -12,8 +12,7 @@ json::array seek_explanation(json::object planlib, std::vector<std::string> O) {
     if (O.size() <= p.as_object()["plan"].as_array().size()) {
       bool match = true;
       for (int i = 0; i < O.size(); i++) {
-        std::string act = json::value_to<std::string>(p.as_object()["plan"].as_array()[i]);
-        if (act.find(O[i]) == std::string::npos) {
+        if (p.as_object()["plan"].as_array()[i].as_string().find(O[i]) == json::string::npos) {
           match = false;
           break;
         }
