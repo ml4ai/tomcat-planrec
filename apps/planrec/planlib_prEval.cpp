@@ -17,16 +17,12 @@ using namespace std;
 int main(int argc, char* argv[]) {
   std::string planlib_file = "../domains/transport_planlib.json";
   std::string sample = "delivery_sample";
-  int sample_size = 2;
-  int pred = 3;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
       ("plan_lib,L",po::value<std::string>(),"Plan Library file, default = transport_planlib.json")
       ("sample,S",po::value<std::string>(),"Plan Rec sample (string), default = delivery_sample")
-      ("sample_size,ss",po::value<int>(),"sample size for Plan Rec sample (int), default = 2")
-      ("prediction_size,I",po::value<int>(),"Size of action prediction to make after plan recognition (int), default = 3")
     ;
 
     po::variables_map vm;        
@@ -45,14 +41,6 @@ int main(int argc, char* argv[]) {
     if (vm.count("sample")) {
       sample = vm["sample"].as<std::string>();
     }
-    
-    if (vm.count("sample_size")) {
-      sample_size = vm["sample_size"].as<int>();
-    }
-
-    if (vm.count("prediction_size")) {
-      pred = vm["prediction_size"].as<int>();
-    }
   }
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << "\n";
@@ -63,28 +51,33 @@ int main(int argc, char* argv[]) {
   }
   auto planlib = parse_file(planlib_file.c_str()); 
   auto first = pr_samples[sample].begin();
-  auto last = pr_samples[sample].begin() + sample_size;
-  std::vector<std::string> given_plan(first,last);
-  std::vector<std::string> ground_truth(last,last + pred);
-
-  auto start = std::chrono::high_resolution_clock::now();
-  auto results = seek_explanation(planlib.as_object(),given_plan);
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  cout << "Time taken by planrec: "
-      << duration.count() << " microseconds" << endl;
-  cout << "Ground Truth Actions (" << pred << ")" << endl;
-  for (auto const& gt : ground_truth) {
-    cout << gt << " ";
-  }
-  cout << endl;
-  cout << endl;
-  cout << "Predicted Actions (" << pred << ")" << endl;
-  for (auto& r : results) {
-    for (auto it = r.as_object()["plan"].as_array().begin() + sample_size; it != r.as_object()["plan"].as_array().begin() + sample_size + pred; it++) {
-      cout << *it << " ";
+  double trials = 0;
+  double avg_c = 0;
+  double avg_p = 0;
+  for (int i = 1; i < pr_samples[sample].size(); i++) {
+    trials++;
+    auto last = pr_samples[sample].begin() + i;
+    std::vector<std::string> given_plan(first,last);
+    std::string ground_truth = pr_samples[sample][i];
+    auto results = seek_explanation(planlib.as_object(),given_plan);
+    double m_count = 0;  
+    double r_count = 0;
+    for (auto& r : results) {
+      r_count++;
+      if (r.as_object()["plan"].as_array()[i].as_string().find(ground_truth) != json::string::npos) {
+        m_count++; 
+      }
     }
-    cout << endl;
+    double c = m_count/r_count;
+    double p = 1.0/m_count;
+    cout << "Observations: " << given_plan.size() << ", ";
+    cout << m_count << " positive matches out of " << r_count << " results, correctness: ";
+    cout << c << ", precision: " << p << endl;
+    avg_c += c;
+    avg_p += p;
   }
+  cout << endl;
+  cout << "Average Correctness: " << avg_c/trials << endl; 
+  cout << "Average Precision: " << avg_p/trials << endl;
   return EXIT_SUCCESS;
 }
