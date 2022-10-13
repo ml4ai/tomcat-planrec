@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
     cout << "Time taken by planrec: "
         << duration.count() << " microseconds" << endl;
     std::string root = json::value_to<std::string>(planlib.as_object()["root"]);
-    generate_graph_from_json(results,given_plan.size(),planlib.as_object()["actions"].as_array(),root,graph_file);
+    generate_graph_from_json(results[0].as_object(),given_plan.size(),planlib.as_object()["actions"].as_array(),root,graph_file);
   }
   else {
     auto start = std::chrono::high_resolution_clock::now();

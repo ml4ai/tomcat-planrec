@@ -112,11 +112,13 @@ seek_planrecMCTS(pTree& t,
                  double eps,
                  int successes,
                  double prob,
+                 int pred,
                  std::mt19937_64& g) {
 
   std::negative_binomial_distribution<int> nbd(successes,prob);
-  int prev_v;
-  while (!t[v].tasks.empty() && t[v].plan.size() != given_plan.size()) {
+  int g_p_size = given_plan.size();
+  int stuck_counter = 10;
+  while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
     n_node.state = t[v].state;
@@ -128,7 +130,8 @@ seek_planrecMCTS(pTree& t,
     int hzn = nbd(g);
     for (int i = 0; i < R; i++) {
       int n = selection(m,w,eps,g);
-      if (m[n].tasks.empty() || m[n].plan.size() == given_plan.size()) {
+      int m_p_size = m[n].plan.size();
+      if (m[n].tasks.empty() || m_p_size - g_p_size >= pred) {
         if (is_subseq(m[n].plan,given_plan)) {
           backprop(m,n,domain.score(m[n].state,m[n].plan));
         }
@@ -155,7 +158,7 @@ seek_planrecMCTS(pTree& t,
           int n_p = expansion(m,n,domain,g);
           auto r = simulation_rec(hzn,
                               given_plan,
-                              m[n].plan,
+                              m[n_p].plan,
                               m[n_p].state, 
                               m[n_p].tasks, 
                               domain,
@@ -168,6 +171,10 @@ seek_planrecMCTS(pTree& t,
       }
     }
     if (m[w].successors.empty()) {
+      stuck_counter--;
+      if (stuck_counter <= 0) {
+        throw std::logic_error("Planner is stuck, terminating process!");
+      }
       continue;
     }
     std::vector<int> arg_maxes = {};
@@ -188,6 +195,10 @@ seek_planrecMCTS(pTree& t,
       }
     }
     if (arg_maxes.empty() || max == -1.0) {
+      stuck_counter--;
+      if (stuck_counter <= 0) {
+        throw std::logic_error("Planner is stuck, terminating process!");
+      }
       continue;
     }
     int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
@@ -209,7 +220,8 @@ seek_planrecMCTS(pTree& t,
     t[y] = k;
     t[v].successors.push_back(y);
     v = y;
-    if (t[v].plan.size() == given_plan.size()) {
+    int t_p_size = t[v].plan.size();
+    if (t_p_size - g_p_size == pred) {
       break;
     }
       
@@ -237,8 +249,8 @@ seek_planrecMCTS(pTree& t,
       t[y] = j;
       t[v].successors.push_back(y);
       v = y;
-
-      if (t[v].plan.size() == given_plan.size()) {
+      t_p_size = t[v].plan.size();
+      if (t_p_size - g_p_size == pred) {
         plan_break = true;
         break;
       }
@@ -257,11 +269,11 @@ cppMCTSplanrec(DomainDef& domain,
               std::vector<std::string> given_plan,
               Scorer scorer,
               int R = 30,
-              int plan_size = -1,
               double eps = 0.4,
               int successes = 19,
               double prob = 0.75,
-              int seed = 4021) {
+              int seed = 4021,
+              int pred = 0) {
     domain.set_scorer(scorer);
     pTree t;
     TaskTree tasktree;
@@ -292,6 +304,7 @@ cppMCTSplanrec(DomainDef& domain,
                                 eps, 
                                 successes,
                                 prob,
+                                pred,
                                 g);
     return Results(t,v,end,tasktree,TID);
 }

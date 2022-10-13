@@ -22,9 +22,6 @@ int main(int argc, char* argv[]) {
   std::string prob_file = "../domains/transport_problem.hddl";
   std::string score_fun = "delivery_one";
   std::string sample = "delivery_sample";
-  int sample_size = 2;
-  bool graph = false;
-  std::string graph_file = "";
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -35,12 +32,9 @@ int main(int argc, char* argv[]) {
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
       ("score_fun,F",po::value<std::string>(),"name of score function (string), default = delivery_one")
       ("sample,S",po::value<std::string>(),"Plan Rec sample (string), default = delivery_sample")
-      ("sample_size,ss",po::value<int>(),"sample size for Plan Rec sample (int), default = 2")
-      ("horizon_s,hs",po::value<int>(),"Average depth number for horizon sampler(int), default = 19")
-      ("horizon_prob,hp",po::value<double>(),"Failure probability for horizon sampler(double), default = 0.75")
+      ("horizon_s,hs",po::value<int>(),"Average depth number for horizon sampler (int), default = 19")
+      ("horizon_prob,hp",po::value<double>(),"Failure probability for horizon sampler (double), default = 0.75")
       ("seed,s", po::value<int>(),"Random Seed (int)")
-      ("graph,g",po::bool_switch()->default_value(false),"Creates a task tree graph of the returned plan and saves it as a png, default = false")
-      ("graph_file,gf",po::value<std::string>(), "File name for created graph (string), default = name of problem definition")
     ;
 
     po::variables_map vm;        
@@ -87,17 +81,7 @@ int main(int argc, char* argv[]) {
     if (vm.count("sample")) {
       sample = vm["sample"].as<std::string>();
     }
-    
-    if (vm.count("sample_size")) {
-      sample_size = vm["sample_size"].as<int>();
-    }
 
-    if (vm.count("graph")) {
-      graph = vm["graph"].as<bool>();
-    }
-    if (vm.count("graph_file")) {
-      graph_file = vm["graph_file"].as<std::string>();
-    }
   }
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << "\n";
@@ -106,29 +90,30 @@ int main(int argc, char* argv[]) {
   catch(...) {
     std::cerr << "Exception of unknown type!\n";
   }
+
   auto [domain,problem] = load(dom_file,prob_file);
   auto first = pr_samples[sample].begin();
-  auto last = pr_samples[sample].begin() + sample_size;
-  std::vector<std::string> given_plan(first,last);
-  if (graph) {
-    if (graph_file == "") {
-      graph_file = problem.head +".png"; 
+  double count = 0;
+  double trials = 0;
+  for (int i = 1; i < pr_samples[sample].size(); i++) {
+    trials++;
+    auto last = pr_samples[sample].begin() + i;
+    std::vector<std::string> given_plan(first,last);
+    std::string ground_truth = pr_samples[sample][i];
+    auto results = cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,eps,successes,prob,seed,1); 
+    std::string pred = results.t[results.end].plan.back();
+    cout << "Observations: " << given_plan.size() << ", ";
+    if (pred.find(ground_truth) != std::string::npos) {
+      cout << "correct ";
+      count++; 
     }
-    auto start = std::chrono::high_resolution_clock::now();
-    auto results = cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,eps,successes,prob,seed); 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by plan recognizer: "
-        << duration.count() << " microseconds" << endl;
-    generate_graph(results.t[results.end].plan,domain,results.tasktree,results.ttRoot,graph_file);
+    else {
+      cout << "incorrect ";
+    }
+    cout << "action prediction!" << endl;
   }
-  else {
-    auto start = std::chrono::high_resolution_clock::now();
-    cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,eps,successes,prob,seed); 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by plan recognizer: "
-        << duration.count() << " microseconds" << endl;
-  } 
+  cout << endl;
+  
+  cout << "Average Accuracy: " << count/trials << endl;
   return EXIT_SUCCESS;
 }

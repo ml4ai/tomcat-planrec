@@ -252,6 +252,7 @@ seek_planMCTS(pTree& t,
 
   std::negative_binomial_distribution<int> nbd(successes,prob);
   int prev_v;
+  int stuck_counter = 10;
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
@@ -296,6 +297,10 @@ seek_planMCTS(pTree& t,
       }
     }
     if (m[w].successors.empty()) {
+      stuck_counter--;
+      if (stuck_counter <= 0) {
+        throw std::logic_error("Planner is stuck, terminating process!"); 
+      }
       continue;
     }
     std::vector<int> arg_maxes = {};
@@ -316,6 +321,10 @@ seek_planMCTS(pTree& t,
       }
     }
     if (arg_maxes.empty() || max == -1.0) {
+      stuck_counter--;
+      if (stuck_counter <= 0) {
+        throw std::logic_error("Planner is stuck, terminating process!");
+      }
       continue;
     }
     int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 

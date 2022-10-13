@@ -28,9 +28,27 @@ void seek_planDFS(json::object& planlib,
     obj["plan"] = json::value_from(plan);
     double score = domain.score(state,plan);
     obj["score"] = score;
-    planlib["library"].as_array().emplace_back(obj);
-    if (score > planlib["max_score"].as_double()) {
-      planlib["max_score"] = score;
+    bool dup = false;
+    for (auto& o : planlib["library"].as_array()) {
+      bool match = true;
+      for (int i = 0; i < o.as_object()["plan"].as_array().size(); i++) {
+        json::string c_act = o.as_object()["plan"].as_array()[i].as_string();
+        json::string act = obj["plan"].as_array()[i].as_string();
+        if (c_act.subview(0,c_act.find(")") + 1) != act.subview(0,act.find(")") + 1)) {
+          match = false; 
+          break;
+        }
+      }
+      if (match) {
+        dup = true;
+        break;
+      }
+    }
+    if (!dup) {
+      planlib["library"].as_array().emplace_back(obj);
+      if (score > planlib["max_score"].as_double()) {
+        planlib["max_score"] = score;
+      }
     }
     return;
   }
