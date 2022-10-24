@@ -3,12 +3,17 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <queue>
 #include <map>
 #include <vector>
 #include <iterator>
 #include "kb.h"
 #include <optional>
 #include "util.h"
+#include <boost/variant/recursive_wrapper.hpp>
+#include <boost/json.hpp>
+
+namespace json = boost::json;
 
 //{var,type}
 using Params = std::vector<std::pair<std::string, std::string>>; 
@@ -32,13 +37,132 @@ struct effect {
 using Effects = std::vector<effect>;
 using task_token = std::string;
 using TaskDef = std::pair<std::string, Params>;
-using Grounded_Task = std::pair<std::string,Args>;
-using TaskDefs = std::vector<TaskDef>;
-using Grounded_Tasks = std::vector<Grounded_Task>;
+using TaskDefs = std::unordered_map<std::string,TaskDef>;
 using Objects = std::unordered_map<std::string,std::string>;
-using Scorer = double (*)(KnowledgeBase&);
+using Scorer = double (*)(KnowledgeBase&,std::vector<std::string>&);
 using Scorers = std::unordered_map<std::string, Scorer>;
-std::string return_value(std::string var, Args args) {
+using ID = std::string;
+
+struct Grounded_Task {
+  std::string head;
+  Args args;
+  std::vector<int> incoming;
+  std::vector<int> outgoing;
+  std::string to_string() const {
+    std::string s = "("+this->head;
+    for (auto const &a : args) {
+      s += " "+a.second;
+    }
+    s += ")";
+    return s;
+  }
+};
+
+struct TaskGraph {
+  std::unordered_map<int,Grounded_Task> GTs;
+  //Keeps track of next newly usable ID
+  int nextID = 0;
+
+  Grounded_Task& operator[](int i) {
+    return this->GTs[i];
+  }
+
+  int add_node(Grounded_Task& GT) {
+    int id;
+    id = this->nextID;
+    this->nextID++;
+    this->GTs[id] = GT;
+    return id;
+  }
+
+  // gt1 -> gt2
+  void add_edge(int gt1, int gt2) {
+    this->GTs[gt1].outgoing.push_back(gt2);
+    this->GTs[gt2].incoming.push_back(gt1);
+  } 
+
+  void remove_node(int gt) {
+    for (auto &og : this->GTs[gt].outgoing) {
+      this->GTs[og].incoming.erase(std::remove(GTs[og].incoming.begin(),GTs[og].incoming.end(),gt),GTs[og].incoming.end());
+    }
+    for (auto &ic : this->GTs[gt].incoming) {
+      this->GTs[ic].outgoing.erase(std::remove(GTs[ic].outgoing.begin(),GTs[ic].outgoing.end(),gt),GTs[ic].outgoing.end());
+    }
+    this->GTs.erase(gt);
+  }
+  
+  bool empty() {
+    return this->GTs.empty();
+  } 
+
+};
+
+struct TaskNode {
+  std::string task;
+  std::string token;
+  std::vector<int> children;
+  std::vector<int> outgoing;
+};
+
+void tag_invoke(const json::value_from_tag&, json::value& jv, TaskNode const& t) {
+  json::array schildren;
+  for (auto const& c : t.children) {
+    schildren.emplace_back(std::to_string(c));
+  } 
+  json::array soutgoing;
+  for (auto const& o : t.outgoing) {
+    soutgoing.emplace_back(std::to_string(o));
+  }
+  jv = {
+      {"task",t.task},
+      {"token",t.token},
+      {"children",schildren},
+      {"outgoing",soutgoing}
+  };
+}
+
+using TaskTree = std::unordered_map<int,TaskNode>;
+
+void tag_invoke(const json::value_from_tag&, json::value& jv, TaskTree const& t) {
+  std::unordered_map<std::string, TaskNode> stasktree;
+  for (auto const& [id,n] : t) {
+    stasktree[std::to_string(id)] = n;
+  }
+  jv = json::value_from(stasktree);
+}
+
+struct pNode {
+    KnowledgeBase state;
+    TaskGraph tasks;
+    int prevTID = -1;
+    std::vector<int> addedTIDs;
+    std::vector<std::string> plan;
+    int depth = 0;
+    double mean = 0.0;
+    int sims = 0;
+    int pred = -1;
+    bool deadend = false;
+    std::vector<int> successors = {};
+};
+
+using pTree = std::unordered_map<int,pNode>;
+
+struct Results{
+  pTree t;
+  int root;
+  int end;
+  TaskTree tasktree;
+  int ttRoot;
+  Results(pTree t, int root, int end, TaskTree tasktree, int ttRoot) {
+    this->t = t;
+    this->root = root;
+    this->end = end;
+    this->tasktree = tasktree;
+    this->ttRoot = ttRoot;
+  }
+};
+
+std::string return_value(std::string var, Args& args) {
   for (auto const& a : args) {
     if (var == a.first) {
       return a.second;
@@ -47,7 +171,7 @@ std::string return_value(std::string var, Args args) {
   return "__CONST__";
 }
 
-Pred create_predicate(std::string head, Params params) {
+Pred create_predicate(std::string head, Params& params) {
   Pred pred;
   pred.first = head;
   pred.second = params;
@@ -61,7 +185,7 @@ class ActionDef {
     Preconds preconditions;
     Effects effects;
 
-    KnowledgeBase apply_binding(KnowledgeBase& kb, Args args) {
+    KnowledgeBase apply_binding(KnowledgeBase& kb, Args& args) {
       KnowledgeBase new_kb = kb;
       for (auto const& e : this->effects) {
         auto faparams = e.forall;
@@ -124,7 +248,7 @@ class ActionDef {
             }
             vt += ")";
             auto bindings = new_kb.ask(vt,params);
-            for (auto const& b : bindings) {
+            for (auto &b : bindings) {
               auto pred = e.pred;
               std::string et = "("+pred.first;
               for (auto const& p : pred.second) {
@@ -169,7 +293,7 @@ class ActionDef {
             }
             vt += ")";
             auto bindings = new_kb.ask(vt,params);
-            for (auto const& b : bindings) {
+            for (auto &b : bindings) {
               for (auto const& b_args : b) {
                 args.push_back(b_args); 
               }
@@ -236,7 +360,7 @@ class ActionDef {
       return this->effects;
     }
 
-    std::pair<task_token,std::vector<KnowledgeBase>> apply(KnowledgeBase& kb, Args args) {
+    std::pair<task_token,std::vector<KnowledgeBase>> apply(KnowledgeBase& kb, Args& args) {
       std::string pc;
       std::string token = "("+this->head;
       if (!args.empty()) {
@@ -262,23 +386,25 @@ class ActionDef {
         if (this->parameters.empty()) {
           auto pass = kb.ask(pc);
           if (pass) {
-            new_states.push_back(this->apply_binding(kb,{}));
+            Args b = {};
+            new_states.push_back(this->apply_binding(kb,b));
           }
         }
         else {
           auto bindings = kb.ask(pc,this->parameters);
-          for (auto const& b : bindings) {
+          for (auto &b : bindings) {
             new_states.push_back(this->apply_binding(kb,b)); 
           }
         }
       }
       else {
         if (this->parameters.empty()) {
-          new_states.push_back(this->apply_binding(kb,{}));
+          Args b = {};
+          new_states.push_back(this->apply_binding(kb,b));
         }
         else {
           auto bindings = kb.ask("",this->parameters);
-          for (auto const& b : bindings) {
+          for (auto &b : bindings) {
             new_states.push_back(this->apply_binding(kb,b));
           }
         }
@@ -286,7 +412,7 @@ class ActionDef {
       return std::make_pair(token,new_states);
     }
 };
-//Ignores task ordering for now! It just assumes that tasks are fully ordered
+
 class MethodDef {
   private:
     std::string head;
@@ -294,19 +420,22 @@ class MethodDef {
     Params parameters;
     Preconds preconditions;
     TaskDefs subtasks;
-    bool init;
+    std::unordered_map<std::string,std::vector<std::string>> orderings;
 
   public:
     MethodDef() {}
-    MethodDef(std::string head, TaskDef task, Params parameters, Preconds preconditions, TaskDefs subtasks, bool init = false) {
+    MethodDef(std::string head, 
+              TaskDef task, 
+              Params parameters, 
+              Preconds preconditions, 
+              TaskDefs subtasks, 
+              std::unordered_map<std::string,std::vector<std::string>> orderings) {
       this->head = head;
       this->task = task;
       this->parameters = parameters;
       this->preconditions = preconditions;
-      //Reverse order for planning algorithm
       this->subtasks = subtasks;
-      std::reverse(this->subtasks.begin(),this->subtasks.end());
-      this->init = init;
+      this->orderings = orderings;
     }
 
     std::string get_head() {
@@ -328,12 +457,17 @@ class MethodDef {
     TaskDefs get_subtasks() {
       return this->subtasks;
     }
+    
+    std::unordered_map<std::string,std::vector<std::string>> get_orderings() {
+      return this->orderings;
+    }
 
-    Grounded_Tasks apply_binding(Args args) {
-      Grounded_Tasks gts = {};
-      for (auto const& s: this->subtasks) {
+    std::pair<std::vector<int>,TaskGraph> apply_binding(Args& args, TaskGraph tasks, std::vector<int>& out) {
+      std::unordered_map<std::string,int> gts;
+      std::vector<int> addedTIDs;
+      for (auto const& [id,s]: this->subtasks) {
         Grounded_Task gt;
-        gt.first = s.first;
+        gt.head = s.first;
         for (auto const& pt : s.second) {
           std::pair<std::string,std::string> arg;
           arg.first = pt.first;
@@ -344,14 +478,25 @@ class MethodDef {
           else {
             arg.second = val;
           }
-          gt.second.push_back(arg);
+          gt.args.push_back(arg);
         }
-        gts.push_back(gt);
+        gts[id] = tasks.add_node(gt);
+        addedTIDs.push_back(gts[id]);
+        if (this->orderings[id].empty()) {
+          for (auto const& o : out) {
+            tasks.add_edge(gts[id],o);
+          }
+        }
       }
-      return gts;
+      for (auto const &[t1,ot] : this->orderings) {
+        for (auto const &t2 : ot) {
+          tasks.add_edge(gts[t1],gts[t2]);
+        } 
+      }
+      return std::make_pair(addedTIDs,tasks);
     }
 
-    std::pair<task_token,std::vector<Grounded_Tasks>> apply(KnowledgeBase& kb, Args args) {
+    std::vector<std::pair<std::vector<int>,TaskGraph>> apply(KnowledgeBase& kb, Args& args, TaskGraph tasks, int i) {
       std::string pc;
       std::string token = "("+this->task.first;
       if (!args.empty()) {
@@ -371,33 +516,37 @@ class MethodDef {
         pc = this->preconditions;
       }
       token += ")";
-      std::vector<Grounded_Tasks> groundings;
+      std::vector<std::pair<std::vector<int>,TaskGraph>> groundings;
+      std::vector<int> out = tasks[i].outgoing;
+      tasks.remove_node(i);
       if (pc != "__NONE__") {
         if (this->parameters.empty()) {
           auto pass = kb.ask(pc);
           if (pass) {
-            groundings.push_back(this->apply_binding({}));
+            Args b = {};
+            groundings.push_back(this->apply_binding(b,tasks,out));
           }
         }
         else {
           auto bindings = kb.ask(pc,this->parameters);
-          for (auto const& b : bindings) {
-            groundings.push_back(this->apply_binding(b)); 
+          for (auto &b : bindings) {
+            groundings.push_back(this->apply_binding(b,tasks,out)); 
           }
         }
       }
       else {
         if (this->parameters.empty()) {
-          groundings.push_back(this->apply_binding({}));
+          Args b = {};
+          groundings.push_back(this->apply_binding(b,tasks,out));
         }
         else {
           auto bindings = kb.ask("",this->parameters);
-          for (auto const& b : bindings) {
-            groundings.push_back(this->apply_binding(b));
+          for (auto &b : bindings) {
+            groundings.push_back(this->apply_binding(b,tasks,out));
           }
         }
       }
-      return std::make_pair(token,groundings);
+      return groundings;
     }
 };
 
@@ -409,7 +558,6 @@ struct DomainDef {
   std::string head;
   TypeTree typetree;
   Predicates predicates;
-  TaskDefs tasks;
   ActionDefs actions;
   MethodDefs methods;
   Objects constants;
@@ -418,14 +566,12 @@ struct DomainDef {
             TypeTree typetree,
             Predicates predicates,
             Objects constants,
-            TaskDefs tasks,
             ActionDefs actions,
             MethodDefs methods) {
     this->head = head;
     this->typetree = typetree;
     this->predicates = predicates;
     this->constants = constants;
-    this->tasks = tasks;
     this->actions = actions;
     this->methods = methods;
   }
@@ -433,8 +579,8 @@ struct DomainDef {
     this->scorer = scorer;
   }
 
-  double score(KnowledgeBase state) {
-    return this->scorer(state); 
+  double score(KnowledgeBase& state, std::vector<std::string>& plan) {
+    return this->scorer(state,plan); 
   }
 };
 

@@ -1,25 +1,28 @@
 # Planner and Plan Recognizer Status
 ## Planner
 - Runs hddl domain and problem defintions.
-- Currently treats tasks as being total ordered regardless of ordering
-  constraints given. 
-- Ordering constraints will be featured in the next iteration. 
+- Can now handle ordering constraints on tasks, unconstrained tasks, and task
+  interleaving. 
 - Has diffculties with shallow deadend and potientially infinite
   recursive/looping tasks. 
 - see README in root directory (tomcat-planrec) for instructions on how to run
   the planner. 
+- Can now generate visual representation of plan structure for generated plans. 
 
 ## Plan Recognizer
-- Not usable.
+- Has same capabilities as the planner.
+- There is a header file that can be filled with artificial plan recognition
+  observations (tomcat-planrec/domains/pr\_samples.h).
+- see README in root directory (tomcat-planrec) for instructions on how to run the plan
+  recognizer.
+- Can now generate visual representation of plan structure for generated plans.
+
 
 ## Domain Definition Loader
 - First iteration of the HDDL Domain Definition Loader is complete. 
 - See tomcat/test/test\_loader.cpp for examples of usage.
 - Does not currently support the "either" keyword.
-- Does not currently support ordering constraints for subtasks, they are
-  assumed to be totally ordered in the order that they are listed in the method
-  definition from top to bottom. 
-- Ordering constraints for subtasks will be featured in the next iteration of the loader. 
+- Correctly parses HDDL ordering constraints.
 
 ## Problem Definition Loader
 - Completed.

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/json.hpp>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <random>
@@ -8,6 +10,30 @@
 #include <vector>
 #include <algorithm>
 #include "parsing/ast.hpp"
+#include "file.hpp"
+
+namespace json = boost::json;
+
+json::value
+parse_file( char const* filename )
+{
+    file f( filename, "r" );
+    json::stream_parser p;
+    json::error_code ec;
+    do
+    {
+        char buf[4096];
+        auto const nread = f.read( buf, sizeof(buf) );
+        p.write( buf, nread, ec );
+    }
+    while( ! f.eof() );
+    if( ec )
+        return nullptr;
+    p.finish( ec );
+    if( ec )
+        return nullptr;
+    return p.release();
+}
 
 // Utility method to see if an element is in an associative container
 template <class Element, class AssociativeContainer>
@@ -48,10 +74,6 @@ template <typename Iter> Iter select_randomly(Iter start, Iter end) {
     static std::mt19937_64 gen(rd());
     return select_randomly(start, end, gen);
 }
-
-int sample_method(std::vector<int> mds, std::vector<double> wts, int seed);
-
-int sample_method(std::vector<int> mds, std::vector<double> wts);
 
 // Helpers for std::visit
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
@@ -138,6 +160,17 @@ struct subtask_type : public boost::static_visitor<int> {
 
 int which_subtask(ast::SubTask s) {
   return boost::apply_visitor(subtask_type(),s);
+}
+
+struct orderings_type : public boost::static_visitor<int> {
+  int operator()(const ast::Nil& n) const { return 0; }
+  int operator()(const ast::Ordering& o) const { return 1; }
+  int operator()(const std::vector<ast::Ordering>& ov) const { return 2; }
+
+};
+
+int which_orderings(ast::Orderings os) {
+  return boost::apply_visitor(orderings_type(),os);
 }
 
 template <typename T> constexpr auto type_name() noexcept {

@@ -266,12 +266,12 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     BOOST_TEST(prob.domain_name == "domain_htn");
 
     // Test initial state
-    BOOST_TEST(prob.init[7].predicate == "at");
+    BOOST_TEST(prob.init[7].predicate == "road");
     BOOST_TEST(
-        equals(prob.init[7].args, {"truck_0", "city_loc_2"}));
+        equals(prob.init[7].args, {"city_loc_2", "city_loc_0"}));
 
     // Test objects
-    BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 8);
+    BOOST_TEST(prob.objects.explicitly_typed_lists.size() == 9);
 
     BOOST_TEST(equals(prob.objects.explicitly_typed_lists[0].entries,
                       {"package_0"}));
