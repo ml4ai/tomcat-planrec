@@ -21,8 +21,9 @@ void seek_planDFS(json::object& planlib,
                   TaskTree& tasktree,
                   KnowledgeBase& state,
                   TaskGraph& tasks,
+                  int cTask,
                   DomainDef& domain) {
-  if (tasks.empty()) {
+  if (tasks.empty() && cTask == -1) {
     json::object obj; 
     obj["tasktree"] = json::value_from(tasktree);
     obj["plan"] = json::value_from(plan);
@@ -52,41 +53,45 @@ void seek_planDFS(json::object& planlib,
     }
     return;
   }
-
-  for (auto &[i,gt] : tasks.GTs) {
-    if (gt.incoming.empty()) {
-      if (domain.actions.contains(gt.head)) {
-        auto act = domain.actions.at(gt.head).apply(state,gt.args);
-        if (!act.second.empty()) {
-          auto gtasks = tasks;
-          gtasks.remove_node(i);
-          for (auto &ns : act.second) {
-            ns.update_state();
-            auto gplan = plan;
-            gplan.push_back(act.first+"_"+std::to_string(i));
-            seek_planDFS(planlib,gplan,tasktree,ns,gtasks,domain);
+  if (cTask != -1) {
+    if (domain.actions.contains(tasks[cTask].head)) {
+      auto act = domain.actions.at(tasks[cTask].head).apply(state,tasks[cTask].args);
+      if (!act.second.empty()) {
+        auto gtasks = tasks;
+        gtasks.remove_node(cTask);
+        for (auto &ns : act.second) {
+          ns.update_state();
+          auto gplan = plan;
+          gplan.push_back(act.first+"_"+std::to_string(cTask));
+          seek_planDFS(planlib,gplan,tasktree,ns,gtasks,-1,domain);
+        }
+      }
+    }
+    if (domain.methods.contains(tasks[cTask].head)) {
+      auto task_methods = domain.methods[tasks[cTask].head];
+      for (auto &m : task_methods) {
+        auto all_gts = m.apply(state,tasks[cTask].args,tasks,cTask);
+        if (!all_gts.empty()) {
+          for (auto &gts : all_gts) {
+            auto gtasktree = tasktree;
+            for (auto& ai : gts.first) {
+              TaskNode t;
+              t.task = gts.second[ai].head;
+              t.token = gts.second[ai].to_string();
+              t.outgoing = gts.second[ai].outgoing;
+              gtasktree[ai] = t;
+              gtasktree[cTask].children.push_back(ai);
+            }
+            seek_planDFS(planlib,plan,gtasktree,state,gts.second,-1,domain);
           }
         }
       }
-      if (domain.methods.contains(gt.head)) {
-        auto task_methods = domain.methods[gt.head];
-        for (auto &m : task_methods) {
-          auto all_gts = m.apply(state,gt.args,tasks,i);
-          if (!all_gts.empty()) {
-            for (auto &gts : all_gts) {
-              auto gtasktree = tasktree;
-              for (auto& ai : gts.first) {
-                TaskNode t;
-                t.task = gts.second[ai].head;
-                t.token = gts.second[ai].to_string();
-                t.outgoing = gts.second[ai].outgoing;
-                gtasktree[ai] = t;
-                gtasktree[i].children.push_back(ai);
-              }
-              seek_planDFS(planlib,plan,gtasktree,state,gts.second,domain);
-            }
-          }
-        }
+    }
+  }
+  else {
+    for (auto &[i,gt] : tasks.GTs) {
+      if (gt.incoming.empty()) {
+        seek_planDFS(planlib,plan,tasktree,state,tasks,i,domain);
       }
     }
   }
@@ -115,7 +120,7 @@ json::object cppDFShop(DomainDef& domain,
   tasknode.task = init_t.head;
   tasknode.token = init_t.to_string();
   tasktree[TID] = tasknode;
-  seek_planDFS(planlib,plan,tasktree,state,tasks,domain);
+  seek_planDFS(planlib,plan,tasktree,state,tasks,-1,domain);
   json::array actions;
   for (auto const& [a,_] : domain.actions) {
     actions.emplace_back(a);
