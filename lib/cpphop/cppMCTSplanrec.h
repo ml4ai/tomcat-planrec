@@ -37,6 +37,7 @@ simulation_rec(int horizon,
                std::vector<std::string> plan,
                KnowledgeBase state,
                TaskGraph tasks,
+               int cTask,
                DomainDef& domain,
                std::mt19937_64& g,
                int h = 0) {
@@ -44,57 +45,66 @@ simulation_rec(int horizon,
   if (!is_subseq(plan,given_plan)) {
     return -1.0;
   }
-  if (tasks.empty() || h >= horizon) {
+  if ((tasks.empty() && cTask == -1) || h >= horizon) {
     return domain.score(state,plan);
   }
   h++;
-  for (auto &[i,gt] : tasks.GTs) {
-    if (gt.incoming.empty()) {
-      if (domain.actions.contains(gt.head)) {
-        auto act = domain.actions.at(gt.head).apply(state,gt.args);
-        if (!act.second.empty()) {
-          std::shuffle(act.second.begin(),act.second.end(),g);
-          auto gtasks = tasks;
-          gtasks.remove_node(i);
-          for (auto &ns : act.second) {
-            ns.update_state();
-            plan.push_back(act.first+"_"+std::to_string(i));
-            double rs = simulation_rec(horizon,given_plan,plan,ns,gtasks,domain,g,h);
+  if (cTask != -1) {
+    if (domain.actions.contains(tasks[cTask].head)) {
+      auto act = domain.actions.at(tasks[cTask].head).apply(state,tasks[cTask].args);
+      if (!act.second.empty()) {
+        std::shuffle(act.second.begin(),act.second.end(),g);
+        auto gtasks = tasks;
+        gtasks.remove_node(cTask);
+        for (auto &ns : act.second) {
+          ns.update_state();
+          auto gplan = plan;
+          gplan.push_back(act.first+"_"+std::to_string(cTask));
+          double rs = simulation_rec(horizon,given_plan,plan,ns,gtasks,-1,domain,g,h);
+          if (rs > -1.0) {
+            return rs;
+          }
+        }
+      }
+      else {
+        return -1.0;
+      }
+    }
+    else if (domain.methods.contains(tasks[cTask].head)) {
+      auto task_methods = domain.methods[tasks[cTask].head];
+      std::shuffle(task_methods.begin(),task_methods.end(),g);
+      bool not_applicable = true;
+      for (auto &m : task_methods) {
+        auto all_gts = m.apply(state,tasks[cTask].args,tasks,cTask);
+        if (!all_gts.empty()) {
+          not_applicable = false;
+          std::shuffle(all_gts.begin(),all_gts.end(),g);
+          for (auto &gts : all_gts) {
+            double rs = simulation_rec(horizon,given_plan,plan,state,gts.second,-1,domain,g,h);
             if (rs > -1.0) {
               return rs;
             }
           }
         }
-        else {
-          return -1.0;
-        }
       }
-      else if (domain.methods.contains(gt.head)) {
-        auto task_methods = domain.methods[gt.head];
-        std::shuffle(task_methods.begin(),task_methods.end(),g);
-        bool not_applicable = true;
-        for (auto &m : task_methods) {
-          auto all_gts = m.apply(state,gt.args,tasks,i);
-          if (!all_gts.empty()) {
-            not_applicable = false;
-            std::shuffle(all_gts.begin(),all_gts.end(),g);
-            for (auto &gts : all_gts) {
-              double rs = simulation_rec(horizon,given_plan,plan,state,gts.second,domain,g,h);
-              if (rs > -1.0) {
-                return rs;
-              }
-            }
-          }
-        }
-        if (not_applicable) {
-          return -1.0;
-        }
+      if (not_applicable) {
+        return -1.0;
       }
-      else {
-        std::string message = "Invalid task ";
-        message += gt.head;
-        message += " during simulation!";
-        throw std::logic_error(message);
+    }
+    else {
+      std::string message = "Invalid task ";
+      message += tasks[cTask].head;
+      message += " during simulation!";
+      throw std::logic_error(message);
+    }
+  }
+  else {
+    for (auto &[i,gt] : tasks.GTs) {
+      if (gt.incoming.empty()) {
+        double rs = simulation_rec(horizon,given_plan,plan,state,tasks,i,domain,g,h);
+        if (rs > -1.0) {
+          return rs;
+        }
       }
     }
   }
@@ -121,6 +131,7 @@ seek_planrecMCTS(pTree& t,
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
+    n_node.cTask = t[v].cTask;
     n_node.state = t[v].state;
     n_node.tasks = t[v].tasks;
     n_node.depth = t[v].depth;
@@ -131,7 +142,7 @@ seek_planrecMCTS(pTree& t,
     for (int i = 0; i < R; i++) {
       int n = selection(m,w,eps,g);
       int m_p_size = m[n].plan.size();
-      if (m[n].tasks.empty() || m_p_size - g_p_size >= pred) {
+      if ((m[n].tasks.empty() && m[n].cTask == -1) || (m_p_size - g_p_size) >= pred) {
         if (is_subseq(m[n].plan,given_plan)) {
           backprop(m,n,domain.score(m[n].state,m[n].plan));
         }
@@ -147,6 +158,7 @@ seek_planrecMCTS(pTree& t,
                                   m[n].plan,
                                   m[n].state, 
                                   m[n].tasks, 
+                                  m[n].cTask,
                                   domain,
                                   g);
           if (r == -1.0) {
@@ -161,6 +173,7 @@ seek_planrecMCTS(pTree& t,
                               m[n_p].plan,
                               m[n_p].state, 
                               m[n_p].tasks, 
+                              m[n_p].cTask,
                               domain,
                               g);
           if (r == -1.0) {
@@ -203,6 +216,7 @@ seek_planrecMCTS(pTree& t,
     }
     int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
     pNode k;
+    k.cTask = m[arg_max].cTask;
     k.state = m[arg_max].state;
     k.tasks = m[arg_max].tasks;
     k.plan = m[arg_max].plan;
@@ -232,6 +246,7 @@ seek_planrecMCTS(pTree& t,
       }
       arg_max = m[arg_max].successors.front();
       pNode j;
+      j.cTask = m[arg_max].cTask;
       j.state = m[arg_max].state;
       j.tasks = m[arg_max].tasks;
       j.plan = m[arg_max].plan;
