@@ -134,6 +134,7 @@ void tag_invoke(const json::value_from_tag&, json::value& jv, TaskTree const& t)
 struct pNode {
     KnowledgeBase state;
     TaskGraph tasks;
+    int cTask = -1;
     int prevTID = -1;
     std::vector<int> addedTIDs;
     std::vector<std::string> plan;
