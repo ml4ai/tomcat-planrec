@@ -16,76 +16,39 @@
 int
 selection(pTree& t,
           int v,
-          double eps,
+          double c,
           std::mt19937_64& g) {
-    std::uniform_real_distribution<> dis(0.0,1.0);
     int original = v;
     while (!t[v].successors.empty()) {
       if (t[v].deadend) {
         return v;
       }
-      double e = dis(g);
-      if (e > eps) {
-        std::vector<int> r_maxes = {};
-        double r_max = -std::numeric_limits<double>::infinity();
-        for (auto const &w : t[v].successors) {
-          if (!t[w].deadend) {
-            if (t[w].sims == 0) {
-              return w;
-            }
-            double s = t[w].mean;
-            if (s >= r_max) {
-              if (s > r_max) {
-                r_max = s;
-                r_maxes.clear();
-                r_maxes.push_back(w);
-              }
-              else {
-                r_maxes.push_back(w);
-              }
-            }
+      std::vector<int> maxes = {};
+      double max = -std::numeric_limits<double>::infinity();
+      for (auto const &w : t[v].successors) {
+        if (!t[w].deadend) {
+          if (t[w].sims == 0) {
+            return w;
           }
-        }
-        if (r_maxes.empty()) {
-          t[v].deadend = true;
-          v = original;
-          continue;
-        }
-        std::vector<int> v_maxes = {};
-        v_maxes.push_back(r_maxes.front());
-        int v_max = t[v_maxes.back()].sims;
-        for (auto const &w : r_maxes) {
-          int s = t[w].sims;
-          if (s >= v_max) {
-            if (s > v_max) {
-              v_max = s;
-              v_maxes.clear();
-              v_maxes.push_back(w);
+          double s = (t[w].score/t[w].sims) + c*sqrt(log(t[v].sims)/t[w].sims);
+          if (s >= max) {
+            if (s > max) {
+              max = s;
+              maxes.clear();
+              maxes.push_back(w);
             }
             else {
-              v_maxes.push_back(w);
+              maxes.push_back(w);
             }
           }
         }
-        v = *select_randomly(v_maxes.begin(), v_maxes.end(), g);
       }
-      else {
-        bool all_deadends = true;
-        for (auto const &w : t[v].successors) {
-          if (!t[w].deadend) {
-            if (t[w].sims == 0) {
-              return w;
-            }
-            all_deadends = false;
-          }
-        }
-        if (all_deadends) {
-          t[v].deadend = true;
-          v = original;
-          continue;
-        }
-        v = *select_randomly(t[v].successors.begin(), t[v].successors.end(), g);
+      if (maxes.empty()) {
+        t[v].deadend = true;
+        v = original;
+        continue;
       }
+      v = *select_randomly(maxes.begin(), maxes.end(), g);
     }
     return v;
 }
@@ -93,11 +56,11 @@ selection(pTree& t,
 void backprop(pTree& t, int n, double r) {
   do {
     if (t[n].successors.empty()) {
-      t[n].mean = r;
+      t[n].score = r;
       t[n].sims++;
     }
     else {
-      t[n].mean = (r + t[n].sims*t[n].mean)/(t[n].sims + 1);
+      t[n].score += r;
       t[n].sims++;
     }
     n = t[n].pred;
@@ -107,18 +70,15 @@ void backprop(pTree& t, int n, double r) {
 }
 
 double
-simulation(int horizon,
-           std::vector<std::string>& plan,
+simulation(std::vector<std::string>& plan,
            KnowledgeBase state,
            TaskGraph tasks,
            int cTask,
            DomainDef& domain,
-           std::mt19937_64& g,
-           int h = 0) {
-  if ((tasks.empty() && cTask == -1) || h >= horizon) {
+           std::mt19937_64& g) {
+  if (tasks.empty() && cTask == -1) {
     return domain.score(state,plan);
   }
-  h++;
   if (cTask != -1) {
     if (domain.actions.contains(tasks[cTask].head)) {
       auto act = domain.actions.at(tasks[cTask].head).apply(state,tasks[cTask].args);
@@ -130,7 +90,7 @@ simulation(int horizon,
           ns.update_state();
           auto gplan = plan;
           gplan.push_back(act.first+"_"+std::to_string(cTask));
-          double rs = simulation(horizon,gplan,ns,gtasks,-1,domain,g,h);
+          double rs = simulation(gplan,ns,gtasks,-1,domain,g);
           if (rs > -1.0) {
             return rs;
           }
@@ -150,7 +110,7 @@ simulation(int horizon,
           not_applicable = false;
           std::shuffle(all_gts.begin(),all_gts.end(),g);
           for (auto &gts : all_gts) {
-            double rs = simulation(horizon,plan,state,gts.second,-1,domain,g,h);
+            double rs = simulation(plan,state,gts.second,-1,domain,g);
             if (rs > -1.0) {
               return rs;
             }
@@ -171,7 +131,7 @@ simulation(int horizon,
   else {
     for (auto &[i,gt] : tasks.GTs) {
       if (gt.incoming.empty()) {
-        double rs = simulation(horizon,plan,state,tasks,i,domain,g,h);
+        double rs = simulation(plan,state,tasks,i,domain,g);
         if (rs > -1.0) {
           return rs;
         }
@@ -185,7 +145,6 @@ int expansion(pTree& t,
               int n,
               DomainDef& domain,
               std::mt19937_64& g) {
-
     if (t[n].cTask != -1) {
       int tid = t[n].cTask;
       if (domain.actions.contains(t[n].tasks[tid].head)) {
@@ -269,17 +228,12 @@ int expansion(pTree& t,
 int
 seek_planMCTS(pTree& t,
               TaskTree& tasktree,
-                 int v,
-                 DomainDef& domain,
-                 int R,
-                 int plan_size,
-                 double eps,
-                 int successes,
-                 double prob,
-                 std::mt19937_64& g) {
-
-  std::negative_binomial_distribution<int> nbd(successes,prob);
-  int prev_v;
+              int v,
+              DomainDef& domain,
+              int R,
+              int plan_size,
+              double c,
+              std::mt19937_64& g) {
   int stuck_counter = 10;
   while (!t[v].tasks.empty()) {
     pTree m;
@@ -291,39 +245,42 @@ seek_planMCTS(pTree& t,
     n_node.plan = t[v].plan;
     int w = m.size();
     m[w] = n_node;
-    int hzn = nbd(g);
     for (int i = 0; i < R; i++) {
-      int n = selection(m,w,eps,g);
+      int n = selection(m,w,c,g);
       if (m[n].tasks.empty() && m[n].cTask == -1) {
           backprop(m,n,domain.score(m[n].state,m[n].plan));
       }
       else {
         if (m[n].sims == 0) {
-          auto r = simulation(hzn,
-                               m[n].plan,
-                               m[n].state, 
-                               m[n].tasks, 
-                               m[n].cTask,
-                               domain,
-                               g);
+          auto r = simulation(m[n].plan,
+                              m[n].state, 
+                              m[n].tasks, 
+                              m[n].cTask,
+                              domain,
+                              g);
           if (r == -1.0) {
             m[n].deadend = true;
+            backprop(m,n,0);
           }
-          backprop(m,n,r);
+          else {
+            backprop(m,n,r);
+          }
         }
         else {
           int n_p = expansion(m,n,domain,g);
-          auto r = simulation(hzn,
-                               m[n_p].plan,
-                               m[n_p].state, 
-                               m[n_p].tasks, 
-                               m[n_p].cTask,
-                               domain,
-                               g);
+          auto r = simulation(m[n_p].plan,
+                              m[n_p].state, 
+                              m[n_p].tasks, 
+                              m[n_p].cTask,
+                              domain,
+                              g);
           if (r == -1.0) {
             m[n_p].deadend = true;
+            backprop(m,n_p,0);
           }
-          backprop(m,n_p,r);
+          else {
+            backprop(m,n_p,r);
+          }
         }
       }
     }
@@ -334,11 +291,12 @@ seek_planMCTS(pTree& t,
       }
       continue;
     }
+
     std::vector<int> arg_maxes = {};
     double max = -std::numeric_limits<double>::infinity();
     for (auto const &s : m[w].successors) {
       if (!m[s].deadend) {
-        double mean = m[s].mean;
+        double mean = m[s].score/m[s].sims;
         if (mean >= max) {
           if (mean > max) {
             max = mean;
@@ -351,13 +309,15 @@ seek_planMCTS(pTree& t,
         }
       }
     }
-    if (arg_maxes.empty() || max == -1.0) {
+    if (arg_maxes.empty()) {
       stuck_counter--;
       if (stuck_counter <= 0) {
         throw std::logic_error("Planner is stuck, terminating process!");
       }
       continue;
     }
+    stuck_counter = 10;
+
     int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
     pNode k;
     k.cTask = m[arg_max].cTask;
@@ -433,9 +393,7 @@ cppMCTShop(DomainDef& domain,
            Scorer scorer,
            int R = 30,
            int plan_size = -1,
-           double eps = 0.4,
-           int successes = 19,
-           double prob = 0.75,
+           double c = 1.4142,
            int seed = 4021) {
     domain.set_scorer(scorer);
     pTree t;
@@ -462,7 +420,7 @@ cppMCTShop(DomainDef& domain,
     std::cout << "Initial State:" << std::endl;
     t[v].state.print_facts();
     std::cout << std::endl;
-    auto end = seek_planMCTS(t, tasktree, v, domain, R, plan_size, eps, successes,prob,g);
+    auto end = seek_planMCTS(t, tasktree, v, domain, R, plan_size,c,g);
     std::cout << "Plan:";
     for (auto const& p : t[end].plan) {
       std::cout << " " << p;
