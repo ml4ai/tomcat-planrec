@@ -139,7 +139,7 @@ struct pNode {
     std::vector<int> addedTIDs;
     std::vector<std::string> plan;
     int depth = 0;
-    double mean = 0.0;
+    double score = 0.0;
     int sims = 0;
     int pred = -1;
     bool deadend = false;
