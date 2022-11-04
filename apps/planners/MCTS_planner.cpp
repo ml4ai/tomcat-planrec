@@ -14,9 +14,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
   int plan_size = -1;
   int R = 30;
-  double eps = 0.4;
-  int successes = 19;
-  double prob = 0.75;
+  double c = sqrt(2.0);
   int seed = 2022;
   std::string dom_file = "../domains/transport_domain.hddl";
   std::string prob_file = "../domains/transport_problem.hddl";
@@ -29,12 +27,10 @@ int main(int argc, char* argv[]) {
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int), default = 30")
       ("plan_size,ps",po::value<int>(),"Number of actions to return (int), default value of -1 returns full plan")
-      ("exp_param,e",po::value<double>(),"The exploration parameter for the planner (double), default = 0.4")
+      ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
       ("score_fun,F",po::value<std::string>(),"name of score function (string), default = delivery_one")
-      ("horizon_s,hs",po::value<int>(),"Average depth number for horizon sampler(int), default = 19")
-      ("horizon_prob,hp",po::value<double>(),"Failure probability for horizon sampler(double), default = 0.75")
       ("seed,s", po::value<int>(),"Random Seed (int)")
       ("graph,g",po::bool_switch()->default_value(false),"Creates a task tree graph of the returned plan and saves it as a png, default = false")
       ("graph_file,gf",po::value<std::string>(), "File name for created graph (string), default = name of problem definition")
@@ -58,7 +54,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (vm.count("exp_param")) {
-      eps = vm["exp_param"].as<double>();
+      c = vm["exp_param"].as<double>();
     }
 
     if (vm.count("dom_file")) {
@@ -71,14 +67,6 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("score_fun")) {
       score_fun = vm["score_fun"].as<std::string>();
-    }
-
-    if (vm.count("horizon_s")) {
-      successes = vm["horizon_s"].as<int>();
-    }
-
-    if (vm.count("horizon_prob")) {
-      prob = vm["horizon_prob"].as<double>();
     }
 
     if (vm.count("seed")) {
@@ -105,7 +93,7 @@ int main(int argc, char* argv[]) {
       graph_file = problem.head +".png"; 
     }
     auto start = std::chrono::high_resolution_clock::now();
-    auto results = cppMCTShop(domain,problem,scorers[score_fun],R,plan_size,eps,successes,prob,seed); 
+    auto results = cppMCTShop(domain,problem,scorers[score_fun],R,plan_size,c,seed); 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     cout << "Time taken by planner: "
@@ -114,7 +102,7 @@ int main(int argc, char* argv[]) {
   }
   else {
     auto start = std::chrono::high_resolution_clock::now();
-    cppMCTShop(domain,problem,scorers[score_fun],R,plan_size,eps,successes,prob,seed); 
+    cppMCTShop(domain,problem,scorers[score_fun],R,plan_size,c,seed); 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     cout << "Time taken by planner: "
