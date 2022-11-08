@@ -32,24 +32,29 @@ bool is_subseq(std::vector<std::string> plan, std::vector<std::string> O) {
 }
 
 double
-simulation_rec(std::vector<std::string> given_plan,
+simulation_rec(std::vector<std::string>& given_plan,
                std::vector<std::string> plan,
                KnowledgeBase state,
                TaskGraph tasks,
                int cTask,
                DomainDef& domain,
+               Reach_Map& r_map,
                std::mt19937_64& g) {
 
   if (!is_subseq(plan,given_plan)) {
     return -1.0;
   }
 
-  if ((tasks.empty() && cTask == -1) || given_plan.size() == plan.size()) {
+  if (tasks.empty() && cTask == -1) {
     return domain.score(state,plan);
   }
-
   if (cTask != -1) {
     if (domain.actions.contains(tasks[cTask].head)) {
+      if (plan.size() < given_plan.size()) {
+        if (given_plan[plan.size()].find(tasks[cTask].head) == std::string::npos) {
+          return -1.0;
+        }
+      }
       auto act = domain.actions.at(tasks[cTask].head).apply(state,tasks[cTask].args);
       if (!act.second.empty()) {
         std::shuffle(act.second.begin(),act.second.end(),g);
@@ -59,7 +64,7 @@ simulation_rec(std::vector<std::string> given_plan,
           ns.update_state();
           auto gplan = plan;
           gplan.push_back(act.first+"_"+std::to_string(cTask));
-          double rs = simulation_rec(given_plan,plan,ns,gtasks,-1,domain,g);
+          double rs = simulation_rec(given_plan,gplan,ns,gtasks,-1,domain,r_map,g);
           if (rs > -1.0) {
             return rs;
           }
@@ -74,14 +79,27 @@ simulation_rec(std::vector<std::string> given_plan,
       std::shuffle(task_methods.begin(),task_methods.end(),g);
       bool not_applicable = true;
       for (auto &m : task_methods) {
-        auto all_gts = m.apply(state,tasks[cTask].args,tasks,cTask);
-        if (!all_gts.empty()) {
-          not_applicable = false;
-          std::shuffle(all_gts.begin(),all_gts.end(),g);
-          for (auto &gts : all_gts) {
-            double rs = simulation_rec(given_plan,plan,state,gts.second,-1,domain,g);
-            if (rs > -1.0) {
-              return rs;
+        bool can_reach = false;
+        if (r_map.find(m.get_head()) != r_map.end() && plan.size() < given_plan.size()) {
+          for (auto const& a : r_map[m.get_head()]) {
+            if (given_plan[plan.size()].find(a) != std::string::npos) {
+              can_reach = true;
+            } 
+          } 
+        }
+        else {
+          can_reach = true;
+        }
+        if (can_reach) {
+          auto all_gts = m.apply(state,tasks[cTask].args,tasks,cTask);
+          if (!all_gts.empty()) {
+            not_applicable = false;
+            std::shuffle(all_gts.begin(),all_gts.end(),g);
+            for (auto &gts : all_gts) {
+              double rs = simulation_rec(given_plan,plan,state,gts.second,-1,domain,r_map,g);
+              if (rs > -1.0) {
+                return rs;
+              }
             }
           }
         }
@@ -100,9 +118,22 @@ simulation_rec(std::vector<std::string> given_plan,
   else {
     for (auto &[i,gt] : tasks.GTs) {
       if (gt.incoming.empty()) {
-        double rs = simulation_rec(given_plan,plan,state,tasks,i,domain,g);
-        if (rs > -1.0) {
-          return rs;
+        bool can_reach = false;
+        if (r_map.find(gt.head) != r_map.end() && plan.size() < given_plan.size()) {
+          for (auto const& a : r_map[gt.head]) {
+            if (given_plan[plan.size()].find(a) != std::string::npos) {
+              can_reach = true;
+            }
+          }
+        }
+        else {
+          can_reach = true;
+        }
+        if (can_reach) {
+          double rs = simulation_rec(given_plan,plan,state,tasks,i,domain,r_map,g);
+          if (rs > -1.0) {
+            return rs;
+          }
         }
       }
     }
@@ -110,6 +141,128 @@ simulation_rec(std::vector<std::string> given_plan,
   return -1.0;
 }
 
+int expansion_rec(std::vector<std::string> given_plan,
+                  pTree& t,
+                  int n,
+                  DomainDef& domain,
+                  Reach_Map r_map,
+                  std::mt19937_64& g) {
+    if (t[n].cTask != -1) {
+      int tid = t[n].cTask;
+      if (domain.actions.contains(t[n].tasks[tid].head)) {
+        if (t[n].plan.size() < given_plan.size()) {
+          if (given_plan[t[n].plan.size()].find(t[n].tasks[tid].head) == std::string::npos) {
+            return n;
+          }
+        }
+        auto act = domain.actions.at(t[n].tasks[tid].head).apply(t[n].state,t[n].tasks[tid].args);
+        if (!act.second.empty()) {
+          std::vector<int> a;
+          for (auto const& state : act.second) {
+            pNode v;
+            v.state = state;
+            v.state.update_state();
+            v.tasks = t[n].tasks;
+            v.tasks.remove_node(tid);
+            v.depth = t[n].depth + 1;
+            v.plan = t[n].plan;
+            v.plan.push_back(act.first+"_"+std::to_string(tid));
+            v.pred = n;
+            int w = t.size();
+            t[w] = v;
+            t[n].successors.push_back(w);
+            a.push_back(w);
+          }
+          int r = *select_randomly(a.begin(), a.end(), g);
+          return r;
+        }
+        t[n].deadend = true;
+        return n;
+      }
+
+      if (domain.methods.contains(t[n].tasks[tid].head)) {
+        std::vector<int> choices;
+        for (auto &m : domain.methods[t[n].tasks[tid].head]) {
+          bool can_reach = false;
+          if (r_map.find(m.get_head()) != r_map.end() && t[n].plan.size() < given_plan.size()) {
+            for (auto const& a : r_map[m.get_head()]) {
+              if (given_plan[t[n].plan.size()].find(a) != std::string::npos) {
+                can_reach = true;
+              }
+            }
+          }
+          else {
+            can_reach = true;
+          }
+          if (can_reach) {
+            auto gts = m.apply(t[n].state,t[n].tasks[tid].args,t[n].tasks,tid);
+            for (auto &g : gts) {
+              pNode v;
+              v.state = t[n].state;
+              v.tasks = g.second;
+              v.depth = t[n].depth + 1;
+              v.plan = t[n].plan;
+              v.addedTIDs = g.first;
+              v.prevTID = tid;
+              v.pred = n;
+              int w = t.size();
+              t[w] = v;
+              t[n].successors.push_back(w);
+              choices.push_back(w);
+            }
+          }
+        }
+        if (choices.empty()) {
+          t[n].deadend = true;
+          return n;
+        }
+        int r = *select_randomly(choices.begin(), choices.end(), g);
+        return r;
+      }
+      throw std::logic_error("Invalid task during expansion!");
+    }
+    else {
+      std::vector<int> gts;
+      for (auto const& [id,gt] : t[n].tasks.GTs) {
+        if (gt.incoming.empty()) {
+          bool can_reach = false;
+          if (r_map.find(gt.head) != r_map.end() && t[n].plan.size() < given_plan.size()) {
+            for (auto const& a : r_map[gt.head]) {
+              if (given_plan[t[n].plan.size()].find(a) != std::string::npos) {
+                can_reach = true;
+              }
+            }
+          }
+          else {
+            can_reach = true;
+          }
+          if (can_reach) {
+            pNode v;
+            v.cTask = id;
+            v.state = t[n].state;
+            v.tasks = t[n].tasks;
+            v.depth = t[n].depth + 1;
+            v.plan = t[n].plan;
+            v.pred = n;
+            int w = t.size();
+            t[w] = v;
+            t[n].successors.push_back(w);
+            gts.push_back(w);
+          }
+        }
+      }
+      if (!gts.empty()) {
+        int r = *select_randomly(gts.begin(), gts.end(), g);
+        return r;
+      }
+      else {
+        t[n].deadend = true;
+        return n;
+      }
+    }
+    t[n].deadend = true;
+    return n;
+}
 
 int
 seek_planrecMCTS(pTree& t,
@@ -117,13 +270,14 @@ seek_planrecMCTS(pTree& t,
                  TaskTree& tasktree,
                  int v,
                  DomainDef& domain,
+                 Reach_Map& r_map,
                  int R,
                  double c,
                  int pred,
                  std::mt19937_64& g) {
-  int stuck_counter = 10;
+  int stuck_counter = 1000;
   int g_p_size = given_plan.size();
-  bool pred_mode = false;
+  bool plan_break = false;
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
@@ -134,37 +288,19 @@ seek_planrecMCTS(pTree& t,
     n_node.plan = t[v].plan;
     int w = m.size();
     m[w] = n_node;
-    for (int i = 0; i < R; i++) {
-      int n = selection(m,w,c,g);
-      if ((m[n].tasks.empty() && m[n].cTask == -1 ) || (m[n].plan.size() == g_p_size && !pred_mode)) {
-        if (is_subseq(m[n].plan,given_plan)) {
-          backprop(m,n,domain.score(m[n].state,m[n].plan));
-        }
-        else {
-          backprop(m,n,0);
-          m[n].deadend = true;
-        }
-      }
-      else {
+    while(true) {
+      for (int i = 0; i < R; i++) {
+        int n = selection(m,w,c,g);
         if (m[n].sims == 0) {
-          double r;
-          if (pred_mode) {
-            r = simulation(m[n].plan,
-                           m[n].state,
-                           m[n].tasks,
-                           m[n].cTask,
-                           domain,
-                           g); 
-          }
-          else {
-            r = simulation_rec(given_plan,
-                               m[n].plan,
-                               m[n].state, 
-                               m[n].tasks, 
-                               m[n].cTask,
-                               domain,
-                               g);
-          }
+          double r = simulation_rec(given_plan,
+                                    m[n].plan,
+                                    m[n].state, 
+                                    m[n].tasks, 
+                                    m[n].cTask,
+                                    domain,
+                                    r_map,
+                                    g);
+      
           if (r == -1.0) {
             m[n].deadend = true;
             backprop(m,n,0);
@@ -174,25 +310,15 @@ seek_planrecMCTS(pTree& t,
           }
         }
         else {
-          int n_p = expansion(m,n,domain,g);
-          double r;
-          if (pred_mode) {
-            r = simulation(m[n_p].plan,
-                           m[n_p].state,
-                           m[n_p].tasks,
-                           m[n_p].cTask,
-                           domain,
-                           g);
-          }
-          else {
-            r = simulation_rec(given_plan,
-                               m[n_p].plan,
-                               m[n_p].state, 
-                               m[n_p].tasks, 
-                               m[n_p].cTask,
-                               domain,
-                               g);
-          }
+          int n_p = expansion_rec(given_plan,m,n,domain,r_map,g);
+          double r = simulation_rec(given_plan,
+                                    m[n_p].plan,
+                                    m[n_p].state, 
+                                    m[n_p].tasks, 
+                                    m[n_p].cTask,
+                                    domain,
+                                    r_map,
+                                    g);
           if (r == -1.0) {
             m[n_p].deadend = true;
             backprop(m,n_p,0);
@@ -202,106 +328,96 @@ seek_planrecMCTS(pTree& t,
           }
         }
       }
-    }
-    if (m[w].successors.empty()) {
-      stuck_counter--;
-      if (stuck_counter <= 0) {
-        throw std::logic_error("Planner is stuck, terminating process!");
+      if (m[w].successors.empty()) {
+        stuck_counter--;
+        if (stuck_counter <= 0) {
+          throw std::logic_error("Planner is stuck, terminating process!");
+        }
+        continue;
       }
-      continue;
-    }
 
-    std::vector<int> arg_maxes = {};
-    double max = -std::numeric_limits<double>::infinity();
-    for (auto const &s : m[w].successors) {
-      if (!m[s].deadend) {
-        double mean = m[s].score/m[s].sims;
-        if (mean >= max) {
-          if (mean > max) {
-            max = mean;
-            arg_maxes.clear();
-            arg_maxes.push_back(s);
-          }
-          else {
-            arg_maxes.push_back(s); 
+      std::vector<int> arg_maxes = {};
+      double max = -std::numeric_limits<double>::infinity();
+      for (auto const &s : m[w].successors) {
+        if (!m[s].deadend) {
+          double mean = m[s].score/m[s].sims;
+          if (mean >= max) {
+            if (mean > max) {
+              max = mean;
+              arg_maxes.clear();
+              arg_maxes.push_back(s);
+            }
+            else {
+              arg_maxes.push_back(s); 
+            }
           }
         }
       }
-    }
-    if (arg_maxes.empty()) {
-      stuck_counter--;
-      if (stuck_counter <= 0) {
-        throw std::logic_error("Planner is stuck, terminating process!");
-      }
-      continue;
-    }
-    stuck_counter = 10;
-
-    int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
-    pNode k;
-    k.cTask = m[arg_max].cTask;
-    k.state = m[arg_max].state;
-    k.tasks = m[arg_max].tasks;
-    k.plan = m[arg_max].plan;
-    k.depth = t[v].depth + 1;
-    for (auto& i : m[arg_max].addedTIDs) {
-      TaskNode tasknode;
-      tasknode.task = k.tasks[i].head;
-      tasknode.token = k.tasks[i].to_string();
-      tasknode.outgoing = k.tasks[i].outgoing;
-      tasktree[i] = tasknode;
-      tasktree[m[arg_max].prevTID].children.push_back(i);
-    }
-    k.pred = v;
-    int y = t.size();
-    t[y] = k;
-    t[v].successors.push_back(y);
-    v = y;
-    int t_p_size = t[v].plan.size();
-    if (pred > 0) {
-      if (t_p_size == g_p_size) {
-        pred_mode = true;
-      } 
-    }
-    if (t_p_size - g_p_size == pred) {
-      break;
-    }
-      
-    bool plan_break = false;
-    while (m[arg_max].successors.size() == 1) {
-      if (m[arg_max].deadend) {
+      if (arg_maxes.empty() || max <= 0) {
+        stuck_counter--;
+        if (stuck_counter <= 0) {
+          throw std::logic_error("Planner is stuck, terminating process!");
+        }
         continue;
       }
-      arg_max = m[arg_max].successors.front();
-      pNode j;
-      j.cTask = m[arg_max].cTask;
-      j.state = m[arg_max].state;
-      j.tasks = m[arg_max].tasks;
-      j.plan = m[arg_max].plan;
-      j.depth = t[v].depth + 1;
+      stuck_counter = 1000;
+
+      int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
+      pNode k;
+      k.cTask = m[arg_max].cTask;
+      k.state = m[arg_max].state;
+      k.tasks = m[arg_max].tasks;
+      k.plan = m[arg_max].plan;
+      k.depth = t[v].depth + 1;
       for (auto& i : m[arg_max].addedTIDs) {
         TaskNode tasknode;
-        tasknode.task = j.tasks[i].head;
-        tasknode.token = j.tasks[i].to_string();
-        tasknode.outgoing = j.tasks[i].outgoing;
+        tasknode.task = k.tasks[i].head;
+        tasknode.token = k.tasks[i].to_string();
+        tasknode.outgoing = k.tasks[i].outgoing;
         tasktree[i] = tasknode;
         tasktree[m[arg_max].prevTID].children.push_back(i);
       }
-      j.pred = v;
+      k.pred = v;
       int y = t.size();
-      t[y] = j;
+      t[y] = k;
       t[v].successors.push_back(y);
       v = y;
-      t_p_size = t[v].plan.size();
-      if (pred > 0) {
-        if (t_p_size == g_p_size) {
-          pred_mode = true;
-        }
-      }
-      if (t_p_size - g_p_size == pred) {
+      int t_p_size = t[v].plan.size();
+      if ((t_p_size - g_p_size) == pred) {
         plan_break = true;
         break;
       }
+      while (m[arg_max].successors.size() == 1) {
+        if (m[arg_max].deadend) {
+          break;
+        }
+        arg_max = m[arg_max].successors.front();
+        pNode j;
+        j.cTask = m[arg_max].cTask;
+        j.state = m[arg_max].state;
+        j.tasks = m[arg_max].tasks;
+        j.plan = m[arg_max].plan;
+        j.depth = t[v].depth + 1;
+        for (auto& i : m[arg_max].addedTIDs) {
+          TaskNode tasknode;
+          tasknode.task = j.tasks[i].head;
+          tasknode.token = j.tasks[i].to_string();
+          tasknode.outgoing = j.tasks[i].outgoing;
+          tasktree[i] = tasknode;
+          tasktree[m[arg_max].prevTID].children.push_back(i);
+        }
+        j.pred = v;
+        int y = t.size();
+        t[y] = j;
+        t[v].successors.push_back(y);
+        v = y;
+        t_p_size = t[v].plan.size();
+        if (t_p_size - g_p_size == pred) {
+          plan_break = true;
+          break;
+        }
+      }
+      break;
     }
     if (plan_break) {
       break;
@@ -315,6 +431,7 @@ Results
 cppMCTSplanrec(DomainDef& domain,
               ProblemDef& problem,
               std::vector<std::string> given_plan,
+              Reach_Map& r_map,
               Scorer scorer,
               int R = 30,
               double c = 1.4,
@@ -346,6 +463,7 @@ cppMCTSplanrec(DomainDef& domain,
                                 tasktree, 
                                 v, 
                                 domain, 
+                                r_map,
                                 R, 
                                 c, 
                                 pred,
