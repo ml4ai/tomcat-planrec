@@ -1,5 +1,6 @@
 #include "../../domains/score_functions.h"
 #include "../../domains/pr_samples.h"
+ #include "../../domains/r_maps.h"
 #include <math.h>
 #include <stdlib.h>
 #include <istream>
@@ -18,7 +19,8 @@ int main(int argc, char* argv[]) {
   int seed = 2022;
   std::string dom_file = "../domains/transport_domain.hddl";
   std::string prob_file = "../domains/transport_problem.hddl";
-  std::string score_fun = "delivery_one_rec";
+  std::string score_fun = "delivery_one";
+  std::string r_map = "transport_reach_map";
   std::string sample = "delivery_sample";
   try {
     po::options_description desc("Allowed options");
@@ -29,6 +31,7 @@ int main(int argc, char* argv[]) {
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
       ("score_fun,F",po::value<std::string>(),"name of score function (string), default = delivery_one")
+      ("reach_map,m",po::value<std::string>(),"name of reachability map (string), default = transport_reach_map")
       ("sample,S",po::value<std::string>(),"Plan Rec sample (string), default = delivery_sample")
       ("seed,s", po::value<int>(),"Random Seed (int)")
     ;
@@ -62,6 +65,10 @@ int main(int argc, char* argv[]) {
       score_fun = vm["score_fun"].as<std::string>();
     }
 
+    if (vm.count("reach_map")) {
+      r_map = vm["reach_map"].as<std::string>();
+    }
+
     if (vm.count("seed")) {
       seed = vm["seed"].as<int>();
     }
@@ -88,7 +95,7 @@ int main(int argc, char* argv[]) {
     auto last = pr_samples[sample].begin() + i;
     std::vector<std::string> given_plan(first,last);
     std::string ground_truth = pr_samples[sample][i];
-    auto results = cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,c,seed,1); 
+    auto results = cppMCTSplanrec(domain,problem,given_plan,reach_maps[r_map],scorers[score_fun],R,c,seed,1); 
     std::string pred = results.t[results.end].plan.back();
     cout << "Observations: " << given_plan.size() << ", ";
     if (pred.find(ground_truth) != std::string::npos) {

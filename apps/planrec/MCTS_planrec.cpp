@@ -1,5 +1,6 @@
 #include "../../domains/score_functions.h"
 #include "../../domains/pr_samples.h"
+#include "../../domains/r_maps.h"
 #include <math.h>
 #include <stdlib.h>
 #include <istream>
@@ -18,7 +19,8 @@ int main(int argc, char* argv[]) {
   int seed = 2022;
   std::string dom_file = "../domains/transport_domain.hddl";
   std::string prob_file = "../domains/transport_problem.hddl";
-  std::string score_fun = "delivery_one_rec";
+  std::string score_fun = "delivery_one";
+  std::string r_map = "transport_reach_map";
   std::string sample = "delivery_sample";
   int sample_size = 2;
   bool graph = false;
@@ -31,7 +33,8 @@ int main(int argc, char* argv[]) {
       ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
-      ("score_fun,F",po::value<std::string>(),"name of score function (string), default = delivery_one")
+      ("score_fun,F",po::value<std::string>(),"name of score function for (string), default = delivery_one")
+      ("reach_map,m",po::value<std::string>(),"name of reachability map (string), default = transport_reach_map")
       ("sample,S",po::value<std::string>(),"Plan Rec sample (string), default = delivery_sample")
       ("sample_size,ss",po::value<int>(),"sample size for Plan Rec sample (int), default = 2")
       ("seed,s", po::value<int>(),"Random Seed (int)")
@@ -66,6 +69,10 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("score_fun")) {
       score_fun = vm["score_fun"].as<std::string>();
+    }
+
+    if (vm.count("reach_map")) {
+      r_map = vm["reach_map"].as<std::string>();
     }
 
     if (vm.count("seed")) {
@@ -103,7 +110,7 @@ int main(int argc, char* argv[]) {
       graph_file = problem.head +".png"; 
     }
     auto start = std::chrono::high_resolution_clock::now();
-    auto results = cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,c,seed); 
+    auto results = cppMCTSplanrec(domain,problem,given_plan,reach_maps[r_map],scorers[score_fun],R,c,seed); 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     cout << "Time taken by plan recognizer: "
@@ -112,7 +119,7 @@ int main(int argc, char* argv[]) {
   }
   else {
     auto start = std::chrono::high_resolution_clock::now();
-    cppMCTSplanrec(domain,problem,given_plan,scorers[score_fun],R,c,seed); 
+    cppMCTSplanrec(domain,problem,given_plan,reach_maps[r_map],scorers[score_fun],R,c,seed); 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     cout << "Time taken by plan recognizer: "
