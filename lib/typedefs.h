@@ -41,6 +41,8 @@ using TaskDefs = std::unordered_map<std::string,TaskDef>;
 using Objects = std::unordered_map<std::string,std::string>;
 using Scorer = double (*)(KnowledgeBase&,std::vector<std::string>&);
 using Scorers = std::unordered_map<std::string, Scorer>;
+using Reach_Map = std::unordered_map<std::string,std::vector<std::string>>;
+using Reach_Maps = std::unordered_map<std::string,Reach_Map>;
 using ID = std::string;
 
 struct Grounded_Task {
@@ -563,6 +565,7 @@ struct DomainDef {
   MethodDefs methods;
   Objects constants;
   Scorer scorer;
+  Scorer rec_scorer;
   DomainDef(std::string head,
             TypeTree typetree,
             Predicates predicates,
@@ -580,8 +583,16 @@ struct DomainDef {
     this->scorer = scorer;
   }
 
+  void set_rec_scorer(Scorer scorer) {
+    this->rec_scorer = scorer;
+  }
+
   double score(KnowledgeBase& state, std::vector<std::string>& plan) {
     return this->scorer(state,plan); 
+  }
+
+  double rec_score(KnowledgeBase& state, std::vector<std::string>& plan) {
+    return this->rec_scorer(state,plan);
   }
 };
 
