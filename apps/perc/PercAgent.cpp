@@ -3,6 +3,7 @@
 #include "file.hpp"
 #include <iostream>
 
+
 using namespace std;
 namespace json = boost::json;
 
@@ -99,448 +100,145 @@ vector<std::string> split_player_name(std::string str) {
     return array;
 }
 
-void process_fov(KnowledgeBase &kb, const std::string &role, std::queue<int> que) {
-    std::queue<int> tmp_queue;
-    std::set<int> tmp_set;
-    tmp_queue = que;
-    std::string new_knowledge;
-
-    while (!tmp_queue.empty()) {
-        new_knowledge = "(fov_victim " + role;
-        if (tmp_queue.front() == -1 or (tmp_set.find(tmp_queue.front()) != tmp_set.end())) {
-            tmp_queue.pop();
-        } else {
-            new_knowledge += " vic_" + to_string(tmp_queue.front());
-            tmp_queue.pop();
-        }
-        kb.tell(new_knowledge, false, false);
-    }
-    kb.update_state();
-}
-
 void PercAgent::process(mqtt::const_message_ptr msg) {
     json::value jv = json::parse(msg->to_string()).as_object();
-    std::string new_knowledge;
-//    cout << msg->get_topic() << endl;
-    if (msg->get_topic() == "ground_truth/mission/victims_list") {
-        std::vector<std::string> vic_types;
-        for (const auto &v: jv.at_pointer("/data/mission_victim_list").as_array()) {
-            if (v.at("block_type").as_string() == "block_victim_proximity") {
-                vic_types.emplace_back("c");
-            } else if (v.at("block_type").as_string() == "block_victim_1") {
-                vic_types.emplace_back("a");
-            } else {
-                vic_types.emplace_back("b");
+    if (msg->get_topic() == "observations/events/mission") {
+      try {
+        if (jv.at_pointer("/data/mission_state").as_string().find("Start") != std::string::npos) {
+          std::string time = jv.at_pointer("/msg/timestamp").as_string();
+          time = time.substr(time.find("T") + 1); 
+          time = time.substr(0,time.find("Z"));
+          this->initial_time = Time(time);
+        }
+      }
+      catch (exception &exc) {
+        cout << exc.what() << endl;
+      }
+    }
+    if (msg->get_topic() == "agent/pygl_fov/player/3d/summary") {
+      try {
+        auto player_color = split_player_name(jv.at_pointer("/data/playername").as_string().c_str()).at(0);
+        std::string time = jv.at_pointer("/msg/timestamp").as_string();
+        time = time.substr(time.find("T") + 1);
+        time = time.substr(0,time.find("Z"));
+        Time msg_time(time);
+        if (player_color == "RED") {
+          std::vector<std::pair<std::string,std::string>> fov;
+          for (auto v: jv.at_pointer("/data/blocks").as_array()) {
+            std::pair<std::string,std::string> percept;
+            if (v.at_pointer("/type").as_string().find("block_victim_regular") != std::string::npos) {
+              percept.first = "victim_regular";
+              percept.second = "(fov_victim_regular medic vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+
             }
-        }
-        std::string knowledge;
-        for (int i = 0; i < vic_types.size(); i++) {
-            knowledge = "(victim_type vic_" + to_string(i + 1) + " " + vic_types[i] + ")";
-            this->kb.tell(knowledge,false,false);
-        }
-        this->kb.update_state();
-    } else if (msg->get_topic() == "observations/events/player/location") {
-        try {
-            if (jv.at_pointer("/data").as_object().contains("locations")) {
-//                pretty_print(std::cout, jv.at("msg").at("sub_type"));
-//                pretty_print(std::cout, jv.at("data").at("callsign"));
-//                pretty_print(
-//                    std::cout,
-//                    jv.at("data")
-//                        .at("locations")
-//                        .at(jv.at("data").at("locations").as_array().size() - 1)
-//                        .at("id"));
-                new_knowledge = "(player_at ";
-                std::string old_knowledge = "(player_at ";
-                auto role = boost::json::value_to<std::string>(
-                        jv.at_pointer("/data/callsign"));
-                if (role == "Red") {
-                    new_knowledge += "medic ";
-                    old_knowledge += "medic "; 
-                } else if (role == "Green") {
-                    new_knowledge += "transporter ";
-                    old_knowledge += "transporter ";
-                } else {
-                    new_knowledge += "engineer ";
-                    old_knowledge += "engineer ";
-                }
-                new_knowledge += boost::json::value_to<std::string>(
-                        jv.at("data")
-                                .at("locations")
-                                .at(jv.at("data").at("locations").as_array().size() - 1)
-                                .at("id"));
-                new_knowledge += ")";
-                auto bindings = this->kb.ask(old_knowledge+"?l)",{{"?l","location"}});
-                //There should only be one binding for the players previous
-                //location
-                auto b = bindings.back();
-                //Deletes predicate for players old location
-                this->kb.tell(old_knowledge+b.at("?l")+")",true,false);
-                //Adds predicate for players new location
-                this->kb.tell(new_knowledge,false,false);
-                this->kb.update_state();
+            if (v.at_pointer("/type").as_string().find("block_victim_proximity") != std::string::npos) {
+              percept.first = "victim_critical";
+              percept.second = "(fov_victim_critical medic vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
             }
-        }
-        catch (exception &exc) {
-            cout << exc.what() << endl;
-//            pretty_print(std::cout, jv);
-        }
-    } else if (msg->get_topic() == "observations/events/player/rubble_collapse") {
-        try {
-            pretty_print(std::cout, jv.at_pointer("/msg/sub_type"));
-            pretty_print(std::cout, jv.at_pointer("/data/playername"));
-            pretty_print(std::cout, jv.at_pointer("/data/fromBlock_x"));
-            pretty_print(std::cout, jv.at_pointer("/data/fromBlock_z"));
-            auto player_color =
-                    split_player_name(
-                            jv.at_pointer("/data/playername").as_string().c_str())
-                            .at(0);
-            if (player_color == "RED") {
-                this->medic_trapped_coord.at(0) =
-                        (int) jv.at_pointer("/data/fromBlock_x").as_int64();
-                this->medic_trapped_coord.at(1) =
-                        (int) jv.at_pointer("/data/fromBlock_z").as_int64();
-            } else if (player_color == "GREEN") {
-                this->transporter_trapped_coord.at(0) =
-                        (int) jv.at_pointer("/data/fromBlock_x").as_int64();
-                this->transporter_trapped_coord.at(1) =
-                        (int) jv.at_pointer("/data/fromBlock_z").as_int64();
-            } else {
-                this->engineer_trapped_coord.at(0) =
-                        (int) jv.at_pointer("/data/fromBlock_x").as_int64();
-                this->engineer_trapped_coord.at(1) =
-                        (int) jv.at_pointer("/data/fromBlock_z").as_int64();
+            if (v.at_pointer("/type").as_string().find("block_victim_saved") != std::string::npos) {
+              percept.first = "victim_saved";
+              percept.second = "(fov_victim_saved medic vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
             }
-            new_knowledge = "(player_status ";
-            std::string old_knowledge = "(player_status ";
-            if (player_color == "RED") {
-                new_knowledge += "medic trapped)";
-                old_knowledge += "medic safe)";
-            } else if (player_color == "GREEN") {
-                new_knowledge += "transporter trapped)";
-                old_knowledge += "transporter safe)";
-            } else {
-                new_knowledge += "engineer trapped)";
-                old_knowledge += "engineer safe)";
+          }
+        }
+        else if (player_color == "BLUE") {
+          for (auto v: jv.at_pointer("/data/blocks").as_array()) {
+            if (v.at_pointer("/type").as_string().find("block_victim_regular") != std::string::npos) {
             }
-            //These lines deletes the fact that theplayer is safe 
-            //and adds the fact that the player is now
-            //trapped
-            this->kb.tell(old_knowledge,true,false);
-            this->kb.tell(new_knowledge,false,false);
-            this->kb.update_state();
-        }
-
-        catch (exception &exc) {
-            cout << exc.what() << endl;
-            pretty_print(std::cout, jv);
-            cout << endl;
-        }
-    } else if (msg->get_topic() ==
-               "observations/events/player/rubble_destroyed") {
-        try {
-            pretty_print(std::cout, jv.at_pointer("/msg/sub_type"));
-            pretty_print(std::cout, jv.at_pointer("/data/rubble_x"));
-            pretty_print(std::cout, jv.at_pointer("/data/rubble_z"));
-
-            auto rubble_x = (int) jv.at_pointer("/data/rubble_x").as_int64();
-            auto rubble_z = (int) jv.at_pointer("/data/rubble_z").as_int64();
-            new_knowledge = "(player_status";
-            if (rubble_x == this->medic_trapped_coord.at(0) and
-                rubble_z == this->medic_trapped_coord.at(1)) {
-                new_knowledge += " medic safe)";
-                this->medic_trapped_coord.at(0) = 0;
-                this->medic_trapped_coord.at(1) = 0;
-                this->kb.tell("(player_status medic trapped)",true,false);
-                this->kb.tell(new_knowledge,false,false);
-                this->kb.update_state();
-            } else if (rubble_x == this->transporter_trapped_coord.at(0) and
-                       rubble_z == this->transporter_trapped_coord.at(1)) {
-                new_knowledge += " transporter safe)";
-                this->transporter_trapped_coord.at(0) = 0;
-                this->transporter_trapped_coord.at(1) = 0;
-                this->kb.tell("(player_status transporter trapped)",true,false);
-                this->kb.tell(new_knowledge,false,false);
-                this->kb.update_state();
-            } else if (rubble_x == this->engineer_trapped_coord.at(0) and
-                       rubble_z == this->engineer_trapped_coord.at(1)) {
-                new_knowledge += " engineer safe)";
-                this->engineer_trapped_coord.at(0) = 0;
-                this->engineer_trapped_coord.at(1) = 0;
-                //These lines deletes the fact that player is trapped and adds
-                //the fact that they are now safe
-                this->kb.tell("(player_status engineer trapped)",true,false);
-                this->kb.tell(new_knowledge,false,false);
-                this->kb.update_state();
+            if (v.at_pointer("/type").as_string().find("block_victim_proximity") != std::string::npos) {
             }
+            if (v.at_pointer("/type").as_string().find("block_victim_saved") != std::string::npos) {
+            }
+          }
         }
-        catch (exception &exc) {
-            cout << exc.what() << endl;
-            pretty_print(std::cout, jv);
+        else {
+          for (auto v: jv.at_pointer("/data/blocks").as_array()) {
+            if (v.at_pointer("/type").as_string().find("block_victim_regular") != std::string::npos) {
+            }
+            if (v.at_pointer("/type").as_string().find("block_victim_proximity") != std::string::npos) {
+            }
+            if (v.at_pointer("/type").as_string().find("block_victim_saved") != std::string::npos) {
+            }
+          }
         }
-    } else if (msg->get_topic() ==
-               "agent/pygl_fov/player/3d/summary") {
-        try {
-            for (auto v: jv.at_pointer("/data/blocks").as_array()) {
-                if (this->fov_medic.size() == FOV_STACK_SIZE) {
-                    //These lines removes all instances of (fov_victim medic ?v) for all
-                    //?v - victim
-                    //This is what I assumed to be the original functionality
-                    //of clear_fov_facts() - Loren
-                    std::vector<std::pair<std::string,std::string>> v_arg = {std::make_pair("?v","Victim")};
-                    auto v_bindings = this->kb.ask("(fov_victim medic ?v)",v_arg);
-                    for (auto const& b : v_bindings) {
-                      this->kb.tell("(fov_victim medic "+b[0].second+")",true,false);
-                    }
-                    this->kb.tell("(fov_rubble medic)",true,false);
-                    std::vector<std::pair<std::string,std::string>> m_arg = {std::make_pair("?m","Marker_Type")};
-                    auto m_bindings = this->kb.ask("(fov_marker medic ?m)",m_arg);
-                    for (auto const& b : m_bindings) {
-                      this->kb.tell("(fov_marker medic "+b[0].second+")",true,false);
-                    }
-                    set<int> int_set(this->fov_medic.begin(), this->fov_medic.end());
-//                    this->fov_medic.assign(int_set.begin(), int_set.end());
-                    for (auto obj: int_set) {
-                        if (obj >= 0) {
-                            new_knowledge = "(fov_victim medic vic_" + to_string(obj) + ")";
-                            this->kb.tell(new_knowledge,false,false);
-                        } else if (obj == -10) {
-                            new_knowledge = "(fov_rubble medic)";
-                            this->kb.tell(new_knowledge,false,false);
-                        } else if (obj <= -100) {
-                            // {"novictim": -101, "regularvictim": -102, "criticalvictim": -103, "threat": -104, "bonedamage": -105}
-                            if (obj == -101) {
-                                new_knowledge = "(fov_marker medic novictim)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -102) {
-                                new_knowledge = "(fov_marker medic regularvictim)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -103) {
-                                new_knowledge = "(fov_marker medic criticalvictim)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -104) {
-                                new_knowledge = "(fov_marker medic threat)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -105) {
-                                new_knowledge = "(fov_marker medic bonedamage)";
-                                this->kb.tell(new_knowledge,false,false);
-                            }
-                        }
-
-                    }
-                    this->kb.update_state();
-                    this->fov_medic = {};
-                } else if (this->fov_engineer.size() == FOV_STACK_SIZE) {
-                    //These lines remove all instances of (fov_victim engineer ?v) for all
-                    //?v - victim
-                    //This is what I assumed to be the original functionality
-                    //of clear_fov_facts() - Loren
-                    std::vector<std::pair<std::string,std::string>> v_arg = {std::make_pair("?v","Victim")};
-                    auto v_bindings = this->kb.ask("(fov_victim engineer ?v)",v_arg);
-                    for (auto const& b : v_bindings) {
-                      this->kb.tell("(fov_victim engineer "+b[0].second+")",true,false);
-                    }
-                    this->kb.tell("(fov_rubble engineer)",true,false);
-                    std::vector<std::pair<std::string,std::string>> m_arg = {std::make_pair("?m","Marker_Type")};
-                    auto m_bindings = this->kb.ask("(fov_marker engineer ?m)",m_arg);
-                    for (auto const& b : m_bindings) {
-                      this->kb.tell("(fov_marker engineer "+b[0].second+")",true,false);
-                    }
-                    set<int> int_set(this->fov_engineer.begin(), this->fov_engineer.end());
-//                    this->fov_engineer.assign(int_set.begin(), int_set.end());
-                    for (auto obj: int_set) {
-                        if (obj >= 0) {
-                            new_knowledge = "(fov_victim engineer vic_" + to_string(obj) + ")";
-                            this->kb.tell(new_knowledge,false,false);
-                        } else if (obj == -10) {
-                            new_knowledge = "(fov_rubble engineer)";
-                            this->kb.tell(new_knowledge,false,false);
-                        } else if (obj <= -100) {
-                            // {"novictim": -101, "regularvictim": -102, "criticalvictim": -103, "threat": -104, "bonedamage": -105}
-                            if (obj == -101) {
-                                new_knowledge = "(fov_marker engineer novictim)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -102) {
-                                new_knowledge = "(fov_marker engineer regularvictim)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -103) {
-                                new_knowledge = "(fov_marker engineer criticalvictim)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -104) {
-                                new_knowledge = "(fov_marker engineer threat)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -105) {
-                                new_knowledge = "(fov_marker engineer bonedamage)";
-                                this->kb.tell(new_knowledge,false,false);
-                            }
-                        }
-
-                    }
-                    this->kb.update_state();
-                    this->fov_engineer = {};
-                } else if (this->fov_transporter.size() == FOV_STACK_SIZE) {
-                    //These lines remove all instances of (fov_victim transporter ?v) for all
-                    //?v - victim
-                    //This is what I assumed to be the original functionality
-                    //of clear_fov_facts() - Loren
-                    std::vector<std::pair<std::string,std::string>> v_arg = {std::make_pair("?v","Victim")};
-                    auto v_bindings = this->kb.ask("(fov_victim transporter ?v)",v_arg);
-                    for (auto const& b : v_bindings) {
-                      this->kb.tell("(fov_victim transporter "+b[0].second+")",true,false);
-                    }
-                    this->kb.tell("(fov_rubble transporter)",true,false);
-                    std::vector<std::pair<std::string,std::string>> m_arg = {std::make_pair("?m","Marker_Type")};
-                    auto m_bindings = this->kb.ask("(fov_marker transporter ?m)",m_arg);
-                    for (auto const& b : m_bindings) {
-                      this->kb.tell("(fov_marker transporter "+b[0].second+")",true,false);
-                    }
-                    set<int> int_set(this->fov_transporter.begin(), this->fov_transporter.end());
-//                    this->fov_transporter.assign(int_set.begin(), int_set.end());
-                    for (auto obj: int_set) {
-                        if (obj >= 0) {
-                            new_knowledge = "(fov_victim transporter vic_" + to_string(obj) + ")";
-                            this->kb.tell(new_knowledge,false,false);
-                        } else if (obj == -10) {
-                            new_knowledge = "(fov_rubble transporter)";
-                            this->kb.tell(new_knowledge,false,false);
-                        } else if (obj <= -100) {
-                            // {"novictim": -101, "regularvictim": -102, "criticalvictim": -103, "threat": -104, "bonedamage": -105}
-                            if (obj == -101) {
-                                new_knowledge = "(fov_marker transporter novictim)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -102) {
-                                new_knowledge = "(fov_marker transporter regularvictim)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -103) {
-                                new_knowledge = "(fov_marker transporter criticalvictim)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -104) {
-                                new_knowledge = "(fov_marker transporter threat)";
-                                this->kb.tell(new_knowledge,false,false);
-                            } else if (obj == -105) {
-                                new_knowledge = "(fov_marker transporter bonedamage)";
-                                this->kb.tell(new_knowledge,false,false);
-                            }
-                        }
-
-                    }
-                    this->kb.update_state();
-                    this->fov_transporter = {};
-                }
-
-                auto player_color =
-                        split_player_name(
+        for (auto v: jv.at_pointer("/data/blocks").as_array()) {
+          auto player_color = split_player_name(
                                 jv.at_pointer("/data/playername").as_string().c_str())
                                 .at(0);
-                if (v.at_pointer("/type").as_string().find("victim") != std::string::npos) {
-//                    pretty_print(std::cout, jv.at_pointer("/data/playername"));
-//                    pretty_print(std::cout, v.at_pointer("/id"));
-                    if (player_color == "RED") {
-                        this->fov_medic.push_back(int(v.at_pointer("/id").as_int64()));
-                    } else if (player_color == "BLUE") {
-                        this->fov_engineer.push_back(int(v.at_pointer("/id").as_int64()));
-                    } else {
-                        this->fov_transporter.push_back(int(v.at_pointer("/id").as_int64()));
-                    }
-                } else if (v.at_pointer("/type").as_string().find("gravel") != std::string::npos) {
-                    // encode rubble as -10
-                    if (player_color == "RED") {
-                        this->fov_medic.push_back(-10);
-                    } else if (player_color == "BLUE") {
-                        this->fov_engineer.push_back(-10);
-                    } else {
-                        this->fov_transporter.push_back(-10);
-                    }
-                } else if (v.at_pointer("/type").as_string().find("marker_block") != std::string::npos) {
-//                    pretty_print(std::cout, v.at_pointer("/marker_type"));
-                    // {"novictim": -101, "regularvictim": -102, "criticalvictim": -103, "threat": -104, "bonedamage": -105}
-                    if (player_color == "RED") {
-                        if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
+          if (v.at_pointer("/type").as_string().find("victim") != std::string::npos) {
+            if (player_color == "RED") {
+              std::string m_string = "(fov_victim medic vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+              this->redis.xadd("red_vic","*",{field,m_string});
+            } else if (player_color == "BLUE") {
+
+            } else {
+
+            }
+          } else if (v.at_pointer("/type").as_string().find("gravel") != std::string::npos) {
+            if (player_color == "RED") {
+              this->fov_medic.push_back(-10);
+            } else if (player_color == "BLUE") {
+              this->fov_engineer.push_back(-10);
+            } else {
+              this->fov_transporter.push_back(-10);
+            }
+          } else if (v.at_pointer("/type").as_string().find("marker_block") != std::string::npos) {
+            if (player_color == "RED") {
+              if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
                             this->fov_medic.push_back(-101);
-                        } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") !=
-                                   std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") != std::string::npos) {
                             this->fov_medic.push_back(-102);
-                        } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") !=
-                                   std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") != std::string::npos) {
                             this->fov_medic.push_back(-103);
-                        } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
                             this->fov_medic.push_back(-104);
-                        } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
                             this->fov_medic.push_back(-105);
-                        }
-                    } else if (player_color == "BLUE") {
-                        if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
+              }
+            } else if (player_color == "BLUE") {
+              if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
                             this->fov_engineer.push_back(-101);
-                        } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") !=
-                                   std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") != std::string::npos) {
                             this->fov_engineer.push_back(-102);
-                        } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") !=
-                                   std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") != std::string::npos) {
                             this->fov_engineer.push_back(-103);
-                        } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
                             this->fov_engineer.push_back(-104);
-                        } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
                             this->fov_engineer.push_back(-105);
-                        }
-                    } else {
-                        if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
+              }
+            } else {
+              if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
                             this->fov_transporter.push_back(-101);
-                        } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") !=
-                                   std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") != std::string::npos) {
                             this->fov_transporter.push_back(-102);
-                        } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") !=
-                                   std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") != std::string::npos) {
                             this->fov_transporter.push_back(-103);
-                        } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
                             this->fov_transporter.push_back(-104);
-                        } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
+              } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
                             this->fov_transporter.push_back(-105);
-                        }
-                    }
-                } else {
-                    if (player_color == "RED") {
-                        this->fov_medic.push_back(-1);
-                    } else if (player_color == "BLUE") {
+              }
+            }
+          } else {
+            if (player_color == "RED") {
+              this->fov_medic.push_back(-1);
+            } else if (player_color == "BLUE") {
                         this->fov_engineer.push_back(-1);
-                    } else {
+            } else {
                         this->fov_transporter.push_back(-1);
-                    }
-                }
-                // tell(this->kb, "(player_status medic safe)");
-//                clear_facts(this->kb, "fov_victim");
-//                cout << this->fov_medic.size() << endl;
-//                cout << this->fov_engineer.size() << endl;
-//                cout << this->fov_transporter.size() << endl;
-//                cout << std::all_of(this->fov_medic.begin(), this->fov_medic.end(), [](int i) { return i == -1; })
-//                     << endl;
             }
+          }
         }
-        catch (exception &exc) {
-            cout << exc.what() << endl;
-            pretty_print(std::cout, jv);
-        }
-
-
-    } else if (msg->get_topic() ==
-               "observations/events/player/triage") {
-        try {
-            if (jv.at_pointer("/data/triage_state") == "SUCCESSFUL") {
-                //These lines switch victim status of a victim from unsaved to
-                //saved
-                this->kb.tell("(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) + " unsaved)",true,false);
-                this->kb.tell("(victim_status vic_" + to_string(jv.at_pointer("/data/victim_id").as_int64()) + " saved)",false,false);
-                this->kb.update_state();
-            }
-        }
-        catch (exception &exc) {
-            cout << exc.what() << endl;
-        }
+      }
+      catch (exception &exc) {
+        cout << exc.what() << endl;
+      }
     }
-
 }
 
 PercAgent::PercAgent(string
-                     address) : Agent(address) {
+                     address,string redis_address = "tcp://127.0.0.1:6379") : Agent(address),redis(redis_address) {
     auto const s = read_file("../metadata/Saturn_2.6_3D_sm_v1.0.json");
     json::object jv = json::parse(s).as_object();
     vector<string> location_ids;
@@ -551,7 +249,7 @@ PercAgent::PercAgent(string
     //Adding types and objects to KB
     TypeTree typetree;
     Objects objects;
-    std::string root;
+    std::string root = "__Object__";
     typetree.add_root(root);
     typetree.add_child("Location",root);
     for (auto const& l: location_ids) {
@@ -590,15 +288,22 @@ PercAgent::PercAgent(string
     objects["engineer"] = "Role";
     //Adding predicates to KB
     Predicates predicates;
-    predicates.push_back(create_predicate("player_at", {std::make_pair("?r","Role"), std::make_pair("?l","Location")}));
-    predicates.push_back(create_predicate("player_status", {std::make_pair("?r","Role"), std::make_pair("?ps","Player_Status")}));
-    predicates.push_back(create_predicate("victim_type", {std::make_pair("?v","Victim"), std::make_pair("?vt","Victim_Type")}));
-    predicates.push_back(create_predicate("victim_status", {std::make_pair("?v","Victim"), std::make_pair("?vs","Victim_Status")}));
-    predicates.push_back(create_predicate("fov_victim", {std::make_pair("?r","Role"), std::make_pair("?v","Victim")}));
-    predicates.push_back(create_predicate("fov_rubble", {std::make_pair("?r","Role")}));
-    predicates.push_back(create_predicate("fov_marker", {std::make_pair("?r","Role"), std::make_pair("?m","Marker_Type")}));
+    Args p1 = {std::make_pair("?r","Role"), std::make_pair("?l","Location")};
+    Args p2 = {std::make_pair("?r","Role"), std::make_pair("?ps","Player_Status")};
+    Args p3 = {std::make_pair("?v","Victim"), std::make_pair("?vt","Victim_Type")};
+    Args p4 = {std::make_pair("?v","Victim"), std::make_pair("?vs","Victim_Status")};
+    Args p5 = {std::make_pair("?r","Role"), std::make_pair("?v","Victim")};
+    Args p6 = {std::make_pair("?r","Role")};
+    Args p7 = {std::make_pair("?r","Role"), std::make_pair("?m","Marker_Type")};
+    predicates.push_back(create_predicate("player_at", p1));
+    predicates.push_back(create_predicate("player_status", p2));
+    predicates.push_back(create_predicate("victim_type", p3));
+    predicates.push_back(create_predicate("victim_status", p4));
+    predicates.push_back(create_predicate("fov_victim", p5));
+    predicates.push_back(create_predicate("fov_rubble", p6));
+    predicates.push_back(create_predicate("fov_marker", p7));
     //Initialize KB
-    this->kb = KnowledgeBase(predicates,objects,typetree) 
+    this->kb = KnowledgeBase(predicates,objects,typetree); 
     //Can add facts now that KB is initialized.
     //Asked tell not to update the smt state string on its own to save time.
     this->kb.tell("(player_status medic safe)",false,false);

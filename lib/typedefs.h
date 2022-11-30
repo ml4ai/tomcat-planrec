@@ -165,6 +165,20 @@ struct Results{
   }
 };
 
+struct Time {
+  int hours;
+  int minutes;
+  double seconds;
+  Time () {}
+  Time (std::string ts_) {
+    hours = std::stoi(ts_.substr(0,ts_.find(":")),nullptr);
+    std::string ts1_ = ts_.substr(ts_.find(":") + 1);
+    minutes = std::stoi(ts1_.substr(0,ts1_.find(":")),nullptr);
+    std::string ts2_ = ts1_.substr(ts1_.find(":") + 1);
+    seconds = std::stod(ts2_,nullptr);
+  }
+};
+
 std::string return_value(std::string var, Args& args) {
   for (auto const& a : args) {
     if (var == a.first) {
