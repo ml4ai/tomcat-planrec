@@ -100,12 +100,18 @@ vector<std::string> split_player_name(std::string str) {
     return array;
 }
 
+std::string time_diff(Time t1, Time t2) {
+  double diff_seconds = ((t1.hours - t2.hours) * 3600.0) + ((t1.minutes - t2.minutes) * 60.0) + (t1.seconds - t2.seconds);
+  double diff_r_milliseconds = round(diff_seconds*1000);
+  return to_string(int(diff_r_milliseconds));
+}
+
 void PercAgent::process(mqtt::const_message_ptr msg) {
     json::value jv = json::parse(msg->to_string()).as_object();
     if (msg->get_topic() == "observations/events/mission") {
       try {
         if (jv.at_pointer("/data/mission_state").as_string().find("Start") != std::string::npos) {
-          std::string time = jv.at_pointer("/msg/timestamp").as_string();
+          std::string time = jv.at_pointer("/msg/timestamp").as_string().c_str();
           time = time.substr(time.find("T") + 1); 
           time = time.substr(0,time.find("Z"));
           this->initial_time = Time(time);
@@ -118,116 +124,704 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
     if (msg->get_topic() == "agent/pygl_fov/player/3d/summary") {
       try {
         auto player_color = split_player_name(jv.at_pointer("/data/playername").as_string().c_str()).at(0);
-        std::string time = jv.at_pointer("/msg/timestamp").as_string();
+        std::string time = jv.at_pointer("/msg/timestamp").as_string().c_str();
         time = time.substr(time.find("T") + 1);
         time = time.substr(0,time.find("Z"));
         Time msg_time(time);
         if (player_color == "RED") {
           std::vector<std::pair<std::string,std::string>> fov;
+          bool see_gravel = false;
+          bool see_blue_novictim = false;
+          bool see_green_novictim = false;
+          bool see_red_novictim = false;
+
+          bool see_blue_sos = false;
+          bool see_green_sos = false;
+          bool see_red_sos = false;
+          
+          bool see_red_regularvictim = false;
+          bool see_red_criticalvictim = false;
+          bool see_red_abrasion = false;
+          bool see_red_bonedamage = false;
+          bool see_red_rubble = false;
+          bool see_red_threat = false;
+
+          bool see_green_regularvictim = false;
+          bool see_green_criticalvictim = false;
+          bool see_green_abrasion = false;
+          bool see_green_bonedamage = false;
+          bool see_green_rubble = false;
+          bool see_green_threat = false;
+
+          bool see_blue_regularvictim = false;
+          bool see_blue_criticalvictim = false;
+          bool see_blue_abrasion = false;
+          bool see_blue_bonedamage = false;
+          bool see_blue_rubble = false;
+          bool see_blue_threat = false;
           for (auto v: jv.at_pointer("/data/blocks").as_array()) {
             std::pair<std::string,std::string> percept;
             if (v.at_pointer("/type").as_string().find("block_victim_regular") != std::string::npos) {
               percept.first = "victim_regular";
               percept.second = "(fov_victim_regular medic vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
-
+              fov.push_back(percept);
             }
+
             if (v.at_pointer("/type").as_string().find("block_victim_proximity") != std::string::npos) {
               percept.first = "victim_critical";
               percept.second = "(fov_victim_critical medic vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+              fov.push_back(percept);
             }
+
             if (v.at_pointer("/type").as_string().find("block_victim_saved") != std::string::npos) {
               percept.first = "victim_saved";
               percept.second = "(fov_victim_saved medic vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+              fov.push_back(percept);
             }
+
+            if (v.at_pointer("/type").as_string().find("gravel") != std::string::npos && !see_gravel) {
+              percept.first = "gravel";
+              percept.second = "(fov_gravel medic)";
+              see_gravel = true;
+              fov.push_back(percept);
+            }
+
+            if (v.at_pointer("/type").as_string().find("marker_block") != std::string::npos) {
+              if (v.at_pointer("/marker_type").as_string().find("blue_novictim") != std::string::npos && !see_blue_novictim) {
+                percept.first = "engineer_novictim";
+                percept.second = "(fov_marker_novictim medic engineer)";
+                see_blue_novictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_novictim") != std::string::npos && !see_green_novictim) {
+                percept.first = "transporter_novictim";
+                percept.second = "(fov_marker_novictim medic transporter)";
+                see_green_novictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_novictim") != std::string::npos && !see_red_novictim) {
+                percept.first = "medic_novictim";
+                percept.second = "(fov_marker_novictim medic medic)";
+                see_red_novictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_sos") != std::string::npos && !see_blue_sos) {
+                percept.first = "engineer_sos";
+                percept.second = "(fov_marker_sos medic engineer)";
+                see_blue_sos = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_sos") != std::string::npos && !see_green_sos) {
+                percept.first = "transporter_sos";
+                percept.second = "(fov_marker_sos medic transporter)";
+                see_green_sos = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_sos") != std::string::npos && !see_red_sos) {
+                percept.first = "medic_sos";
+                percept.second = "(fov_marker_sos medic medic)";
+                see_red_sos = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_regularvictim") != std::string::npos && !see_blue_regularvictim) {
+                percept.first = "engineer_regularvictim";
+                percept.second = "(fov_marker_regularvictim medic engineer)";
+                see_blue_regularvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_regularvictim") != std::string::npos && !see_green_regularvictim) {
+                percept.first = "transporter_regularvictim";
+                percept.second = "(fov_marker_regularvictim medic transporter)";
+                see_green_regularvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_regularvictim") != std::string::npos && !see_red_regularvictim) {
+                percept.first = "medic_regularvictim";
+                percept.second = "(fov_marker_regularvictim medic medic)";
+                see_red_regularvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_criticalvictim") != std::string::npos && !see_blue_criticalvictim) {
+                percept.first = "engineer_criticalvictim";
+                percept.second = "(fov_marker_criticalvictim medic engineer)";
+                see_blue_criticalvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_criticalvictim") != std::string::npos && !see_green_criticalvictim) {
+                percept.first = "transporter_criticalvictim";
+                percept.second = "(fov_marker_criticalvictim medic transporter)";
+                see_green_criticalvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_criticalvictim") != std::string::npos && !see_red_criticalvictim) {
+                percept.first = "medic_criticalvictim";
+                percept.second = "(fov_marker_criticalvictim medic medic)";
+                see_red_criticalvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_abrasion") != std::string::npos && !see_blue_abrasion) {
+                percept.first = "engineer_abrasion";
+                percept.second = "(fov_marker_abrasion medic engineer)";
+                see_blue_abrasion = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_abrasion") != std::string::npos && !see_green_abrasion) {
+                percept.first = "transporter_abrasion";
+                percept.second = "(fov_marker_abrasion medic transporter)";
+                see_green_abrasion = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_abrasion") != std::string::npos && !see_red_abrasion) {
+                percept.first = "medic_abrasion";
+                percept.second = "(fov_marker_abrasion medic medic)";
+                see_red_abrasion = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_bonedamage") != std::string::npos && !see_blue_bonedamage) {
+                percept.first = "engineer_bonedamage";
+                percept.second = "(fov_marker_bonedamage medic engineer)";
+                see_blue_bonedamage = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_bonedamage") != std::string::npos && !see_green_bonedamage) {
+                percept.first = "transporter_bonedamage";
+                percept.second = "(fov_marker_bonedamage medic transporter)";
+                see_green_bonedamage = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_bonedamage") != std::string::npos && !see_red_bonedamage) {
+                percept.first = "medic_bonedamage";
+                percept.second = "(fov_marker_bonedamage medic medic)";
+                see_red_bonedamage = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_rubble") != std::string::npos && !see_blue_rubble) {
+                percept.first = "engineer_rubble";
+                percept.second = "(fov_marker_rubble medic engineer)";
+                see_blue_rubble = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_rubble") != std::string::npos && !see_green_rubble) {
+                percept.first = "transporter_rubble";
+                percept.second = "(fov_marker_rubble medic transporter)";
+                see_green_rubble = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_rubble") != std::string::npos && !see_red_rubble) {
+                percept.first = "medic_rubble";
+                percept.second = "(fov_marker_rubble medic medic)";
+                see_red_rubble = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_threat") != std::string::npos && !see_blue_threat) {
+                percept.first = "engineer_threat";
+                percept.second = "(fov_marker_threat medic engineer)";
+                see_blue_threat = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_threat") != std::string::npos && !see_green_threat) {
+                percept.first = "transporter_threat";
+                percept.second = "(fov_marker_threat medic transporter)";
+                see_green_threat = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_threat") != std::string::npos && !see_red_threat) {
+                percept.first = "medic_threat";
+                percept.second = "(fov_marker_threat medic medic)";
+                see_red_threat = true;
+                fov.push_back(percept);
+              }
+            }
+          }
+          if (!fov.empty()) {
+            std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
+            std::string rank = elapsed_ms + "-*";
+            this->redis.xadd("medic_fov",rank,fov.begin(),fov.end());
           }
         }
         else if (player_color == "BLUE") {
+          std::vector<std::pair<std::string,std::string>> fov;
+          bool see_gravel = false;
+          bool see_blue_novictim = false;
+          bool see_green_novictim = false;
+          bool see_red_novictim = false;
+
+          bool see_blue_sos = false;
+          bool see_green_sos = false;
+          bool see_red_sos = false;
+          
+          bool see_red_regularvictim = false;
+          bool see_red_criticalvictim = false;
+          bool see_red_abrasion = false;
+          bool see_red_bonedamage = false;
+          bool see_red_rubble = false;
+          bool see_red_threat = false;
+
+          bool see_green_regularvictim = false;
+          bool see_green_criticalvictim = false;
+          bool see_green_abrasion = false;
+          bool see_green_bonedamage = false;
+          bool see_green_rubble = false;
+          bool see_green_threat = false;
+
+          bool see_blue_regularvictim = false;
+          bool see_blue_criticalvictim = false;
+          bool see_blue_abrasion = false;
+          bool see_blue_bonedamage = false;
+          bool see_blue_rubble = false;
+          bool see_blue_threat = false;
           for (auto v: jv.at_pointer("/data/blocks").as_array()) {
+            std::pair<std::string,std::string> percept;
             if (v.at_pointer("/type").as_string().find("block_victim_regular") != std::string::npos) {
+              percept.first = "victim_regular";
+              percept.second = "(fov_victim_regular engineer vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+              fov.push_back(percept);
             }
             if (v.at_pointer("/type").as_string().find("block_victim_proximity") != std::string::npos) {
+              percept.first = "victim_critical";
+              percept.second = "(fov_victim_critical engineer vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+              fov.push_back(percept);
             }
             if (v.at_pointer("/type").as_string().find("block_victim_saved") != std::string::npos) {
+              percept.first = "victim_saved";
+              percept.second = "(fov_victim_saved engineer vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+              fov.push_back(percept);
             }
+            if (v.at_pointer("/type").as_string().find("gravel") != std::string::npos && !see_gravel) {
+              percept.first = "gravel";
+              percept.second = "(fov_gravel engineer)";
+              see_gravel = true;
+            }
+
+            if (v.at_pointer("/type").as_string().find("marker_block") != std::string::npos) {
+              if (v.at_pointer("/marker_type").as_string().find("blue_novictim") != std::string::npos && !see_blue_novictim) {
+                percept.first = "engineer_novictim";
+                percept.second = "(fov_marker_novictim engineer engineer)";
+                see_blue_novictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_novictim") != std::string::npos && !see_green_novictim) {
+                percept.first = "transporter_novictim";
+                percept.second = "(fov_marker_novictim engineer transporter)";
+                see_green_novictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_novictim") != std::string::npos && !see_red_novictim) {
+                percept.first = "medic_novictim";
+                percept.second = "(fov_marker_novictim engineer medic)";
+                see_red_novictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_sos") != std::string::npos && !see_blue_sos) {
+                percept.first = "engineer_sos";
+                percept.second = "(fov_marker_sos engineer engineer)";
+                see_blue_sos = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_sos") != std::string::npos && !see_green_sos) {
+                percept.first = "transporter_sos";
+                percept.second = "(fov_marker_sos engineer transporter)";
+                see_green_sos = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_sos") != std::string::npos && !see_red_sos) {
+                percept.first = "medic_sos";
+                percept.second = "(fov_marker_sos engineer medic)";
+                see_red_sos = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_regularvictim") != std::string::npos && !see_blue_regularvictim) {
+                percept.first = "engineer_regularvictim";
+                percept.second = "(fov_marker_regularvictim engineer engineer)";
+                see_blue_regularvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_regularvictim") != std::string::npos && !see_green_regularvictim) {
+                percept.first = "transporter_regularvictim";
+                percept.second = "(fov_marker_regularvictim engineer transporter)";
+                see_green_regularvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_regularvictim") != std::string::npos && !see_red_regularvictim) {
+                percept.first = "medic_regularvictim";
+                percept.second = "(fov_marker_regularvictim engineer medic)";
+                see_red_regularvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_criticalvictim") != std::string::npos && !see_blue_criticalvictim) {
+                percept.first = "engineer_criticalvictim";
+                percept.second = "(fov_marker_criticalvictim engineer engineer)";
+                see_blue_criticalvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_criticalvictim") != std::string::npos && !see_green_criticalvictim) {
+                percept.first = "transporter_criticalvictim";
+                percept.second = "(fov_marker_criticalvictim engineer transporter)";
+                see_green_criticalvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_criticalvictim") != std::string::npos && !see_red_criticalvictim) {
+                percept.first = "medic_criticalvictim";
+                percept.second = "(fov_marker_criticalvictim engineer medic)";
+                see_red_criticalvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_abrasion") != std::string::npos && !see_blue_abrasion) {
+                percept.first = "engineer_abrasion";
+                percept.second = "(fov_marker_abrasion engineer engineer)";
+                see_blue_abrasion = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_abrasion") != std::string::npos && !see_green_abrasion) {
+                percept.first = "transporter_abrasion";
+                percept.second = "(fov_marker_abrasion engineer transporter)";
+                see_green_abrasion = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_abrasion") != std::string::npos && !see_red_abrasion) {
+                percept.first = "medic_abrasion";
+                percept.second = "(fov_marker_abrasion engineer medic)";
+                see_red_abrasion = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_bonedamage") != std::string::npos && !see_blue_bonedamage) {
+                percept.first = "engineer_bonedamage";
+                percept.second = "(fov_marker_bonedamage engineer engineer)";
+                see_blue_bonedamage = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_bonedamage") != std::string::npos && !see_green_bonedamage) {
+                percept.first = "transporter_bonedamage";
+                percept.second = "(fov_marker_bonedamage engineer transporter)";
+                see_green_bonedamage = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_bonedamage") != std::string::npos && !see_red_bonedamage) {
+                percept.first = "medic_bonedamage";
+                percept.second = "(fov_marker_bonedamage engineer medic)";
+                see_red_bonedamage = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_rubble") != std::string::npos && !see_blue_rubble) {
+                percept.first = "engineer_rubble";
+                percept.second = "(fov_marker_rubble engineer engineer)";
+                see_blue_rubble = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_rubble") != std::string::npos && !see_green_rubble) {
+                percept.first = "transporter_rubble";
+                percept.second = "(fov_marker_rubble engineer transporter)";
+                see_green_rubble = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_rubble") != std::string::npos && !see_red_rubble) {
+                percept.first = "medic_rubble";
+                percept.second = "(fov_marker_rubble engineer medic)";
+                see_red_rubble = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_threat") != std::string::npos && !see_blue_threat) {
+                percept.first = "engineer_threat";
+                percept.second = "(fov_marker_threat engineer engineer)";
+                see_blue_threat = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_threat") != std::string::npos && !see_green_threat) {
+                percept.first = "transporter_threat";
+                percept.second = "(fov_marker_threat engineer transporter)";
+                see_green_threat = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_threat") != std::string::npos && !see_red_threat) {
+                percept.first = "medic_threat";
+                percept.second = "(fov_marker_threat engineer medic)";
+                see_red_threat = true;
+                fov.push_back(percept);
+              }
+            }
+
+          }
+          if (!fov.empty()) {
+            std::string elapsed_ms = time_diff(msg_time, this->initial_time);; 
+            std::string rank = elapsed_ms + "-*";
+            this->redis.xadd("engineer_fov",rank,fov.begin(),fov.end());
           }
         }
         else {
+          std::vector<std::pair<std::string,std::string>> fov;
+          bool see_gravel = false;
+          bool see_blue_novictim = false;
+          bool see_green_novictim = false;
+          bool see_red_novictim = false;
+
+          bool see_blue_sos = false;
+          bool see_green_sos = false;
+          bool see_red_sos = false;
+          
+          bool see_red_regularvictim = false;
+          bool see_red_criticalvictim = false;
+          bool see_red_abrasion = false;
+          bool see_red_bonedamage = false;
+          bool see_red_rubble = false;
+          bool see_red_threat = false;
+
+          bool see_green_regularvictim = false;
+          bool see_green_criticalvictim = false;
+          bool see_green_abrasion = false;
+          bool see_green_bonedamage = false;
+          bool see_green_rubble = false;
+          bool see_green_threat = false;
+
+          bool see_blue_regularvictim = false;
+          bool see_blue_criticalvictim = false;
+          bool see_blue_abrasion = false;
+          bool see_blue_bonedamage = false;
+          bool see_blue_rubble = false;
+          bool see_blue_threat = false;
           for (auto v: jv.at_pointer("/data/blocks").as_array()) {
+            std::pair<std::string,std::string> percept;
             if (v.at_pointer("/type").as_string().find("block_victim_regular") != std::string::npos) {
+              percept.first = "victim_regular";
+              percept.second = "(fov_victim_regular transporter vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+              fov.push_back(percept);
             }
             if (v.at_pointer("/type").as_string().find("block_victim_proximity") != std::string::npos) {
+              percept.first = "victim_critical";
+              percept.second = "(fov_victim_critical transporter vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+              fov.push_back(percept);
             }
             if (v.at_pointer("/type").as_string().find("block_victim_saved") != std::string::npos) {
+              percept.first = "victim_saved";
+              percept.second = "(fov_victim_saved transporter vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
+              fov.push_back(percept);
             }
+            if (v.at_pointer("/type").as_string().find("gravel") != std::string::npos && !see_gravel) {
+              percept.first = "gravel";
+              percept.second = "(fov_gravel transporter)";
+              see_gravel = true;
+            }
+
+            if (v.at_pointer("/type").as_string().find("marker_block") != std::string::npos) {
+              if (v.at_pointer("/marker_type").as_string().find("blue_novictim") != std::string::npos && !see_blue_novictim) {
+                percept.first = "engineer_novictim";
+                percept.second = "(fov_marker_novictim transporter engineer)";
+                see_blue_novictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_novictim") != std::string::npos && !see_green_novictim) {
+                percept.first = "transporter_novictim";
+                percept.second = "(fov_marker_novictim transporter transporter)";
+                see_green_novictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_novictim") != std::string::npos && !see_red_novictim) {
+                percept.first = "medic_novictim";
+                percept.second = "(fov_marker_novictim transporter medic)";
+                see_red_novictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_sos") != std::string::npos && !see_blue_sos) {
+                percept.first = "engineer_sos";
+                percept.second = "(fov_marker_sos transporter engineer)";
+                see_blue_sos = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_sos") != std::string::npos && !see_green_sos) {
+                percept.first = "transporter_sos";
+                percept.second = "(fov_marker_sos transporter transporter)";
+                see_green_sos = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_sos") != std::string::npos && !see_red_sos) {
+                percept.first = "medic_sos";
+                percept.second = "(fov_marker_sos transporter medic)";
+                see_red_sos = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_regularvictim") != std::string::npos && !see_blue_regularvictim) {
+                percept.first = "engineer_regularvictim";
+                percept.second = "(fov_marker_regularvictim transporter engineer)";
+                see_blue_regularvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_regularvictim") != std::string::npos && !see_green_regularvictim) {
+                percept.first = "transporter_regularvictim";
+                percept.second = "(fov_marker_regularvictim transporter transporter)";
+                see_green_regularvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_regularvictim") != std::string::npos && !see_red_regularvictim) {
+                percept.first = "medic_regularvictim";
+                percept.second = "(fov_marker_regularvictim transporter medic)";
+                see_red_regularvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_criticalvictim") != std::string::npos && !see_blue_criticalvictim) {
+                percept.first = "engineer_criticalvictim";
+                percept.second = "(fov_marker_criticalvictim transporter engineer)";
+                see_blue_criticalvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_criticalvictim") != std::string::npos && !see_green_criticalvictim) {
+                percept.first = "transporter_criticalvictim";
+                percept.second = "(fov_marker_criticalvictim transporter transporter)";
+                see_green_criticalvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_criticalvictim") != std::string::npos && !see_red_criticalvictim) {
+                percept.first = "medic_criticalvictim";
+                percept.second = "(fov_marker_criticalvictim transporter medic)";
+                see_red_criticalvictim = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_abrasion") != std::string::npos && !see_blue_abrasion) {
+                percept.first = "engineer_abrasion";
+                percept.second = "(fov_marker_abrasion transporter engineer)";
+                see_blue_abrasion = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_abrasion") != std::string::npos && !see_green_abrasion) {
+                percept.first = "transporter_abrasion";
+                percept.second = "(fov_marker_abrasion transporter transporter)";
+                see_green_abrasion = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_abrasion") != std::string::npos && !see_red_abrasion) {
+                percept.first = "medic_abrasion";
+                percept.second = "(fov_marker_abrasion transporter medic)";
+                see_red_abrasion = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_bonedamage") != std::string::npos && !see_blue_bonedamage) {
+                percept.first = "engineer_bonedamage";
+                percept.second = "(fov_marker_bonedamage transporter engineer)";
+                see_blue_bonedamage = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_bonedamage") != std::string::npos && !see_green_bonedamage) {
+                percept.first = "transporter_bonedamage";
+                percept.second = "(fov_marker_bonedamage transporter transporter)";
+                see_green_bonedamage = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_bonedamage") != std::string::npos && !see_red_bonedamage) {
+                percept.first = "medic_bonedamage";
+                percept.second = "(fov_marker_bonedamage transporter medic)";
+                see_red_bonedamage = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_rubble") != std::string::npos && !see_blue_rubble) {
+                percept.first = "engineer_rubble";
+                percept.second = "(fov_marker_rubble transporter engineer)";
+                see_blue_rubble = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_rubble") != std::string::npos && !see_green_rubble) {
+                percept.first = "transporter_rubble";
+                percept.second = "(fov_marker_rubble transporter transporter)";
+                see_green_rubble = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_rubble") != std::string::npos && !see_red_rubble) {
+                percept.first = "medic_rubble";
+                percept.second = "(fov_marker_rubble transporter medic)";
+                see_red_rubble = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("blue_threat") != std::string::npos && !see_blue_threat) {
+                percept.first = "engineer_threat";
+                percept.second = "(fov_marker_threat transporter engineer)";
+                see_blue_threat = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("green_threat") != std::string::npos && !see_green_threat) {
+                percept.first = "transporter_threat";
+                percept.second = "(fov_marker_threat transporter transporter)";
+                see_green_threat = true;
+                fov.push_back(percept);
+              }
+
+              if (v.at_pointer("/marker_type").as_string().find("red_threat") != std::string::npos && !see_red_threat) {
+                percept.first = "medic_threat";
+                percept.second = "(fov_marker_threat transporter medic)";
+                see_red_threat = true;
+                fov.push_back(percept);
+              }
+            }
+
           }
-        }
-        for (auto v: jv.at_pointer("/data/blocks").as_array()) {
-          auto player_color = split_player_name(
-                                jv.at_pointer("/data/playername").as_string().c_str())
-                                .at(0);
-          if (v.at_pointer("/type").as_string().find("victim") != std::string::npos) {
-            if (player_color == "RED") {
-              std::string m_string = "(fov_victim medic vic_" + to_string(int(v.at_pointer("/id").as_int64()))+")";
-              this->redis.xadd("red_vic","*",{field,m_string});
-            } else if (player_color == "BLUE") {
-
-            } else {
-
-            }
-          } else if (v.at_pointer("/type").as_string().find("gravel") != std::string::npos) {
-            if (player_color == "RED") {
-              this->fov_medic.push_back(-10);
-            } else if (player_color == "BLUE") {
-              this->fov_engineer.push_back(-10);
-            } else {
-              this->fov_transporter.push_back(-10);
-            }
-          } else if (v.at_pointer("/type").as_string().find("marker_block") != std::string::npos) {
-            if (player_color == "RED") {
-              if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
-                            this->fov_medic.push_back(-101);
-              } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") != std::string::npos) {
-                            this->fov_medic.push_back(-102);
-              } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") != std::string::npos) {
-                            this->fov_medic.push_back(-103);
-              } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
-                            this->fov_medic.push_back(-104);
-              } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
-                            this->fov_medic.push_back(-105);
-              }
-            } else if (player_color == "BLUE") {
-              if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
-                            this->fov_engineer.push_back(-101);
-              } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") != std::string::npos) {
-                            this->fov_engineer.push_back(-102);
-              } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") != std::string::npos) {
-                            this->fov_engineer.push_back(-103);
-              } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
-                            this->fov_engineer.push_back(-104);
-              } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
-                            this->fov_engineer.push_back(-105);
-              }
-            } else {
-              if (v.at_pointer("/marker_type").as_string().find("novictim") != std::string::npos) {
-                            this->fov_transporter.push_back(-101);
-              } else if (v.at_pointer("/marker_type").as_string().find("regularvictim") != std::string::npos) {
-                            this->fov_transporter.push_back(-102);
-              } else if (v.at_pointer("/marker_type").as_string().find("criticalvictim") != std::string::npos) {
-                            this->fov_transporter.push_back(-103);
-              } else if (v.at_pointer("/marker_type").as_string().find("threat") != std::string::npos) {
-                            this->fov_transporter.push_back(-104);
-              } else if (v.at_pointer("/marker_type").as_string().find("bonedamage") != std::string::npos) {
-                            this->fov_transporter.push_back(-105);
-              }
-            }
-          } else {
-            if (player_color == "RED") {
-              this->fov_medic.push_back(-1);
-            } else if (player_color == "BLUE") {
-                        this->fov_engineer.push_back(-1);
-            } else {
-                        this->fov_transporter.push_back(-1);
-            }
+          if (!fov.empty()) {
+            std::string elapsed_ms = time_diff(msg_time, this->initial_time);
+            std::string rank = elapsed_ms + "-*";
+            this->redis.xadd("transporter_fov",rank,fov.begin(),fov.end());
           }
         }
       }
@@ -237,87 +831,5 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
     }
 }
 
-PercAgent::PercAgent(string
-                     address,string redis_address = "tcp://127.0.0.1:6379") : Agent(address),redis(redis_address) {
-    auto const s = read_file("../metadata/Saturn_2.6_3D_sm_v1.0.json");
-    json::object jv = json::parse(s).as_object();
-    vector<string> location_ids;
-    for (const auto &loc: jv.at("locations").as_array()) {
-        location_ids.emplace_back(loc.at("id").as_string().c_str());
-    }
-    location_ids.emplace_back("UNKNOWN");
-    //Adding types and objects to KB
-    TypeTree typetree;
-    Objects objects;
-    std::string root = "__Object__";
-    typetree.add_root(root);
-    typetree.add_child("Location",root);
-    for (auto const& l: location_ids) {
-      objects[l] = "Location";
-    }
-    typetree.add_child("Player_Status",root); 
-    objects["safe"] = "Player_Status";
-    objects["trapped"] = "Player_Status";
-    std::vector<std::string> vic_ids;
-    for (int i = 1; i <= 35; i++) {
-        vic_ids.push_back("vic_" + to_string(i));
-    }
-    typetree.add_child("Victim",root); 
-    for (auto const& v: vic_ids) {
-      objects[v] = "Victim";
-    }
-    typetree.add_child("Victim_Type",root); 
-    objects["a"] = "Victim_Type";
-    objects["b"] = "Victim_Type";
-    objects["c"] = "Victim_Type";
-
-    typetree.add_child("Victim_Status",root); 
-    objects["unsaved"] = "Victim_Status";
-    objects["saved"] = "Victim_Status";
-
-    typetree.add_child("Marker_Type",root);
-    objects["novictim"] = "Marker_Type";
-    objects["regularvictim"] = "Marker_Type";
-    objects["criticalvictim"] =  "Marker_Type";
-    objects["threat"] = "Marker_Type";
-    objects["bonedamage"] = "Marker_Type";
-
-    typetree.add_child("Role",root); 
-    objects["medic"] = "Role";
-    objects["transporter"] = "Role";
-    objects["engineer"] = "Role";
-    //Adding predicates to KB
-    Predicates predicates;
-    Args p1 = {std::make_pair("?r","Role"), std::make_pair("?l","Location")};
-    Args p2 = {std::make_pair("?r","Role"), std::make_pair("?ps","Player_Status")};
-    Args p3 = {std::make_pair("?v","Victim"), std::make_pair("?vt","Victim_Type")};
-    Args p4 = {std::make_pair("?v","Victim"), std::make_pair("?vs","Victim_Status")};
-    Args p5 = {std::make_pair("?r","Role"), std::make_pair("?v","Victim")};
-    Args p6 = {std::make_pair("?r","Role")};
-    Args p7 = {std::make_pair("?r","Role"), std::make_pair("?m","Marker_Type")};
-    predicates.push_back(create_predicate("player_at", p1));
-    predicates.push_back(create_predicate("player_status", p2));
-    predicates.push_back(create_predicate("victim_type", p3));
-    predicates.push_back(create_predicate("victim_status", p4));
-    predicates.push_back(create_predicate("fov_victim", p5));
-    predicates.push_back(create_predicate("fov_rubble", p6));
-    predicates.push_back(create_predicate("fov_marker", p7));
-    //Initialize KB
-    this->kb = KnowledgeBase(predicates,objects,typetree); 
-    //Can add facts now that KB is initialized.
-    //Asked tell not to update the smt state string on its own to save time.
-    this->kb.tell("(player_status medic safe)",false,false);
-    this->kb.tell("(player_status transporter safe)",false,false);
-    this->kb.tell("(player_status engineer safe)",false,false);
-    for (int i = 1; i <= 35; i++) {
-        this->kb.tell("(victim_status vic_" + to_string(i) + " unsaved)", false, false);
-    }
-    //Updates smt state string with all the new facts that were just added
-    this->kb.update_state();
-    this->medic_trapped_coord.push_back(0);
-    this->medic_trapped_coord.push_back(0);
-    this->transporter_trapped_coord.push_back(0);
-    this->transporter_trapped_coord.push_back(0);
-    this->engineer_trapped_coord.push_back(0);
-    this->engineer_trapped_coord.push_back(0);
-}
+PercAgent::PercAgent(string address,
+                     string redis_address = "tcp://127.0.0.1:6379") : Agent(address),redis(redis_address) {}
