@@ -121,6 +121,14 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
         cout << exc.what() << endl;
       }
     }
+    if (msg->get_topic() == "observations/events/player/triage") {
+      try {
+
+      }
+      catch (exception &exc) {
+        cout << exc.what() << endl;
+      }
+    }
     if (msg->get_topic() == "agent/pygl_fov/player/3d/summary") {
       try {
         auto player_color = split_player_name(jv.at_pointer("/data/playername").as_string().c_str()).at(0);
