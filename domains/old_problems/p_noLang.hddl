@@ -1,0 +1,45 @@
+(define (problem p_noLang)
+    (:domain dom_noLang)
+    (:objects
+        vic1 - victim
+        vic2 - victim
+        start_1 - start
+        start_2 - start
+        room_1 - dest
+        room_2 - dest 
+        rock_1 - rubble
+        rock_2 - rubble
+        sickbay_1 - sickbay
+        sickbay_2 - sickbay
+        player_1 - player
+        player_2 - player
+    )
+
+    (:htn
+        :parameters ()
+        :tasks (and 
+               (megaTask player_1 player_2 vic1 rock_1 start_1 room_1 sickbay_1)
+               (megaTask player_1 player_2 vic2 rock_2 start_1 room_2 sickbay_2))
+;        :tasks (and 
+;               (call_teammate player_1 player_2 start_1 room_1)
+;               (clearing_room player_2 rock_1 room_1)
+;               (clearing_room player_2 rock_2 room_2)
+;               (collaborate_critical_wake player_1 player_2 vic1 start_1 room_1)
+;               (collaborate_carry_stabilized player_1 player_2 vic1 room_1 sickbay_1)
+;               (collaborate_critical_wake player_1 player_2 vic2 start_1 room_2)
+;               (collaborate_carry_stabilized player_1 player_2 vic2 room_2 sickbay_1));
+        :ordering ()
+    )
+
+    (:init
+        (blocked room_1)
+        (blocked room_2)
+        (present rock_1)
+        (present rock_2)
+        (at vic1 room_1)
+        (at vic2 room_2)
+        (unmarked vic1) 
+        (unmarked vic2) 
+        (lost player_2)
+    )
+)

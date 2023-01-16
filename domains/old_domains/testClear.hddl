@@ -1,0 +1,19 @@
+(define (problem testClear)
+    (:domain question_6)
+    (:objects
+        room_1 - dest
+        rock_1 - rubble
+        ans - player
+    )
+
+    (:htn
+        :parameters ()
+        :tasks (clearing_room ans rock_1 room_1)
+        :ordering ()
+    )
+
+    (:init
+        (blocked room_1)
+        (present rock_1)
+    )
+)
