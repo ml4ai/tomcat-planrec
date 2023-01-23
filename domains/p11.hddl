@@ -3,10 +3,12 @@
     (:objects
         vic1 - victim
         vic2 - victim
+        vic3 - victim
         start_1 - start
         start_2 - start
         room_1 - dest
         room_2 - dest 
+        room_3 - dest 
         rock_1 - rubble
         rock_2 - rubble
         rock_3 - rubble
@@ -20,15 +22,8 @@
         :parameters ()
         :tasks (and 
                (megaTask player_1 player_2 vic1 rock_1 start_1 room_1 sickbay_1)
+;               (megaTask player_1 player_2 vic3 rock_3 start_1 room_1 sickbay_1)
                (megaTask player_1 player_2 vic2 rock_2 start_1 room_2 sickbay_2))
-;        :tasks (and 
-;               (call_teammate player_1 player_2 start_1 room_1)
-;               (clearing_room player_2 rock_1 room_1)
-;               (clearing_room player_2 rock_2 room_2)
-;               (collaborate_critical_wake player_1 player_2 vic1 start_1 room_1)
-;               (collaborate_carry_stabilized player_1 player_2 vic1 room_1 sickbay_1)
-;               (collaborate_critical_wake player_1 player_2 vic2 start_1 room_2)
-;               (collaborate_carry_stabilized player_1 player_2 vic2 room_2 sickbay_1));
         :ordering ()
     )
 
@@ -37,8 +32,9 @@
         (blocked room_2)
         (present rock_1 room_1)
         (present rock_2 room_2)
-        (present rock_3 room_2)
+;        (present rock_3 room_1)
         (at vic1 room_1)
+;        (at vic3 room_1)
         (at vic2 room_2)
         (free player_2)
     )
