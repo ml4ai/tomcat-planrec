@@ -3,15 +3,15 @@
     (:objects
         vic1 - victim
         vic2 - victim
-        vic3 - victim
+;        vic3 - victim
         start_1 - start
         start_2 - start
         room_1 - dest
         room_2 - dest 
-        room_3 - dest 
+;        room_3 - dest 
         rock_1 - rubble
         rock_2 - rubble
-        rock_3 - rubble
+;        rock_3 - rubble
         sickbay_1 - sickbay
         sickbay_2 - sickbay
         player_1 - player
