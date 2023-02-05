@@ -13,21 +13,42 @@
         player_3 - player
         rocks_1 - rubble
     )
-
+;-----------------------------------------------------------------
+;    (:htn
+;        :parameters ()
+;        :tasks (go_triage_victim player_1 vic1 start_1 room_1)
+;        :ordering ()
+;    ); end htn
+;
+;    (:init
+;        (at vic1 room_1)
+;        (at player_1 start_1)
+;    ); end init
+;-----------------------------------------------------------------
+;    (:htn
+;        :parameters ()
+;        :tasks (gather_teammate player_1 player_2 player_3 start_1 start_2 start_3 room_1)
+;        :ordering ()
+;    ); end htn
+;
+;    (:init
+;        (at player_1 start_1)
+;        (at player_2 start_2)
+;        (at player_3 start_3)
+;    ); end init
+;-----------------------------------------------------------------
     (:htn
         :parameters ()
-;;;        :tasks (and (go_mark_victim player_1 vic1 start_1 room_1)
-;;;                    (go_break_rubble player_1 rocks_1 room_1 room_2))
-;        :tasks (gather_teammate player_1 player_2 player_3 start_1 start_2 start_3 room_1)
-        :tasks (go_triage_victim player_1 vic1 start_1 room_1)
+        :tasks (and (go_mark_victim player_1 vic1 start_1 room_1)
+                    (go_break_rubble player_1 rocks_1 room_1 room_2))
         :ordering ()
-    )
+    ); end htn
 
     (:init
         (at vic1 room_1)
-;        (present rocks_1 room_2)
+        (present rocks_1 room_2)
         (at player_1 start_1)
-;        (at player_2 start_2)
- ;       (at player_3 start_3)
-    )
-)
+    ); end init
+;-----------------------------------------------------------------
+
+); end problem definition

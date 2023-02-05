@@ -14,6 +14,7 @@
         (:predicates
                 (rescued ?arg0 - victim)
                 (can_be_carried ?arg0 - victim)
+                (retrieved ?arg0 - victim)
                 (healed ?arg0 - victim)
                 (marked ?arg0 - victim)
                 (blocked ?arg0 - location)
@@ -76,6 +77,23 @@
                              ?pos ?room - location)
         )
 
+        (:task go_retrieve_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+        )
+
+        (:method m_go_retrieve_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+                :task (go_retrieve_victim ?p_1 ?v ?pos ?room)
+                :precondition (and (at ?v ?room) (at ?p_1 ?pos)
+                                   (not (at ?p_1 ?room)))
+                :ordered-subtasks (and
+                    (location ?p_1 ?pos ?room)
+                    (pickup_victim ?p_1 ?v ?room))
+        )
+                                   
+
 ;new
         (:method m_go_triage_victim
                 :parameters (?p_1 - player ?v - victim
@@ -86,11 +104,11 @@
                                    (not (healed ?v)))
                 :ordered-subtasks (and
                     (location ?p_1 ?pos ?room)
-                    (a_triage_victim ?p_1 ?v ?room))
+                    (triage_victim ?p_1 ?v ?room))
         )
 
 ;new
-        (:method m_go_markVic
+        (:method m_go_mark_victim
                 :parameters (?p_1 - player
                              ?v - victim
                              ?pos - location ?room - location)
@@ -98,11 +116,11 @@
                 :precondition (at ?p_1 ?pos)
                 :ordered-subtasks (and
                    (location ?p_1 ?pos ?room)
-                   (a_mark_victim ?p_1 ?v ?room))
+                   (mark_victim ?p_1 ?v ?room))
         )
 
 ;new
-        (:method m_go_breakRubble
+        (:method m_go_break_rubble
                 :parameters (?p_1 - player
                              ?rocks - rubble
                              ?pos - location ?room - location)
@@ -143,7 +161,17 @@
 
 ;-----------------------------------------------------------------------
 ;new
-        (:action a_triage_victim
+        (:action pickup_victim
+         ;observations/events/player/triage
+                :parameters (?p_1 - player ?v - victim 
+                             ?room - location)
+                :precondition (and (at ?p_1 ?room)
+                                   (at ?v ?room))
+                :effect (retrieved ?v)
+        )
+
+;new
+        (:action triage_victim
          ;observations/events/player/triage
                 :parameters (?p_1 - player 
                              ?v - victim
@@ -178,7 +206,7 @@
         )
 
 ;new
-        (:action a_mark_victim
+        (:action mark_victim
          ; Events reflected: aggregated 'Marker'
                 :parameters (?p_1 - player
                              ?v - victim
