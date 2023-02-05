@@ -82,6 +82,25 @@
                              ?pos ?room - location)
         )
 
+        (:task transport_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+        )
+
+        (:method m_transport_victim
+          ;not the same as evacution or rescue.
+          ;not the same as come_transport_victim either.
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+                :task (transport_victim ?p_1 ?v ?pos ?room)
+                :precondition (and (at ?p_1 ?pos) 
+                                   (at ?v ?pos)
+                                   (retrieved ?v))
+                :ordered-subtasks (and
+                    (carry_location ?p_1 ?v ?pos ?room)
+                    (place_victim ?p_1 ?v ?room))
+        )
+
         (:method m_go_retrieve_victim
                 :parameters (?p_1 - player ?v - victim
                              ?pos ?room - location)
@@ -92,7 +111,6 @@
                     (location ?p_1 ?pos ?room)
                     (pickup_victim ?p_1 ?v ?room))
         )
-                                   
 
 ;new
         (:method m_go_triage_victim
@@ -161,8 +179,19 @@
 
 ;-----------------------------------------------------------------------
 ;new
+        (:action place_victim
+         ;observations/events/player/victim_placed
+                :parameters (?p_1 - player ?v - victim 
+                             ?room - location)
+                :precondition (and (at ?p_1 ?room)
+                                   (at ?v ?room)
+                                   (retrieved ?v))
+                :effect (not (retrieved ?v))
+        )
+
+;new
         (:action pickup_victim
-         ;observations/events/player/triage
+         ;observations/events/player/victim_picked_up
                 :parameters (?p_1 - player ?v - victim 
                              ?room - location)
                 :precondition (and (at ?p_1 ?room)
@@ -191,6 +220,22 @@
                 :precondition (and (at ?p_1 ?room)
                                    (present ?rocks ?room))
                 :effect (not (present ?rocks ?room))
+        )
+
+;new
+        (:action carry_location
+         ;observations/events/player/location
+         ;observations/events/player/victim_placed
+         ;when a player changes room carrying a victim
+             :parameters (?p_1 - player ?v - victim
+                          ?pos ?room - location)
+             :precondition (and (at ?p_1 ?pos)
+                                (at ?v ?pos) 
+                                (retrieved ?v))
+             :effect (and (at ?p_1 ?room) 
+                          (at ?v ?room)
+                          (not (at ?p_1 ?pos))
+                          (not (at ?v pos)))
         )
 
 ;new
