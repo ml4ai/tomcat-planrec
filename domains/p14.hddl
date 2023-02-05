@@ -16,15 +16,26 @@
 ;-----------------------------------------------------------------
     (:htn
         :parameters ()
-        :tasks (transport_victim player_1 vic1 start_1 room_1)
+        :tasks (go_transport_victim player_1 vic1 start_1 room_1 room_2)
         :ordering ()
     ); end htn
 
     (:init
         (at player_1 start_1)
-        (at vic1 start_1)
-        (retrieved vic1)
+        (at vic1 room_1)
     ); end init
+;-----------------------------------------------------------------
+;    (:htn
+;        :parameters ()
+;        :tasks (transport_victim player_1 vic1 start_1 room_1)
+;        :ordering ()
+;    ); end htn
+;
+;    (:init
+;        (at player_1 start_1)
+;        (at vic1 start_1)
+;        (retrieved vic1)
+;    ); end init
 ;-----------------------------------------------------------------
 ;    (:htn
 ;        :parameters ()
