@@ -41,11 +41,6 @@
                              ?pos - location ?room - location)
         )
 
-        (:task t_call_teammate
-                :parameters (?p_1 - player ?p_2 - player
-                             ?pos - location ?room - location)
-        )
-
         (:task megaTask
                 :parameters (?p_1 - player ?p_2 - player
                              ?v - victim
@@ -69,7 +64,12 @@
                              ?pos - location ?room - location)
         )
      
-; ----------------------------------------------------------------------
+;new
+        (:task gather_teammate
+                :parameters (?p_1 - player ?p_2 - player
+                             ?pos1 ?pos2 - location ?room - location)
+        )
+
 ;new
         (:method m_go_markVic
                 :parameters (?p_1 - player
@@ -104,11 +104,22 @@
                 :task (megaTask ?p_1 ?p_2 ?v ?rocks ?pos ?room ?end)
                 :precondition (free ?p_2)
                 :ordered-subtasks (and
-                   (t_call_teammate ?p_1 ?p_2 ?pos ?room)
+                   (gather_teammate ?p_1 ?p_2 ?pos ?room)
                    (t_clearing_room ?p_2 ?rocks ?room)
                    (t_collaborate_critical_wake ?p_1 ?p_2 ?v ?pos ?room)
 		   (t_collaborate_carry_stabilized ?p_1 ?p_2 ?v ?room ?end))
         )
+
+;new
+        (:method m_gather_full_team
+                :parameters (?p_1 - player ?p_2 - player
+                             ?pos1 ?pos2 ?room - location)
+                :task (gather_teammate ?p_1 ?p_2 ?pos1 ?pos2 ?room)
+                :precondition ()
+                :ordered-subtasks (and
+                      (location ?p_1 ?pos1 ?room)
+                      (location ?p_2 ?pos2 ?room))
+       )
 
 ;-----------------------------------------------------------------------
 ;new
@@ -204,7 +215,7 @@
         ; the answerer remains free since they were not beckoned
         )
 
-        (:action a_gather_teammate
+        (:action call_teammate
         ; Events Reflected: room change, dialog event, ProxBlockInt
         ; player 2 is summoned, no longer free and no longer at the 
         ;   location they were in before being summoned. This action 
