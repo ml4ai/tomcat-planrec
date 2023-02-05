@@ -1,0 +1,283 @@
+(define (domain dom_noLang)
+        (:requirements :negative-preconditions :typing :hierarchy)
+        (:types
+                human - object
+                victim - object
+                location - object
+                start - location
+                dest - location
+                sickbay - location
+                player - object
+                rubble - object
+        )
+
+        (:predicates
+                (rescued ?arg0 - victim)
+                (can_be_carried ?arg0 - victim)
+                (healed ?arg0 - victim)
+                (marked ?arg0 - victim)
+                (blocked ?arg0 - location)
+                (at ?arg0 - human ?arg1 - location)
+                (free ?arg0 - player)
+                (present ?arg0 - rubble ?arg1 - location)
+                (cleaned ?arg0 - room)
+        )
+
+        (:task t_clearing_room
+                :parameters (?p_2 - player
+                             ?rocks - rubble
+                             ?room - location)
+        )
+
+        (:task t_collaborate_carry_stabilized
+                :parameters (?p_1 - player ?p_2 - player 
+                             ?v - victim 
+                             ?room - location ?end - sickbay)
+        )
+
+        (:task t_collaborate_critical_wake
+                :parameters (?p_1 - player ?p_2 - player
+                             ?v - victim
+                             ?pos - location ?room - location)
+        )
+
+        (:task megaTask
+                :parameters (?p_1 - player ?p_2 - player
+                             ?v - victim
+                             ?rocks - rubble
+                             ?pos - location ?room - location ?end - sickbay)
+        )
+
+; ----------------------------------------------------------------------
+
+;new
+        (:task go_mark_victim
+                :parameters (?p_1 - player
+                             ?v - victim
+                             ?pos - location ?room - location)
+        )
+
+;new
+        (:task go_break_rubble
+                :parameters (?p_1 - player
+                             ?rocks - rubble
+                             ?pos - location ?room - location)
+        )
+     
+;new
+        (:task gather_teammate
+                :parameters (?p_1 - player ?p_2 - player ?p_3 - player
+                             ?pos1 ?pos2 ?pos3 - location ?room - location)
+        )
+
+;new
+        (:task go_triage_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+        )
+
+;new
+        (:method m_go_triage_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+                :task (go_triage_victim ?p_1 ?v ?pos ?room)
+                :precondition (and (at ?v ?room)
+                                   (at ?p_1 ?pos)
+                                   (not (healed ?v)))
+                :ordered-subtasks (and
+                    (location ?p_1 ?pos ?room)
+                    (a_triage_victim ?p_1 ?v ?room))
+        )
+
+;new
+        (:method m_go_markVic
+                :parameters (?p_1 - player
+                             ?v - victim
+                             ?pos - location ?room - location)
+                :task (go_mark_victim ?p_1 ?v ?pos ?room)
+                :precondition (at ?p_1 ?pos)
+                :ordered-subtasks (and
+                   (location ?p_1 ?pos ?room)
+                   (a_mark_victim ?p_1 ?v ?room))
+        )
+
+;new
+        (:method m_go_breakRubble
+                :parameters (?p_1 - player
+                             ?rocks - rubble
+                             ?pos - location ?room - location)
+                :task (go_break_rubble ?p_1 ?rocks ?pos ?room)
+                :precondition (and (at ?p_1 ?pos)
+                                   (present ?rocks ?room))
+                :ordered-subtasks (and
+                   (location ?p_1 ?pos ?room)
+                   (rubble_destroyed ?p_1 ?rocks ?room))
+        )
+
+;old
+        (:method megaMethod
+                :parameters (?p_1 - player ?p_2 - player
+                             ?v - victim
+                             ?rocks - rubble
+                             ?pos - location ?room - location ?end - sickbay)
+                :task (megaTask ?p_1 ?p_2 ?v ?rocks ?pos ?room ?end)
+                :precondition (free ?p_2)
+                :ordered-subtasks (and
+                   (gather_teammate ?p_1 ?p_2 ?pos ?room)
+                   (t_clearing_room ?p_2 ?rocks ?room)
+                   (t_collaborate_critical_wake ?p_1 ?p_2 ?v ?pos ?room)
+		   (t_collaborate_carry_stabilized ?p_1 ?p_2 ?v ?room ?end))
+        )
+
+;new
+        (:method m_gather_full_team
+                :parameters (?p_1 ?p_2 ?p_3 - player
+                             ?pos1 ?pos2 ?pos3 ?room - location)
+                :task (gather_teammate ?p_1 ?p_2 ?p_3 ?pos1 ?pos2 ?pos3 ?room)
+                :precondition ()
+                :ordered-subtasks (and
+                      (location ?p_1 ?pos1 ?room)
+                      (location ?p_2 ?pos2 ?room)
+                      (location ?p_3 ?pos3 ?room))
+       )
+
+;-----------------------------------------------------------------------
+;new
+        (:action a_triage_victim
+         ;observations/events/player/triage
+                :parameters (?p_1 - player 
+                             ?v - victim
+                             ?room - location)
+                :precondition (and (not (healed ?v))
+                                   (at ?v ?room)
+                                  (at ?p_1 ?room))
+                :effect (healed ?v)
+        )
+
+;new
+        (:action rubble_destroyed
+         ;observations/events/player/rubble_destroyed
+                :parameters (?p_1 - player
+                             ?rocks - rubble
+                             ?room - location)
+                :precondition (and (at ?p_1 ?room)
+                                   (present ?rocks ?room))
+                :effect (not (present ?rocks ?room))
+        )
+
+;new
+        (:action location
+         ;observations/events/player/location
+         ;when a player changes room
+             :parameters (?p_1 - player
+                          ?pos - location
+                          ?room - location)
+             :precondition (at ?p_1 ?pos)
+             :effect (and (at ?p_1 ?room)
+                          (not (at ?p_1 ?pos)))
+        )
+
+;new
+        (:action a_mark_victim
+         ; Events reflected: aggregated 'Marker'
+                :parameters (?p_1 - player
+                             ?v - victim
+                             ?room - location)
+                :precondition (and (at ?v ?room)
+                                   (at ?p_1 ?room))
+                :effect (marked ?v)
+        )
+
+;-----------------------------------------------------------------------
+
+        (:action a_roomChange_find_victim
+         ; observations/events/player/location
+         ;any regular or critical victim
+                :parameters (?p_1 - player
+                             ?v - victim
+                             ?room - location)
+                :precondition (not (marked ?v))
+                :effect (and (at ?v ?room)
+                             (at ?p_1 ?room))
+        )
+
+        (:action a_select_vic_to_carry
+         ; Events reflected: ItemPickedUp, ItemUsed
+         ; to reflect why some victims are chosen over others and that victims
+            ; to be carried must be marked first
+                :parameters (?p_1 - player 
+                             ?v - victim 
+                             ?room - location)
+                :precondition (and (marked ?v)
+                                   (healed ?v))
+                :effect (and (can_be_carried ?v)
+                             (at ?v ?room)
+                             (not (free ?p_1))
+                             (at ?p_1 ?room))
+        )
+
+        (:action a_evacuate_victim
+         ; Events reflected:room_change, toolused, marker, items
+                           ; victim evacuated to proper sickbay
+         ; reflects room change.
+                :parameters (?p_2 - player 
+                             ?v - victim 
+                             ?room - location ?end - sickbay)
+                :precondition (and (healed ?v)
+                                   (marked ?v)
+                                   (can_be_carried ?v)
+                                   (at ?v ?room)
+                                   (at ?p_2 ?room))
+                :effect (and (at ?v ?end) 
+                             (rescued ?v)
+                             (not (at ?v ?room))
+                             (at ?p_2 ?end)
+                             (free ?p_2)
+                             (not (at ?p_2 ?room)))
+        )
+
+        (:action a_locate_teammate
+         ; Events Reflected: room change, dialog event
+                :parameters (?p_1 - player ?p_2 - player
+                             ?pos - location ?room - location)
+                :precondition (free ?p_2)
+                :effect (at ?p_1 ?room)
+        ; the logic is that if asked, they are in different areas
+        ; the asker is then assumed to be in destination of interest
+        ; the answerer remains free since they were not beckoned
+        )
+
+        (:action call_teammate
+        ; Events Reflected: room change, dialog event, ProxBlockInt
+        ; player 2 is summoned, no longer free and no longer at the 
+        ;   location they were in before being summoned. This action 
+        ;   does not reflect language or ability to reject/accept.
+                :parameters (?p_1 - player ?p_2 - player
+                             ?pos - location ?room - location)
+                :precondition (at ?p_1 ?room)
+                :effect (and (at ?p_2 ?room)
+                             (not (free ?p_2))
+                             (not (at ?p_2 ?pos)))
+        )
+
+        (:action a_roomChange_locate_critical
+         ;Events Reflected: room change
+                :parameters (?p_1 - player 
+                             ?v - victim
+                             ?room - location)
+                :precondition (and (not (healed ?v))
+                                   (at ?v ?room))
+                :effect (at ?p_1 ?room)
+        )
+
+        (:action a_roomChange_approach_rubble
+         ; Events Reflected: room change
+                :parameters (?p_2 - player
+                             ?rocks - rubble
+                             ?room - location)
+                :precondition (and (blocked ?room)
+                                   (present ?rocks ?room))
+                :effect (at ?p_2 ?room)
+        )
+
+);end define domain
