@@ -66,8 +66,8 @@
      
 ;new
         (:task gather_teammate
-                :parameters (?p_1 - player ?p_2 - player
-                             ?pos1 ?pos2 - location ?room - location)
+                :parameters (?p_1 - player ?p_2 - player ?p_3 - player
+                             ?pos1 ?pos2 ?pos3 - location ?room - location)
         )
 
 ;new
@@ -112,13 +112,14 @@
 
 ;new
         (:method m_gather_full_team
-                :parameters (?p_1 - player ?p_2 - player
-                             ?pos1 ?pos2 ?room - location)
-                :task (gather_teammate ?p_1 ?p_2 ?pos1 ?pos2 ?room)
+                :parameters (?p_1 ?p_2 ?p_3 - player
+                             ?pos1 ?pos2 ?pos3 ?room - location)
+                :task (gather_teammate ?p_1 ?p_2 ?p_3 ?pos1 ?pos2 ?pos3 ?room)
                 :precondition ()
                 :ordered-subtasks (and
                       (location ?p_1 ?pos1 ?room)
-                      (location ?p_2 ?pos2 ?room))
+                      (location ?p_2 ?pos2 ?room)
+                      (location ?p_3 ?pos3 ?room))
        )
 
 ;-----------------------------------------------------------------------

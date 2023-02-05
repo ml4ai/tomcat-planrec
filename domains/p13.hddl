@@ -18,7 +18,7 @@
         :parameters ()
 ;;;        :tasks (and (go_mark_victim player_1 vic1 start_1 room_1)
 ;;;                    (go_break_rubble player_1 rocks_1 room_1 room_2))
-        :tasks (gather_teammate player_1 player_2 start_1 start_2 room_1)
+        :tasks (gather_teammate player_1 player_2 player_3 start_1 start_2 start_3 room_1)
         :ordering ()
     )
 
@@ -27,5 +27,6 @@
 ;        (present rocks_1 room_2)
         (at player_1 start_1)
         (at player_2 start_2)
+        (at player_3 start_3)
     )
 )
