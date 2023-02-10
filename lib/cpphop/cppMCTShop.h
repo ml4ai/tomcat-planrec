@@ -423,7 +423,7 @@ cppMCTShop(DomainDef& domain,
     auto end = seek_planMCTS(t, tasktree, v, domain, R, plan_size,c,g);
     std::cout << "Plan:";
     for (auto const& p : t[end].plan) {
-      std::cout << " " << p;
+      std::cout << "\n\t " << p;
     }
     std::cout << std::endl;
     return Results(t,v,end,tasktree,TID);
