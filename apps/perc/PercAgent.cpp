@@ -367,7 +367,7 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           if (!fov.empty()) {
             std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
             std::string rank = elapsed_ms + "-*";
-            this->redis.xadd("medic_fov",rank,fov.begin(),fov.end());
+            this->rc->redis.xadd("medic_fov",rank,fov.begin(),fov.end());
           }
         }
         else if (player_color == "BLUE") {
@@ -422,6 +422,7 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
               percept.first = "gravel";
               percept.second = "(fov_gravel engineer)";
               see_gravel = true;
+              fov.push_back(percept);
             }
 
             if (v.at_pointer("/type").as_string().find("marker_block") != std::string::npos) {
@@ -598,7 +599,7 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           if (!fov.empty()) {
             std::string elapsed_ms = time_diff(msg_time, this->initial_time);; 
             std::string rank = elapsed_ms + "-*";
-            this->redis.xadd("engineer_fov",rank,fov.begin(),fov.end());
+            this->rc->redis.xadd("engineer_fov",rank,fov.begin(),fov.end());
           }
         }
         else {
@@ -653,6 +654,7 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
               percept.first = "gravel";
               percept.second = "(fov_gravel transporter)";
               see_gravel = true;
+              fov.push_back(percept);
             }
 
             if (v.at_pointer("/type").as_string().find("marker_block") != std::string::npos) {
@@ -829,7 +831,7 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           if (!fov.empty()) {
             std::string elapsed_ms = time_diff(msg_time, this->initial_time);
             std::string rank = elapsed_ms + "-*";
-            this->redis.xadd("transporter_fov",rank,fov.begin(),fov.end());
+            this->rc->redis.xadd("transporter_fov",rank,fov.begin(),fov.end());
           }
         }
       }
@@ -839,5 +841,6 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
     }
 }
 
-PercAgent::PercAgent(string address,
-                     string redis_address = "tcp://127.0.0.1:6379") : Agent(address),redis(redis_address) {}
+PercAgent::PercAgent(string address, string redis_address = "tcp://127.0.0.1:6379") : Agent(address) {
+  this->rc = Redis_Connect::getInstance(redis_address);
+}
