@@ -462,7 +462,7 @@ class KnowledgeBase {
       //By Default, it calls update_state(). If you are calling this in a long
       //series or loop, set update_state = false and then call update_state()
       //manually after all the tells for more optimal performance! 
-      bool tell(std::string pred, bool remove = false, bool update_state = true) {
+      bool tell(std::string pred, bool remove = false, int time = -1, bool update_state = true) {
         auto pp = this->parse_predicate(pred);
         bool not_found = true;
         for (auto const& p : this->predicates) {
@@ -473,18 +473,34 @@ class KnowledgeBase {
         if (not_found) {
           return false;
         }
-        if (remove) {
-          this->facts[pp.first].erase(pred);
-          if (update_state) { 
+        if (time < 0) {
+          if (remove) {
+            this->facts[pp.first].erase(pred);
+            if (update_state) { 
+              this->update_state();
+            }
+            return true;
+          }
+          this->facts[pp.first].insert(pred);
+          if (update_state) {
             this->update_state();
           }
           return true;
         }
-        this->facts[pp.first].insert(pred);
-        if (update_state) {
-          this->update_state();
+        else {
+          if (remove) {
+            this->temporal_facts[time][pp.first].erase(pred);
+            if (update_state) { 
+              this->update_state(time);
+            }
+            return true;
+          }
+          this->temporal_facts[time][pp.first].insert(pred);
+          if (update_state) {
+            this->update_state(time);
+          }
+          return true;
         }
-        return true;
       }
 
       //This adds the assert to expr, but the rest of expr must be made smt
