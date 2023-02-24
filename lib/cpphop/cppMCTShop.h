@@ -74,6 +74,7 @@ simulation(std::vector<std::string>& plan,
            KnowledgeBase state,
            TaskGraph tasks,
            int cTask,
+           int time,
            DomainDef& domain,
            std::mt19937_64& g) {
   if (tasks.empty() && cTask == -1) {
@@ -90,7 +91,7 @@ simulation(std::vector<std::string>& plan,
           ns.update_state();
           auto gplan = plan;
           gplan.push_back(act.first+"_"+std::to_string(cTask));
-          double rs = simulation(gplan,ns,gtasks,-1,domain,g);
+          double rs = simulation(gplan,ns,gtasks,-1,time + 1,domain,g);
           if (rs > -1.0) {
             return rs;
           }
@@ -110,7 +111,7 @@ simulation(std::vector<std::string>& plan,
           not_applicable = false;
           std::shuffle(all_gts.begin(),all_gts.end(),g);
           for (auto &gts : all_gts) {
-            double rs = simulation(plan,state,gts.second,-1,domain,g);
+            double rs = simulation(plan,state,gts.second,-1,time,domain,g);
             if (rs > -1.0) {
               return rs;
             }
@@ -131,7 +132,7 @@ simulation(std::vector<std::string>& plan,
   else {
     for (auto &[i,gt] : tasks.GTs) {
       if (gt.incoming.empty()) {
-        double rs = simulation(plan,state,tasks,i,domain,g);
+        double rs = simulation(plan,state,tasks,i,time,domain,g);
         if (rs > -1.0) {
           return rs;
         }
@@ -159,6 +160,7 @@ int expansion(pTree& t,
             v.tasks.remove_node(tid);
             v.depth = t[n].depth + 1;
             v.plan = t[n].plan;
+            v.time = t[n].time + 1;
             v.plan.push_back(act.first+"_"+std::to_string(tid));
             v.pred = n;
             int w = t.size();
@@ -185,6 +187,7 @@ int expansion(pTree& t,
             v.plan = t[n].plan;
             v.addedTIDs = g.first;
             v.prevTID = tid;
+            v.time = t[n].time;
             v.pred = n;
             int w = t.size();
             t[w] = v;
@@ -243,6 +246,7 @@ seek_planMCTS(pTree& t,
     n_node.tasks = t[v].tasks;
     n_node.depth = t[v].depth;
     n_node.plan = t[v].plan;
+    n_node.time = t[v].time;
     int w = m.size();
     m[w] = n_node;
     for (int i = 0; i < R; i++) {
@@ -256,6 +260,7 @@ seek_planMCTS(pTree& t,
                               m[n].state, 
                               m[n].tasks, 
                               m[n].cTask,
+                              m[n].time,
                               domain,
                               g);
           if (r == -1.0) {
@@ -272,6 +277,7 @@ seek_planMCTS(pTree& t,
                               m[n_p].state, 
                               m[n_p].tasks, 
                               m[n_p].cTask,
+                              m[n_p].time,
                               domain,
                               g);
           if (r == -1.0) {
@@ -325,6 +331,7 @@ seek_planMCTS(pTree& t,
     k.tasks = m[arg_max].tasks;
     k.plan = m[arg_max].plan;
     k.depth = t[v].depth + 1;
+    k.time = m[arg_max].time;
     for (auto& i : m[arg_max].addedTIDs) {
       TaskNode tasknode;
       tasknode.task = k.tasks[i].head;
@@ -355,6 +362,7 @@ seek_planMCTS(pTree& t,
       j.tasks = m[arg_max].tasks;
       j.plan = m[arg_max].plan;
       j.depth = t[v].depth + 1;
+      j.time = m[arg_max].time;
       for (auto& i : m[arg_max].addedTIDs) {
         TaskNode tasknode;
         tasknode.task = j.tasks[i].head;
