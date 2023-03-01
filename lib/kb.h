@@ -230,14 +230,14 @@ class KnowledgeBase {
       //Used by tell to update the smt_state string. tell() calls this
       //automatically by default, but it can be called manually too (see tell()
       //for default settings).
-      void update_state(int time = - 1) {
+      void update_state(int time = -1) {
         this->smt_state = "(declare-datatype __Object__ (";
         for (auto const& [o1,o2] : this->objects) {
           this->smt_state += o1+" ";
         }
         this->smt_state += "))\n";
         //No temporal facts
-        if (time < 0 || temporal_facts.empty()) {
+        if (time < 0 || this->temporal_facts.empty()) {
           for (auto const& p : this->predicates) {
             if (this->facts.find(p.first) != this->facts.end()) {
               if (!this->facts[p.first].empty()) {
@@ -301,7 +301,7 @@ class KnowledgeBase {
         }
         else {
           std::map<int, std::unordered_map<std::string,std::unordered_set<std::string>>, std::greater<int>>::iterator itlow;
-          itlow = temporal_facts.lower_bound(time);
+          itlow = this->temporal_facts.lower_bound(time);
           int closest_time = itlow->first;
           //No relevant temporal facts
           if (time - closest_time > 1000 || closest_time > time) {
@@ -463,7 +463,7 @@ class KnowledgeBase {
       //By Default, it calls update_state(). If you are calling this in a long
       //series or loop, set update_state = false and then call update_state()
       //manually after all the tells for more optimal performance! 
-      bool tell(std::string pred, bool remove = false, int time = -1, bool update_state = true) {
+      bool tell(std::string pred, bool remove = false, bool update_state = true, int time = -1) {
         auto pp = this->parse_predicate(pred);
         bool not_found = true;
         for (auto const& p : this->predicates) {
@@ -560,14 +560,24 @@ class KnowledgeBase {
       void update_temporal_facts(std::string const& redis_address) {
         Redis_Connect* rc = Redis_Connect::getInstance(redis_address); 
         std::string oldest;
-        if (temporal_facts.empty()) {
+        if (this->temporal_facts.empty()) {
           oldest = "0";
         }
         else {
-          oldest = std::to_string(temporal_facts.begin()->first + 1);
+          oldest = std::to_string(this->temporal_facts.begin()->first + 1);
         }
         std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> xresults;
-        redis.xrange("fov",oldest,"+",std::back_inserter(xresults));
+        rc->redis.xrange("fov",oldest,"+",std::back_inserter(xresults));
+        for (auto const& x : xresults) {
+          int t = std::stoi(x.first);
+          for (auto const& y : x.second) {
+            this->temporal_facts[t][y.first].insert(y.second);
+          }
+        }
+      }
+
+      bool temporal_facts_is_empty() {
+        return this->temporal_facts.empty();
       }
 };
 
