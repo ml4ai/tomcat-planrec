@@ -96,3 +96,40 @@ BOOST_AUTO_TEST_CASE(test_kb) {
     //}
 
 }
+
+BOOST_AUTO_TEST_CASE(test_temporal_facts) {
+    TypeTree typetree;
+    std::string root = "__Object__";
+    typetree.add_root(root);
+    typetree.add_child("locatable",root);
+    typetree.add_child("package","locatable");
+
+    Objects objects;
+    objects["package_0"] = "package";
+
+    Predicates predicates;
+    Args a = {std::make_pair("?arg0", "package")};
+    predicates.push_back(create_predicate("see_package",a));
+
+    KnowledgeBase kb(predicates,objects,typetree);
+
+    kb.update_state();
+
+    kb.print_smt_state();
+
+    kb.update_temporal_facts("tcp://127.0.0.1:6379");
+
+    kb.update_state(0);
+
+    kb.print_smt_state();
+
+    std::string test_expr = "(see_package package_0)";
+
+    if (kb.temporal_facts_is_empty()) {
+      BOOST_TEST(!kb.ask(test_expr)); 
+    }
+    else {
+      // In redis-cli with redis-server running do XADD fov 0-* see_package "(see_package package_0)"
+      BOOST_TEST(kb.ask(test_expr));
+    }
+}
