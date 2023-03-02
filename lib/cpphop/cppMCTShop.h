@@ -88,7 +88,7 @@ simulation(std::vector<std::string>& plan,
         auto gtasks = tasks;
         gtasks.remove_node(cTask);
         for (auto &ns : act.second) {
-          ns.update_state();
+          ns.update_state(time+1);
           auto gplan = plan;
           gplan.push_back(act.first+"_"+std::to_string(cTask));
           double rs = simulation(gplan,ns,gtasks,-1,time + 1,domain,g);
@@ -155,7 +155,7 @@ int expansion(pTree& t,
           for (auto const& state : act.second) {
             pNode v;
             v.state = state;
-            v.state.update_state();
+            v.state.update_state(t[n].time + 1);
             v.tasks = t[n].tasks;
             v.tasks.remove_node(tid);
             v.depth = t[n].depth + 1;
@@ -214,6 +214,7 @@ int expansion(pTree& t,
           v.tasks = t[n].tasks;
           v.depth = t[n].depth + 1;
           v.plan = t[n].plan;
+          v.time = t[n].time;
           v.pred = n;
           int w = t.size();
           t[w] = v;
@@ -236,12 +237,15 @@ seek_planMCTS(pTree& t,
               int R,
               int plan_size,
               double c,
-              std::mt19937_64& g) {
+              std::mt19937_64& g,
+              std::string const& redis_address) {
   int stuck_counter = 10;
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
     n_node.cTask = t[v].cTask;
+    t[v].state.update_temporal_facts(redis_address);
+    t[v].state.update_state(t[v].time);
     n_node.state = t[v].state;
     n_node.tasks = t[v].tasks;
     n_node.depth = t[v].depth;
@@ -256,6 +260,7 @@ seek_planMCTS(pTree& t,
       }
       else {
         if (m[n].sims == 0) {
+          m[n].state.update_state(m[n].time);
           auto r = simulation(m[n].plan,
                               m[n].state, 
                               m[n].tasks, 
@@ -272,7 +277,9 @@ seek_planMCTS(pTree& t,
           }
         }
         else {
+          m[n].state.update_state(m[n].time);
           int n_p = expansion(m,n,domain,g);
+          m[n_p].state.update_state(m[n_p].time);
           auto r = simulation(m[n_p].plan,
                               m[n_p].state, 
                               m[n_p].tasks, 
@@ -402,7 +409,8 @@ cppMCTShop(DomainDef& domain,
            int R = 30,
            int plan_size = -1,
            double c = 1.4142,
-           int seed = 4021) {
+           int seed = 4021,
+           std::string const& redis_address = "tcp://127.0.0.1:6379") {
     domain.set_scorer(scorer);
     pTree t;
     TaskTree tasktree;
@@ -428,7 +436,7 @@ cppMCTShop(DomainDef& domain,
     std::cout << "Initial State:" << std::endl;
     t[v].state.print_facts();
     std::cout << std::endl;
-    auto end = seek_planMCTS(t, tasktree, v, domain, R, plan_size,c,g);
+    auto end = seek_planMCTS(t, tasktree, v, domain, R, plan_size,c,g,redis_address);
     std::cout << "Plan:";
     for (auto const& p : t[end].plan) {
       std::cout << "\n\t " << p;
