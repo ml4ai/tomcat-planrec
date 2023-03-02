@@ -29,8 +29,8 @@ target_include_directories(test_loader PRIVATE ${Boost_INCLUDE_DIR} ${Z3_CXX_INC
 # planner testing
 add_executable(test_MCTS_planner test_MCTS_planner.cpp)
 target_link_libraries(test_MCTS_planner PRIVATE tomcat)
-target_link_libraries(test_MCTS_planner PRIVATE ${Z3_LIBRARIES} ${Boost_LIBRARIES})
-target_include_directories(test_MCTS_planner PRIVATE ${Boost_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS} ../lib)
+target_link_libraries(test_MCTS_planner PRIVATE ${Z3_LIBRARIES} ${Boost_LIBRARIES} ${HIREDIS_LIB} ${REDIS_PLUS_PLUS_LIB})
+target_include_directories(test_MCTS_planner PRIVATE ${Boost_INCLUDE_DIR} ${Z3_CXX_INCLUDE_DIRS} ${HIREDIS_HEADER} ${REDIS_PLUS_PLUS_HEADER} ../lib)
 
 add_test(NAME test_parser COMMAND test_parser)
 add_test(NAME test_kb COMMAND test_kb)
