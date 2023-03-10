@@ -244,7 +244,9 @@ seek_planMCTS(pTree& t,
     pTree m;
     pNode n_node;
     n_node.cTask = t[v].cTask;
-    t[v].state.update_temporal_facts(redis_address);
+    if (!redis_address.empty()) {
+      t[v].state.update_temporal_facts(redis_address);
+    }
     t[v].state.update_state(t[v].time);
     n_node.state = t[v].state;
     n_node.tasks = t[v].tasks;
@@ -410,7 +412,7 @@ cppMCTShop(DomainDef& domain,
            int plan_size = -1,
            double c = 1.4142,
            int seed = 4021,
-           std::string const& redis_address = "tcp://127.0.0.1:6379") {
+           std::string const& redis_address = "") {
     domain.set_scorer(scorer);
     pTree t;
     TaskTree tasktree;
