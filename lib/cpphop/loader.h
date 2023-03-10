@@ -30,13 +30,15 @@ void get_orderings(Orderings orderings,std::unordered_map<std::string,std::vecto
   }
   if (which_orderings(orderings) == 1) {
     auto o = boost::get<Ordering>(orderings);
-    og[o.first].push_back(o.second);
+    // orig: og.at(o.first).push_back(o.second);
+    og.at(o.first).push_back(o.second);
     return;
   }
   if (which_orderings(orderings) == 2) {
     auto ov = boost::get<std::vector<Ordering>>(orderings);
     for (auto const &o : ov) {
-      og[o.first].push_back(o.second);
+      // orig: og.at(o.first).push_back(o.second);
+      og.at(o.first).push_back(o.second);
     }
     return;
   }
@@ -52,10 +54,15 @@ std::unordered_set<std::string> type_inference(Sentence sentence, Ptypes& ptypes
   if (sentence.which() == 1) {
     auto s = boost::get<Literal<Term>>(sentence);
     for (int i = 0; i < s.args.size(); i++) {
-      if (s.args[i].which() == 1) {
-        std::string arg = boost::get<Variable>(s.args[i]).name;
+      // s (current predicate) and s.args is a vector of terms
+      // ORIG: if (s.args.at(i).which() == 1) {
+      if (s.args.at(i).which() == 1) {
+        // oRIG: std::string arg = boost::get<Variable>(s.args.at(i)).name;
+        std::string arg = boost::get<Variable>(s.args.at(i)).name;
         if (arg == var) {
-          types.insert(ptypes[s.predicate][i]);
+          // ptypes maps current predicate with string at position i
+          // ORIG: types.insert(ptypes.at(s.predicate).at(i));
+          types.insert(ptypes.at(s.predicate).at(i));
         }
       } 
     }
@@ -229,8 +236,9 @@ std::unordered_set<std::string> type_inference(effect e, Ptypes& ptypes, std::st
   std::unordered_set<std::string> types = {"__Object__"};
   auto pred = e.pred;
   for (int i = 0; i < pred.second.size(); i++) {
-    if (var == pred.second[i].first) {
-      types.insert(ptypes[pred.first][i]);
+    // ORIG: if (var == pred.second.at(i).first) {
+    if (var == pred.second.at(i).first) {
+      types.insert(ptypes.at(pred.first).at(i));
     } 
   }
   return types;
@@ -265,9 +273,9 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
     auto faeffects = decompose_effects(e.effect,ptypes);
     for (int i = 0; i < faeffects.size(); i++) {
       for (auto const& v : e.variables) {
-        if (faeffects[i].forall.find(v.name) == faeffects[i].forall.end()) {
-          auto types = type_inference(faeffects[i],ptypes,v.name);
-          faeffects[i].forall[v.name] = types;
+        if (faeffects.at(i).forall.find(v.name) == faeffects.at(i).forall.end()) {
+          auto types = type_inference(faeffects.at(i),ptypes,v.name);
+          faeffects.at(i).forall.at(v.name) = types;
         }
       }
     }
@@ -281,17 +289,17 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
       Pred pd;
       pd.first = p.predicate;
       for (int i = 0; i < p.args.size(); i++) {
-        if (p.args[i].which() == 1) {
-          std::string arg_name = boost::get<Variable>(p.args[i]).name;
+        if (p.args.at(i).which() == 1) {
+          std::string arg_name = boost::get<Variable>(p.args.at(i)).name;
           std::pair<std::string,std::string> arg;
           arg.first = arg_name;
-          arg.second = ptypes[p.predicate][i];
+          arg.second = ptypes.at(p.predicate).at(i);
           pd.second.push_back(arg);
         } 
         else {
           std::pair<std::string,std::string> arg;
-          arg.first = boost::get<Constant>(p.args[i]).name;
-          arg.second = ptypes[p.predicate][i];
+          arg.first = boost::get<Constant>(p.args.at(i)).name;
+          arg.second = ptypes.at(p.predicate).at(i);
           pd.second.push_back(arg);
         }
       }
@@ -305,17 +313,17 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
         Pred pd;
         pd.first = p.predicate;
         for (int i = 0; i < p.args.size(); i++) {
-          if (p.args[i].which() == 1) {
-            std::string arg_name = boost::get<Variable>(p.args[i]).name;
+          if (p.args.at(i).which() == 1) {
+            std::string arg_name = boost::get<Variable>(p.args.at(i)).name;
             std::pair<std::string,std::string> arg;
             arg.first = arg_name;
-            arg.second = ptypes[p.predicate][i];
+            arg.second = ptypes.at(p.predicate).at(i);
             pd.second.push_back(arg);
           } 
           else {
             std::pair<std::string,std::string> arg;
-            arg.first = boost::get<Constant>(p.args[i]).name;
-            arg.second = ptypes[p.predicate][i];
+            arg.first = boost::get<Constant>(p.args.at(i)).name;
+            arg.second = ptypes.at(p.predicate).at(i);
             pd.second.push_back(arg);
           }
         }
@@ -330,17 +338,17 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
     Pred pd;
     pd.first = p.predicate;
     for (int i = 0; i < p.args.size(); i++) {
-      if (p.args[i].which() == 1) {
-        std::string arg_name = boost::get<Variable>(p.args[i]).name;
+      if (p.args.at(i).which() == 1) {
+        std::string arg_name = boost::get<Variable>(p.args.at(i)).name;
         std::pair<std::string,std::string> arg;
         arg.first = arg_name;
-        arg.second = ptypes[p.predicate][i];
+        arg.second = ptypes.at(p.predicate).at(i);
         pd.second.push_back(arg);
       } 
       else {
         std::pair<std::string,std::string> arg;
-        arg.first = boost::get<Constant>(p.args[i]).name;
-        arg.second = ptypes[p.predicate][i];
+        arg.first = boost::get<Constant>(p.args.at(i)).name;
+        arg.second = ptypes.at(p.predicate).at(i);
         pd.second.push_back(arg);
       }
     }
@@ -439,16 +447,16 @@ std::vector<std::pair<ID,TaskDef>> get_subtasks(SubTasks subtasks, Tasktypes tty
       TaskDef t; 
       t.first = st.name; 
       for (int i = 0; i < st.parameters.size(); i++) {
-        if (st.parameters[i].which() == 1) {
+        if (st.parameters.at(i).which() == 1) {
           std::pair<std::string,std::string> arg;
-          arg.first = boost::get<Variable>(st.parameters[i]).name; 
-          arg.second = ttypes[st.name][i];
+          arg.first = boost::get<Variable>(st.parameters.at(i)).name; 
+          arg.second = ttypes.at(st.name).at(i);
           t.second.push_back(arg);
         } 
         else {
           std::pair<std::string,std::string> arg;
-          arg.first = boost::get<Constant>(st.parameters[i]).name; 
-          arg.second = ttypes[st.name][i];
+          arg.first = boost::get<Constant>(st.parameters.at(i)).name; 
+          arg.second = ttypes.at(st.name).at(i);
           t.second.push_back(arg);
         }
       }
@@ -460,16 +468,16 @@ std::vector<std::pair<ID,TaskDef>> get_subtasks(SubTasks subtasks, Tasktypes tty
       TaskDef t; 
       t.first = st.name; 
       for (int i = 0; i < st.parameters.size(); i++) {
-        if (st.parameters[i].which() == 1) {
+        if (st.parameters.at(i).which() == 1) {
           std::pair<std::string,std::string> arg;
-          arg.first = boost::get<Variable>(st.parameters[i]).name; 
-          arg.second = ttypes[st.name][i];
+          arg.first = boost::get<Variable>(st.parameters.at(i)).name; 
+          arg.second = ttypes.at(st.name).at(i);
           t.second.push_back(arg);
         } 
         else {
           std::pair<std::string,std::string> arg;
-          arg.first = boost::get<Constant>(st.parameters[i]).name; 
-          arg.second = ttypes[st.name][i];
+          arg.first = boost::get<Constant>(st.parameters.at(i)).name; 
+          arg.second = ttypes.at(st.name).at(i);
           t.second.push_back(arg);
         }
       }
@@ -485,16 +493,16 @@ std::vector<std::pair<ID,TaskDef>> get_subtasks(SubTasks subtasks, Tasktypes tty
         TaskDef t; 
         t.first = st.name; 
         for (int i = 0; i < st.parameters.size(); i++) {
-          if (st.parameters[i].which() == 1) {
+          if (st.parameters.at(i).which() == 1) {
             std::pair<std::string,std::string> arg;
-            arg.first = boost::get<Variable>(st.parameters[i]).name; 
-            arg.second = ttypes[st.name][i];
+            arg.first = boost::get<Variable>(st.parameters.at(i)).name; 
+            arg.second = ttypes.at(st.name).at(i);
             t.second.push_back(arg);
           } 
           else {
             std::pair<std::string,std::string> arg;
-            arg.first = boost::get<Constant>(st.parameters[i]).name; 
-            arg.second = ttypes[st.name][i];
+            arg.first = boost::get<Constant>(st.parameters.at(i)).name; 
+            arg.second = ttypes.at(st.name).at(i);
             t.second.push_back(arg);
           }
         }
@@ -507,16 +515,16 @@ std::vector<std::pair<ID,TaskDef>> get_subtasks(SubTasks subtasks, Tasktypes tty
         TaskDef t; 
         t.first = st.name; 
         for (int i = 0; i < st.parameters.size(); i++) {
-          if (st.parameters[i].which() == 1) {
+          if (st.parameters.at(i).which() == 1) {
             std::pair<std::string,std::string> arg;
-            arg.first = boost::get<Variable>(st.parameters[i]).name; 
-            arg.second = ttypes[st.name][i];
+            arg.first = boost::get<Variable>(st.parameters.at(i)).name; 
+            arg.second = ttypes.at(st.name).at(i);
             t.second.push_back(arg);
           } 
           else {
             std::pair<std::string,std::string> arg;
-            arg.first = boost::get<Constant>(st.parameters[i]).name; 
-            arg.second = ttypes[st.name][i];
+            arg.first = boost::get<Constant>(st.parameters.at(i)).name; 
+            arg.second = ttypes.at(st.name).at(i);
             t.second.push_back(arg);
           }
         }
@@ -577,12 +585,12 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
       std::string type = boost::get<PrimitiveType>(t.type);
       for (auto const& e : t.entries) {
         params.push_back(std::make_pair(e.name,type));
-        ptypes[p.predicate].push_back(type);
+        ptypes.at(p.predicate).push_back(type);
       }
     }
     for (auto const& it : p.variables.implicitly_typed_list) {
       params.push_back(std::make_pair(it.name,"__Object__"));
-      ptypes[p.predicate].push_back("__Object__");
+      ptypes.at(p.predicate).push_back("__Object__");
     }
     pred.second = params;
     predicates.push_back(pred);
@@ -592,11 +600,11 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
   for (auto const& c : dom.constants.explicitly_typed_lists) {
     std::string type = boost::get<PrimitiveType>(c.type);
     for (auto const& e : c.entries) {
-      constants[e] = type;
+      constants.at(e) = type;
     }
   }
   for (auto const& ic : dom.constants.implicitly_typed_list) {
-    constants[ic] = "__Object__";
+    constants.at(ic) = "__Object__";
   }
 
   Tasktypes ttypes;
@@ -604,11 +612,11 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
     for (auto const& p : t.parameters.explicitly_typed_lists) {
       std::string type = boost::get<PrimitiveType>(p.type);
       for (auto const& e : p.entries) {
-        ttypes[t.name].push_back(type); 
+        ttypes.at(t.name).push_back(type); 
       }
     }
     for (auto const& pt : t.parameters.implicitly_typed_list) {
-      ttypes[t.name].push_back("__Object__");
+      ttypes.at(t.name).push_back("__Object__");
     }
   }
 
@@ -620,12 +628,12 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
       std::string type = boost::get<PrimitiveType>(p.type);
       for (auto const& e : p.entries) {
         params.push_back(std::make_pair(e.name,type));
-        ttypes[a.name].push_back(type);
+        ttypes.at(a.name).push_back(type);
       }
     }
     for (auto const& pt : a.parameters.implicitly_typed_list) {
       params.push_back(std::make_pair(pt.name,"__Object__"));
-      ttypes[a.name].push_back("__Object__");
+      ttypes.at(a.name).push_back("__Object__");
     }
 
     Preconds preconditions = sentence_to_SMT(a.precondition,ptypes); 
@@ -652,13 +660,13 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
 
     for (int i = 0; i < m.task.parameters.size(); i++) {
       std::pair<std::string,std::string> arg;
-      if (m.task.parameters[i].which() == 1) {
-        arg.first = boost::get<Variable>(m.task.parameters[i]).name;
-        arg.second = ttypes[m.task.name][i];
+      if (m.task.parameters.at(i).which() == 1) {
+        arg.first = boost::get<Variable>(m.task.parameters.at(i)).name;
+        arg.second = ttypes.at(m.task.name).at(i);
       }
       else {
-        arg.first =  boost::get<Constant>(m.task.parameters[i]).name;
-        arg.second = ttypes[m.task.name][i];
+        arg.first =  boost::get<Constant>(m.task.parameters.at(i)).name;
+        arg.second = ttypes.at(m.task.name).at(i);
       }
       tparams.push_back(arg);
     }
@@ -679,31 +687,31 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
       auto sts = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
       if (m.task_network.subtasks->ordering_kw == "ordered-tasks" || 
           m.task_network.subtasks->ordering_kw == "ordered-subtasks") {
-        subtasks[sts[0].first] = sts[0].second;
+        subtasks.at(sts.at(0).first) = sts.at(0).second;
         for (int i = 1; i < sts.size(); i++) {
-          subtasks[sts[i].first] = sts[i].second;
-          orderings[sts[i-1].first].push_back(sts[i].first);
+          subtasks.at(sts.at(i).first) = sts.at(i).second;
+          orderings.at(sts.at(i-1).first).push_back(sts.at(i).first);
         }
-        orderings[sts[sts.size()-1].first] = {};
+        orderings.at(sts.at(sts.size()-1).first) = {};
       }
       else {
         if (!m.task_network.orderings) {
           for (auto const &st : sts) {
-            subtasks[st.first] = st.second;
-            orderings[st.first] = {};
+            subtasks.at(st.first) = st.second;
+            orderings.at(st.first) = {};
           }
         } 
         else {
           for (auto const &st : sts) {
-            subtasks[st.first] = st.second;
-            orderings[st.first] = {};
+            subtasks.at(st.first) = st.second;
+            orderings.at(st.first) = {};
           }
           get_orderings(*m.task_network.orderings,orderings); 
         }
       }
     }
 
-    methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks,orderings));
+    methods.at(m.task.name).push_back(MethodDef(name,task,params,preconditions,subtasks,orderings));
   }
   auto DD = DomainDef(name,typetree,predicates,constants,actions,methods);
   return std::make_pair(DD,ttypes);
@@ -738,11 +746,11 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
   for (auto const& o : prob.objects.explicitly_typed_lists) {
     std::string type = boost::get<PrimitiveType>(o.type);
     for (auto const& e : o.entries) {
-      objects[e] = type;
+      objects.at(e) = type;
     }
   }
   for (auto const& io : prob.objects.implicitly_typed_list) {
-    objects[io] = "__Object__";
+    objects.at(io) = "__Object__";
   }
   
   std::string m_name = prob.problem_htn.problem_class;
@@ -774,24 +782,24 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
     auto sts = get_subtasks(prob.problem_htn.task_network.subtasks->subtasks,ttypes);    
     if (prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-tasks" || 
         prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-subtasks") {
-      subtasks[sts[0].first] = sts[0].second;
+      subtasks.at(sts.at(0).first) = sts.at(0).second;
       for (int i = 1; i < sts.size(); i++) {
-        subtasks[sts[i].first] = sts[i].second;
-        orderings[sts[i-1].first].push_back(sts[i].first);
+        subtasks.at(sts.at(i).first) = sts.at(i).second;
+        orderings.at(sts.at(i-1).first).push_back(sts.at(i).first);
       }
-      orderings[sts[sts.size()-1].first] = {};
+      orderings.at(sts.at(sts.size()-1).first) = {};
     }
     else {
       if (!prob.problem_htn.task_network.orderings) {
         for (auto const &st : sts) {
-          subtasks[st.first] = st.second;
-          orderings[st.first] = {};
+          subtasks.at(st.first) = st.second;
+          orderings.at(st.first) = {};
         }
       } 
       else {
         for (auto const &st : sts) {
-          subtasks[st.first] = st.second;
-          orderings[st.first] = {};
+          subtasks.at(st.first) = st.second;
+          orderings.at(st.first) = {};
         }
         get_orderings(*prob.problem_htn.task_network.orderings, orderings); 
       }
@@ -821,7 +829,7 @@ std::pair<DomainDef, ProblemDef> load(std::string dom_file, std::string prob_fil
   auto dom = loadDomain(dom_file);
   auto probDef = loadProblem(prob_file,dom.second);
   if (dom.first.head == probDef.domain_name) {
-    dom.first.methods[probDef.initM.get_task().first].push_back(probDef.initM);
+    dom.first.methods.at(probDef.initM.get_task().first).push_back(probDef.initM);
     probDef.objects.merge(dom.first.constants);
     return std::make_pair(dom.first,probDef);
   }
