@@ -10,6 +10,7 @@
 #include <tuple>
 #include <vector>
 #include <unordered_map>
+#include <chrono>
 
 //Type struct
 struct Type {
@@ -564,10 +565,10 @@ class KnowledgeBase {
           oldest = "0";
         }
         else {
-          oldest = std::to_string(this->temporal_facts.begin()->first + 1);
+          oldest = std::to_string(this->temporal_facts.begin()->first);
         }
         std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> xresults;
-        rc->redis.xrange("fov",oldest,"+",std::back_inserter(xresults));
+        rc->redis.xread("fov",oldest,std::back_inserter(xresults));
         for (auto const& x : xresults) {
           int t = std::stoi(x.first);
           for (auto const& y : x.second) {
