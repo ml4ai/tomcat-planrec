@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
   std::string score_fun = "delivery_one";
   bool graph = false;
   std::string graph_file = "";
-  std::string redis_address = "tcp://127.0.0.1:6379";
+  std::string redis_address = "";
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
       ("seed,s", po::value<int>(),"Random Seed (int)")
       ("graph,g",po::bool_switch()->default_value(false),"Creates a task tree graph of the returned plan and saves it as a png, default = false")
       ("graph_file,f",po::value<std::string>(), "File name for created graph (string), default = name of problem definition")
-      ("redis_address, a",po::value<std::string>(), "Address to redis server, default = tcp://127.0.0.1:6379")
+      ("redis_address,a",po::value<std::string>(), "Address to redis server, default = (none, no connection)")
     ;
 
     po::variables_map vm;        
