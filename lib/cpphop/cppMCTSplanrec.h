@@ -38,7 +38,7 @@ void update_actions(std::string const& redis_address,
     oldest = std::to_string(actions.back().first);
   }
   std::vector<std::pair<std::string,std::pair<std::string,std::string>>> xresults;
-  rc->redis.xread("actions",oldest,1,std::chrono::milliseconds(15000),std::back_inserter(xresults));
+  rc->redis.xread("actions",oldest,std::chrono::milliseconds(15000),1,std::back_inserter(xresults));
   if (xresults.empty()) {
     std::pair<int,std::string> p;
     p.first = -1;
@@ -180,7 +180,7 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
       int tid = t[n].cTask;
       if (domain.actions.contains(t[n].tasks[tid].head)) {
         if (t[n].plan.size() < actions.size()) {
-          if (actions[t[n].plan.size()].find(t[n].tasks[tid].head) == std::string::npos) {
+          if (actions[t[n].plan.size()].second.find(t[n].tasks[tid].head) == std::string::npos) {
             return n;
           }
         }
@@ -218,9 +218,9 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
         std::vector<int> choices;
         for (auto &m : domain.methods[t[n].tasks[tid].head]) {
           bool can_reach = false;
-          if (r_map.find(m.get_head()) != r_map.end() && t[n].plan.size() < given_plan.size()) {
+          if (r_map.find(m.get_head()) != r_map.end() && t[n].plan.size() < actions.size()) {
             for (auto const& a : r_map[m.get_head()]) {
-              if (given_plan[t[n].plan.size()].find(a) != std::string::npos) {
+              if (actions[t[n].plan.size()].second.find(a) != std::string::npos) {
                 can_reach = true;
               }
             }
@@ -260,9 +260,9 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
       for (auto const& [id,gt] : t[n].tasks.GTs) {
         if (gt.incoming.empty()) {
           bool can_reach = false;
-          if (r_map.find(gt.head) != r_map.end() && t[n].plan.size() < given_plan.size()) {
+          if (r_map.find(gt.head) != r_map.end() && t[n].plan.size() < actions.size()) {
             for (auto const& a : r_map[gt.head]) {
-              if (given_plan[t[n].plan.size()].find(a) != std::string::npos) {
+              if (actions[t[n].plan.size()].second.find(a) != std::string::npos) {
                 can_reach = true;
               }
             }
@@ -298,7 +298,7 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
     return n;
 }
 
-void
+bool
 seek_planrecMCTS(pTree& t,
                  TaskTree& tasktree,
                  int v,
@@ -307,15 +307,9 @@ seek_planrecMCTS(pTree& t,
                  int R,
                  double c,
                  std::mt19937_64& g,
+                 std::vector<std::pair<int,std::string>>& actions,
                  std::string const& redis_address) {
   int stuck_counter = 1000;
-  std::vector<std::pair<int,std::string>> actions;
-  int root = v;
-  update_actions(redis_address,actions);
-  if (actions.back().second == "__STOP__") {
-    std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
-    return;
-  }
   t[v].time = actions.back().first;
   while (!t[v].tasks.empty()) {
     pTree m;
@@ -331,9 +325,13 @@ seek_planrecMCTS(pTree& t,
     m[w] = n_node;
     for (int i = 0; i < R; i++) {
       int n = selection(m,w,c,g);
+      if (w == n && m[n].deadend) {
+        std::cout << "Deadend, attempting to restart plan recognition process" << std::endl;
+        return false;  
+      }
       if (m[n].sims == 0) {
         m[n].state.update_state(m[n].time);
-        double r = simulation_rec(given_plan,
+        double r = simulation_rec(actions,
                                   m[n].plan,
                                   m[n].state, 
                                   m[n].tasks, 
@@ -351,8 +349,9 @@ seek_planrecMCTS(pTree& t,
         }
       }
       else {
-        int n_p = expansion_rec(given_plan,m,n,domain,r_map,g);
-        double r = simulation_rec(given_plan,
+        m[n].state.update_state(m[n].time);
+        int n_p = expansion_rec(actions,m,n,domain,r_map,g);
+        double r = simulation_rec(actions,
                                   m[n_p].plan,
                                   m[n_p].state, 
                                   m[n_p].tasks, 
@@ -402,7 +401,6 @@ seek_planrecMCTS(pTree& t,
       continue;
     }
     stuck_counter = 1000;
-
     int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
     pNode k;
     k.cTask = m[arg_max].cTask;
@@ -427,14 +425,14 @@ seek_planrecMCTS(pTree& t,
       update_actions(redis_address,actions);
       if (actions.back().second == "__STOP__") {
         std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
-        return;
+        return true;
       }
       t[v].time = actions.back().first;
     }
 
     while (m[arg_max].successors.size() == 1) {
       if (m[arg_max].deadend) {
-        return;
+        return false;
       }
       arg_max = m[arg_max].successors.front();
       pNode j;
@@ -460,14 +458,14 @@ seek_planrecMCTS(pTree& t,
         update_actions(redis_address,actions);
         if (actions.back().second == "__STOP__") {
           std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
-          return;
+          return true;
         }
         t[v].time = actions.back().first;
       }
     }
   }
   std::cout << "No more tasks to decompose, stopping plan recognition process" << std::endl;
-  return;
+  return true;
 }
 
 void 
@@ -481,35 +479,48 @@ cppMCTSplanrec(DomainDef& domain,
               std::string const& redis_address = "") {
     if (redis_address.empty()) {
       std::cout << "Redis Database address not given, ending plan recognition process" << std::endl;
+      return;
     }
-    domain.set_scorer(scorer);
-    pTree t;
-    TaskTree tasktree;
-    pNode root;
-    root.state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
-    for (auto const& f : problem.initF) {
-      root.state.tell(f,false,false);
+    bool end = false;
+    std::vector<std::pair<int,std::string>> actions;
+    while(!end) {
+      domain.set_scorer(scorer);
+      pTree t;
+      TaskTree tasktree;
+      pNode root;
+      root.state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
+      for (auto const& f : problem.initF) {
+        root.state.tell(f,false,false);
+      }
+      root.state.update_state();
+      Grounded_Task init_t;
+      init_t.head = problem.head;
+      int TID = root.tasks.add_node(init_t);
+      TaskNode tasknode;
+      tasknode.task = init_t.head;
+      tasknode.token = init_t.to_string();
+      tasktree[TID] = tasknode;
+      root.plan = {};
+      root.depth = 0;
+      int v = t.size();
+      t[v] = root;
+      static std::mt19937_64 g(seed);
+      seed++;
+      update_actions(redis_address,actions);
+      if (actions.back().second == "__STOP__") {
+        std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
+        return;
+      }
+      end = seek_planrecMCTS(t, 
+                             tasktree, 
+                             v, 
+                             domain, 
+                             r_map,
+                             R, 
+                             c, 
+                             g,
+                             actions,
+                             redis_address);
     }
-    root.state.update_state();
-    Grounded_Task init_t;
-    init_t.head = problem.head;
-    int TID = root.tasks.add_node(init_t);
-    TaskNode tasknode;
-    tasknode.task = init_t.head;
-    tasknode.token = init_t.to_string();
-    tasktree[TID] = tasknode;
-    root.plan = {};
-    root.depth = 0;
-    int v = t.size();
-    t[v] = root;
-    static std::mt19937_64 g(seed);
-    auto end = seek_planrecMCTS(t, 
-                                tasktree, 
-                                v, 
-                                domain, 
-                                r_map,
-                                R, 
-                                c, 
-                                g,
-                                redis_address);
+    return;
 }
