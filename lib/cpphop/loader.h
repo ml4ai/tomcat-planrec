@@ -1,8 +1,3 @@
-  1 /* hints for assignment: = or pushback
-  2  * see line 790ish
-  3  * hints for access only: doubled
-  4  *     do not use [] for access only
-  5  * */
 #pragma once
 
 #include <fstream>
@@ -602,7 +597,7 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
     }
   }
   for (auto const& ic : dom.constants.implicitly_typed_list) {
-    constants.at(ic) = "__Object__";
+    constants[ic] = "__Object__";
   }
 
   Tasktypes ttypes;
@@ -685,24 +680,24 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
       auto sts = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
       if (m.task_network.subtasks->ordering_kw == "ordered-tasks" || 
           m.task_network.subtasks->ordering_kw == "ordered-subtasks") {
-        subtasks.at(sts.at(0).first) = sts.at(0).second;
+        subtasks[sts[0].first] = sts.at(0).second;
         for (int i = 1; i < sts.size(); i++) {
-          subtasks.at(sts.at(i).first) = sts.at(i).second;
-          orderings[(sts.at(i-1).first].push_back(sts.at(i).first);
+          subtasks[sts[i].first] = sts.at(i).second;
+          orderings[sts[i-1].first].push_back(sts.at(i).first);
         }
-        orderings.at(sts.at(sts.size()-1).first) = {};
+        orderings[sts[sts.size()-1].first] = {};
       }
       else {
         if (!m.task_network.orderings) {
           for (auto const &st : sts) {
-            subtasks.at(st.first) = st.second;
-            orderings.at(st.first) = {};
+            subtasks[st.first] = st.second;
+            orderings[st.first] = {};
           }
         } 
         else {
           for (auto const &st : sts) {
-            subtasks.at(st.first) = st.second;
-            orderings.at(st.first) = {};
+            subtasks[st.first] = st.second;
+            orderings[st.first] = {};
           }
           get_orderings(*m.task_network.orderings,orderings); 
         }
@@ -744,11 +739,11 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
   for (auto const& o : prob.objects.explicitly_typed_lists) {
     std::string type = boost::get<PrimitiveType>(o.type);
     for (auto const& e : o.entries) {
-      objects.at(e) = type;
+      objects[e] = type;
     }
   }
   for (auto const& io : prob.objects.implicitly_typed_list) {
-    objects.at(io) = "__Object__";
+    objects[io] = "__Object__";
   }
   
   std::string m_name = prob.problem_htn.problem_class;
@@ -780,26 +775,26 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
     auto sts = get_subtasks(prob.problem_htn.task_network.subtasks->subtasks,ttypes);    
     if (prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-tasks" || 
         prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-subtasks") {
-      subtasks.at(sts.at(0).first) = sts.at(0).second;
+      subtasks[sts[0].first] = sts.at(0).second;
       for (int i = 1; i < sts.size(); i++) {
         //subtasks.at(sts.at(i).first) = sts.at(i).second;
         //safe below.
-        subtasks[sts.at(i).first] = sts.at(i).second;
-        orderings[sts.at(i-1).first].push_back(sts.at(i).first);
+        subtasks[sts[i].first] = sts.at(i).second;
+        orderings[sts[i-1].first].push_back(sts.at(i).first);
       }
-      orderings.at(sts.at(sts.size()-1).first) = {};
+      orderings[sts[sts.size()-1].first] = {};
     }
     else {
       if (!prob.problem_htn.task_network.orderings) {
         for (auto const &st : sts) {
-          subtasks.at(st.first) = st.second;
-          orderings.at(st.first) = {};
+          subtasks[st.first] = st.second;
+          orderings[st.first] = {};
         }
       } 
       else {
         for (auto const &st : sts) {
-          subtasks.at(st.first) = st.second;
-          orderings.at(st.first) = {};
+          subtasks[st.first] = st.second;
+          orderings[st.first] = {};
         }
         get_orderings(*prob.problem_htn.task_network.orderings, orderings); 
       }
