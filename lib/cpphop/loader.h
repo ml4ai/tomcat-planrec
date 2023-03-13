@@ -268,7 +268,7 @@ Effects decompose_ceffects(CEffect ceffect,Ptypes& ptypes) {
       for (auto const& v : e.variables) {
         if (faeffects.at(i).forall.find(v.name) == faeffects.at(i).forall.end()) {
           auto types = type_inference(faeffects.at(i),ptypes,v.name);
-          faeffects[i].forall[v.name] = types;
+          faeffects.at(i).forall[v.name] = types;
         }
       }
     }
@@ -680,12 +680,12 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
       auto sts = get_subtasks(m.task_network.subtasks->subtasks,ttypes);    
       if (m.task_network.subtasks->ordering_kw == "ordered-tasks" || 
           m.task_network.subtasks->ordering_kw == "ordered-subtasks") {
-        subtasks[sts[0].first] = sts.at(0).second;
+        subtasks[sts.at(0).first] = sts.at(0).second;
         for (int i = 1; i < sts.size(); i++) {
-          subtasks[sts[i].first] = sts.at(i).second;
-          orderings[sts[i-1].first].push_back(sts.at(i).first);
+          subtasks[sts.at(i).first] = sts.at(i).second;
+          orderings[sts.at(i-1).first].push_back(sts.at(i).first);
         }
-        orderings[sts[sts.size()-1].first] = {};
+        orderings[sts.at(sts.size()-1).first] = {};
       }
       else {
         if (!m.task_network.orderings) {
@@ -775,12 +775,12 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
     auto sts = get_subtasks(prob.problem_htn.task_network.subtasks->subtasks,ttypes);    
     if (prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-tasks" || 
         prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-subtasks") {
-      subtasks[sts[0].first] = sts.at(0).second;
+      subtasks[sts.at(0).first] = sts.at(0).second;
       for (int i = 1; i < sts.size(); i++) {
         //subtasks.at(sts.at(i).first) = sts.at(i).second;
         //safe below.
-        subtasks[sts[i].first] = sts.at(i).second;
-        orderings[sts[i-1].first].push_back(sts.at(i).first);
+        subtasks[sts.at(i).first] = sts.at(i).second;
+        orderings[sts.at(i-1).first].push_back(sts.at(i).first);
       }
       orderings[sts[sts.size()-1].first] = {};
     }
