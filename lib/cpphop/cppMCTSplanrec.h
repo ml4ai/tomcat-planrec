@@ -53,6 +53,19 @@ void update_actions(std::string const& redis_address,
   }
 }
 
+void upload_plan_explanation(std::string const& redis_address, 
+                             TaskTree& tasktree, 
+                             std::vector<std::string>& plan) {
+  //Serialize task tree and current plan
+  json::object obj;
+  obj["tasktree"] = json::value_from(tasktree);
+  obj["plan"] = json::value_from(plan);
+  std::string s = json::serialize(obj);
+  std::string rank = std::to_string(plan.size()) + "-*";
+  Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
+  rc->redis.xadd("explanations",rank,{std::make_pair("explanation",s)});
+}
+
 double
 simulation_rec(std::vector<std::pair<int,std::string>>& actions,
                std::vector<std::string> plan,
@@ -371,7 +384,7 @@ seek_planrecMCTS(pTree& t,
     if (m[w].successors.empty()) {
       stuck_counter--;
       if (stuck_counter <= 0) {
-        throw std::logic_error("Planner is stuck, terminating process!");
+        throw std::logic_error("Plan recognition is stuck, terminating process!");
       }
       continue;
     }
@@ -396,7 +409,7 @@ seek_planrecMCTS(pTree& t,
     if (arg_maxes.empty() || max <= 0) {
       stuck_counter--;
       if (stuck_counter <= 0) {
-        throw std::logic_error("Planner is stuck, terminating process!");
+        throw std::logic_error("Plan recognition is stuck, terminating process!");
       }
       continue;
     }
@@ -422,6 +435,7 @@ seek_planrecMCTS(pTree& t,
     t[v].successors.push_back(y);
     v = y;
     if (actions.size() == t[v].plan.size()) {
+      upload_plan_explanation(redis_address,tasktree,t[v].plan);
       update_actions(redis_address,actions);
       if (actions.back().second == "__STOP__") {
         std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
@@ -455,6 +469,7 @@ seek_planrecMCTS(pTree& t,
       t[v].successors.push_back(y);
       v = y;
       if (actions.size() == t[v].plan.size()) {
+        upload_plan_explanation(redis_address,tasktree,t[v].plan);
         update_actions(redis_address,actions);
         if (actions.back().second == "__STOP__") {
           std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
