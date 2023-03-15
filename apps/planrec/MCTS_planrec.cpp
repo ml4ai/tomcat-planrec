@@ -1,5 +1,4 @@
 #include "../../domains/score_functions.h"
-#include "../../domains/pr_samples.h"
 #include "../../domains/r_maps.h"
 #include <math.h>
 #include <stdlib.h>
@@ -21,10 +20,7 @@ int main(int argc, char* argv[]) {
   std::string prob_file = "../domains/transport_problem.hddl";
   std::string score_fun = "delivery_one";
   std::string r_map = "transport_reach_map";
-  std::string sample = "delivery_sample";
-  int sample_size = 2;
-  bool graph = false;
-  std::string graph_file = "";
+  std::string redis_address = "";
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -35,11 +31,8 @@ int main(int argc, char* argv[]) {
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
       ("score_fun,F",po::value<std::string>(),"name of score function for (string), default = delivery_one")
       ("reach_map,m",po::value<std::string>(),"name of reachability map (string), default = transport_reach_map")
-      ("sample,S",po::value<std::string>(),"Plan Rec sample (string), default = delivery_sample")
-      ("sample_size,ss",po::value<int>(),"sample size for Plan Rec sample (int), default = 2")
       ("seed,s", po::value<int>(),"Random Seed (int)")
-      ("graph,g",po::bool_switch()->default_value(false),"Creates a task tree graph of the returned plan and saves it as a png, default = false")
-      ("graph_file,gf",po::value<std::string>(), "File name for created graph (string), default = name of problem definition")
+      ("redis_address,a",po::value<std::string>(), "Address to redis server, default = (none, no connection)")
     ;
 
     po::variables_map vm;        
@@ -79,19 +72,8 @@ int main(int argc, char* argv[]) {
       seed = vm["seed"].as<int>();
     }
 
-    if (vm.count("sample")) {
-      sample = vm["sample"].as<std::string>();
-    }
-    
-    if (vm.count("sample_size")) {
-      sample_size = vm["sample_size"].as<int>();
-    }
-
-    if (vm.count("graph")) {
-      graph = vm["graph"].as<bool>();
-    }
-    if (vm.count("graph_file")) {
-      graph_file = vm["graph_file"].as<std::string>();
+    if (vm.count("redis_address")) {
+      redis_address = vm["redis_address"].as<std::string>();
     }
   }
   catch(std::exception& e) {
@@ -102,28 +84,11 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
   auto [domain,problem] = load(dom_file,prob_file);
-  auto first = pr_samples[sample].begin();
-  auto last = pr_samples[sample].begin() + sample_size;
-  std::vector<std::string> given_plan(first,last);
-  if (graph) {
-    if (graph_file == "") {
-      graph_file = problem.head +".png"; 
-    }
-    auto start = std::chrono::high_resolution_clock::now();
-    auto results = cppMCTSplanrec(domain,problem,given_plan,reach_maps[r_map],scorers[score_fun],R,c,seed); 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by plan recognizer: "
-        << duration.count() << " microseconds" << endl;
-    generate_graph(results.t[results.end].plan,domain,results.tasktree,results.ttRoot,graph_file);
-  }
-  else {
-    auto start = std::chrono::high_resolution_clock::now();
-    cppMCTSplanrec(domain,problem,given_plan,reach_maps[r_map],scorers[score_fun],R,c,seed); 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by plan recognizer: "
-        << duration.count() << " microseconds" << endl;
-  } 
+  auto start = std::chrono::high_resolution_clock::now();
+  cppMCTSplanrec(domain,problem,reach_maps[r_map],scorers[score_fun],R,c,seed,redis_address); 
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  cout << "Time taken by plan recognizer: "
+       << duration.count() << " microseconds" << endl;
   return EXIT_SUCCESS;
 }
