@@ -15,7 +15,6 @@ find_path(REDIS_PLUS_PLUS_HEADER sw)
 find_library(REDIS_PLUS_PLUS_LIB redis++)
 
 add_executable(MCTS_planrec MCTS_planrec.cpp)
-<<<<<<< HEAD
 target_include_directories(MCTS_planrec PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIRS} ${Z3_CXX_INCLUDE_DIRS}
     ${HIREDIS_HEADER} ${REDIS_PLUS_PLUS_HEADER} ../../lib/)
 target_link_libraries(MCTS_planrec PRIVATE tomcat ${GRAPHVIZ_LIBS} ${Boost_LIBRARIES} ${Z3_LIBRARIES} ${HIREDIS_LIB} ${REDIS_PLUS_PLUS_LIB})
