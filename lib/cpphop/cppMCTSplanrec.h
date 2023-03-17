@@ -18,6 +18,10 @@
 
 namespace json = boost::json;
 
+using Attrs = std::vector<std::pair<std::string,std::string>>;
+using Item = std::pair<std::string, std::optional<Attrs>>;
+using ItemStream = std::vector<Item>;
+
 bool is_subseq(std::vector<std::string> plan, std::vector<std::pair<int,std::string>> O) {
   for (int i = 0; i < plan.size(); i++) {
     if (plan[i].find(O[i].second) == std::string::npos) {
@@ -37,19 +41,22 @@ void update_actions(std::string const& redis_address,
   else {
     oldest = std::to_string(actions.back().first);
   }
-  std::vector<std::pair<std::string,std::pair<std::string,std::string>>> xresults;
-  rc->redis.xread("actions",oldest,std::chrono::milliseconds(15000),1,std::back_inserter(xresults));
-  if (xresults.empty()) {
+  std::unordered_map<std::string,ItemStream> result;
+  rc->redis.xread("actions",oldest,std::chrono::milliseconds(15000),1,std::inserter(result,result.end()));
+  if (result["actions"].empty()) {
     std::pair<int,std::string> p;
     p.first = -1;
     p.second = "__STOP__";
     actions.push_back(p);
   }
-  for (auto const& x : xresults) {
-    std::pair<int,std::string> p;
-    p.first = std::stoi(x.first);
-    p.second = x.second.second;
-    actions.push_back(p);
+  for (auto const& x : result["actions"]) {
+    Attrs attrs = x.second.value();
+    for (auto const& y : attrs) {
+      std::pair<int,std::string> p;
+      p.first = std::stoi(x.first);
+      p.second = y.second;
+      actions.push_back(p);
+    }
   }
 }
 
@@ -406,7 +413,7 @@ seek_planrecMCTS(pTree& t,
         }
       }
     }
-    if (arg_maxes.empty() || max <= 0) {
+    if (arg_maxes.empty() || max < 0) {
       stuck_counter--;
       if (stuck_counter <= 0) {
         throw std::logic_error("Plan recognition is stuck, terminating process!");
