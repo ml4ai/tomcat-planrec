@@ -89,6 +89,8 @@ for i in range(631, 701):
     time_passed = 0
     old_timestamp = 0
     dialog_player = "no_one"
+    awake = "na"
+    p_range = "na"
 
     try:
         with open(filename) as f:
@@ -99,7 +101,7 @@ for i in range(631, 701):
                 else:
                     t = message["topic"]                # topic is a string
                 if not t in ("observations/events/player/freeze",
-                        "observations/events/player/itemdrop",
+                         "observations/events/player/itemdrop",
                         "observations/events/player/itempickup",
                         "observations/events/player/itemuse",
                         "observations/events/player/location",
@@ -119,6 +121,17 @@ for i in range(631, 701):
                 topic = t.replace("observations/events/player/", "")
                 timestamp = get_time(parse(message["msg"]["timestamp"]))
                 player = message["data"]["participant_id"]
+                # Not all messages have awake, so get the placeholder first.
+                if "awake" in message.get("data", {}):
+                    awake_value = message["data"]["awake"]
+                    # since players aren't efficient in waking critical
+                    # victims, keep track of their range regardless of awakened
+                    # state.
+                    p_range = message["data"]["players_in_range"]
+                    if awake_value:
+                        awake = "awakened"
+                    else:
+                        awake = "not_awakened"
                 s = message["msg"]['sub_type']
                 subtype = s.replace("Event:", "")
                 if "dialogue_event" in subtype:
@@ -146,6 +159,8 @@ for i in range(631, 701):
                                 "topic":topic,
                                 "timestamp":timestamp,
                                 "player":player,
+                                "p_range":p_range,
+                                "awake":awake,
                                 "dialog_player":dialog_player,
                                 "subtype":subtype,
                                 "rule":rule,
@@ -188,6 +203,8 @@ for i in range(631, 701):
                                     "topic":topic,
                                     "timestamp":timestamp,
                                     "player":player,
+                                    "awake":awake,
+                                    "p_range":p_range,
                                     "dialog_player":dialog_player,
                                     "subtype":subtype,
                                     "rule":rule,
@@ -195,6 +212,9 @@ for i in range(631, 701):
                                     "specific":specific,
                                     "text":text,
                                     "mission_timer":timer})
+                # Reset players_in_range and awake = "na" or they will persist falsly.
+                awake = "na"
+                p_range = "na"
         df = pandas.DataFrame(list_dict)#.set_index('timestamp')
         df.drop_duplicates(keep = False)
         #print(hrule, "OBS:", digit, "\n", df.head())
