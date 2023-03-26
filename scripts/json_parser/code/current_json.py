@@ -1,5 +1,4 @@
 
-# TODO: line 150ish uses the 10-second heuristic for mapping labels to actions. 
 """
 --------------------------------------------------------------------------
 Purpose:
@@ -15,9 +14,12 @@ Purpose:
         * Demostrates code using only two observations
         * Saves each extracted observation into its own csv file
         * Concatenates all observations into one large csv file for analysis
-        * Leads to use of the machine learning and NLP script for the final paper.
-        * This final paper is an extension of INFO 514 Homework 1 and 3.
+        * Currently Scales. For example, Trial observations 601 - 804 from
+        study 3 are parsed from 16.11 GB down to 69.4 MB.
 
+    This script does not:
+        * Separate observations by player. See byPlayer.py for this
+        development.
 Author:
     Salena T. Ashton
     PhD Student, School of Information
@@ -66,8 +68,26 @@ def get_time(one):
             float_ms(one.microsecond))
     return(round(a, 3))
 
+
+# This is the number of seconds used to justify the linking of dialog acts from
+# the label column to the following event or subtype. As of now, this is a
+# place holder for representing the decay rate. Salena to continue
+# investigating conditional MRFs to create a better decay and mapping
+# justification. For now, the decay rate is set at 5. This means that after
+# five seconds have passed from the spoken utterance, there is no justification
+# for further mapping. This placeholder is not robust for the following
+# reasons:
+    # It assumes all team players talk about the same subject at the same time. 
+    # It assumes each player does what they talk about.
+    # It assumes cooperative dialog and action.
+#TODO: conditional markov random field
+#TODO: byPlayer.py to separate each player and team into entities for better
+    #mapping of language to action.
+
+decay = 7
+
 obs_list = []
-for i in range(631, 701):
+for i in range(601, 805):
     j = str(i)
     obs_list.append(j)
     digit = j
@@ -142,7 +162,7 @@ for i in range(631, 701):
                     # This is assigned when too much time passed or there was some
                         # dialog event with no utterance.
                     time_passed = abs(round((old_timestamp - timestamp),3))
-                    if time_passed > 10:
+                    if time_passed > decay:
                         rule = "cannot_justify"
                         specific = "cannot_justify"
 
@@ -217,25 +237,24 @@ for i in range(631, 701):
                 p_range = "na"
         df = pandas.DataFrame(list_dict)#.set_index('timestamp')
         df.drop_duplicates(keep = False)
-        #print(hrule, "OBS:", digit, "\n", df.head())
-        #print("Number of rows:", len(df.index))
-        textfilename = "finally_"+digit+".csv"
+        textfilename = "../data/finally_"+digit+".csv"
+        #### Uncomment to save individual observation cleaned dataset.
         df.to_csv(textfilename)
         df1 = [pre_df, df]
         df2 = pandas.concat(df1, axis = 0)
-#        print(hrule, #"pre:", pre_df.head(2), pre_df.tail(2),
-                #"\n\ndf:", df.head(2), df.tail(2),
-                #"\n\ndf2:", df2.head(2), df2.tail(2),
-#                "\n\ndf:", df2.head(),
-#                "\nNumber of rows:", len(df2.index))
         textfilename_list.append(textfilename)
         pre_df = df2
     except:
         print("Observation "+digit+ " does not exist.")
 
-print(hrule, df2, "Final number of Rows:", len(df2.index))
-df2.to_csv("demo___total_631_700.csv")
+print(hrule, "Final number of Rows:", len(df2.index))
+df2.to_csv("../data/total_7_secondDecay_601_804.csv")
 
+
+
+
+
+"""
 #print(hrule, df2.head(2000))
 # Investigate rule and subtype mapping to create HDDL domain:
 subRule = df2[["subtype", "specific"]]
@@ -249,4 +268,4 @@ print(hrule, rule_givenSub.sort_values(by=['conditional_probability'], ascending
 print("Number of Observations:", len(textfilename_list))
 for t in textfilename_list:
     print(t)
-
+"""
