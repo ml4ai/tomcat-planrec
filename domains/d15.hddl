@@ -24,9 +24,12 @@
                 (matched ?arg0 - victim ?arg1 - location)
                 (proximity ?arg0 - player ?arg1 - location)
                 (is_medic ?arg0 - player)
-                (is_type_A ?arg0 - victim)
-                (is_type_B ?arg0 - victim)
-                (is_type_C ?arg0 - victim)
+                (vic_is_type_A ?arg0 - victim)
+                (vic_is_type_B ?arg0 - victim)
+                (vic_is_type_C ?arg0 - victim)
+                (sb_is_type_A ?arg0 - sickbay)
+                (sb_is_type_B ?arg0 - sickbay)
+                (sb_is_type_C ?arg0 - sickbay)
         )
 
 
@@ -98,13 +101,45 @@
                 :task (evacuate_victim ?p_1 ?v ?room ?sb)
                 :precondition (and (at ?p_1 ?room) 
                                    (healed ?v)
-                                   (is_type_A ?v)
+                                   (vic_is_type_A ?v)
                                    (typed ?v)
                                    (at ?v ?room))
                 :ordered-subtasks (and
                     (pickup_victim ?p_1 ?v ?room)
-                    (carry_sickbay ?p_1 ?v ?room ?sb)
-                    (victim_evacuated ?p_1 ?v ?sb))
+                    (carry_sickbay_type_A ?p_1 ?v ?room ?sb)
+                    (victim_evacuated_type_A ?p_1 ?v ?sb))
+        )
+
+        (:method m_evacuate_victim_B
+          ;not the same as go_transport_victim.
+                :parameters (?p_1 - player ?v - victim
+                             ?room - location ?sb - sickbay)
+                :task (evacuate_victim ?p_1 ?v ?room ?sb)
+                :precondition (and (at ?p_1 ?room) 
+                                   (healed ?v)
+                                   (vic_is_type_B ?v)
+                                   (typed ?v)
+                                   (at ?v ?room))
+                :ordered-subtasks (and
+                    (pickup_victim ?p_1 ?v ?room)
+                    (carry_sickbay_type_B ?p_1 ?v ?room ?sb)
+                    (victim_evacuated_type_B ?p_1 ?v ?sb))
+        )
+
+        (:method m_evacuate_victim_C
+          ;not the same as go_transport_victim.
+                :parameters (?p_1 - player ?v - victim
+                             ?room - location ?sb - sickbay)
+                :task (evacuate_victim ?p_1 ?v ?room ?sb)
+                :precondition (and (at ?p_1 ?room) 
+                                   (healed ?v)
+                                   (vic_is_type_C ?v)
+                                   (typed ?v)
+                                   (at ?v ?room))
+                :ordered-subtasks (and
+                    (pickup_victim ?p_1 ?v ?room)
+                    (carry_sickbay_type_C ?p_1 ?v ?room ?sb)
+                    (victim_evacuated_type_C ?p_1 ?v ?sb))
         )
 
 
@@ -230,13 +265,49 @@
                 :effect (not (retrieved ?v))
         )
 
-        (:action victim_evacuated
+        (:action victim_evacuated_type_A
          ;observations/events/player/victim_evacuated
                 :parameters (?p_1 - player ?v - victim 
                              ?sb - sickbay)
                 :precondition (and (at ?p_1 ?sb)
                                    (at ?v ?sb)
                                    (healed ?v)
+                                   (typed ?v)
+                                   (sb_is_type_A ?sb)
+                                   (vic_is_type_A ?v)
+                                   (retrieved ?v))
+                :effect (and (rescued ?v)
+                             (not (retrieved ?v))
+                             (not (at ?v ?sb))
+                             (not (at ?p_1 ?sb)))
+        )
+
+        (:action victim_evacuated_type_B
+         ;observations/events/player/victim_evacuated
+                :parameters (?p_1 - player ?v - victim 
+                             ?sb - sickbay)
+                :precondition (and (at ?p_1 ?sb)
+                                   (at ?v ?sb)
+                                   (healed ?v)
+                                   (sb_is_type_B ?sb)
+                                   (vic_is_type_B ?v)
+                                   (typed ?v)
+                                   (retrieved ?v))
+                :effect (and (rescued ?v)
+                             (not (retrieved ?v))
+                             (not (at ?v ?sb))
+                             (not (at ?p_1 ?sb)))
+        )
+
+        (:action victim_evacuated_type_C
+         ;observations/events/player/victim_evacuated
+                :parameters (?p_1 - player ?v - victim 
+                             ?sb - sickbay)
+                :precondition (and (at ?p_1 ?sb)
+                                   (at ?v ?sb)
+                                   (healed ?v)
+                                   (vic_is_type_C ?v)
+                                   (sb_is_type_C ?sb)
                                    (typed ?v)
                                    (retrieved ?v))
                 :effect (and (rescued ?v)
@@ -276,7 +347,7 @@
         )
 
 
-        (:action carry_sickbay
+        (:action carry_sickbay_type_A
          ;observations/events/player/location
          ;observations/events/player/victim_evacuated
              :parameters (?p_1 - player ?v - victim
@@ -284,6 +355,39 @@
                           ?sb - sickbay)
              :precondition (and (at ?p_1 ?room)
                                 (at ?v ?room) 
+                                (vic_is_type_A ?v)
+                                (retrieved ?v))
+             :effect (and (at ?p_1 ?sb) 
+                          (at ?v ?sb)
+                          (not (at ?p_1 ?room))
+                          (not (at ?v ?room)))
+        )
+
+        (:action carry_sickbay_type_B
+         ;observations/events/player/location
+         ;observations/events/player/victim_evacuated
+             :parameters (?p_1 - player ?v - victim
+                          ?room - location
+                          ?sb - sickbay)
+             :precondition (and (at ?p_1 ?room)
+                                (at ?v ?room) 
+                                (vic_is_type_B ?v)
+                                (retrieved ?v))
+             :effect (and (at ?p_1 ?sb) 
+                          (at ?v ?sb)
+                          (not (at ?p_1 ?room))
+                          (not (at ?v ?room)))
+        )
+
+        (:action carry_sickbay_type_C
+         ;observations/events/player/location
+         ;observations/events/player/victim_evacuated
+             :parameters (?p_1 - player ?v - victim
+                          ?room - location
+                          ?sb - sickbay)
+             :precondition (and (at ?p_1 ?room)
+                                (at ?v ?room) 
+                                (vic_is_type_C ?v)
                                 (retrieved ?v))
              :effect (and (at ?p_1 ?sb) 
                           (at ?v ?sb)

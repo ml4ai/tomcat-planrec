@@ -19,7 +19,7 @@
 ;-----------------------------------------------------------------
       (:htn
           :parameters ()
-          :tasks (evacuate_victim player_1 vic1 room_1 sickbay_A)
+          :tasks (evacuate_victim player_1 vic1 room_1 sickbay_B)
           :ordering ()
       )
 
@@ -27,7 +27,8 @@
           (at player_1 room_1)
           (at vic1 room_1)
           (healed vic1)
-          (is_type_A vic1)
+          (vic_is_type_B vic1)
+          (sb_is_type_B sickbay_B)
           (typed vic1)
       )
 ;-----------------------------------------------------------------
