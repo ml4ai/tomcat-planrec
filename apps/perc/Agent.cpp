@@ -44,6 +44,8 @@ Agent::Agent(std::string address) {
     mqtt_client->subscribe("observations/events/player/triage", 2);
     mqtt_client->subscribe("observations/events/player/marker_placed",2);
     mqtt_client->subscribe("observations/events/player/proximity_block",2);
+    mqtt_client->subscribe("observations/events/server/victim_evacuated",2);
+    mqtt_client->subscribe("observations/events/player/marker_removed",2);
 
     /** Start publishing heartbeat messages */
     heartbeat_future = async(launch::async, &Agent::publish_heartbeats, this);

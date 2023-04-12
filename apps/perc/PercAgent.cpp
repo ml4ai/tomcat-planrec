@@ -336,6 +336,66 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
         cout << exc.what() << endl;
       }
     }
+    if (msg->get_topic() == "observations/events/player/marker_removed") {
+      try {
+        auto player_color = split(jv.at_pointer("/data/playername").as_string().c_str()).at(0);
+        std::string time = jv.at_pointer("/msg/timestamp").as_string().c_str();
+        time = time.substr(time.find("T") + 1);
+        time = time.substr(0,time.find("Z"));
+        Time msg_time(time);
+        auto marker_type = split(jv.at_pointer("/data/type").as_string().c_str());
+        std::string marker_placer = "";
+        if (marker_type.at(0) == "red") {
+          marker_placer = "medic";
+        } 
+        else if (marker_type.at(0) == "blue") {
+          marker_placer = "engineer";
+        }
+        else {
+          marker_placer = "transporter";
+        }
+        if (player_color == "RED") {
+          std::pair<std::string,std::string> act;
+          std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
+          act.first = "marker_removed";
+          act.second = "(marker_removed medic " + 
+            marker_type.at(1) + 
+            " " +
+            marker_placer +
+            this->medic_current_loc + ")";
+          std::string rank = elapsed_ms + "-*";
+          this->rc->redis.xadd("actions",rank,{act});
+        }
+        else if (player_color == "BLUE") {
+          std::pair<std::string,std::string> act;
+          std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
+          act.first = "marker_removed";
+          act.second = "(marker_removed engineer " + 
+            marker_type.at(1) + 
+            " " +
+            marker_placer +
+            this->engineer_current_loc + ")";
+          std::string rank = elapsed_ms + "-*";
+          this->rc->redis.xadd("actions",rank,{act});
+        }
+        else {
+          std::pair<std::string,std::string> act;
+          std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
+          act.first = "marker_removed";
+          act.second = "(marker_removed transporter " + 
+            marker_type.at(1) + 
+            " " +
+            marker_placer +
+            this->transporter_current_loc + ")";
+          std::string rank = elapsed_ms + "-*";
+          this->rc->redis.xadd("actions",rank,{act});
+        }
+      }
+      catch (exception &exc) {
+        cout << exc.what() << endl;
+      }
+    }
+
     if (msg->get_topic() == "observations/events/player/proximity_block") {
       try {
         auto player_color = split(jv.at_pointer("/data/playername").as_string().c_str()).at(0);
