@@ -8,7 +8,8 @@ REDIS_PLUS_PLUS_HEADER="/usr/local/include/sw/redis++/redis++.h"
 
 install_redis_plus_plus_from_source() {
   local redis_plus_plus_minor_version=$1
-  curl -LO\
+  curl -Lo\
+  redis-plus-plus-"1.${redis_plus_plus_minor_version}".tar.gz\
   https://github.com/sewenew/redis-plus-plus/archive/refs/tags/1.${redis_plus_plus_minor_version}.tar.gz
   if [[ $? -ne 0 ]]; then
     echo "Unable to download the redis++ source distribution - the curl command failed."
