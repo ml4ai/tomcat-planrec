@@ -41,6 +41,8 @@ using TaskDefs = std::unordered_map<std::string,TaskDef>;
 using Objects = std::unordered_map<std::string,std::string>;
 using Scorer = double (*)(KnowledgeBase&,std::vector<std::string>&);
 using Scorers = std::unordered_map<std::string, Scorer>;
+using Reach_Map = std::unordered_map<std::string,std::vector<std::string>>;
+using Reach_Maps = std::unordered_map<std::string,Reach_Map>;
 using ID = std::string;
 
 struct Grounded_Task {
@@ -139,9 +141,10 @@ struct pNode {
     std::vector<int> addedTIDs;
     std::vector<std::string> plan;
     int depth = 0;
-    double mean = 0.0;
+    double score = 0.0;
     int sims = 0;
     int pred = -1;
+    int time = 0;
     bool deadend = false;
     std::vector<int> successors = {};
 };
@@ -160,6 +163,20 @@ struct Results{
     this->end = end;
     this->tasktree = tasktree;
     this->ttRoot = ttRoot;
+  }
+};
+
+struct Time {
+  int hours;
+  int minutes;
+  double seconds;
+  Time () {}
+  Time (std::string ts_) {
+    hours = std::stoi(ts_.substr(0,ts_.find(":")),nullptr);
+    std::string ts1_ = ts_.substr(ts_.find(":") + 1);
+    minutes = std::stoi(ts1_.substr(0,ts1_.find(":")),nullptr);
+    std::string ts2_ = ts1_.substr(ts1_.find(":") + 1);
+    seconds = std::stod(ts2_,nullptr);
   }
 };
 
@@ -563,6 +580,7 @@ struct DomainDef {
   MethodDefs methods;
   Objects constants;
   Scorer scorer;
+  Scorer rec_scorer;
   DomainDef(std::string head,
             TypeTree typetree,
             Predicates predicates,
@@ -580,8 +598,16 @@ struct DomainDef {
     this->scorer = scorer;
   }
 
+  void set_rec_scorer(Scorer scorer) {
+    this->rec_scorer = scorer;
+  }
+
   double score(KnowledgeBase& state, std::vector<std::string>& plan) {
     return this->scorer(state,plan); 
+  }
+
+  double rec_score(KnowledgeBase& state, std::vector<std::string>& plan) {
+    return this->rec_scorer(state,plan);
   }
 };
 

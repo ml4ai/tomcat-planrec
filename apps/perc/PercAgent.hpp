@@ -3,18 +3,21 @@
 #include "kb.h"
 #include "typedefs.h"
 #include "Agent.hpp"
+#include "Redis_Connect.h"
 
 
 class PercAgent : public Agent {
     KnowledgeBase kb;
-    std::vector<int> medic_trapped_coord;
-    std::vector<int> transporter_trapped_coord;
-    std::vector<int> engineer_trapped_coord;
-    std::vector<int> fov_medic;
-    std::vector<int> fov_transporter;
-    std::vector<int> fov_engineer;
+    Redis_Connect* rc;
+    Time initial_time;
+    bool start = false;
+    std::string medic_current_loc = "sga";
+    std::string engineer_current_loc = "sga";
+    std::string transporter_current_loc = "sga";
+    std::unordered_set<int> engineer_assist;
+    std::unordered_set<int> transporter_assist;
     void process(mqtt::const_message_ptr msg) override;
 
   public:
-    PercAgent(std::string address);
+    PercAgent(std::string address,std::string const& redis_address);
 };

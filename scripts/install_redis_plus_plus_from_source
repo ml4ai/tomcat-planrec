@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -u
+
+REDIS_PLUS_PLUS_MINOR_VERSION_REQUIRED=3.5
+# There is no way to verify version
+REDIS_PLUS_PLUS_HEADER="/usr/local/include/sw/redis++/redis++.h"
+
+install_redis_plus_plus_from_source() {
+  local redis_plus_plus_minor_version=$1
+  curl -Lo\
+  redis-plus-plus-"1.${redis_plus_plus_minor_version}".tar.gz\
+  https://github.com/sewenew/redis-plus-plus/archive/refs/tags/1.${redis_plus_plus_minor_version}.tar.gz
+  if [[ $? -ne 0 ]]; then
+    echo "Unable to download the redis++ source distribution - the curl command failed."
+    exit 1
+  fi
+  if ! tar xfz redis-plus-plus-"1.${redis_plus_plus_minor_version}".tar.gz; then
+    echo "Unable to extract redis++ sources - the tar command failed."
+    exit 1
+  fi
+  pushd redis-plus-plus-"1.${redis_plus_plus_minor_version}"
+  mkdir build
+  cd build
+  cmake ..
+  make 
+  make install
+  popd
+  /bin/rm -rf redis-plus-plus-"1.${redis_plus_plus_minor_version}"*
+}
+
+if [[ -f $REDIS_PLUS_PLUS_HEADER ]]; then
+  echo "Redis++ header file found at ${REDIS_PLUS_PLUS_HEADER}. Cannot verify version, check manually!"
+else
+  echo "Did not find the redis++ header file at ${REDIS_PLUS_PLUS_HEADER}."
+  echo "We assume that redis++ is not installed on this machine, so we will"\
+    "install it now."
+  install_redis_plus_plus_from_source ${REDIS_PLUS_PLUS_MINOR_VERSION_REQUIRED}
+fi
+
+exit 0

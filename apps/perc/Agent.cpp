@@ -33,12 +33,19 @@ Agent::Agent(std::string address) {
     BOOST_LOG_TRIVIAL(info) << "Connected to the MQTT broker at " << address;
 
 //    mqtt_client->subscribe("ground_truth/mission/victims_list", 2);
-//    mqtt_client->subscribe("observations/events/player/location", 2);
+    mqtt_client->subscribe("observations/events/player/location", 2);
 //    mqtt_client->subscribe("observations/events/player/rubble_collapse", 2);
-//    mqtt_client->subscribe("observations/events/player/rubble_destroyed", 2);
+    mqtt_client->subscribe("observations/events/player/rubble_destroyed", 2);
     mqtt_client->subscribe("agent/pygl_fov/player/3d/summary", 2);
+    mqtt_client->subscribe("observations/events/mission",2);
+    mqtt_client->subscribe("observations/events/player/victim_placed",2);
+    mqtt_client->subscribe("observations/events/player/victim_picked_up",2);
 //    mqtt_client->subscribe("ground_truth/mission/victims_list", 2);
-//    mqtt_client->subscribe("observations/events/player/triage", 2);
+    mqtt_client->subscribe("observations/events/player/triage", 2);
+    mqtt_client->subscribe("observations/events/player/marker_placed",2);
+    mqtt_client->subscribe("observations/events/player/proximity_block",2);
+    mqtt_client->subscribe("observations/events/server/victim_evacuated",2);
+    mqtt_client->subscribe("observations/events/player/marker_removed",2);
 
     /** Start publishing heartbeat messages */
     heartbeat_future = async(launch::async, &Agent::publish_heartbeats, this);
