@@ -1,6 +1,5 @@
 #include "util.h"
 #include "parsers/map_parser.h"
-#include "parsers/map_parser_tools.h"
 #include <istream>
 #include <boost/program_options.hpp>
 #include <fstream>
@@ -45,51 +44,25 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
 
-  std::ifstream i(infile);
-  json j;
-  i >> j; 
+  json::value j = parse_file(infile.c_str());
 
-  std::vector<std::string> alt_zones = {"sga","ew","cf","kit","lib","llc","sdc","loc_42"};
+  auto mp = parse_map_from_json(j);
 
-  auto mp = parse_map_from_json(j, alt_zones);
+  json::object g;
 
-  json g;
-
-  mp.zones.push_back("UNKNOWN");
-
-  mp.graph["llcn"].push_back("UNKNOWN");
-
-  mp.graph["UNKNOWN"].push_back("llcn");
-
-  mp.graph["r103"].push_back("UNKNOWN");
-
-  mp.graph["UNKNOWN"].push_back("r103");
-
+  g["zones"].emplace_array();
+  g["graph"].emplace_object();
   for (auto z : mp.zones) {
-    g["zones"].push_back(z);
+    g["zones"].as_array().push_back(json::value_from(z));
+    g["graph"].as_object()[z].emplace_array();
     for (auto c : mp.graph[z]) {
-      g["graph"][z].push_back(c);
+      g["graph"].as_object()[z].as_array().push_back(json::value_from(c));
     }
-    g["dist_from_change_zone"][z] = shortest_path_BFS(mp.graph,z,"sga");
   }
-
+  g["rooms"].emplace_array();
   for (auto r : mp.rooms) {
-    g["rooms"].push_back(r);
+    g["rooms"].as_array().push_back(json::value_from(r));
   }
-
-  g["change_zone"] = "sga";
-
-  g["no_victim_zones"].push_back("sga");
-
-  g["multi_room_zones"].push_back("cf");
-
-  g["multi_room_zones"].push_back("kit");
-
-  g["multi_room_zones"].push_back("lib");
-
-  g["multi_room_zones"].push_back("llc");
-
-  g["multi_room_zones"].push_back("sdc");
 
   std::ofstream o(outfile);
   o << std::setw(4) << g << std::endl;

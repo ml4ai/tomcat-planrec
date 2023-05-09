@@ -1,8 +1,8 @@
-#include <nlohmann/json.hpp>
+#include <boost/json.hpp>
 #include <vector>
 #include "util.h"
 
-using json = nlohmann::json;
+namespace json = boost::json;
 
 struct mission_map {
   std::unordered_map<std::string, std::vector<std::string>> graph;
@@ -11,63 +11,61 @@ struct mission_map {
 };
 
 mission_map 
-parse_map_from_json(json j, std::vector<std::string> alt_zones = {}) {
+parse_map_from_json(json::value j) {
 
   mission_map mp;
-  for (auto& e : j["locations"]) {
-    if (e["type"] == "room" || 
-        e["type"] == "hallway" || 
-        e["type"] == "bathroom") {
-      if (e["type"] != "hallway" &&
-         !in(e["id"].get<std::string>(),alt_zones)) {
-        mp.rooms.push_back(e["id"]);
+  for (auto& e : j.as_object()["locations"].as_array()) {
+    if ((e.as_object()["type"].as_string() == "room" || 
+        e.as_object()["type"].as_string() == "hallway" || 
+        e.as_object()["type"].as_string() == "bathroom") &&
+        e.as_object()["name"].as_string() != "UNKNOWN") {
+      if (e.as_object()["type"].as_string() != "hallway") {
+        mp.rooms.push_back(json::value_to<std::string>(e.as_object()["id"]));
       }
-      if (e["id"] != "loc_42") {
-        mp.zones.push_back(e["id"]);
-        mp.graph[e["id"].get<std::string>()] = {};
-        for (auto& c : j["connections"]) {
-          if (c["type"] != "extension") {
-            bool found_loc = false;
-            std::vector<std::string> cns;
-            for (auto& loc : c["connected_locations"]) {
-              if (loc == e["id"]) {
-                found_loc = true;
-                continue;
-              }
-              if (e.find("child_locations") != e.end()) {
-                for (auto& cl : e["child_locations"]) {
-                  if (loc == cl) {
-                    found_loc = true;
-                    continue;
-                  }
+      mp.zones.push_back(json::value_to<std::string>(e.as_object()["id"]));
+      mp.graph[json::value_to<std::string>(e.as_object()["id"])] = {};
+      for (auto& c : j.as_object()["connections"].as_array()) {
+        if (c.as_object()["type"].as_string() != "extension") {
+          bool found_loc = false;
+          std::vector<std::string> cns;
+          for (auto& loc : c.as_object()["connected_locations"].as_array()) {
+            if (loc.as_string() == e.as_object()["id"].as_string()) {
+              found_loc = true;
+              continue;
+            }
+            if (e.as_object().find("child_locations") != e.as_object().end()) {
+              for (auto& cl : e.as_object()["child_locations"].as_array()) {
+                if (loc.as_string() == cl.as_string()) {
+                  found_loc = true;
+                  continue;
                 }
               }
-              for (auto& l : j["locations"]) {
-                if (l["type"] == "room" ||
-                    l["type"] == "hallway" ||
-                    l["type"] == "bathroom") {
-                  if(l.find("child_locations") != l.end()) {
-                    for(auto& lcl : l["child_locations"]) {
-                      if (loc == lcl) {
-                        if(!in(l["id"].get<std::string>(),cns)) {
-                          cns.push_back(l["id"].get<std::string>());
-                        }
+            }
+            for (auto& l : j.as_object()["locations"].as_array()) {
+              if (l.as_object()["type"].as_string() == "room" ||
+                  l.as_object()["type"].as_string() == "hallway" ||
+                  l.as_object()["type"].as_string() == "bathroom") {
+                if(l.as_object().find("child_locations") != l.as_object().end()) {
+                  for(auto& lcl : l.as_object()["child_locations"].as_array()) {
+                    if (loc.as_string() == lcl.as_string()) {
+                      if(!in(json::value_to<std::string>(l.as_object()["id"]),cns)) {
+                        cns.push_back(json::value_to<std::string>(l.as_object()["id"]));
                       }
                     }
                   }
-                  if (l["id"] == loc) {
-                    if(!in(loc.get<std::string>(),cns)) {
-                      cns.push_back(loc.get<std::string>());
-                    }
+                }
+                if (l.as_object()["id"].as_string() == loc.as_string()) {
+                  if(!in(json::value_to<std::string>(loc),cns)) {
+                    cns.push_back(json::value_to<std::string>(loc));
                   }
                 }
               }
-            } 
-            if (found_loc && !cns.empty()) {
-              for (auto fl : cns) {
-                if(!in(fl,mp.graph[e["id"].get<std::string>()]) && fl != e["id"]) {
-                  mp.graph[e["id"].get<std::string>()].push_back(fl);
-                }
+            }
+          } 
+          if (found_loc && !cns.empty()) {
+            for (auto fl : cns) {
+              if(!in(fl,mp.graph[json::value_to<std::string>(e.as_object()["id"])]) && fl != e.as_object()["id"].as_string()) {
+                mp.graph[json::value_to<std::string>(e.as_object()["id"])].push_back(fl);
               }
             }
           }
