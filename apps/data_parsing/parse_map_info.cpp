@@ -1,6 +1,5 @@
 #include "util.h"
 #include "parsers/map_parser.h"
-#include "parsers/map_parser_tools.h"
 #include <istream>
 #include <boost/program_options.hpp>
 #include <fstream>
