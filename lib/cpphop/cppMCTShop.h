@@ -264,7 +264,7 @@ seek_planMCTS(pTree& t,
       else {
         if (m[n].sims == 0) {
           m[n].state.update_state(m[n].time);
-          int ar;
+          double ar;
           for (int j = 0; j < r; j++) {
             ar += simulation(m[n].plan,
                              m[n].state, 
@@ -287,7 +287,7 @@ seek_planMCTS(pTree& t,
           m[n].state.update_state(m[n].time);
           int n_p = expansion(m,n,domain,g);
           m[n_p].state.update_state(m[n_p].time);
-          int ar;
+          double ar;
           for (int j = 0; j < r; j++) {
             ar += simulation(m[n_p].plan,
                              m[n_p].state, 
