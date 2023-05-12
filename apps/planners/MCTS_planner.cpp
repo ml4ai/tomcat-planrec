@@ -14,6 +14,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
   int plan_size = -1;
   int R = 30;
+  int r = 5;
   double c = sqrt(2.0);
   int seed = 2022;
   std::string dom_file = "../domains/transport_domain.hddl";
@@ -27,6 +28,7 @@ int main(int argc, char* argv[]) {
     desc.add_options()
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int), default = 30")
+      ("simulations,r", po::value<int>(), "Number of simulations per resource cycle (int), default = 5")
       ("plan_size,p",po::value<int>(),"Number of actions to return (int), default value of -1 returns full plan")
       ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
@@ -49,6 +51,10 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("resource_cycles")) {
       R = vm["resource_cycles"].as<int>();
+    }
+
+    if (vm.count("simulations")) {
+      r = vm["simulations"].as<int>();
     }
 
     if (vm.count("plan_size")) {
@@ -98,7 +104,7 @@ int main(int argc, char* argv[]) {
       graph_file = problem.head +".png"; 
     }
     auto start = std::chrono::high_resolution_clock::now();
-    auto results = cppMCTShop(domain,problem,scorers[score_fun],R,plan_size,c,seed,redis_address); 
+    auto results = cppMCTShop(domain,problem,scorers[score_fun],R,r,plan_size,c,seed,redis_address); 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     cout << "Time taken by planner: "
@@ -107,7 +113,7 @@ int main(int argc, char* argv[]) {
   }
   else {
     auto start = std::chrono::high_resolution_clock::now();
-    cppMCTShop(domain,problem,scorers[score_fun],R,plan_size,c,seed,redis_address); 
+    cppMCTShop(domain,problem,scorers[score_fun],R,r,plan_size,c,seed,redis_address); 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     cout << "Time taken by planner: "
