@@ -235,6 +235,7 @@ seek_planMCTS(pTree& t,
               int v,
               DomainDef& domain,
               int R,
+              int r,
               int plan_size,
               double c,
               std::mt19937_64& g,
@@ -263,38 +264,46 @@ seek_planMCTS(pTree& t,
       else {
         if (m[n].sims == 0) {
           m[n].state.update_state(m[n].time);
-          auto r = simulation(m[n].plan,
-                              m[n].state, 
-                              m[n].tasks, 
-                              m[n].cTask,
-                              m[n].time,
-                              domain,
-                              g);
-          if (r == -1.0) {
+          int ar;
+          for (int j = 0; j < r; j++) {
+            ar += simulation(m[n].plan,
+                             m[n].state, 
+                             m[n].tasks, 
+                             m[n].cTask,
+                             m[n].time,
+                             domain,
+                             g);
+          }
+          ar /= r;  
+          if (ar == -1.0) {
             m[n].deadend = true;
-            backprop(m,n,0);
+            backprop(m,n,-1.0);
           }
           else {
-            backprop(m,n,r);
+            backprop(m,n,ar);
           }
         }
         else {
           m[n].state.update_state(m[n].time);
           int n_p = expansion(m,n,domain,g);
           m[n_p].state.update_state(m[n_p].time);
-          auto r = simulation(m[n_p].plan,
-                              m[n_p].state, 
-                              m[n_p].tasks, 
-                              m[n_p].cTask,
-                              m[n_p].time,
-                              domain,
-                              g);
-          if (r == -1.0) {
+          int ar;
+          for (int j = 0; j < r; j++) {
+            ar += simulation(m[n_p].plan,
+                             m[n_p].state, 
+                             m[n_p].tasks, 
+                             m[n_p].cTask,
+                             m[n_p].time,
+                             domain,
+                             g);
+          }
+          ar /= r;
+          if (ar == -1.0) {
             m[n_p].deadend = true;
-            backprop(m,n_p,0);
+            backprop(m,n_p,-1.0);
           }
           else {
-            backprop(m,n_p,r);
+            backprop(m,n_p,ar);
           }
         }
       }
@@ -409,6 +418,7 @@ cppMCTShop(DomainDef& domain,
            ProblemDef& problem,
            Scorer scorer,
            int R = 30,
+           int r = 5,
            int plan_size = -1,
            double c = 1.4142,
            int seed = 4021,
@@ -438,7 +448,7 @@ cppMCTShop(DomainDef& domain,
     std::cout << "Initial State:" << std::endl;
     t[v].state.print_facts();
     std::cout << std::endl;
-    auto end = seek_planMCTS(t, tasktree, v, domain, R, plan_size,c,g,redis_address);
+    auto end = seek_planMCTS(t, tasktree, v, domain, R, r, plan_size,c,g,redis_address);
     std::cout << "Plan:";
     for (auto const& p : t[end].plan) {
       std::cout << "\n\t " << p;
