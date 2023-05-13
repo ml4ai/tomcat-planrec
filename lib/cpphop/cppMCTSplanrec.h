@@ -325,6 +325,7 @@ seek_planrecMCTS(pTree& t,
                  DomainDef& domain,
                  Reach_Map& r_map,
                  int R,
+                 int r,
                  double c,
                  std::mt19937_64& g,
                  std::vector<std::pair<int,std::string>>& actions,
@@ -351,40 +352,47 @@ seek_planrecMCTS(pTree& t,
       }
       if (m[n].sims == 0) {
         m[n].state.update_state(m[n].time);
-        double r = simulation_rec(actions,
-                                  m[n].plan,
-                                  m[n].state, 
-                                  m[n].tasks, 
-                                  m[n].cTask,
-                                  domain,
-                                  r_map,
-                                  g);
-    
-        if (r == -1.0) {
+        double ar;
+        for (int j = 0; j < r; j++) {
+          ar += simulation_rec(actions,
+                               m[n].plan,
+                               m[n].state, 
+                               m[n].tasks, 
+                               m[n].cTask,
+                               domain,
+                               r_map,
+                               g);
+        }
+        ar /= r;
+        if (ar == -1.0) {
           m[n].deadend = true;
-          backprop(m,n,0);
+          backprop(m,n,-1.0);
         }
         else {
-          backprop(m,n,r);
+          backprop(m,n,ar);
         }
       }
       else {
         m[n].state.update_state(m[n].time);
         int n_p = expansion_rec(actions,m,n,domain,r_map,g);
-        double r = simulation_rec(actions,
-                                  m[n_p].plan,
-                                  m[n_p].state, 
-                                  m[n_p].tasks, 
-                                  m[n_p].cTask,
-                                  domain,
-                                  r_map,
-                                  g);
-        if (r == -1.0) {
+        double ar;
+        for (int j = 0; j < r; j++) {
+          ar += simulation_rec(actions,
+                               m[n_p].plan,
+                               m[n_p].state, 
+                               m[n_p].tasks, 
+                               m[n_p].cTask,
+                               domain,
+                               r_map,
+                               g);
+        }
+        ar /= r;
+        if (ar == -1.0) {
           m[n_p].deadend = true;
-          backprop(m,n_p,0);
+          backprop(m,n_p,-1.0);
         }
         else {
-          backprop(m,n_p,r);
+          backprop(m,n_p,ar);
         }
       }
     }
@@ -496,6 +504,7 @@ cppMCTSplanrec(DomainDef& domain,
               Reach_Map& r_map,
               Scorer scorer,
               int R = 30,
+              int r = 5,
               double c = 1.4,
               int seed = 4021,
               std::string const& redis_address = "") {
@@ -539,6 +548,7 @@ cppMCTSplanrec(DomainDef& domain,
                              domain, 
                              r_map,
                              R, 
+                             r,
                              c, 
                              g,
                              actions,
