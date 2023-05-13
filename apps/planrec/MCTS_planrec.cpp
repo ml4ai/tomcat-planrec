@@ -14,6 +14,7 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
   int R = 30;
+  int r = 5;
   double c = sqrt(2.0);
   int seed = 2022;
   std::string dom_file = "../domains/transport_domain.hddl";
@@ -26,6 +27,7 @@ int main(int argc, char* argv[]) {
     desc.add_options()
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int), default = 30")
+      ("simulations,r", po::value<int>(), "Number of simulations per resource cycle (int), default = 5")
       ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
@@ -46,6 +48,10 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("resource_cycles")) {
       R = vm["resource_cycles"].as<int>();
+    }
+
+    if (vm.count("simulations")) {
+      r = vm["simulations"].as<int>();
     }
 
     if (vm.count("exp_param")) {
@@ -85,7 +91,7 @@ int main(int argc, char* argv[]) {
   }
   auto [domain,problem] = load(dom_file,prob_file);
   auto start = std::chrono::high_resolution_clock::now();
-  cppMCTSplanrec(domain,problem,reach_maps[r_map],scorers[score_fun],R,c,seed,redis_address); 
+  cppMCTSplanrec(domain,problem,reach_maps[r_map],scorers[score_fun],R,r,c,seed,redis_address); 
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   cout << "Time taken by plan recognizer: "
