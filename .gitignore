@@ -143,3 +143,4 @@ cmake-build-debug
 *.metadata
 *.json
 *.rdb
+*.png
