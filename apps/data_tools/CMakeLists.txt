@@ -21,3 +21,8 @@ target_link_libraries(redis_to_json PRIVATE ${Boost_LIBRARIES} ${HIREDIS_LIB} ${
 add_executable(json_grapher json_grapher.cpp)
 target_include_directories(json_grapher PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIRS} ../../lib)
 target_link_libraries(json_grapher PRIVATE ${Boost_LIBRARIES} ${GRAPHVIZ_LIBS})
+
+add_executable(redis_grapher redis_grapher.cpp)
+target_include_directories(redis_grapher PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIRS} ${HIREDIS_HEADER} ${REDIS_PLUS_PLUS_HEADER} ../../lib)
+target_link_libraries(redis_grapher PRIVATE ${Boost_LIBRARIES} ${GRAPHVIZ_LIBS} ${HIREDIS_LIB} ${REDIS_PLUS_PLUS_LIB})
+
