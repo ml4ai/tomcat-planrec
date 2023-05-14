@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
   auto [domain,problem] = load(dom_file,prob_file);
   if (graph) {
     if (graph_file == "") {
-      graph_file = problem.head +".png"; 
+      graph_file = "../data/" + problem.head +".png"; 
     }
     auto start = std::chrono::high_resolution_clock::now();
     auto results = cppMCTShop(domain,problem,scorers[score_fun],R,r,plan_size,c,seed,redis_address); 
