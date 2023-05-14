@@ -11,8 +11,8 @@ using namespace sw::redis;
 
 int main(int argc, char* argv[]) {
   std::string redis_address = "";
-  std::string save_path = "../metadata";
-  std::string outfile = "output";
+  std::string save_path = "../data";
+  std::string key = "explanations";
   std::string lower = "-";
   std::string upper = "+";
 
@@ -20,11 +20,11 @@ int main(int argc, char* argv[]) {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
-      ("redis_address,a",po::value<std::string>(),"redis address to redis database (string)")
-      ("save_path,s", po::value<std::string>(), "path to where outputted files are saved (string)")
-      ("outfile,o",po::value<std::string>(),"name for outputs (string)")
-      ("lower_bound,l", po::value<std::string>(),"lower bound for redis retrieval (string)")
-      ("upper_bound,u", po::value<std::string>(),"upper bound for redis retrieval (string)")
+      ("redis_address,a",po::value<std::string>(),"redis address to redis database (string), default = none")
+      ("save_path,s", po::value<std::string>(), "path to where outputted files are saved (string), default = ../data")
+      ("key,k",po::value<std::string>(),"database key, also used to name json files (string), default = explanations")
+      ("lower_bound,l", po::value<std::string>(),"lower bound for redis retrieval (string), default = -")
+      ("upper_bound,u", po::value<std::string>(),"upper bound for redis retrieval (string), default = +")
     ;
 
     po::variables_map vm;
@@ -44,8 +44,8 @@ int main(int argc, char* argv[]) {
       save_path = vm["save_path"].as<std::string>();
     }
 
-    if (vm.count("outfile")) {
-      outfile = vm["outfile"].as<std::string>();
+    if (vm.count("key")) {
+      key = vm["key"].as<std::string>();
     }
 
     if (vm.count("lower_bound")) {
@@ -68,11 +68,11 @@ int main(int argc, char* argv[]) {
   try {
     auto redis = Redis(redis_address);
     std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> xresults;
-    redis.xrange("explanations",lower,upper,std::back_inserter(xresults));
+    redis.xrange(key,lower,upper,std::back_inserter(xresults));
     int i = 0;
     for (auto x : xresults) {
       for (auto y : x.second) {
-        std::string f = save_path + "/" + outfile + "_" + std::to_string(i) + ".json";
+        std::string f = save_path + "/" + key + "_" + std::to_string(i) + ".json";
         std::ofstream o(f); 
         i++;
         json::value g = json::parse(y.second);
