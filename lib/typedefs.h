@@ -99,6 +99,45 @@ struct TaskGraph {
 
 };
 
+void tag_invoke(const json::value_from_tag&, json::value& jv, Grounded_Task const& gt) {
+  json::array sargs;
+  for (auto const& a : gt.args) {
+    json::array sa;
+    sa.emplace_back(a.first);
+    sa.emplace_back(a.second);
+    sargs.emplace_back(sa);
+  }
+
+  json::array sincoming;
+  for (auto const& i : gt.incoming) {
+    sincoming.emplace_back(std::to_string(i));
+  }
+
+  json::array soutgoing;
+  for (auto const& o : gt.outgoing) {
+    soutgoing.emplace_back(std::to_string(o));
+  }
+
+  jv = {
+      {"head", gt.head},
+      {"args", sargs},
+      {"incoming", sincoming},
+      {"outgoing",soutgoing}
+  }; 
+
+}
+
+void tag_invoke(const json::value_from_tag&, json::value& jv, TaskGraph const& tg) {
+  std::unordered_map<std::string, Grounded_Task> sGTs;
+  for (auto const& [id,n] : tg.GTs) {
+    sGTs[std::to_string(id)] = n;
+  }
+  jv = {
+      {"GTs",sGTs},
+      {"nextID",std::to_string(tg.nextID)}
+  };
+}
+
 struct TaskNode {
   std::string task;
   std::string token;
