@@ -580,6 +580,11 @@ class KnowledgeBase {
       bool temporal_facts_is_empty() {
         return this->temporal_facts.empty();
       }
+
+      std::unordered_map<std::string, std::unordered_set<std::string>>
+      get_facts() {
+        return this->facts;
+      }
 };
 
 
