@@ -62,11 +62,18 @@ void update_actions(std::string const& redis_address,
 
 void upload_plan_explanation(std::string const& redis_address, 
                              TaskTree& tasktree, 
-                             std::vector<std::string>& plan) {
+                             std::vector<std::string>& plan,
+                             TaskGraph& taskgraph,
+                             std::unordered_map<std::string, std::unordered_set<std::string>> facts, 
+                             bool eval_mode) {
   //Serialize task tree and current plan
   json::object obj;
   obj["tasktree"] = json::value_from(tasktree);
   obj["plan"] = json::value_from(plan);
+  if (eval_mode) {
+    obj["taskgraph"] = json::value_from(taskgraph);
+    obj["state"] = json::value_from(facts);
+  }
   std::string s = json::serialize(obj);
   std::string rank = std::to_string(plan.size()) + "-*";
   Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
@@ -329,7 +336,8 @@ seek_planrecMCTS(pTree& t,
                  double c,
                  std::mt19937_64& g,
                  std::vector<std::pair<int,std::string>>& actions,
-                 std::string const& redis_address) {
+                 std::string const& redis_address,
+                 bool eval_mode) {
   int stuck_counter = 1000;
   t[v].time = actions.back().first;
   while (!t[v].tasks.empty()) {
@@ -450,7 +458,7 @@ seek_planrecMCTS(pTree& t,
     t[v].successors.push_back(y);
     v = y;
     if (actions.size() == t[v].plan.size()) {
-      upload_plan_explanation(redis_address,tasktree,t[v].plan);
+      upload_plan_explanation(redis_address,tasktree,t[v].plan,t[v].tasks,t[v].state.get_facts(),eval_mode);
       update_actions(redis_address,actions);
       if (actions.back().second == "__STOP__") {
         std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
@@ -484,7 +492,7 @@ seek_planrecMCTS(pTree& t,
       t[v].successors.push_back(y);
       v = y;
       if (actions.size() == t[v].plan.size()) {
-        upload_plan_explanation(redis_address,tasktree,t[v].plan);
+        upload_plan_explanation(redis_address,tasktree,t[v].plan,t[v].tasks,t[v].state.get_facts(),eval_mode);
         update_actions(redis_address,actions);
         if (actions.back().second == "__STOP__") {
           std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
@@ -507,7 +515,8 @@ cppMCTSplanrec(DomainDef& domain,
               int r = 5,
               double c = 1.4,
               int seed = 4021,
-              std::string const& redis_address = "") {
+              std::string const& redis_address = "",
+              bool eval_mode = false) {
     if (redis_address.empty()) {
       std::cout << "Redis Database address not given, ending plan recognition process" << std::endl;
       return;
@@ -552,7 +561,8 @@ cppMCTSplanrec(DomainDef& domain,
                              c, 
                              g,
                              actions,
-                             redis_address);
+                             redis_address,
+                             eval_mode);
     }
     return;
 }
