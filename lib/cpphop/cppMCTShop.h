@@ -53,15 +53,15 @@ selection(pTree& t,
     return v;
 }
 
-void backprop(pTree& t, int n, double r) {
+void backprop(pTree& t, int n, double r, int sims) {
   do {
     if (t[n].successors.empty()) {
       t[n].score = r;
-      t[n].sims++;
+      t[n].sims += sims;
     }
     else {
       t[n].score += r;
-      t[n].sims++;
+      t[n].sims += sims;
     }
     n = t[n].pred;
   }
@@ -259,7 +259,7 @@ seek_planMCTS(pTree& t,
     for (int i = 0; i < R; i++) {
       int n = selection(m,w,c,g);
       if (m[n].tasks.empty() && m[n].cTask == -1) {
-          backprop(m,n,domain.score(m[n].state,m[n].plan));
+          backprop(m,n,domain.score(m[n].state,m[n].plan),1);
       }
       else {
         if (m[n].sims == 0) {
@@ -274,13 +274,12 @@ seek_planMCTS(pTree& t,
                              domain,
                              g);
           }
-          ar /= r;  
           if (ar == -1.0) {
             m[n].deadend = true;
-            backprop(m,n,-1.0);
+            backprop(m,n,-1.0,r);
           }
           else {
-            backprop(m,n,ar);
+            backprop(m,n,ar,r);
           }
         }
         else {
@@ -297,13 +296,12 @@ seek_planMCTS(pTree& t,
                              domain,
                              g);
           }
-          ar /= r;
           if (ar == -1.0) {
             m[n_p].deadend = true;
-            backprop(m,n_p,-1.0);
+            backprop(m,n_p,-1.0,r);
           }
           else {
-            backprop(m,n_p,ar);
+            backprop(m,n_p,ar,r);
           }
         }
       }
