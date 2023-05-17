@@ -371,13 +371,12 @@ seek_planrecMCTS(pTree& t,
                                r_map,
                                g);
         }
-        ar /= r;
         if (ar == -1.0) {
           m[n].deadend = true;
-          backprop(m,n,-1.0);
+          backprop(m,n,-1.0,r);
         }
         else {
-          backprop(m,n,ar);
+          backprop(m,n,ar,r);
         }
       }
       else {
@@ -394,13 +393,12 @@ seek_planrecMCTS(pTree& t,
                                r_map,
                                g);
         }
-        ar /= r;
         if (ar == -1.0) {
           m[n_p].deadend = true;
-          backprop(m,n_p,-1.0);
+          backprop(m,n_p,-1.0,r);
         }
         else {
-          backprop(m,n_p,ar);
+          backprop(m,n_p,ar,r);
         }
       }
     }
