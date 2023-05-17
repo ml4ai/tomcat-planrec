@@ -2,6 +2,7 @@
 
 #include "../util.h"
 #include "../typedefs.h"
+#include "cppMCTShop.h"
 //#include "printing.h"
 #include <any>
 #include <iostream>
@@ -13,70 +14,14 @@
 #include <vector>
 #include <limits>
 
-int
-selection(pTree& t,
-          int v,
-          double c,
-          std::mt19937_64& g) {
-    int original = v;
-    while (!t[v].successors.empty()) {
-      if (t[v].deadend) {
-        return v;
-      }
-      std::vector<int> maxes = {};
-      double max = -std::numeric_limits<double>::infinity();
-      for (auto const &w : t[v].successors) {
-        if (!t[w].deadend) {
-          if (t[w].sims == 0) {
-            return w;
-          }
-          double s = (t[w].score/t[w].sims) + c*sqrt(log(t[v].sims)/t[w].sims);
-          if (s >= max) {
-            if (s > max) {
-              max = s;
-              maxes.clear();
-              maxes.push_back(w);
-            }
-            else {
-              maxes.push_back(w);
-            }
-          }
-        }
-      }
-      if (maxes.empty()) {
-        t[v].deadend = true;
-        v = original;
-        continue;
-      }
-      v = *select_randomly(maxes.begin(), maxes.end(), g);
-    }
-    return v;
-}
-
-void backprop(pTree& t, int n, double r) {
-  do {
-    if (t[n].successors.empty()) {
-      t[n].score = r;
-      t[n].sims++;
-    }
-    else {
-      t[n].score += r;
-      t[n].sims++;
-    }
-    n = t[n].pred;
-  }
-  while (n != -1);
-  return;
-}
-
 double
-simulation(std::vector<std::string>& plan,
-           KnowledgeBase state,
-           TaskGraph tasks,
-           int cTask,
-           int time,
-           DomainDef& domain,
-           std::mt19937_64& g) {
+simulation_eval(std::vector<std::string>& plan,
+                KnowledgeBase state,
+                TaskGraph tasks,
+                int cTask,
+                std::vector<int>& times,
+                DomainDef& domain,
+                std::mt19937_64& g) {
   if (tasks.empty() && cTask == -1) {
     return domain.score(state,plan);
   }
@@ -88,10 +33,14 @@ simulation(std::vector<std::string>& plan,
         auto gtasks = tasks;
         gtasks.remove_node(cTask);
         for (auto &ns : act.second) {
-          ns.update_state(time+1);
           auto gplan = plan;
           gplan.push_back(act.first+"_"+std::to_string(cTask));
-          double rs = simulation(gplan,ns,gtasks,-1,time + 1,domain,g);
+          if (gplan.size() == times.size()) {
+            ns.update_state();
+            return domain.score(ns,gplan);
+          }
+          ns.update_state(times[gplan.size()]);
+          double rs = simulation_eval(gplan,ns,gtasks,-1,times,domain,g);
           if (rs > -1.0) {
             return rs;
           }
@@ -111,7 +60,7 @@ simulation(std::vector<std::string>& plan,
           not_applicable = false;
           std::shuffle(all_gts.begin(),all_gts.end(),g);
           for (auto &gts : all_gts) {
-            double rs = simulation(plan,state,gts.second,-1,time,domain,g);
+            double rs = simulation_eval(plan,state,gts.second,-1,times,domain,g);
             if (rs > -1.0) {
               return rs;
             }
@@ -132,7 +81,7 @@ simulation(std::vector<std::string>& plan,
   else {
     for (auto &[i,gt] : tasks.GTs) {
       if (gt.incoming.empty()) {
-        double rs = simulation(plan,state,tasks,i,time,domain,g);
+        double rs = simulation_eval(plan,state,tasks,i,times,domain,g);
         if (rs > -1.0) {
           return rs;
         }
@@ -142,10 +91,11 @@ simulation(std::vector<std::string>& plan,
   return -1.0;
 }
 
-int expansion(pTree& t,
-              int n,
-              DomainDef& domain,
-              std::mt19937_64& g) {
+int expansion_eval(pTree& t,
+                   int n,
+                   DomainDef& domain,
+                   std::vector<int>& times,
+                   std::mt19937_64& g) {
     if (t[n].cTask != -1) {
       int tid = t[n].cTask;
       if (domain.actions.contains(t[n].tasks[tid].head)) {
@@ -155,13 +105,18 @@ int expansion(pTree& t,
           for (auto const& state : act.second) {
             pNode v;
             v.state = state;
-            v.state.update_state(t[n].time + 1);
             v.tasks = t[n].tasks;
             v.tasks.remove_node(tid);
             v.depth = t[n].depth + 1;
             v.plan = t[n].plan;
             v.time = t[n].time + 1;
             v.plan.push_back(act.first+"_"+std::to_string(tid));
+            if (times.size() == v.plan.size()) {
+              v.state.update_state();
+            }
+            else {
+              v.state.update_state(times[v.plan.size()]);
+            }
             v.pred = n;
             int w = t.size();
             t[w] = v;
@@ -185,8 +140,6 @@ int expansion(pTree& t,
             v.tasks = g.second;
             v.depth = t[n].depth + 1;
             v.plan = t[n].plan;
-            v.addedTIDs = g.first;
-            v.prevTID = tid;
             v.time = t[n].time;
             v.pred = n;
             int w = t.size();
@@ -230,17 +183,18 @@ int expansion(pTree& t,
 }
 
 int
-seek_planMCTS(pTree& t,
+seek_evalMCTS(pTree& t,
               TaskTree& tasktree,
               int v,
               DomainDef& domain,
+              std::vector<int> times,
               int R,
               int r,
-              int plan_size,
               double c,
               std::mt19937_64& g,
               std::string const& redis_address) {
   int stuck_counter = 10;
+  t[v].time = times[0];
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
@@ -259,51 +213,49 @@ seek_planMCTS(pTree& t,
     for (int i = 0; i < R; i++) {
       int n = selection(m,w,c,g);
       if (m[n].tasks.empty() && m[n].cTask == -1) {
-          backprop(m,n,domain.score(m[n].state,m[n].plan));
+          backprop(m,n,domain.score(m[n].state,m[n].plan),1);
       }
       else {
         if (m[n].sims == 0) {
           m[n].state.update_state(m[n].time);
           double ar;
           for (int j = 0; j < r; j++) {
-            ar += simulation(m[n].plan,
-                             m[n].state, 
-                             m[n].tasks, 
-                             m[n].cTask,
-                             m[n].time,
-                             domain,
-                             g);
+            ar += simulation_eval(m[n].plan,
+                                  m[n].state, 
+                                  m[n].tasks, 
+                                  m[n].cTask,
+                                  times,
+                                  domain,
+                                  g);
           }
-          ar /= r;  
           if (ar == -1.0) {
             m[n].deadend = true;
-            backprop(m,n,-1.0);
+            backprop(m,n,-1.0,r);
           }
           else {
-            backprop(m,n,ar);
+            backprop(m,n,ar,r);
           }
         }
         else {
           m[n].state.update_state(m[n].time);
-          int n_p = expansion(m,n,domain,g);
+          int n_p = expansion_eval(m,n,domain,times,g);
           m[n_p].state.update_state(m[n_p].time);
           double ar;
           for (int j = 0; j < r; j++) {
-            ar += simulation(m[n_p].plan,
-                             m[n_p].state, 
-                             m[n_p].tasks, 
-                             m[n_p].cTask,
-                             m[n_p].time,
-                             domain,
-                             g);
+            ar += simulation_eval(m[n_p].plan,
+                                  m[n_p].state, 
+                                  m[n_p].tasks, 
+                                  m[n_p].cTask,
+                                  times,
+                                  domain,
+                                  g);
           }
-          ar /= r;
           if (ar == -1.0) {
             m[n_p].deadend = true;
-            backprop(m,n_p,-1.0);
+            backprop(m,n_p,-1.0,r);
           }
           else {
-            backprop(m,n_p,ar);
+            backprop(m,n_p,ar,r);
           }
         }
       }
@@ -350,20 +302,12 @@ seek_planMCTS(pTree& t,
     k.plan = m[arg_max].plan;
     k.depth = t[v].depth + 1;
     k.time = m[arg_max].time;
-    for (auto& i : m[arg_max].addedTIDs) {
-      TaskNode tasknode;
-      tasknode.task = k.tasks[i].head;
-      tasknode.token = k.tasks[i].to_string();
-      tasknode.outgoing = k.tasks[i].outgoing;
-      tasktree[i] = tasknode;
-      tasktree[m[arg_max].prevTID].children.push_back(i);
-    }
     k.pred = v;
     int y = t.size();
     t[y] = k;
     t[v].successors.push_back(y);
     v = y;
-    if (t[v].plan.size() >= plan_size && plan_size != -1) {
+    if (t[v].plan.size() >= times.size()) {
       break;
     }
       
@@ -381,21 +325,13 @@ seek_planMCTS(pTree& t,
       j.plan = m[arg_max].plan;
       j.depth = t[v].depth + 1;
       j.time = m[arg_max].time;
-      for (auto& i : m[arg_max].addedTIDs) {
-        TaskNode tasknode;
-        tasknode.task = j.tasks[i].head;
-        tasknode.token = j.tasks[i].to_string();
-        tasknode.outgoing = j.tasks[i].outgoing;
-        tasktree[i] = tasknode;
-        tasktree[m[arg_max].prevTID].children.push_back(i);
-      }
       j.pred = v;
       int y = t.size();
       t[y] = j;
       t[v].successors.push_back(y);
       v = y;
 
-      if (t[v].plan.size() >= plan_size && plan_size != -1) {
+      if (t[v].plan.size() >= times.size()) {
         plan_break = true;
         break;
       }
@@ -413,46 +349,34 @@ seek_planMCTS(pTree& t,
 
 }
 
-Results 
+std::vector<std::string> 
 cppMCTSeval(DomainDef& domain,
             ProblemDef& problem,
             Scorer scorer,
+            TaskGraph& taskgraph,
+            std::unordered_map<std::string, std::unordered_set<std::string>> facts,
+            std::vector<int> times,
             int R = 30,
             int r = 5,
-            int plan_size = -1,
             double c = 1.4142,
             int seed = 4021,
             std::string const& redis_address = "") {
     domain.set_scorer(scorer);
     pTree t;
-    TaskTree tasktree;
     pNode root;
     root.state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
-    for (auto const& f : problem.initF) {
-      root.state.tell(f,false,false);
+    for (auto const& [_,h] : facts) {
+      for (auto const& f : h) {
+        root.state.tell(f,false,false);
+      }
     }
     root.state.update_state();
-    Grounded_Task init_t;
-    init_t.head = problem.head;
-    int TID = root.tasks.add_node(init_t);
-    TaskNode tasknode;
-    tasknode.task = init_t.head;
-    tasknode.token = init_t.to_string();
-    tasktree[TID] = tasknode;
+    root.tasks = taskgraph;
     root.plan = {};
     root.depth = 0;
     int v = t.size();
     t[v] = root;
     static std::mt19937_64 g(seed);
-    std::cout << std::endl;
-    std::cout << "Initial State:" << std::endl;
-    t[v].state.print_facts();
-    std::cout << std::endl;
-    auto end = seek_planMCTS(t, tasktree, v, domain, R, r, plan_size,c,g,redis_address);
-    std::cout << "Plan:";
-    for (auto const& p : t[end].plan) {
-      std::cout << "\n\t " << p;
-    }
-    std::cout << std::endl;
-    return Results(t,v,end,tasktree,TID);
+    auto end = seek_evalMCTS(t, v, domain, times, R, r,c,g,redis_address);
+    return t[end].plan;
 }
