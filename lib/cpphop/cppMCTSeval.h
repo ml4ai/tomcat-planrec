@@ -184,10 +184,9 @@ int expansion_eval(pTree& t,
 
 int
 seek_evalMCTS(pTree& t,
-              TaskTree& tasktree,
               int v,
               DomainDef& domain,
-              std::vector<int> times,
+              std::vector<int>& times,
               int R,
               int r,
               double c,
@@ -340,11 +339,6 @@ seek_evalMCTS(pTree& t,
       break;
     }
   }
-  std::cout << "Plan found at depth " << t[v].depth;
-  std::cout << std::endl;
-  std::cout << "Final State:" << std::endl;
-  t[v].state.print_facts();
-  std::cout << std::endl;
   return v;
 
 }
@@ -354,8 +348,8 @@ cppMCTSeval(DomainDef& domain,
             ProblemDef& problem,
             Scorer scorer,
             TaskGraph& taskgraph,
-            std::unordered_map<std::string, std::unordered_set<std::string>> facts,
-            std::vector<int> times,
+            std::unordered_map<std::string, std::vector<std::string>>& facts,
+            std::vector<int>& times,
             int R = 30,
             int r = 5,
             double c = 1.4142,
