@@ -127,6 +127,31 @@ void tag_invoke(const json::value_from_tag&, json::value& jv, Grounded_Task cons
 
 }
 
+Grounded_Task tag_invoke(const json::value_to_tag<Grounded_Task>&,json::value const& jv) {
+  Grounded_Task gt; 
+  json::object ob = jv.as_object();
+  gt.head = json::value_to<std::string>(ob["head"]);
+
+  for (auto const& a : ob["args"].as_array()) {
+    std::pair<std::string,std::string> p;
+    p.first = json::value_to<std::string>(a.as_array()[0]);
+    p.second = json::value_to<std::string>(a.as_array()[1]);
+    gt.args.push_back(p);
+  }
+
+  for (auto const& i : ob["incoming"].as_array()) {
+    int si = json::value_to<int>(i);
+    gt.incoming.push_back(si);
+  }
+
+  for (auto const& o : ob["outgoing"].as_array()) {
+    int so = json::value_to<int>(o);
+    gt.outgoing.push_back(so);
+  }
+
+  return gt;
+}
+
 void tag_invoke(const json::value_from_tag&, json::value& jv, TaskGraph const& tg) {
   std::unordered_map<std::string, Grounded_Task> sGTs;
   for (auto const& [id,n] : tg.GTs) {
@@ -136,6 +161,17 @@ void tag_invoke(const json::value_from_tag&, json::value& jv, TaskGraph const& t
       {"GTs",sGTs},
       {"nextID",std::to_string(tg.nextID)}
   };
+}
+
+TaskGraph tag_invoke(const json::value_to_tag<TaskGraph>&,json::value const& jv) {
+  TaskGraph tg; 
+  json::object ob = jv.as_object();
+  for (auto const& [id,n] : ob["GTs"].as_object()) {
+    std::string sid {id};
+    tg[std::stoi(sid)] = json::value_to<Grounded_Task>(n);
+  }
+  tg.nextID = json::value_to<int>(ob["nextID"]);
+  return tg;
 }
 
 struct TaskNode {
