@@ -140,13 +140,13 @@ Grounded_Task tag_invoke(const json::value_to_tag<Grounded_Task>&,json::value co
   }
 
   for (auto const& i : ob["incoming"].as_array()) {
-    int si = json::value_to<int>(i);
-    gt.incoming.push_back(si);
+    std::string si = json::value_to<std::string>(i);
+    gt.incoming.push_back(std::stoi(si));
   }
 
   for (auto const& o : ob["outgoing"].as_array()) {
-    int so = json::value_to<int>(o);
-    gt.outgoing.push_back(so);
+    std::string so = json::value_to<std::string>(o);
+    gt.outgoing.push_back(std::stoi(so));
   }
 
   return gt;
@@ -170,7 +170,8 @@ TaskGraph tag_invoke(const json::value_to_tag<TaskGraph>&,json::value const& jv)
     std::string sid {id};
     tg[std::stoi(sid)] = json::value_to<Grounded_Task>(n);
   }
-  tg.nextID = json::value_to<int>(ob["nextID"]);
+  std::string snextID = json::value_to<std::string>(ob["nextID"]);
+  tg.nextID = std::stoi(snextID);
   return tg;
 }
 
