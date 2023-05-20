@@ -274,13 +274,10 @@ seek_planMCTS(pTree& t,
                              domain,
                              g);
           }
-          if (ar == -1.0) {
+          if (ar <= -r) {
             m[n].deadend = true;
-            backprop(m,n,-1.0,r);
           }
-          else {
-            backprop(m,n,ar,r);
-          }
+          backprop(m,n,ar,r);
         }
         else {
           m[n].state.update_state(m[n].time);
@@ -296,13 +293,10 @@ seek_planMCTS(pTree& t,
                              domain,
                              g);
           }
-          if (ar == -1.0) {
+          if (ar <= -r) {
             m[n_p].deadend = true;
-            backprop(m,n_p,-1.0,r);
           }
-          else {
-            backprop(m,n_p,ar,r);
-          }
+          backprop(m,n_p,ar,r);
         }
       }
     }
@@ -368,7 +362,8 @@ seek_planMCTS(pTree& t,
     bool plan_break = false;
     while (m[arg_max].successors.size() == 1) {
       if (m[arg_max].deadend) {
-        continue;
+        plan_break = true;
+        break;
       }
       arg_max = m[arg_max].successors.front();
 
