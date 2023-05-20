@@ -89,7 +89,6 @@ simulation_rec(std::vector<std::pair<int,std::string>>& actions,
                DomainDef& domain,
                Reach_Map& r_map,
                std::mt19937_64& g) {
-
   if (!is_subseq(plan,actions)) {
     return -1.0;
   }
@@ -371,13 +370,10 @@ seek_planrecMCTS(pTree& t,
                                r_map,
                                g);
         }
-        if (ar == -1.0) {
+        if (ar <= -r) {
           m[n].deadend = true;
-          backprop(m,n,-1.0,r);
         }
-        else {
-          backprop(m,n,ar,r);
-        }
+        backprop(m,n,ar,r);
       }
       else {
         m[n].state.update_state(m[n].time);
@@ -393,13 +389,10 @@ seek_planrecMCTS(pTree& t,
                                r_map,
                                g);
         }
-        if (ar == -1.0) {
+        if (ar <= -r) {
           m[n_p].deadend = true;
-          backprop(m,n_p,-1.0,r);
         }
-        else {
-          backprop(m,n_p,ar,r);
-        }
+        backprop(m,n_p,ar,r);
       }
     }
     if (m[w].successors.empty()) {
@@ -427,7 +420,7 @@ seek_planrecMCTS(pTree& t,
         }
       }
     }
-    if (arg_maxes.empty() || max < 0) {
+    if (arg_maxes.empty() || max <= -1) {
       stuck_counter--;
       if (stuck_counter <= 0) {
         throw std::logic_error("Plan recognition is stuck, terminating process!");
@@ -521,6 +514,11 @@ cppMCTSplanrec(DomainDef& domain,
     }
     bool end = false;
     std::vector<std::pair<int,std::string>> actions;
+    update_actions(redis_address,actions);
+    if (actions.back().second == "__STOP__") {
+      std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
+      return;
+    }
     while(!end) {
       domain.set_scorer(scorer);
       pTree t;
@@ -544,11 +542,6 @@ cppMCTSplanrec(DomainDef& domain,
       t[v] = root;
       static std::mt19937_64 g(seed);
       seed++;
-      update_actions(redis_address,actions);
-      if (actions.back().second == "__STOP__") {
-        std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
-        return;
-      }
       end = seek_planrecMCTS(t, 
                              tasktree, 
                              v, 
