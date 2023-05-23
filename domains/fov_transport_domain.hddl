@@ -58,6 +58,7 @@
         :precondition (and
                         (at ?v ?l)
                         (capacity_predecessor ?s1 ?s2)
+                        (capacity ?v ?s1)
                         (in ?p ?v)
                       )
 		:subtasks (and
