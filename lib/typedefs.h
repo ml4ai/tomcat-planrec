@@ -223,6 +223,7 @@ struct pNode {
     int time = 0;
     bool deadend = false;
     std::vector<int> successors = {};
+    std::vector<int> unexplored = {};
 };
 
 using pTree = std::unordered_map<int,pNode>;
