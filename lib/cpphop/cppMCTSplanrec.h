@@ -212,7 +212,6 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
         }
         auto act = domain.actions.at(t[n].tasks[tid].head).apply(t[n].state,t[n].tasks[tid].args);
         if (!act.second.empty()) {
-          std::vector<int> a;
           for (auto const& state : act.second) {
             pNode v;
             v.state = state;
@@ -230,10 +229,12 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
             v.pred = n;
             int w = t.size();
             t[w] = v;
-            t[n].successors.push_back(w);
-            a.push_back(w);
+            t[n].unexplored.push_back(w);
           }
-          int r = *select_randomly(a.begin(), a.end(), g);
+          std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
+          int r = t[n].unexplored.back();
+          t[n].successors.push_back(r);
+          t[n].unexplored.pop_back();
           return r;
         }
         t[n].deadend = true;
@@ -241,7 +242,6 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
       }
 
       if (domain.methods.contains(t[n].tasks[tid].head)) {
-        std::vector<int> choices;
         for (auto &m : domain.methods[t[n].tasks[tid].head]) {
           bool can_reach = false;
           if (r_map.find(m.get_head()) != r_map.end() && t[n].plan.size() < actions.size()) {
@@ -267,22 +267,23 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
               v.pred = n;
               int w = t.size();
               t[w] = v;
-              t[n].successors.push_back(w);
-              choices.push_back(w);
+              t[n].unexplored.push_back(w);
             }
           }
         }
-        if (choices.empty()) {
+        if (t[n].unexplored.empty()) {
           t[n].deadend = true;
           return n;
         }
-        int r = *select_randomly(choices.begin(), choices.end(), g);
+        std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
+        int r = t[n].unexplored.back();
+        t[n].successors.push_back(r);
+        t[n].unexplored.pop_back();
         return r;
       }
       throw std::logic_error("Invalid task during expansion!");
     }
     else {
-      std::vector<int> gts;
       for (auto const& [id,gt] : t[n].tasks.GTs) {
         if (gt.incoming.empty()) {
           bool can_reach = false;
@@ -306,13 +307,15 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
             v.pred = n;
             int w = t.size();
             t[w] = v;
-            t[n].successors.push_back(w);
-            gts.push_back(w);
+            t[n].unexplored.push_back(w);
           }
         }
       }
-      if (!gts.empty()) {
-        int r = *select_randomly(gts.begin(), gts.end(), g);
+      if (!t[n].unexplored.empty()) {
+        std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
+        int r = t[n].unexplored.back();
+        t[n].successors.push_back(r);
+        t[n].unexplored.pop_back();
         return r;
       }
       else {
@@ -359,7 +362,8 @@ seek_planrecMCTS(pTree& t,
       }
       if (m[n].sims == 0) {
         m[n].state.update_state(m[n].time);
-        double ar;
+        double ar = 0.0;
+        bool bp = true;
         for (int j = 0; j < r; j++) {
           ar += simulation_rec(actions,
                                m[n].plan,
@@ -369,16 +373,22 @@ seek_planrecMCTS(pTree& t,
                                domain,
                                r_map,
                                g);
+          if (ar == -1.0) {
+            m[n].deadend = true;
+            backprop(m,n,-1.0,1);
+            bp = false;
+            break;
+          }
         }
-        if (ar <= -r) {
-          m[n].deadend = true;
+        if (bp) {
+          backprop(m,n,ar,r);
         }
-        backprop(m,n,ar,r);
       }
       else {
         m[n].state.update_state(m[n].time);
         int n_p = expansion_rec(actions,m,n,domain,r_map,g);
-        double ar;
+        double ar = 0.0;
+        bool bp = true;
         for (int j = 0; j < r; j++) {
           ar += simulation_rec(actions,
                                m[n_p].plan,
@@ -388,11 +398,16 @@ seek_planrecMCTS(pTree& t,
                                domain,
                                r_map,
                                g);
+          if (ar == -1.0) {
+            m[n_p].deadend = true;
+            backprop(m,n_p,-1.0,1);
+            bp = false;
+            break;
+          }
         }
-        if (ar <= -r) {
-          m[n_p].deadend = true;
+        if (bp) {
+          backprop(m,n_p,ar,r);
         }
-        backprop(m,n_p,ar,r);
       }
     }
     if (m[w].successors.empty()) {
@@ -420,7 +435,7 @@ seek_planrecMCTS(pTree& t,
         }
       }
     }
-    if (arg_maxes.empty() || max <= -1) {
+    if (arg_maxes.empty() || max <= -1.0) {
       stuck_counter--;
       if (stuck_counter <= 0) {
         throw std::logic_error("Plan recognition is stuck, terminating process!");
@@ -456,41 +471,6 @@ seek_planrecMCTS(pTree& t,
         return true;
       }
       t[v].time = actions.back().first;
-    }
-
-    while (m[arg_max].successors.size() == 1) {
-      if (m[arg_max].deadend) {
-        return false;
-      }
-      arg_max = m[arg_max].successors.front();
-      pNode j;
-      j.cTask = m[arg_max].cTask;
-      j.state = m[arg_max].state;
-      j.tasks = m[arg_max].tasks;
-      j.plan = m[arg_max].plan;
-      j.depth = t[v].depth + 1;
-      for (auto& i : m[arg_max].addedTIDs) {
-        TaskNode tasknode;
-        tasknode.task = j.tasks[i].head;
-        tasknode.token = j.tasks[i].to_string();
-        tasknode.outgoing = j.tasks[i].outgoing;
-        tasktree[i] = tasknode;
-        tasktree[m[arg_max].prevTID].children.push_back(i);
-      }
-      j.pred = v;
-      int y = t.size();
-      t[y] = j;
-      t[v].successors.push_back(y);
-      v = y;
-      if (actions.size() == t[v].plan.size()) {
-        upload_plan_explanation(redis_address,tasktree,t[v].plan,t[v].tasks,t[v].state.get_facts(),eval_mode);
-        update_actions(redis_address,actions);
-        if (actions.back().second == "__STOP__") {
-          std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
-          return true;
-        }
-        t[v].time = actions.back().first;
-      }
     }
   }
   std::cout << "No more tasks to decompose, stopping plan recognition process" << std::endl;
