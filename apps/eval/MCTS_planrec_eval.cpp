@@ -4,24 +4,21 @@
 #include <istream>
 #include <boost/program_options.hpp>
 #include "cpphop/loader.h"
-#include "cpphop/cppMCTShop.h"
-#include "cpphop/grapher.h"
+#include "cpphop/cppMCTSeval.h"
 #include <chrono>
 namespace po = boost::program_options;
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-  int plan_size = -1;
   int R = 30;
   int r = 5;
   double c = sqrt(2.0);
   int seed = 2022;
+  int trials = 10;
   std::string dom_file = "../domains/transport_domain.hddl";
   std::string prob_file = "../domains/transport_problem.hddl";
   std::string score_fun = "delivery_one";
-  bool graph = false;
-  std::string graph_file = "";
   std::string redis_address = "";
   try {
     po::options_description desc("Allowed options");
@@ -29,14 +26,12 @@ int main(int argc, char* argv[]) {
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int), default = 30")
       ("simulations,r", po::value<int>(), "Number of simulations per resource cycle (int), default = 5")
-      ("plan_size,p",po::value<int>(),"Number of actions to return (int), default value of -1 returns full plan")
       ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
       ("score_fun,F",po::value<std::string>(),"name of score function (string), default = delivery_one")
       ("seed,s", po::value<int>(),"Random Seed (int)")
-      ("graph,g",po::bool_switch()->default_value(false),"Creates a task tree graph of the returned plan and saves it as a png, default = false")
-      ("graph_file,f",po::value<std::string>(), "File name for created graph (string), default = name of problem definition")
+      ("trials,t",po::value<int>(),"Number of trials (with different seeds) per eval cycle (int), default = 10")
       ("redis_address,a",po::value<std::string>(), "Address to redis server, default = (none, no connection)")
     ;
 
@@ -55,10 +50,6 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("simulations")) {
       r = vm["simulations"].as<int>();
-    }
-
-    if (vm.count("plan_size")) {
-      plan_size = vm["plan_size"].as<int>();
     }
 
     if (vm.count("exp_param")) {
@@ -81,12 +72,10 @@ int main(int argc, char* argv[]) {
       seed = vm["seed"].as<int>();
     }
 
-    if (vm.count("graph")) {
-      graph = vm["graph"].as<bool>();
+    if (vm.count("trials")) {
+      trials = vm["trials"].as<int>();
     }
-    if (vm.count("graph_file")) {
-      graph_file = vm["graph_file"].as<std::string>();
-    }
+
     if (vm.count("redis_address")) {
       redis_address = vm["redis_address"].as<std::string>();
     }
@@ -99,25 +88,64 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
   auto [domain,problem] = load(dom_file,prob_file);
-  if (graph) {
-    if (graph_file == "") {
-      graph_file = "../data/" + problem.head +".png"; 
+  if (redis_address != "") {
+    Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
+    std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> act_results;
+    std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> exp_results;
+    rc->redis.xrange("actions","-","+",std::back_inserter(act_results));
+    rc->redis.xrange("explanations","-","+",std::back_inserter(exp_results));
+    int i = 0;
+    for (auto ex : exp_results) {
+      for (auto ey : ex.second) {
+        json::value j = json::parse(ey.second);
+        TaskGraph taskgraph = json::value_to<TaskGraph>(j.as_object()["taskgraph"]);
+        std::unordered_map<std::string, std::vector<std::string>> 
+          facts = json::value_to<std::unordered_map<std::string, std::vector<std::string>>>(j.as_object()["state"]);
+        std::vector<int> times;
+        std::vector<std::string> actions;
+        for (int j = i + 1; j < act_results.size(); j++) {
+          times.push_back(std::stoi(act_results[j].first)); 
+          for (auto a : act_results[j].second) {
+            actions.push_back(a.second);
+          }
+          double acc = 0.0;
+          for (int k = 0; k < trials; k++) {
+            auto pred = cppMCTSeval(domain,
+                                    problem,
+                                    scorers[score_fun],
+                                    taskgraph,
+                                    facts,
+                                    times,
+                                    R,
+                                    r,
+                                    c,
+                                    seed,
+                                    redis_address);
+            bool match = true;
+            for (int l = 0; l < pred.size(); l++) {
+              if (pred[l].find(actions[l]) == std::string::npos) {
+                match = false;
+                break;
+              }
+            }
+
+            if (match) {
+              acc += 1.0;
+            }
+            seed += 100;
+          }
+          acc /= trials; 
+          std::cout << "observations: " << i + 1 << ", prediction horizon: ";
+          std::cout << j << ", average accuracy over " << trials << " trials: ";
+          std::cout << acc << std::endl;
+        }
+        std::cout << std::endl;
+        i++;
+      }
     }
-    auto start = std::chrono::high_resolution_clock::now();
-    auto results = cppMCTShop(domain,problem,scorers[score_fun],R,r,plan_size,c,seed,redis_address); 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by planner: "
-        << duration.count() << " microseconds" << endl;
-    generate_graph(results.t[results.end].plan,domain,results.tasktree,results.ttRoot,graph_file);
   }
   else {
-    auto start = std::chrono::high_resolution_clock::now();
-    cppMCTShop(domain,problem,scorers[score_fun],R,r,plan_size,c,seed,redis_address); 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by planner: "
-        << duration.count() << " microseconds" << endl;
-  } 
+    std::cout << "No redis server address given, shutting down!" << std::endl; 
+  }
   return EXIT_SUCCESS;
 }

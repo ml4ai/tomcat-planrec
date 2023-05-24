@@ -14,6 +14,7 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
   int R = 30;
+  int r = 5;
   double c = sqrt(2.0);
   int seed = 2022;
   std::string dom_file = "../domains/transport_domain.hddl";
@@ -21,11 +22,13 @@ int main(int argc, char* argv[]) {
   std::string score_fun = "delivery_one";
   std::string r_map = "transport_reach_map";
   std::string redis_address = "";
+  bool eval_mode;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
       ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int), default = 30")
+      ("simulations,r", po::value<int>(), "Number of simulations per resource cycle (int), default = 5")
       ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
@@ -33,6 +36,7 @@ int main(int argc, char* argv[]) {
       ("reach_map,m",po::value<std::string>(),"name of reachability map (string), default = transport_reach_map")
       ("seed,s", po::value<int>(),"Random Seed (int)")
       ("redis_address,a",po::value<std::string>(), "Address to redis server, default = (none, no connection)")
+      ("eval_mode,e",po::bool_switch(),"Activates eval mode, default = false")
     ;
 
     po::variables_map vm;        
@@ -46,6 +50,10 @@ int main(int argc, char* argv[]) {
 
     if (vm.count("resource_cycles")) {
       R = vm["resource_cycles"].as<int>();
+    }
+
+    if (vm.count("simulations")) {
+      r = vm["simulations"].as<int>();
     }
 
     if (vm.count("exp_param")) {
@@ -75,6 +83,11 @@ int main(int argc, char* argv[]) {
     if (vm.count("redis_address")) {
       redis_address = vm["redis_address"].as<std::string>();
     }
+
+    if (vm.count("eval_mode")) {
+      eval_mode = vm["eval_mode"].as<bool>(); 
+    }
+
   }
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << "\n";
@@ -85,7 +98,7 @@ int main(int argc, char* argv[]) {
   }
   auto [domain,problem] = load(dom_file,prob_file);
   auto start = std::chrono::high_resolution_clock::now();
-  cppMCTSplanrec(domain,problem,reach_maps[r_map],scorers[score_fun],R,c,seed,redis_address); 
+  cppMCTSplanrec(domain,problem,reach_maps[r_map],scorers[score_fun],R,r,c,seed,redis_address,eval_mode); 
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   cout << "Time taken by plan recognizer: "

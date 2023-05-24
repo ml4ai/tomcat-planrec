@@ -49,7 +49,7 @@ void  build_graph(Agraph_t *g,
   set_property(n,"label",t[w].token);
   if (domain.actions.contains(t[w].task)) {
     set_property(n,"shape","rectangle");
-    set_property(n,"color","blue");
+    set_property(n,"color","darkorange");
     action_map[t[w].token+"_"+tmp] = tmp;
   }
   for (int i = t[w].children.size() - 1; i >= 0; i--) {
@@ -68,7 +68,7 @@ void  build_graph(Agraph_t *g,
       std::string otmp = std::to_string(o);
       u = add_node(g,otmp);
       p = agedge(g,m,u,0,1);
-      set_property(p,"color","green");
+      set_property(p,"color","dodgerblue");
     }
   }
   return;
@@ -117,7 +117,7 @@ void  build_graph_from_json(Agraph_t *g,
   } 
   if (contains_act) {
     set_property(n,"shape","rectangle");
-    set_property(n,"color","blue");
+    set_property(n,"color","darkorange");
     action_map[token+"_"+w] = w;
   }
   for (int i = t[w].as_object()["children"].as_array().size() - 1; i >= 0; i--) {
@@ -136,7 +136,7 @@ void  build_graph_from_json(Agraph_t *g,
       std::string so = json::value_to<std::string>(o);
       u = add_node(g,so);
       p = agedge(g,m,u,0,1);
-      set_property(p,"color","green");
+      set_property(p,"color","dodgerblue");
     }
   }
   return;
@@ -166,7 +166,7 @@ void generate_graph_from_json(json::object& t, int O, json::array& acts, std::st
     std::string ws = json::value_to<std::string>(t["plan"].as_array()[i]);
     Agnode_t *v;
     v = add_node(g,action_map[ws]);
-    set_property(v,"color","yellow");
+    set_property(v,"color","darkorange");
     set_property(v,"style","filled");
   }
   gvLayout(gvc,g,"dot");

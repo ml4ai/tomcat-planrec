@@ -9,8 +9,8 @@ namespace po = boost::program_options;
 
 
 int main(int argc, char* argv[]) {
-  std::string infile = "../apps/data_parsing/Saturn_1.5_3D_sm_v1.0.json";
-  std::string outfile = "../apps/data_parsing/Saturn_map_info.json";
+  std::string infile = "../data/Saturn_2.6_3D_sm_v1.0.json";
+  std::string outfile = "../data/Saturn_map_info.json";
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
