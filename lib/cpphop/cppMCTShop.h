@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 #include <limits>
+#include <chrono>
 
 int
 selection(pTree& t,
@@ -246,9 +247,8 @@ seek_planMCTS(pTree& t,
               TaskTree& tasktree,
               int v,
               DomainDef& domain,
-              int R,
+              int time_limit,
               int r,
-              int plan_size,
               double c,
               std::mt19937_64& g,
               std::string const& redis_address) {
@@ -268,7 +268,9 @@ seek_planMCTS(pTree& t,
     n_node.time = t[v].time;
     int w = m.size();
     m[w] = n_node;
-    for (int i = 0; i < R; i++) {
+    auto start = std::chrono::high_resolution_clock::now();
+    auto stop = std::chrono::high_resolution_clock::now();
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() < time_limit) {
       int n = selection(m,w,c,g);
       if (m[n].tasks.empty() && m[n].cTask == -1) {
           backprop(m,n,domain.score(m[n].state,m[n].plan),1);
@@ -323,6 +325,7 @@ seek_planMCTS(pTree& t,
           }
         }
       }
+      stop = std::chrono::high_resolution_clock::now();
     }
 
     std::vector<int> arg_maxes = {};
@@ -373,9 +376,6 @@ seek_planMCTS(pTree& t,
     t[y] = k;
     t[v].successors.push_back(y);
     v = y;
-    if (t[v].plan.size() >= plan_size && plan_size != -1) {
-      break;
-    }
   }
   std::cout << "Plan found at depth " << t[v].depth;
   std::cout << std::endl;
@@ -390,9 +390,8 @@ Results
 cppMCTShop(DomainDef& domain,
            ProblemDef& problem,
            Scorer scorer,
-           int R = 30,
+           int time_limit = 1000,
            int r = 5,
-           int plan_size = -1,
            double c = 1.4142,
            int seed = 4021,
            std::string const& redis_address = "") {
@@ -421,7 +420,7 @@ cppMCTShop(DomainDef& domain,
     std::cout << "Initial State:" << std::endl;
     t[v].state.print_facts();
     std::cout << std::endl;
-    auto end = seek_planMCTS(t, tasktree, v, domain, R, r, plan_size,c,g,redis_address);
+    auto end = seek_planMCTS(t, tasktree, v, domain, time_limit, r, c,g,redis_address);
     std::cout << "Plan:";
     for (auto const& p : t[end].plan) {
       std::cout << "\n\t " << p;
