@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Redis_Connect.h"
-#include "Context.h"
 #include "parsing/ast.hpp"
 #include "util.h"
 #include "z3++.h"
@@ -146,8 +145,8 @@ class KnowledgeBase {
       get_bindings(std::string F, 
                   const std::vector<std::pair<std::string, std::string>>& variables) {
         std::vector<std::vector<std::pair<std::string,std::string>>> results;
-        Context* con = Context::getInstance();
-        z3::solver s(con->context);
+        z3::context con;
+        z3::solver s(con);
         s.from_string(F.c_str());
         while (s.check() == z3::sat) {
           auto m = s.get_model();
@@ -161,7 +160,7 @@ class KnowledgeBase {
             }
           }
           results.push_back(bindings);
-          z3::expr_vector block(con->context);
+          z3::expr_vector block(con);
           for (unsigned j = 0; j < m.size(); j++) {
             auto d = m[j];
             if (d.arity() > 0) {
@@ -534,8 +533,8 @@ class KnowledgeBase {
       //Only grounded statements are allowed here!
       //EX: (and (A x) (or (B x y) (C z)))
       bool ask(std::string expr) {
-        Context* con = Context::getInstance();
-        z3::solver s(con->context);
+        z3::context con;
+        z3::solver s(con);
         std::string smt_expr = this->smt_state+"(assert "+expr+")\n";
         s.from_string(smt_expr.c_str());
         return s.check() == z3::sat;
