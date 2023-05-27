@@ -13,14 +13,12 @@
 #include <vector>
 #include <limits>
 #include "cppMCTShop.h"
+#include "redis_pipeline.h"
 #include "Redis_Connect.h"
 #include <boost/json.hpp>
+#include <chrono>
 
 namespace json = boost::json;
-
-using Attrs = std::vector<std::pair<std::string,std::string>>;
-using Item = std::pair<std::string, std::optional<Attrs>>;
-using ItemStream = std::vector<Item>;
 
 bool is_subseq(std::vector<std::string> plan, std::vector<std::pair<int,std::string>> O) {
   for (int i = 0; i < plan.size(); i++) {
@@ -29,55 +27,6 @@ bool is_subseq(std::vector<std::string> plan, std::vector<std::pair<int,std::str
     }
   }
   return true;
-}
-
-void update_actions(std::string const& redis_address, 
-                    std::vector<std::pair<int, std::string>>& actions) {
-  Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
-  std::string oldest;
-  if (actions.empty()) {
-    oldest = "0";
-  }
-  else {
-    oldest = std::to_string(actions.back().first);
-  }
-  std::unordered_map<std::string,ItemStream> result;
-  rc->redis.xread("actions",oldest,std::chrono::milliseconds(15000),1,std::inserter(result,result.end()));
-  if (result["actions"].empty()) {
-    std::pair<int,std::string> p;
-    p.first = -1;
-    p.second = "__STOP__";
-    actions.push_back(p);
-  }
-  for (auto const& x : result["actions"]) {
-    Attrs attrs = x.second.value();
-    for (auto const& y : attrs) {
-      std::pair<int,std::string> p;
-      p.first = std::stoi(x.first);
-      p.second = y.second;
-      actions.push_back(p);
-    }
-  }
-}
-
-void upload_plan_explanation(std::string const& redis_address, 
-                             TaskTree& tasktree, 
-                             std::vector<std::string>& plan,
-                             TaskGraph& taskgraph,
-                             std::unordered_map<std::string, std::unordered_set<std::string>> facts, 
-                             bool eval_mode) {
-  //Serialize task tree and current plan
-  json::object obj;
-  obj["tasktree"] = json::value_from(tasktree);
-  obj["plan"] = json::value_from(plan);
-  if (eval_mode) {
-    obj["taskgraph"] = json::value_from(taskgraph);
-    obj["state"] = json::value_from(facts);
-  }
-  std::string s = json::serialize(obj);
-  std::string rank = std::to_string(plan.size()) + "-*";
-  Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
-  rc->redis.xadd("explanations",rank,{std::make_pair("explanation",s)});
 }
 
 double
@@ -327,97 +276,91 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
     return n;
 }
 
-bool
+Results
 seek_planrecMCTS(pTree& t,
                  TaskTree& tasktree,
                  int v,
                  DomainDef& domain,
                  Reach_Map& r_map,
-                 int R,
+                 int time_limit,
                  int r,
                  double c,
                  std::mt19937_64& g,
                  std::vector<std::pair<int,std::string>>& actions,
-                 std::string const& redis_address,
-                 bool eval_mode) {
-  int stuck_counter = 1000;
+                 std::string const& redis_address) {
+  int root = v;
   t[v].time = actions.back().first;
-  while (!t[v].tasks.empty()) {
-    pTree m;
-    pNode n_node;
-    n_node.cTask = t[v].cTask;
-    t[v].state.update_temporal_facts(redis_address);
-    t[v].state.update_state(t[v].time);
-    n_node.state = t[v].state;
-    n_node.tasks = t[v].tasks;
-    n_node.depth = t[v].depth;
-    n_node.plan = t[v].plan;
-    int w = m.size();
-    m[w] = n_node;
-    for (int i = 0; i < R; i++) {
-      int n = selection(m,w,c,g);
-      if (w == n && m[n].deadend) {
-        std::cout << "Deadend, attempting to restart plan recognition process" << std::endl;
-        return false;  
-      }
-      if (m[n].sims == 0) {
-        m[n].state.update_state(m[n].time);
-        double ar = 0.0;
-        bool bp = true;
-        for (int j = 0; j < r; j++) {
-          ar += simulation_rec(actions,
-                               m[n].plan,
-                               m[n].state, 
-                               m[n].tasks, 
-                               m[n].cTask,
-                               domain,
-                               r_map,
-                               g);
-          if (ar == -1.0) {
-            m[n].deadend = true;
-            backprop(m,n,-1.0,1);
-            bp = false;
-            break;
-          }
-        }
-        if (bp) {
-          backprop(m,n,ar,r);
+  pTree m;
+  pNode n_node;
+  n_node.cTask = t[v].cTask;
+  t[v].state.update_temporal_facts(redis_address);
+  t[v].state.update_state(t[v].time);
+  n_node.state = t[v].state;
+  n_node.tasks = t[v].tasks;
+  n_node.depth = t[v].depth;
+  n_node.plan = t[v].plan;
+  int w = m.size();
+  m[w] = n_node;
+  auto start = std::chrono::high_resolution_clock::now();
+  auto stop = std::chrono::high_resolution_clock::now();
+  while (std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() < time_limit) {
+    int n = selection(m,w,c,g);
+    if (w == n && m[n].deadend) {
+      std::cout << "Warning: Deadend reached, returning current results!" << std::endl;
+      break;  
+    }
+    if (m[n].sims == 0) {
+      m[n].state.update_state(m[n].time);
+      double ar = 0.0;
+      bool bp = true;
+      for (int j = 0; j < r; j++) {
+        ar += simulation_rec(actions,
+                              m[n].plan,
+                              m[n].state, 
+                              m[n].tasks, 
+                              m[n].cTask,
+                              domain,
+                              r_map,
+                              g);
+        if (ar == -1.0) {
+          m[n].deadend = true;
+          backprop(m,n,-1.0,1);
+          bp = false;
+          break;
         }
       }
-      else {
-        m[n].state.update_state(m[n].time);
-        int n_p = expansion_rec(actions,m,n,domain,r_map,g);
-        double ar = 0.0;
-        bool bp = true;
-        for (int j = 0; j < r; j++) {
-          ar += simulation_rec(actions,
-                               m[n_p].plan,
-                               m[n_p].state, 
-                               m[n_p].tasks, 
-                               m[n_p].cTask,
-                               domain,
-                               r_map,
-                               g);
-          if (ar == -1.0) {
-            m[n_p].deadend = true;
-            backprop(m,n_p,-1.0,1);
-            bp = false;
-            break;
-          }
-        }
-        if (bp) {
-          backprop(m,n_p,ar,r);
-        }
+      if (bp) {
+        backprop(m,n,ar,r);
       }
     }
-    if (m[w].successors.empty()) {
-      stuck_counter--;
-      if (stuck_counter <= 0) {
-        throw std::logic_error("Plan recognition is stuck, terminating process!");
+    else {
+      m[n].state.update_state(m[n].time);
+      int n_p = expansion_rec(actions,m,n,domain,r_map,g);
+      double ar = 0.0;
+      bool bp = true;
+      for (int j = 0; j < r; j++) {
+        ar += simulation_rec(actions,
+                              m[n_p].plan,
+                              m[n_p].state, 
+                              m[n_p].tasks, 
+                              m[n_p].cTask,
+                              domain,
+                              r_map,
+                              g);
+        if (ar == -1.0) {
+          m[n_p].deadend = true;
+          backprop(m,n_p,-1.0,1);
+          bp = false;
+          break;
+        }
       }
-      continue;
+      if (bp) {
+        backprop(m,n_p,ar,r);
+      }
     }
-
+    stop = std::chrono::high_resolution_clock::now();
+  }
+  while(!m[w].successors.empty()) {
     std::vector<int> arg_maxes = {};
     double max = -std::numeric_limits<double>::infinity();
     for (auto const &s : m[w].successors) {
@@ -436,27 +379,23 @@ seek_planrecMCTS(pTree& t,
       }
     }
     if (arg_maxes.empty() || max <= -1.0) {
-      stuck_counter--;
-      if (stuck_counter <= 0) {
-        throw std::logic_error("Plan recognition is stuck, terminating process!");
-      }
-      continue;
+      std::cout << "Warning: Deadend reached, returning current results!" << std::endl;
+      break;
     }
-    stuck_counter = 1000;
-    int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
+    w = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
     pNode k;
-    k.cTask = m[arg_max].cTask;
-    k.state = m[arg_max].state;
-    k.tasks = m[arg_max].tasks;
-    k.plan = m[arg_max].plan;
+    k.cTask = m[w].cTask;
+    k.state = m[w].state;
+    k.tasks = m[w].tasks;
+    k.plan = m[w].plan;
     k.depth = t[v].depth + 1;
-    for (auto& i : m[arg_max].addedTIDs) {
+    for (auto& i : m[w].addedTIDs) {
       TaskNode tasknode;
       tasknode.task = k.tasks[i].head;
       tasknode.token = k.tasks[i].to_string();
       tasknode.outgoing = k.tasks[i].outgoing;
       tasktree[i] = tasknode;
-      tasktree[m[arg_max].prevTID].children.push_back(i);
+      tasktree[m[w].prevTID].children.push_back(i);
     }
     k.pred = v;
     int y = t.size();
@@ -464,76 +403,54 @@ seek_planrecMCTS(pTree& t,
     t[v].successors.push_back(y);
     v = y;
     if (actions.size() == t[v].plan.size()) {
-      upload_plan_explanation(redis_address,tasktree,t[v].plan,t[v].tasks,t[v].state.get_facts(),eval_mode);
-      update_actions(redis_address,actions);
-      if (actions.back().second == "__STOP__") {
-        std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
-        return true;
-      }
-      t[v].time = actions.back().first;
+      break;
     }
   }
-  std::cout << "No more tasks to decompose, stopping plan recognition process" << std::endl;
-  return true;
+  return Results(t,root,v,tasktree,0);
 }
 
-void 
+Results 
 cppMCTSplanrec(DomainDef& domain,
               ProblemDef& problem,
               Reach_Map& r_map,
               Scorer scorer,
-              int R = 30,
+              std::vector<std::pair<int,std::string>>& actions,
+              int time_limit = 1000,
               int r = 5,
               double c = 1.4,
               int seed = 4021,
-              std::string const& redis_address = "",
-              bool eval_mode = false) {
-    if (redis_address.empty()) {
-      std::cout << "Redis Database address not given, ending plan recognition process" << std::endl;
-      return;
+              std::string const& redis_address = "") {
+    domain.set_scorer(scorer);
+    pTree t;
+    TaskTree tasktree;
+    pNode root;
+    root.state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
+    for (auto const& f : problem.initF) {
+      root.state.tell(f,false,false);
     }
-    bool end = false;
-    std::vector<std::pair<int,std::string>> actions;
-    update_actions(redis_address,actions);
-    if (actions.back().second == "__STOP__") {
-      std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
-      return;
-    }
-    while(!end) {
-      domain.set_scorer(scorer);
-      pTree t;
-      TaskTree tasktree;
-      pNode root;
-      root.state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
-      for (auto const& f : problem.initF) {
-        root.state.tell(f,false,false);
-      }
-      root.state.update_state();
-      Grounded_Task init_t;
-      init_t.head = problem.head;
-      int TID = root.tasks.add_node(init_t);
-      TaskNode tasknode;
-      tasknode.task = init_t.head;
-      tasknode.token = init_t.to_string();
-      tasktree[TID] = tasknode;
-      root.plan = {};
-      root.depth = 0;
-      int v = t.size();
-      t[v] = root;
-      static std::mt19937_64 g(seed);
-      seed++;
-      end = seek_planrecMCTS(t, 
-                             tasktree, 
-                             v, 
-                             domain, 
-                             r_map,
-                             R, 
-                             r,
-                             c, 
-                             g,
-                             actions,
-                             redis_address,
-                             eval_mode);
-    }
-    return;
+    root.state.update_state();
+    Grounded_Task init_t;
+    init_t.head = problem.head;
+    int TID = root.tasks.add_node(init_t);
+    TaskNode tasknode;
+    tasknode.task = init_t.head;
+    tasknode.token = init_t.to_string();
+    tasktree[TID] = tasknode;
+    root.plan = {};
+    root.depth = 0;
+    int v = t.size();
+    t[v] = root;
+    static std::mt19937_64 g(seed);
+    seed++;
+    return seek_planrecMCTS(t, 
+                            tasktree, 
+                            v, 
+                            domain, 
+                            r_map,
+                            time_limit, 
+                            r,
+                            c, 
+                            g,
+                            actions,
+                            redis_address);
 }
