@@ -438,10 +438,14 @@
         )
 
         (:action gather_to_wake
-        ; requires the medic and one other player to gather.
-        ; assumes medic and other player are in different rooms than the
-        ; victim. does not move players out of room. Wakes victim.
-        ; does not heal victim.
+        ; Player and Medic go into the same room as a critical victim.
+        ; This triggers the 'proximity' predicate and maps to the proximity
+            ;label on the message bus.
+        ; Does not move players out of room. 
+        ; Assumes that medic and another player are in different rooms from
+            ;each other and the victim.
+        ; Does not wake victim.
+        ; Does not heal victim.
                 :parameters (?p_1 ?p_2 - player 
                              ?v - victim ?pos ?room ?final - location)
                 :precondition (and (at ?p_1 ?pos)
@@ -456,6 +460,8 @@
         )
 
         (:action wake_critical
+        ; Wakes critical victim. Assumes team is already gathered and that the 
+            ;proximity predicate is triggered.
         ; since medic is present, this action also types the victim.
                 :parameters (?p_1 ?p_2 - player ?v - victim ?room - location)
                 :precondition (and (is_medic ?p_1)
