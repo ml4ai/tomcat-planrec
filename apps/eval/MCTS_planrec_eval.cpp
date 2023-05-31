@@ -11,7 +11,7 @@ namespace po = boost::program_options;
 using namespace std;
 
 int main(int argc, char* argv[]) {
-  int R = 30;
+  int time_limit = 1000;
   int r = 5;
   double c = sqrt(2.0);
   int seed = 2022;
@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
-      ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int), default = 30")
+      ("time_limit,T", po::value<int>(), "Time limit (in milliseconds) allowed for each search action (int), default = 1000")
       ("simulations,r", po::value<int>(), "Number of simulations per resource cycle (int), default = 5")
       ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
@@ -44,8 +44,8 @@ int main(int argc, char* argv[]) {
       return 0;
     }
 
-    if (vm.count("resource_cycles")) {
-      R = vm["resource_cycles"].as<int>();
+    if (vm.count("time_limit")) {
+      time_limit = vm["time_limit"].as<int>();
     }
 
     if (vm.count("simulations")) {
@@ -94,33 +94,56 @@ int main(int argc, char* argv[]) {
     std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> exp_results;
     rc->redis.xrange("actions","-","+",std::back_inserter(act_results));
     rc->redis.xrange("explanations","-","+",std::back_inserter(exp_results));
-    int i = 0;
+    int i = 1;
+    std::vector<int> times;
+    std::vector<std::string> actions;
+    for (auto ar : act_results) {
+      times.push_back(std::stoi(ar.first));
+      for (auto a : ar.second) {
+        actions.push_back(a.second);
+      }
+    }
     for (auto ex : exp_results) {
       for (auto ey : ex.second) {
         json::value j = json::parse(ey.second);
         TaskGraph taskgraph = json::value_to<TaskGraph>(j.as_object()["taskgraph"]);
         std::unordered_map<std::string, std::vector<std::string>> 
           facts = json::value_to<std::unordered_map<std::string, std::vector<std::string>>>(j.as_object()["state"]);
-        std::vector<int> times;
-        std::vector<std::string> actions;
-        for (int j = i + 1; j < act_results.size(); j++) {
-          times.push_back(std::stoi(act_results[j].first)); 
-          for (auto a : act_results[j].second) {
-            actions.push_back(a.second);
+        std::vector<std::string> plan = json::value_to<std::vector<std::string>>(j.as_object()["plan"]);
+        for (int j = 0; j < plan.size(); j++) {
+          bool match = true;
+          for (int k = 0; k < j + 1; k++) {
+            if (plan[k].find(actions[k]) == std::string::npos) {
+              match = false;
+              break;
+            }
           }
+          std::cout << "observations: " << i << ", prediction horizon: ";
+          std::cout << j + 1 << ", average accuracy over " << trials << " trials: ";
+          if (match) {
+            std::cout << "1" << std::endl;
+          }
+          else {
+            std::cout << "0" << std::endl;
+          }
+        }
+        std::vector<int> c_t;
+        for (int j = plan.size(); j < times.size(); j++) {
+          c_t.push_back(times[j]); 
           double acc = 0.0;
           for (int k = 0; k < trials; k++) {
-            auto pred = cppMCTSeval(domain,
+            auto psol = cppMCTSeval(domain,
                                     problem,
                                     scorers[score_fun],
                                     taskgraph,
                                     facts,
-                                    times,
-                                    R,
+                                    c_t,
+                                    time_limit,
                                     r,
                                     c,
                                     seed,
                                     redis_address);
+            std::vector<std::string> pred = merge_vec(plan,psol);
             bool match = true;
             for (int l = 0; l < pred.size(); l++) {
               if (pred[l].find(actions[l]) == std::string::npos) {
@@ -135,8 +158,8 @@ int main(int argc, char* argv[]) {
             seed += 100;
           }
           acc /= trials; 
-          std::cout << "observations: " << i + 1 << ", prediction horizon: ";
-          std::cout << j << ", average accuracy over " << trials << " trials: ";
+          std::cout << "observations: " << i << ", prediction horizon: ";
+          std::cout << j + 1 << ", average accuracy over " << trials << " trials: ";
           std::cout << acc << std::endl;
         }
         std::cout << std::endl;
