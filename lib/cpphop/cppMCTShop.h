@@ -253,6 +253,8 @@ seek_planMCTS(pTree& t,
               std::mt19937_64& g,
               std::string const& redis_address) {
   int stuck_counter = 10;
+  int prev_TID = -1;
+  std::vector<int> prev_i;
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
@@ -347,6 +349,23 @@ seek_planMCTS(pTree& t,
     }
 
     if (arg_maxes.empty()) {
+      int u = t[v].pred;
+      for (std::vector<int>::iterator it = t[u].successors.begin(); it != t[u].successors.end();) {
+        if (*it == v) {
+          t[u].successors.erase(it);
+          break;
+        }
+      }
+      t.erase(v);
+      v = u;
+      for (std::vector<int>::iterator it = tasktree[prev_TID].children.begin(); it != tasktree[prev_TID].children.end();) {
+        if (in(*it,prev_i)) {
+          tasktree[prev_TID].children.erase(it);
+        }
+      }
+      for (auto i : prev_i) {
+        tasktree.erase(i);
+      }
       stuck_counter--;
       if (stuck_counter <= 0) {
         throw std::logic_error("Planner is stuck, terminating process!");
@@ -363,6 +382,8 @@ seek_planMCTS(pTree& t,
     k.plan = m[arg_max].plan;
     k.depth = t[v].depth + 1;
     k.time = m[arg_max].time;
+    prev_i.clear();
+    prev_TID = m[arg_max].prevTID;
     for (auto& i : m[arg_max].addedTIDs) {
       TaskNode tasknode;
       tasknode.task = k.tasks[i].head;
@@ -370,6 +391,7 @@ seek_planMCTS(pTree& t,
       tasknode.outgoing = k.tasks[i].outgoing;
       tasktree[i] = tasknode;
       tasktree[m[arg_max].prevTID].children.push_back(i);
+      prev_i.push_back(i);
     }
     k.pred = v;
     int y = t.size();
