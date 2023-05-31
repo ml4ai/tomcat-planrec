@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
-      ("time_limit,T", po::value<int>(), "Time limit (in milliseconds) allowed for each search action (int), default = 1000")
+      ("time_limit,T", po::value<int>(), "Time limit (in milliseconds) allowed for plan recognition (int), default = 1000")
       ("simulations,r", po::value<int>(), "Number of simulations per resource cycle (int), default = 5")
       ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
