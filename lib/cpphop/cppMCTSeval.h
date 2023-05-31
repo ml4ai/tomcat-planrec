@@ -190,7 +190,7 @@ seek_evalMCTS(pTree& t,
               int v,
               DomainDef& domain,
               std::vector<int>& times,
-              int R,
+              int time_limit,
               int r,
               double c,
               std::mt19937_64& g,
@@ -212,7 +212,9 @@ seek_evalMCTS(pTree& t,
     n_node.time = t[v].time;
     int w = m.size();
     m[w] = n_node;
-    for (int i = 0; i < R; i++) {
+    auto start = std::chrono::high_resolution_clock::now();
+    auto stop = std::chrono::high_resolution_clock::now();
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() < time_limit) {
       int n = selection(m,w,c,g);
       if (m[n].tasks.empty() && m[n].cTask == -1) {
           backprop(m,n,domain.score(m[n].state,m[n].plan),1);
@@ -267,13 +269,7 @@ seek_evalMCTS(pTree& t,
           }
         }
       }
-    }
-    if (m[w].successors.empty()) {
-      stuck_counter--;
-      if (stuck_counter <= 0) {
-        throw std::logic_error("Planner is stuck, terminating process!"); 
-      }
-      continue;
+      stop = std::chrono::high_resolution_clock::now();
     }
 
     std::vector<int> arg_maxes = {};
@@ -293,6 +289,7 @@ seek_evalMCTS(pTree& t,
         }
       }
     }
+
     if (arg_maxes.empty()) {
       stuck_counter--;
       if (stuck_counter <= 0) {
@@ -318,38 +315,8 @@ seek_evalMCTS(pTree& t,
     if (t[v].plan.size() >= times.size()) {
       break;
     }
-      
-    bool plan_break = false;
-    while (m[arg_max].successors.size() == 1) {
-      if (m[arg_max].deadend) {
-        continue;
-      }
-      arg_max = m[arg_max].successors.front();
-
-      pNode j;
-      j.cTask = m[arg_max].cTask;
-      j.state = m[arg_max].state;
-      j.tasks = m[arg_max].tasks;
-      j.plan = m[arg_max].plan;
-      j.depth = t[v].depth + 1;
-      j.time = m[arg_max].time;
-      j.pred = v;
-      int y = t.size();
-      t[y] = j;
-      t[v].successors.push_back(y);
-      v = y;
-
-      if (t[v].plan.size() >= times.size()) {
-        plan_break = true;
-        break;
-      }
-    }
-    if (plan_break) {
-      break;
-    }
   }
   return v;
-
 }
 
 std::vector<std::string> 
@@ -359,7 +326,7 @@ cppMCTSeval(DomainDef& domain,
             TaskGraph& taskgraph,
             std::unordered_map<std::string, std::vector<std::string>>& facts,
             std::vector<int>& times,
-            int R = 30,
+            int time_limit = 1000,
             int r = 5,
             double c = 1.4142,
             int seed = 4021,
@@ -380,6 +347,6 @@ cppMCTSeval(DomainDef& domain,
     int v = t.size();
     t[v] = root;
     static std::mt19937_64 g(seed);
-    auto end = seek_evalMCTS(t, v, domain, times, R, r,c,g,redis_address);
+    auto end = seek_evalMCTS(t, v, domain, times, time_limit, r,c,g,redis_address);
     return t[end].plan;
 }
