@@ -133,15 +133,15 @@
 ;    ); end init
 ;-----------------------------------------------------------------
 ; works for d17 using 'carry_victim'
-    (:htn
-        :parameters ()
-        :tasks (go_break_rubble player_1 rocks_1 room_1 room_2)
-        :ordering ()
-    )
-
-    (:init
-        (present rocks_1 room_2)
-        (at player_1 room_1)
-    )
+;    (:htn
+;        :parameters ()
+;        :tasks (go_break_rubble player_1 rocks_1 room_1 room_2)
+;        :ordering ()
+;    )
+;
+;    (:init
+;        (present rocks_1 room_2)
+;        (at player_1 room_1)
+;    )
 ;-----------------------------------------------------------------
 ); end problem definition
