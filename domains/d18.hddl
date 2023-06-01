@@ -141,7 +141,8 @@
                                    (not (healed ?v)))
                 :ordered-subtasks (and
                     (wake_critical ?p_1 ?p_2 ?v ?final)
-                    (triage_victim ?p_1 ?v ?final))
+                    (triage_victim ?p_1 ?v ?final)
+                    (type_the_victim ?p_1 ?v ?room))
         )
 
         (:method m_gather_to_wake
@@ -322,17 +323,6 @@
                           (not (at ?h ?room)))
         )
 
-        (:action type_the_victim
-         ; Events reflected: aggregated 'Marker'
-                :parameters (?p_1 - player
-                             ?v - victim
-                             ?room - location)
-                :precondition (and (at ?v ?room)
-                                   (is_medic ?p_1)
-                                   (at ?p_1 ?room))
-                :effect (typed ?v)
-        )
-
         (:action gather_to_wake
         ; Player and Medic go into the same room as a critical victim.
         ; This triggers the 'proximity' predicate and maps to the proximity
@@ -358,7 +348,6 @@
         (:action wake_critical
         ; Wakes critical victim. Assumes team is already gathered and that the 
             ;proximity predicate is triggered.
-        ; since medic is present, this action also types the victim.
                 :parameters (?p_1 ?p_2 - player ?v - victim ?room - location)
                 :precondition (and (is_medic ?p_1)
                                    (at ?p_1 ?room)
@@ -367,10 +356,21 @@
                                    (proximity ?p_2 ?room)
                                    (at ?v ?room))
                 :effect (and (awakened ?v)
-                             (typed ?v)
                              (not (proximity ?p_1 ?room))
                              (not (proximity ?p_2 ?room))
                              (not (at ?p_2 ?room)))
         )
 
+        (:action type_the_victim
+        ; Since medic is present after waking, this action then types the
+            ;victim.
+                :parameters (?p_1 - player ?v - victim
+                             ?room - location)
+                :precondition (and (at ?v ?room)
+                                   (is_medic ?p_1)
+                                   (awakened ?v)
+                                   (not (typed ?v))
+                                   (at ?p_1 ?room))
+                :effect (typed ?v)
+        )
 ); end domain definition

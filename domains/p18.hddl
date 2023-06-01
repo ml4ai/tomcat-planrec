@@ -56,7 +56,7 @@
           :tasks (and 
              (gather_to_wake player_1 player_2 vic1 start_1 start_2 room_1)
              (wake_triage_critical ?player_1 ?player_2 ?vic1 ?room_1)
-             (evacuate_victim player_1 vic1 room_1 sickbay_all))
+             (evacuate_victim player_1 vic1 room_1 sickbay_A))
           :ordering ()
       )
 
