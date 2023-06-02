@@ -291,6 +291,15 @@ seek_evalMCTS(pTree& t,
     }
 
     if (arg_maxes.empty()) {
+      int u = t[v].pred;
+      for (std::vector<int>::iterator it = t[u].successors.begin(); it != t[u].successors.end();) {
+        if (*it == v) {
+          t[u].successors.erase(it);
+          break;
+        }
+      }
+      t.erase(v);
+      v = u;
       stuck_counter--;
       if (stuck_counter <= 0) {
         throw std::logic_error("Planner is stuck, terminating process!");
