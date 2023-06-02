@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
   std::string prob_file = "../domains/transport_problem.hddl";
   std::string score_fun = "delivery_one";
   std::string redis_address = "";
+  std::string data_file = "eval.csv";
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -33,6 +34,7 @@ int main(int argc, char* argv[]) {
       ("seed,s", po::value<int>(),"Random Seed (int)")
       ("trials,t",po::value<int>(),"Number of trials (with different seeds) per eval cycle (int), default = 10")
       ("redis_address,a",po::value<std::string>(), "Address to redis server, default = (none, no connection)")
+      ("data_file,o",po::value<std::string>(),"file name for eval data (string), default = eval.csv")
     ;
 
     po::variables_map vm;        
@@ -79,6 +81,11 @@ int main(int argc, char* argv[]) {
     if (vm.count("redis_address")) {
       redis_address = vm["redis_address"].as<std::string>();
     }
+
+    if (vm.count("data_file")) {
+      data_file = vm["data_file"].as<std::string>();
+    }
+
   }
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << "\n";
@@ -89,6 +96,11 @@ int main(int argc, char* argv[]) {
   }
   auto [domain,problem] = load(dom_file,prob_file);
   if (redis_address != "") {
+    std::vector<double> observations;
+    std::vector<double> horizon;
+    std::vector<double> num_trials;
+    std::vector<double> avg_accs;
+    std::vector<double> ob_status;
     Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
     std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> act_results;
     std::vector<std::pair<std::string,std::vector<std::pair<std::string,std::string>>>> exp_results;
@@ -118,14 +130,17 @@ int main(int argc, char* argv[]) {
               break;
             }
           }
-          std::cout << "observations: " << i << ", prediction horizon: ";
-          std::cout << j + 1 << ", average accuracy over " << trials << " trials: ";
+          observations.push_back(i);
+          horizon.push_back(j + 1);
+          num_trials.push_back(trials);
+          ob_status.push_back(2);
           if (match) {
-            std::cout << "1" << std::endl;
+            avg_accs.push_back(1);
           }
           else {
-            std::cout << "0" << std::endl;
+            avg_accs.push_back(0);
           }
+          std::cout << "Data Saved for observations " << i << ", horizon " << j + 1 << std::endl;
         }
         std::vector<int> c_t;
         for (int j = plan.size(); j < times.size(); j++) {
@@ -158,14 +173,30 @@ int main(int argc, char* argv[]) {
             seed += 100;
           }
           acc /= trials; 
-          std::cout << "observations: " << i << ", prediction horizon: ";
-          std::cout << j + 1 << ", average accuracy over " << trials << " trials: ";
-          std::cout << acc << std::endl;
+          observations.push_back(i);
+          horizon.push_back(j + 1);
+          num_trials.push_back(trials);
+          if (i == j + 1) {
+            ob_status.push_back(1);
+          }
+          else {
+            ob_status.push_back(0);
+          }
+          avg_accs.push_back(acc);
+          std::cout << "Data Saved for observations " << i << ", horizon " << j + 1 << std::endl;
         }
-        std::cout << std::endl;
         i++;
       }
     }
+    std::vector<std::pair<std::string, std::vector<double>>> 
+      dataset = {{"Observations",observations},
+                 {"Horizon", horizon},
+                 {"Trials", num_trials},
+                 {"Status", ob_status},
+                 {"Average Accuracy", avg_accs}
+                };
+    write_csv(data_file,dataset);
+    std::cout << "Evaluation Completed" << std::endl;
   }
   else {
     std::cout << "No redis server address given, shutting down!" << std::endl; 
