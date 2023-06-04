@@ -11,6 +11,7 @@
         player_1 - player
         player_2 - player
         player_3 - player
+        sickbay_all - sickbay
         sickbay_A - sickbay
         sickbay_B - sickbay
         sickbay_C - sickbay
@@ -54,7 +55,7 @@
 ;          :parameters ()
 ;          :tasks (evacuate_victim player_1 vic1 room_1 sickbay_B)
 ;          :ordering ()
-;      )
+;      )   
 ;
 ;      (:init
 ;          (at player_1 room_1)
@@ -63,7 +64,21 @@
 ;          (vic_is_type_B vic1)
 ;          (sb_is_type_B sickbay_B)
 ;          (typed vic1)
-;      )
+;      ) 
+;-----------------------------------------------------------------
+; works for d17 using 'carry_victim'
+      (:htn
+          :parameters ()
+          :tasks (evacuate_victim player_1 vic1 room_1 sickbay_all)
+          :ordering ()
+      )
+
+      (:init
+          (at player_1 room_1)
+          (at vic1 room_1)
+          (healed vic1)
+          (typed vic1)
+      )
 ;-----------------------------------------------------------------
 ; works for d17 using 'carry_victim'
 ;     (:htn

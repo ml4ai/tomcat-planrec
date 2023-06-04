@@ -99,6 +99,28 @@
                              ?room - location ?sb - sickbay)
         )
 
+        (:task gather_wake_evacuate
+                :parameters (?p_1 ?p_2 - player ?v - victim
+                              ?pos ?room ?final - location ?sb - sickbay)
+        )
+
+        (:method m_gather_wake_evacuate
+          ;compounded tasks
+                :parameters (?p_1 ?p_2 - player 
+                             ?v - victim
+                             ?pos ?room ?final - location ?sb - sickbay)
+                :task (gather_wake_evacuate ?p_1 ?p_2 ?v ?pos ?room ?final ?sb)
+                :precondition (and (at ?p_1 ?pos)
+                                   (is_medic ?p_1)
+                                   (at ?p_2 ?room)
+                                   (at ?v ?final)
+                                   (not (awakened ?v)))
+                :ordered-subtasks (and
+                       (gather_to_wake ?p_1 ?p_2 ?v ?pos ?room ?final)
+                       (wake_triage_critical ?p_1 ?p_2 ?room ?final)
+                       (evacuate_victim ?p_1 ?final ?sb)
+                )
+        )
         (:method m_carry_victim
          ;observations/events/player/location
          ;observations/events/player/victim_placed
@@ -130,6 +152,18 @@
                     (location_sickbay ?p_1 ?v ?room ?sb)
                     (location_sickbay ?v ?v ?room ?sb)
                     (victim_evacuated ?p_1 ?v ?sb))
+        )
+
+        (:method m_wake_triage_critical_typed
+                :parameters (?p_1 ?p_2 - player ?v - victim ?final - location)
+                :task (wake_triage_critical ?p_1 ?p_2 ?v ?final)
+                :precondition (and (at ?v ?final)
+                                   (at ?p_1 ?final)
+                                   (at ?p_2 ?final)
+                                   (not (healed ?v)))
+                :ordered-subtasks (and
+                    (wake_critical ?p_1 ?p_2 ?v ?final)
+                    (triage_victim ?p_1 ?v ?final))
         )
 
         (:method m_wake_triage_critical

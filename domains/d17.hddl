@@ -4,7 +4,7 @@
                 human - object
                 victim - human
                 location - object
-                sickbay - object
+                sickbay - location
                 player - human
                 rubble - object
         )
@@ -21,7 +21,7 @@
                 (free ?arg0 - player)
                 (present ?arg0 - rubble ?arg1 - location)
                 (cleaned ?arg0 - room)
-                (matched ?arg0 - victim ?arg1 - location)
+                (matched ?arg0 - victim ?arg1 - sickbay)
                 (proximity ?arg0 - player ?arg1 - location)
                 (is_medic ?arg0 - player)
                 (vic_is_type_A ?arg0 - victim)
@@ -98,6 +98,11 @@
                 :parameters (?p_1 - player ?v - victim
                              ?pos ?room - location)
         )
+                
+        (:task evacuate_victim_all
+                :parameters (?p_1 - player ?v - victim
+                             ?room - location ?sb - sickbay)
+        )
 
         (:method m_carry_victim
          ;observations/events/player/location
@@ -112,6 +117,24 @@
              :ordered-subtasks (and
                    (location ?p_1 ?pos ?room)
                    (location ?v ?pos ?room))
+        )
+
+        (:method m_evacuate_victim_all
+          ;same as carry victim but the victim is required to be typed. This is
+            ;the beginning process of evacating. TODO: picup and evacuate. Type is
+            ;not specified just yet
+                :parameters (?p_1 - player ?v - victim
+                             ?room - location ?sb - sickbay)
+                :task (evacuate_victim_all ?p_1 ?v ?room ?sb)
+                :precondition (and (at ?p_1 ?room) 
+                                   (healed ?v)
+                                   (typed ?v)
+                                   (at ?v ?room))
+                :ordered-subtasks (and
+                    (pickup_victim ?p_1 ?v ?room)
+                    (location_sickbay ?p_1 ?v ?room ?sb)
+                    (location_sickbay ?v ?v ?room ?sb))
+                    ;(victim_evacuated_type_all ?p_1 ?v ?sb))
         )
 
         (:method m_evacuate_victim_A
@@ -336,6 +359,21 @@
                              (not (at ?p_1 ?sb)))
         )
 
+        (:action victim_evacuated_type_all
+         ;observations/events/player/victim_evacuated
+                :parameters (?p_1 - player ?v - victim
+                             ?sb - sickbay)
+                :precondition (and (at ?p_1 ?sb)
+                                   (at ?v ?sb)
+                                   (healed ?v)
+                                   (typed ?v)
+                                   (retrieved ?v))
+                :effect (and (rescued ?v)
+                             (not (retrieved ?v))
+                             (not (at ?v ?sb))
+                             (not (at ?p_1 ?sb)))
+        )
+
         (:action pickup_victim
          ;observations/events/player/victim_picked_up
                 :parameters (?p_1 - player ?v - victim 
@@ -365,7 +403,6 @@
                                    (present ?rocks ?room))
                 :effect (not (present ?rocks ?room))
         )
-
 
         (:action carry_sickbay_type_A
          ;observations/events/player/location
@@ -427,12 +464,25 @@
                           (not (at ?h ?pos)))
         )
 
+        (:action location_sickbay
+         ;observations/events/player/location to sickbay but does not rescue.
+             :parameters (?h - human ?v - victim
+                          ?room - location
+                          ?sb - sickbay)
+             :precondition (and 
+                           (typed ?v)
+                           (at ?h ?room))
+             :effect (and (at ?h ?sb)
+                          (not (at ?h ?room)))
+        )
+
         (:action type_the_victim
          ; Events reflected: aggregated 'Marker'
                 :parameters (?p_1 - player
                              ?v - victim
                              ?room - location)
                 :precondition (and (at ?v ?room)
+                                   (is_medic ?p_1)
                                    (at ?p_1 ?room))
                 :effect (typed ?v)
         )
@@ -476,21 +526,5 @@
                              (not (proximity ?p_2 ?room))
                              (not (at ?p_2 ?room)))
         )
-;--------------------------------------------------
-;Anything below is being deleted from new domain
-;        (:action carry_victim_action
-;         ;observations/events/player/location
-;         ;observations/events/player/victim_placed
-;         ;when a player changes room carrying a victim
-;             :parameters (?p_1 - player ?v - victim
-;                          ?pos ?room - location)
-;             :precondition (and (at ?p_1 ?pos)
-;                                (at ?v ?pos) 
-;                                (retrieved ?v))
-;             :effect (and (at ?p_1 ?room) 
-;                          (at ?v ?room)
-;                          (not (at ?p_1 ?pos))
-;                          (not (at ?v ?pos)))
-;        )
-;-------------------------------------------------
+
 ); end domain definition
