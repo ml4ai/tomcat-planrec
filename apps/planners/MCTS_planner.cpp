@@ -93,25 +93,39 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
   auto [domain,problem] = load(dom_file,prob_file);
-  if (graph) {
-    if (graph_file == "") {
-      graph_file = "../data/" + problem.head +".png"; 
+  if (problem.initM.get_head() != ":htn" || problem.initM.get_head() != ":htn_task_insert") {
+    std::cout << "Problem class " << problem.initM.get_head() << " not recognized, defaulting to :htn problem class!" << std::endl;   
+  }
+
+  if (problem.initM.get_head() == ":htn_task_insert") {
+    if (problem.goal != "") {
+      std::cout << "Place Holder" << std::endl;
     }
-    auto start = std::chrono::high_resolution_clock::now();
-    auto results = cppMCTShop(domain,problem,scorers[score_fun],time_limit,r,c,seed,redis_address); 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by planner: "
-        << duration.count() << " microseconds" << endl;
-    generate_graph(results.t[results.end].plan,domain,results.tasktree,results.ttRoot,graph_file);
+    else {
+      std::cout << "A goal must be specified for :htn_task_insert problem class, exiting planner!" << std::endl;
+    }
   }
   else {
-    auto start = std::chrono::high_resolution_clock::now();
-    cppMCTShop(domain,problem,scorers[score_fun],time_limit,r,c,seed,redis_address); 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    cout << "Time taken by planner: "
-        << duration.count() << " microseconds" << endl;
-  } 
+    if (graph) {
+      if (graph_file == "") {
+        graph_file = "../data/" + problem.head +".png"; 
+      }
+      auto start = std::chrono::high_resolution_clock::now();
+      auto results = cppMCTShop(domain,problem,scorers[score_fun],time_limit,r,c,seed,redis_address); 
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      cout << "Time taken by planner: "
+          << duration.count() << " microseconds" << endl;
+      generate_graph(results.t[results.end].plan,domain,results.tasktree,results.ttRoot,graph_file);
+    }
+    else {
+      auto start = std::chrono::high_resolution_clock::now();
+      cppMCTShop(domain,problem,scorers[score_fun],time_limit,r,c,seed,redis_address); 
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      cout << "Time taken by planner: "
+          << duration.count() << " microseconds" << endl;
+    } 
+  }
   return EXIT_SUCCESS;
 }
