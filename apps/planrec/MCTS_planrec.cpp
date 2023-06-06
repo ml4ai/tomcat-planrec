@@ -94,6 +94,10 @@ int main(int argc, char* argv[]) {
   std::vector<std::pair<int, std::string>> actions;
   update_actions(redis_address,actions);
   auto res = cppMCTSplanrec(domain,problem,reach_maps[r_map],scorers[score_fun],actions,time_limit,r,c,seed,redis_address); 
-  upload_plan_explanation(redis_address,res.tasktree,res.t[res.end].plan,res.t[res.end].tasks,res.t[res.end].state.get_facts());
+  std::vector<std::string> acts;
+  for (auto [a,_] : domain.actions) {
+    acts.push_back(a);
+  }
+  upload_plan_explanation(redis_address,res.tasktree,res.t[res.end].plan,acts,res.t[res.end].tasks,res.t[res.end].state.get_facts());
   return EXIT_SUCCESS;
 }
