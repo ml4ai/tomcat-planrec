@@ -694,15 +694,18 @@ struct ProblemDef {
   Objects objects;
   MethodDef initM;
   std::vector<std::string> initF;
+  std::string goal;
   ProblemDef(std::string head,
              std::string domain_name,
              Objects objects,
              MethodDef initM,
-             std::vector<std::string> initF) {
+             std::vector<std::string> initF,
+             std::string goal = "") {
     this->head = head;
     this->domain_name = domain_name;
     this->objects = objects;
     this->initM = initM;
     this->initF = initF;
+    this->goal = goal;
   } 
 };
