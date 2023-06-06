@@ -156,6 +156,7 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
       if (domain.actions.contains(t[n].tasks[tid].head)) {
         if (t[n].plan.size() < actions.size()) {
           if (actions[t[n].plan.size()].second.find(t[n].tasks[tid].head) == std::string::npos) {
+            t[n].deadend = true;
             return n;
           }
         }
@@ -309,53 +310,58 @@ seek_planrecMCTS(pTree& t,
       std::cout << "Warning: Deadend reached, returning current results!" << std::endl;
       break;  
     }
-    if (m[n].sims == 0) {
-      m[n].state.update_state(m[n].time);
-      double ar = 0.0;
-      bool bp = true;
-      for (int j = 0; j < r; j++) {
-        ar += simulation_rec(actions,
-                              m[n].plan,
-                              m[n].state, 
-                              m[n].tasks, 
-                              m[n].cTask,
-                              domain,
-                              r_map,
-                              g);
-        if (ar == -1.0) {
-          m[n].deadend = true;
-          backprop(m,n,-1.0,1);
-          bp = false;
-          break;
-        }
-      }
-      if (bp) {
-        backprop(m,n,ar,r);
-      }
+    if (m[n].tasks.empty() || m[n].plan.size() >= actions.size()) {
+      backprop(m,n,domain.score(m[n].state,m[n].plan),1);
     }
     else {
-      m[n].state.update_state(m[n].time);
-      int n_p = expansion_rec(actions,m,n,domain,r_map,g);
-      double ar = 0.0;
-      bool bp = true;
-      for (int j = 0; j < r; j++) {
-        ar += simulation_rec(actions,
-                              m[n_p].plan,
-                              m[n_p].state, 
-                              m[n_p].tasks, 
-                              m[n_p].cTask,
-                              domain,
-                              r_map,
-                              g);
-        if (ar == -1.0) {
-          m[n_p].deadend = true;
-          backprop(m,n_p,-1.0,1);
-          bp = false;
-          break;
+      if (m[n].sims == 0) {
+        m[n].state.update_state(m[n].time);
+        double ar = 0.0;
+        bool bp = true;
+        for (int j = 0; j < r; j++) {
+          ar += simulation_rec(actions,
+                                m[n].plan,
+                                m[n].state, 
+                                m[n].tasks, 
+                                m[n].cTask,
+                                domain,
+                                r_map,
+                                g);
+          if (ar == -1.0) {
+            m[n].deadend = true;
+            backprop(m,n,-1.0,1);
+            bp = false;
+            break;
+          }
+        }
+        if (bp) {
+          backprop(m,n,ar,r);
         }
       }
-      if (bp) {
-        backprop(m,n_p,ar,r);
+      else {
+        m[n].state.update_state(m[n].time);
+        int n_p = expansion_rec(actions,m,n,domain,r_map,g);
+        double ar = 0.0;
+        bool bp = true;
+        for (int j = 0; j < r; j++) {
+          ar += simulation_rec(actions,
+                                m[n_p].plan,
+                                m[n_p].state, 
+                                m[n_p].tasks, 
+                                m[n_p].cTask,
+                                domain,
+                                r_map,
+                                g);
+          if (ar == -1.0) {
+            m[n_p].deadend = true;
+            backprop(m,n_p,-1.0,1);
+            bp = false;
+            break;
+          }
+        }
+        if (bp) {
+          backprop(m,n_p,ar,r);
+        }
       }
     }
     stop = std::chrono::high_resolution_clock::now();
