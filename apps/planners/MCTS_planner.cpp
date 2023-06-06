@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
   auto [domain,problem] = load(dom_file,prob_file);
-  if (problem.initM.get_head() != ":htn" || problem.initM.get_head() != ":htn_task_insert") {
+  if (problem.initM.get_head() != ":htn" && problem.initM.get_head() != ":htn_task_insert") {
     std::cout << "Problem class " << problem.initM.get_head() << " not recognized, defaulting to :htn problem class!" << std::endl;   
   }
 
