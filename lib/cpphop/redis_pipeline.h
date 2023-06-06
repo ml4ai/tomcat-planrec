@@ -18,7 +18,7 @@ void update_actions(std::string const& redis_address,
     oldest = std::to_string(actions.back().first);
   }
   std::unordered_map<std::string,ItemStream> result;
-  rc->redis.xread("actions",oldest,std::chrono::milliseconds(15000),1,std::inserter(result,result.end()));
+  rc->redis.xread("actions",oldest,std::inserter(result,result.end()));
   if (result["actions"].empty()) {
     std::pair<int,std::string> p;
     p.first = -1;
@@ -39,12 +39,14 @@ void update_actions(std::string const& redis_address,
 void upload_plan_explanation(std::string const& redis_address,
                              TaskTree& tasktree,
                              std::vector<std::string>& plan,
+                             std::vector<std::string>& acts,
                              TaskGraph& taskgraph,
                              std::unordered_map<std::string, std::unordered_set<std::string>> facts) {
   //Serialize task tree and current plan
   json::object obj;
   obj["tasktree"] = json::value_from(tasktree);
   obj["plan"] = json::value_from(plan);
+  obj["actions"] = json::value_from(acts);
   obj["taskgraph"] = json::value_from(taskgraph);
   obj["state"] = json::value_from(facts);
   std::string s = json::serialize(obj);
