@@ -11,7 +11,11 @@ Reach_Map transport_reach_map = {{"deliver",{"drive","noop","pick_up","drop"}},
                                  {"m_load_ordering_0",{"pick_up"}},
                                  {"m_drive_to_ordering_0",{"drive"}},
                                  {"m_drive_to_via_ordering_0",{"drive"}},
-                                 {"m_i_am_there_ordering_0", {"noop"}}
+                                 {"m_i_am_there_ordering_0", {"noop"}},
+                                 {"drive",{"drive"}},
+                                 {"noop",{"noop"}},
+                                 {"pick_up",{"pick_up"}},
+                                 {"drop",{"drop"}}
                                 };
 
 Reach_Maps reach_maps = {{"transport_reach_map",transport_reach_map}};
