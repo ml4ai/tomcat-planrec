@@ -219,6 +219,9 @@ seek_evalMCTS(pTree& t,
       if (m[n].tasks.empty() && m[n].cTask == -1) {
           backprop(m,n,domain.score(m[n].state,m[n].plan),1);
       }
+      else if (m[n].plan.size() >= times.size()) {
+        backprop(m,n,domain.score(m[n].state,m[n].plan),1);
+      }
       else {
         if (m[n].sims == 0) {
           m[n].state.update_state(m[n].time);
