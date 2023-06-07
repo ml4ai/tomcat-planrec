@@ -543,7 +543,7 @@ Domain dom_loader(std::string dom_file) {
   throw fs::filesystem_error(filePath.extension().string() + " is an invalid extension, only .hddl is a valid extension!",std::error_code());
 }
 
-std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
+std::pair<DomainDef,std::pair<Ptypes,Tasktypes>> createDomainDef(Domain dom) {
   std::string name = dom.name; 
   TypeTree typetree;
   typetree.add_root("__Object__");
@@ -706,10 +706,10 @@ std::pair<DomainDef,Tasktypes> createDomainDef(Domain dom) {
     methods[m.task.name].push_back(MethodDef(name,task,params,preconditions,subtasks,orderings));
   }
   auto DD = DomainDef(name,typetree,predicates,constants,actions,methods);
-  return std::make_pair(DD,ttypes);
+  return std::make_pair(DD,std::make_pair(ptypes,ttypes));
 }
 
-std::pair<DomainDef,Tasktypes> loadDomain(std::string dom_file) {
+std::pair<DomainDef,std::pair<Ptypes,Tasktypes>> loadDomain(std::string dom_file) {
   Domain dom = dom_loader(dom_file);
   return createDomainDef(dom);
 }
@@ -730,7 +730,7 @@ Problem prob_loader(std::string prob_file) {
   throw fs::filesystem_error(filePath.extension().string() + " is an invalid extension, only .hddl is a valid extension!",std::error_code());
 }
 
-ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
+ProblemDef createProblemDef(Problem prob, Ptypes ptypes, Tasktypes ttypes) {
   std::string head = "__"+prob.name+"__";
   std::string domain_name = prob.domain_name;
 
@@ -809,17 +809,22 @@ ProblemDef createProblemDef(Problem prob, Tasktypes ttypes) {
     pred += ")";
     initF.push_back(pred);
   }
-  return ProblemDef(head,domain_name,objects,initM,initF);
+
+  std::string goal = sentence_to_SMT(prob.goal,ptypes);
+  if (goal == "__NONE__") {
+    goal = "";
+  }
+  return ProblemDef(head,domain_name,objects,initM,initF,goal);
 }
 
-ProblemDef loadProblem(std::string prob_file, Tasktypes ttypes) {
+ProblemDef loadProblem(std::string prob_file, Ptypes ptypes, Tasktypes ttypes) {
   Problem prob = prob_loader(prob_file);
-  return createProblemDef(prob,ttypes);
+  return createProblemDef(prob,ptypes,ttypes);
 }
 
 std::pair<DomainDef, ProblemDef> load(std::string dom_file, std::string prob_file) {
   auto dom = loadDomain(dom_file);
-  auto probDef = loadProblem(prob_file,dom.second);
+  auto probDef = loadProblem(prob_file,dom.second.first,dom.second.second);
   if (dom.first.head == probDef.domain_name) {
     dom.first.methods[probDef.initM.get_task().first].push_back(probDef.initM);
     probDef.objects.merge(dom.first.constants);

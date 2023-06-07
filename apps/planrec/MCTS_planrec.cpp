@@ -6,14 +6,14 @@
 #include <boost/program_options.hpp>
 #include "cpphop/loader.h"
 #include "cpphop/cppMCTSplanrec.h"
-#include "cpphop/grapher.h"
+#include "util.h"
 #include <chrono>
 namespace po = boost::program_options;
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-  int R = 30;
+  int time_limit = 1000;
   int r = 5;
   double c = sqrt(2.0);
   int seed = 2022;
@@ -22,12 +22,11 @@ int main(int argc, char* argv[]) {
   std::string score_fun = "delivery_one";
   std::string r_map = "transport_reach_map";
   std::string redis_address = "";
-  bool eval_mode;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "produce help message")
-      ("resource_cycles,R", po::value<int>(), "Number of resource cycles allowed for each search action (int), default = 30")
+      ("time_limit,T", po::value<int>(), "Time limit (in milliseconds) allowed for plan recognition (int), default = 1000")
       ("simulations,r", po::value<int>(), "Number of simulations per resource cycle (int), default = 5")
       ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
@@ -36,7 +35,6 @@ int main(int argc, char* argv[]) {
       ("reach_map,m",po::value<std::string>(),"name of reachability map (string), default = transport_reach_map")
       ("seed,s", po::value<int>(),"Random Seed (int)")
       ("redis_address,a",po::value<std::string>(), "Address to redis server, default = (none, no connection)")
-      ("eval_mode,e",po::bool_switch(),"Activates eval mode, default = false")
     ;
 
     po::variables_map vm;        
@@ -48,8 +46,8 @@ int main(int argc, char* argv[]) {
       return 0;
     }
 
-    if (vm.count("resource_cycles")) {
-      R = vm["resource_cycles"].as<int>();
+    if (vm.count("time_limit")) {
+      time_limit = vm["time_limit"].as<int>();
     }
 
     if (vm.count("simulations")) {
@@ -84,10 +82,6 @@ int main(int argc, char* argv[]) {
       redis_address = vm["redis_address"].as<std::string>();
     }
 
-    if (vm.count("eval_mode")) {
-      eval_mode = vm["eval_mode"].as<bool>(); 
-    }
-
   }
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << "\n";
@@ -97,11 +91,13 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
   auto [domain,problem] = load(dom_file,prob_file);
-  auto start = std::chrono::high_resolution_clock::now();
-  cppMCTSplanrec(domain,problem,reach_maps[r_map],scorers[score_fun],R,r,c,seed,redis_address,eval_mode); 
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  cout << "Time taken by plan recognizer: "
-       << duration.count() << " microseconds" << endl;
+  std::vector<std::pair<int, std::string>> actions;
+  update_actions(redis_address,actions);
+  auto res = cppMCTSplanrec(domain,problem,reach_maps[r_map],scorers[score_fun],actions,time_limit,r,c,seed,redis_address); 
+  std::vector<std::string> acts;
+  for (auto [a,_] : domain.actions) {
+    acts.push_back(a);
+  }
+  upload_plan_explanation(redis_address,res.tasktree,res.t[res.end].plan,acts,res.t[res.end].tasks,res.t[res.end].state.get_facts());
   return EXIT_SUCCESS;
 }

@@ -48,20 +48,7 @@ int main(int argc, char* argv[]) {
   
   if (infile != "") {
     json::value j = parse_file(infile.c_str()); 
-    json::array acts;
-    for (auto a : j.as_object()["plan"].as_array()) {
-      json::string act;
-      for (int i = 1; i < a.as_string().size(); i++) {
-        if (a.as_string().at(i) == ' ') {
-          break;
-        }
-        else {
-          act.push_back(a.as_string().at(i));
-        }
-      }  
-      acts.push_back(act);
-    }
-    generate_graph_from_json(j.as_object(),j.as_object()["plan"].as_array().size(),acts,"0",outfile);
+    generate_graph_from_json(j.as_object(),j.as_object()["plan"].as_array().size(),j.as_object()["actions"].as_array(),"0",outfile);
   }
   else {
     std::cout << "No json file given." << std::endl;
