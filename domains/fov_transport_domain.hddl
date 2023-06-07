@@ -14,6 +14,7 @@
 		(in ?arg0 - package ?arg1 - vehicle)
 		(capacity ?arg0 - vehicle ?arg1 - capacity_number)
 		(capacity_predecessor ?arg0 - capacity_number ?arg1 - capacity_number)
+        (see_package ?arg0 - package)
 	)
 
 	(:task deliver
@@ -65,18 +66,41 @@
 		)
 	)
 
+	(:method m_unload_ordering_1
+		:parameters (?l - location ?p - package ?v - vehicle)
+		:task (unload ?v ?l ?p)
+        :precondition (and
+                        (not (in ?p ?v))
+                      )
+		:subtasks (and
+		 (task0 (noop ?v ?l))
+		)
+	)
+
 	(:method m_load_ordering_0
 		:parameters (?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number ?v - vehicle)
 		:task (load ?v ?l ?p)
         :precondition (and
                         (at ?v ?l)
                         (at ?p ?l)
+                        (see_package ?p)
                         (capacity_predecessor ?s1 ?s2)
                         (capacity ?v ?s2)
                         (not (in ?p ?v))
                       )
 		:subtasks (and
 		 (task0 (pick_up ?v ?l ?p ?s1 ?s2))
+		)
+	)
+
+    (:method m_load_ordering_1
+		:parameters (?l - location ?p - package ?v - vehicle)
+		:task (load ?v ?l ?p)
+        :precondition (and
+                        (not (see_package ?p))
+                      )
+		:subtasks (and
+		 (task0 (noop ?v ?l))
 		)
 	)
 
@@ -152,6 +176,7 @@
 			(and
 				(at ?v ?l)
 				(at ?p ?l)
+                (see_package ?p)
 				(capacity_predecessor ?s1 ?s2)
 				(capacity ?v ?s2)
                 (not (in ?p ?v))

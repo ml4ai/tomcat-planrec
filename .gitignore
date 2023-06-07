@@ -141,3 +141,6 @@ cmake-build-debug
 
 # ignore datafiles
 *.metadata
+*.json
+*.rdb
+*.png

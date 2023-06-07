@@ -13,54 +13,113 @@
 #include <vector>
 #include <limits>
 #include "cppMCTShop.h"
+#include "Redis_Connect.h"
+#include <boost/json.hpp>
 
-bool is_subseq(std::vector<std::string> plan, std::vector<std::string> O) {
-  if (plan.size() <= O.size()) {
-    for (int i = 0; i < plan.size(); i++) {
-      if (plan[i].find(O[i]) == std::string::npos) {
-        return false;
-      }
-    }
-    return true;
-  }
-  for (int i = 0; i < O.size(); i++) {
-    if (plan[i].find(O[i]) == std::string::npos) {
+namespace json = boost::json;
+
+using Attrs = std::vector<std::pair<std::string,std::string>>;
+using Item = std::pair<std::string, std::optional<Attrs>>;
+using ItemStream = std::vector<Item>;
+
+bool is_subseq(std::vector<std::string> plan, std::vector<std::pair<int,std::string>> O) {
+  for (int i = 0; i < plan.size(); i++) {
+    if (plan[i].find(O[i].second) == std::string::npos) {
       return false;
     }
   }
   return true;
 }
 
+void update_actions(std::string const& redis_address, 
+                    std::vector<std::pair<int, std::string>>& actions) {
+  Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
+  std::string oldest;
+  if (actions.empty()) {
+    oldest = "0";
+  }
+  else {
+    oldest = std::to_string(actions.back().first);
+  }
+  std::unordered_map<std::string,ItemStream> result;
+  rc->redis.xread("actions",oldest,std::chrono::milliseconds(15000),1,std::inserter(result,result.end()));
+  if (result["actions"].empty()) {
+    std::pair<int,std::string> p;
+    p.first = -1;
+    p.second = "__STOP__";
+    actions.push_back(p);
+  }
+  for (auto const& x : result["actions"]) {
+    Attrs attrs = x.second.value();
+    for (auto const& y : attrs) {
+      std::pair<int,std::string> p;
+      p.first = std::stoi(x.first);
+      p.second = y.second;
+      actions.push_back(p);
+    }
+  }
+}
+
+void upload_plan_explanation(std::string const& redis_address, 
+                             TaskTree& tasktree, 
+                             std::vector<std::string>& plan,
+                             TaskGraph& taskgraph,
+                             std::unordered_map<std::string, std::unordered_set<std::string>> facts, 
+                             bool eval_mode) {
+  //Serialize task tree and current plan
+  json::object obj;
+  obj["tasktree"] = json::value_from(tasktree);
+  obj["plan"] = json::value_from(plan);
+  if (eval_mode) {
+    obj["taskgraph"] = json::value_from(taskgraph);
+    obj["state"] = json::value_from(facts);
+  }
+  std::string s = json::serialize(obj);
+  std::string rank = std::to_string(plan.size()) + "-*";
+  Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
+  rc->redis.xadd("explanations",rank,{std::make_pair("explanation",s)});
+}
+
 double
-simulation_rec(int horizon,
-               std::vector<std::string> given_plan,
+simulation_rec(std::vector<std::pair<int,std::string>>& actions,
                std::vector<std::string> plan,
                KnowledgeBase state,
                TaskGraph tasks,
                int cTask,
                DomainDef& domain,
-               std::mt19937_64& g,
-               int h = 0) {
-
-  if (!is_subseq(plan,given_plan)) {
+               Reach_Map& r_map,
+               std::mt19937_64& g) {
+  if (!is_subseq(plan,actions)) {
     return -1.0;
   }
-  if ((tasks.empty() && cTask == -1) || h >= horizon) {
+
+  if (plan.size() == actions.size() || (tasks.empty() && cTask == -1)) {
     return domain.score(state,plan);
   }
-  h++;
+
+
   if (cTask != -1) {
     if (domain.actions.contains(tasks[cTask].head)) {
+      if (plan.size() < actions.size()) {
+        if (actions[plan.size()].second.find(tasks[cTask].head) == std::string::npos) {
+          return -1.0;
+        }
+      }
       auto act = domain.actions.at(tasks[cTask].head).apply(state,tasks[cTask].args);
       if (!act.second.empty()) {
         std::shuffle(act.second.begin(),act.second.end(),g);
         auto gtasks = tasks;
         gtasks.remove_node(cTask);
         for (auto &ns : act.second) {
-          ns.update_state();
           auto gplan = plan;
           gplan.push_back(act.first+"_"+std::to_string(cTask));
-          double rs = simulation_rec(horizon,given_plan,plan,ns,gtasks,-1,domain,g,h);
+          if (gplan.size() < actions.size()) {
+            ns.update_state(actions[gplan.size()].first);
+          }
+          else {
+            ns.update_state();
+          }
+          double rs = simulation_rec(actions,gplan,ns,gtasks,-1,domain,r_map,g);
           if (rs > -1.0) {
             return rs;
           }
@@ -75,14 +134,27 @@ simulation_rec(int horizon,
       std::shuffle(task_methods.begin(),task_methods.end(),g);
       bool not_applicable = true;
       for (auto &m : task_methods) {
-        auto all_gts = m.apply(state,tasks[cTask].args,tasks,cTask);
-        if (!all_gts.empty()) {
-          not_applicable = false;
-          std::shuffle(all_gts.begin(),all_gts.end(),g);
-          for (auto &gts : all_gts) {
-            double rs = simulation_rec(horizon,given_plan,plan,state,gts.second,-1,domain,g,h);
-            if (rs > -1.0) {
-              return rs;
+        bool can_reach = false;
+        if (r_map.find(m.get_head()) != r_map.end() && plan.size() < actions.size()) {
+          for (auto const& a : r_map[m.get_head()]) {
+            if (actions[plan.size()].second.find(a) != std::string::npos) {
+              can_reach = true;
+            } 
+          } 
+        }
+        else {
+          can_reach = true;
+        }
+        if (can_reach) {
+          auto all_gts = m.apply(state,tasks[cTask].args,tasks,cTask);
+          if (!all_gts.empty()) {
+            not_applicable = false;
+            std::shuffle(all_gts.begin(),all_gts.end(),g);
+            for (auto &gts : all_gts) {
+              double rs = simulation_rec(actions,plan,state,gts.second,-1,domain,r_map,g);
+              if (rs > -1.0) {
+                return rs;
+              }
             }
           }
         }
@@ -101,9 +173,22 @@ simulation_rec(int horizon,
   else {
     for (auto &[i,gt] : tasks.GTs) {
       if (gt.incoming.empty()) {
-        double rs = simulation_rec(horizon,given_plan,plan,state,tasks,i,domain,g,h);
-        if (rs > -1.0) {
-          return rs;
+        bool can_reach = false;
+        if (r_map.find(gt.head) != r_map.end() && plan.size() < actions.size()) {
+          for (auto const& a : r_map[gt.head]) {
+            if (actions[plan.size()].second.find(a) != std::string::npos) {
+              can_reach = true;
+            }
+          }
+        }
+        else {
+          can_reach = true;
+        }
+        if (can_reach) {
+          double rs = simulation_rec(actions,plan,state,tasks,i,domain,r_map,g);
+          if (rs > -1.0) {
+            return rs;
+          }
         }
       }
     }
@@ -111,90 +196,218 @@ simulation_rec(int horizon,
   return -1.0;
 }
 
+int expansion_rec(std::vector<std::pair<int,std::string>> actions,
+                  pTree& t,
+                  int n,
+                  DomainDef& domain,
+                  Reach_Map r_map,
+                  std::mt19937_64& g) {
+    if (t[n].cTask != -1) {
+      int tid = t[n].cTask;
+      if (domain.actions.contains(t[n].tasks[tid].head)) {
+        if (t[n].plan.size() < actions.size()) {
+          if (actions[t[n].plan.size()].second.find(t[n].tasks[tid].head) == std::string::npos) {
+            return n;
+          }
+        }
+        auto act = domain.actions.at(t[n].tasks[tid].head).apply(t[n].state,t[n].tasks[tid].args);
+        if (!act.second.empty()) {
+          std::vector<int> a;
+          for (auto const& state : act.second) {
+            pNode v;
+            v.state = state;
+            v.tasks = t[n].tasks;
+            v.tasks.remove_node(tid);
+            v.depth = t[n].depth + 1;
+            v.plan = t[n].plan;
+            v.plan.push_back(act.first+"_"+std::to_string(tid));
+            if (v.plan.size() < actions.size()) {
+              v.state.update_state(actions[v.plan.size()].first);
+            }
+            else {
+              v.state.update_state();
+            }
+            v.pred = n;
+            int w = t.size();
+            t[w] = v;
+            t[n].successors.push_back(w);
+            a.push_back(w);
+          }
+          int r = *select_randomly(a.begin(), a.end(), g);
+          return r;
+        }
+        t[n].deadend = true;
+        return n;
+      }
 
-int
+      if (domain.methods.contains(t[n].tasks[tid].head)) {
+        std::vector<int> choices;
+        for (auto &m : domain.methods[t[n].tasks[tid].head]) {
+          bool can_reach = false;
+          if (r_map.find(m.get_head()) != r_map.end() && t[n].plan.size() < actions.size()) {
+            for (auto const& a : r_map[m.get_head()]) {
+              if (actions[t[n].plan.size()].second.find(a) != std::string::npos) {
+                can_reach = true;
+              }
+            }
+          }
+          else {
+            can_reach = true;
+          }
+          if (can_reach) {
+            auto gts = m.apply(t[n].state,t[n].tasks[tid].args,t[n].tasks,tid);
+            for (auto &g : gts) {
+              pNode v;
+              v.state = t[n].state;
+              v.tasks = g.second;
+              v.depth = t[n].depth + 1;
+              v.plan = t[n].plan;
+              v.addedTIDs = g.first;
+              v.prevTID = tid;
+              v.pred = n;
+              int w = t.size();
+              t[w] = v;
+              t[n].successors.push_back(w);
+              choices.push_back(w);
+            }
+          }
+        }
+        if (choices.empty()) {
+          t[n].deadend = true;
+          return n;
+        }
+        int r = *select_randomly(choices.begin(), choices.end(), g);
+        return r;
+      }
+      throw std::logic_error("Invalid task during expansion!");
+    }
+    else {
+      std::vector<int> gts;
+      for (auto const& [id,gt] : t[n].tasks.GTs) {
+        if (gt.incoming.empty()) {
+          bool can_reach = false;
+          if (r_map.find(gt.head) != r_map.end() && t[n].plan.size() < actions.size()) {
+            for (auto const& a : r_map[gt.head]) {
+              if (actions[t[n].plan.size()].second.find(a) != std::string::npos) {
+                can_reach = true;
+              }
+            }
+          }
+          else {
+            can_reach = true;
+          }
+          if (can_reach) {
+            pNode v;
+            v.cTask = id;
+            v.state = t[n].state;
+            v.tasks = t[n].tasks;
+            v.depth = t[n].depth + 1;
+            v.plan = t[n].plan;
+            v.pred = n;
+            int w = t.size();
+            t[w] = v;
+            t[n].successors.push_back(w);
+            gts.push_back(w);
+          }
+        }
+      }
+      if (!gts.empty()) {
+        int r = *select_randomly(gts.begin(), gts.end(), g);
+        return r;
+      }
+      else {
+        t[n].deadend = true;
+        return n;
+      }
+    }
+    t[n].deadend = true;
+    return n;
+}
+
+bool
 seek_planrecMCTS(pTree& t,
-                 std::vector<std::string> given_plan,
                  TaskTree& tasktree,
                  int v,
                  DomainDef& domain,
+                 Reach_Map& r_map,
                  int R,
-                 double eps,
-                 int successes,
-                 double prob,
-                 int pred,
-                 std::mt19937_64& g) {
-
-  std::negative_binomial_distribution<int> nbd(successes,prob);
-  int g_p_size = given_plan.size();
-  int stuck_counter = 10;
+                 int r,
+                 double c,
+                 std::mt19937_64& g,
+                 std::vector<std::pair<int,std::string>>& actions,
+                 std::string const& redis_address,
+                 bool eval_mode) {
+  int stuck_counter = 1000;
+  t[v].time = actions.back().first;
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
     n_node.cTask = t[v].cTask;
+    t[v].state.update_temporal_facts(redis_address);
+    t[v].state.update_state(t[v].time);
     n_node.state = t[v].state;
     n_node.tasks = t[v].tasks;
     n_node.depth = t[v].depth;
     n_node.plan = t[v].plan;
     int w = m.size();
     m[w] = n_node;
-    int hzn = nbd(g);
     for (int i = 0; i < R; i++) {
-      int n = selection(m,w,eps,g);
-      int m_p_size = m[n].plan.size();
-      if ((m[n].tasks.empty() && m[n].cTask == -1) || (m_p_size - g_p_size) >= pred) {
-        if (is_subseq(m[n].plan,given_plan)) {
-          backprop(m,n,domain.score(m[n].state,m[n].plan));
+      int n = selection(m,w,c,g);
+      if (w == n && m[n].deadend) {
+        std::cout << "Deadend, attempting to restart plan recognition process" << std::endl;
+        return false;  
+      }
+      if (m[n].sims == 0) {
+        m[n].state.update_state(m[n].time);
+        double ar;
+        for (int j = 0; j < r; j++) {
+          ar += simulation_rec(actions,
+                               m[n].plan,
+                               m[n].state, 
+                               m[n].tasks, 
+                               m[n].cTask,
+                               domain,
+                               r_map,
+                               g);
         }
-        else {
-          backprop(m,n,-1.0);
+        if (ar <= -r) {
           m[n].deadend = true;
         }
+        backprop(m,n,ar,r);
       }
       else {
-        if (m[n].sims == 0) {
-          auto r = simulation_rec(hzn,
-                                  given_plan,
-                                  m[n].plan,
-                                  m[n].state, 
-                                  m[n].tasks, 
-                                  m[n].cTask,
-                                  domain,
-                                  g);
-          if (r == -1.0) {
-            m[n].deadend = true;
-          }
-          backprop(m,n,r);
+        m[n].state.update_state(m[n].time);
+        int n_p = expansion_rec(actions,m,n,domain,r_map,g);
+        double ar;
+        for (int j = 0; j < r; j++) {
+          ar += simulation_rec(actions,
+                               m[n_p].plan,
+                               m[n_p].state, 
+                               m[n_p].tasks, 
+                               m[n_p].cTask,
+                               domain,
+                               r_map,
+                               g);
         }
-        else {
-          int n_p = expansion(m,n,domain,g);
-          auto r = simulation_rec(hzn,
-                              given_plan,
-                              m[n_p].plan,
-                              m[n_p].state, 
-                              m[n_p].tasks, 
-                              m[n_p].cTask,
-                              domain,
-                              g);
-          if (r == -1.0) {
-            m[n_p].deadend = true;
-          }
-          backprop(m,n_p,r);
+        if (ar <= -r) {
+          m[n_p].deadend = true;
         }
+        backprop(m,n_p,ar,r);
       }
     }
     if (m[w].successors.empty()) {
       stuck_counter--;
       if (stuck_counter <= 0) {
-        throw std::logic_error("Planner is stuck, terminating process!");
+        throw std::logic_error("Plan recognition is stuck, terminating process!");
       }
       continue;
     }
+
     std::vector<int> arg_maxes = {};
     double max = -std::numeric_limits<double>::infinity();
     for (auto const &s : m[w].successors) {
       if (!m[s].deadend) {
-        double mean = m[s].mean;
+        double mean = m[s].score/m[s].sims;
         if (mean >= max) {
           if (mean > max) {
             max = mean;
@@ -207,13 +420,14 @@ seek_planrecMCTS(pTree& t,
         }
       }
     }
-    if (arg_maxes.empty() || max == -1.0) {
+    if (arg_maxes.empty() || max <= -1) {
       stuck_counter--;
       if (stuck_counter <= 0) {
-        throw std::logic_error("Planner is stuck, terminating process!");
+        throw std::logic_error("Plan recognition is stuck, terminating process!");
       }
       continue;
     }
+    stuck_counter = 1000;
     int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
     pNode k;
     k.cTask = m[arg_max].cTask;
@@ -234,15 +448,19 @@ seek_planrecMCTS(pTree& t,
     t[y] = k;
     t[v].successors.push_back(y);
     v = y;
-    int t_p_size = t[v].plan.size();
-    if (t_p_size - g_p_size == pred) {
-      break;
+    if (actions.size() == t[v].plan.size()) {
+      upload_plan_explanation(redis_address,tasktree,t[v].plan,t[v].tasks,t[v].state.get_facts(),eval_mode);
+      update_actions(redis_address,actions);
+      if (actions.back().second == "__STOP__") {
+        std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
+        return true;
+      }
+      t[v].time = actions.back().first;
     }
-      
-    bool plan_break = false;
+
     while (m[arg_max].successors.size() == 1) {
       if (m[arg_max].deadend) {
-        continue;
+        return false;
       }
       arg_max = m[arg_max].successors.front();
       pNode j;
@@ -264,62 +482,78 @@ seek_planrecMCTS(pTree& t,
       t[y] = j;
       t[v].successors.push_back(y);
       v = y;
-      t_p_size = t[v].plan.size();
-      if (t_p_size - g_p_size == pred) {
-        plan_break = true;
-        break;
+      if (actions.size() == t[v].plan.size()) {
+        upload_plan_explanation(redis_address,tasktree,t[v].plan,t[v].tasks,t[v].state.get_facts(),eval_mode);
+        update_actions(redis_address,actions);
+        if (actions.back().second == "__STOP__") {
+          std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
+          return true;
+        }
+        t[v].time = actions.back().first;
       }
     }
-    if (plan_break) {
-      break;
-    }
   }
-  return v;
-
+  std::cout << "No more tasks to decompose, stopping plan recognition process" << std::endl;
+  return true;
 }
 
-Results 
+void 
 cppMCTSplanrec(DomainDef& domain,
               ProblemDef& problem,
-              std::vector<std::string> given_plan,
+              Reach_Map& r_map,
               Scorer scorer,
               int R = 30,
-              double eps = 0.4,
-              int successes = 19,
-              double prob = 0.75,
+              int r = 5,
+              double c = 1.4,
               int seed = 4021,
-              int pred = 0) {
-    domain.set_scorer(scorer);
-    pTree t;
-    TaskTree tasktree;
-    pNode root;
-    root.state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
-    for (auto const& f : problem.initF) {
-      root.state.tell(f,false,false);
+              std::string const& redis_address = "",
+              bool eval_mode = false) {
+    if (redis_address.empty()) {
+      std::cout << "Redis Database address not given, ending plan recognition process" << std::endl;
+      return;
     }
-    root.state.update_state();
-    Grounded_Task init_t;
-    init_t.head = problem.head;
-    int TID = root.tasks.add_node(init_t);
-    TaskNode tasknode;
-    tasknode.task = init_t.head;
-    tasknode.token = init_t.to_string();
-    tasktree[TID] = tasknode;
-    root.plan = {};
-    root.depth = 0;
-    int v = t.size();
-    t[v] = root;
-    static std::mt19937_64 g(seed);
-    auto end = seek_planrecMCTS(t, 
-                                given_plan,
-                                tasktree, 
-                                v, 
-                                domain, 
-                                R, 
-                                eps, 
-                                successes,
-                                prob,
-                                pred,
-                                g);
-    return Results(t,v,end,tasktree,TID);
+    bool end = false;
+    std::vector<std::pair<int,std::string>> actions;
+    update_actions(redis_address,actions);
+    if (actions.back().second == "__STOP__") {
+      std::cout << "No more incoming actions, stopping plan recognition process" << std::endl;
+      return;
+    }
+    while(!end) {
+      domain.set_scorer(scorer);
+      pTree t;
+      TaskTree tasktree;
+      pNode root;
+      root.state = KnowledgeBase(domain.predicates,problem.objects,domain.typetree);
+      for (auto const& f : problem.initF) {
+        root.state.tell(f,false,false);
+      }
+      root.state.update_state();
+      Grounded_Task init_t;
+      init_t.head = problem.head;
+      int TID = root.tasks.add_node(init_t);
+      TaskNode tasknode;
+      tasknode.task = init_t.head;
+      tasknode.token = init_t.to_string();
+      tasktree[TID] = tasknode;
+      root.plan = {};
+      root.depth = 0;
+      int v = t.size();
+      t[v] = root;
+      static std::mt19937_64 g(seed);
+      seed++;
+      end = seek_planrecMCTS(t, 
+                             tasktree, 
+                             v, 
+                             domain, 
+                             r_map,
+                             R, 
+                             r,
+                             c, 
+                             g,
+                             actions,
+                             redis_address,
+                             eval_mode);
+    }
+    return;
 }

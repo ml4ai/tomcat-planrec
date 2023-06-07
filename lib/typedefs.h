@@ -41,6 +41,8 @@ using TaskDefs = std::unordered_map<std::string,TaskDef>;
 using Objects = std::unordered_map<std::string,std::string>;
 using Scorer = double (*)(KnowledgeBase&,std::vector<std::string>&);
 using Scorers = std::unordered_map<std::string, Scorer>;
+using Reach_Map = std::unordered_map<std::string,std::vector<std::string>>;
+using Reach_Maps = std::unordered_map<std::string,Reach_Map>;
 using ID = std::string;
 
 struct Grounded_Task {
@@ -97,6 +99,82 @@ struct TaskGraph {
 
 };
 
+void tag_invoke(const json::value_from_tag&, json::value& jv, Grounded_Task const& gt) {
+  json::array sargs;
+  for (auto const& a : gt.args) {
+    json::array sa;
+    sa.emplace_back(a.first);
+    sa.emplace_back(a.second);
+    sargs.emplace_back(sa);
+  }
+
+  json::array sincoming;
+  for (auto const& i : gt.incoming) {
+    sincoming.emplace_back(std::to_string(i));
+  }
+
+  json::array soutgoing;
+  for (auto const& o : gt.outgoing) {
+    soutgoing.emplace_back(std::to_string(o));
+  }
+
+  jv = {
+      {"head", gt.head},
+      {"args", sargs},
+      {"incoming", sincoming},
+      {"outgoing",soutgoing}
+  }; 
+
+}
+
+Grounded_Task tag_invoke(const json::value_to_tag<Grounded_Task>&,json::value const& jv) {
+  Grounded_Task gt; 
+  json::object ob = jv.as_object();
+  gt.head = json::value_to<std::string>(ob["head"]);
+
+  for (auto const& a : ob["args"].as_array()) {
+    std::pair<std::string,std::string> p;
+    p.first = json::value_to<std::string>(a.as_array()[0]);
+    p.second = json::value_to<std::string>(a.as_array()[1]);
+    gt.args.push_back(p);
+  }
+
+  for (auto const& i : ob["incoming"].as_array()) {
+    std::string si = json::value_to<std::string>(i);
+    gt.incoming.push_back(std::stoi(si));
+  }
+
+  for (auto const& o : ob["outgoing"].as_array()) {
+    std::string so = json::value_to<std::string>(o);
+    gt.outgoing.push_back(std::stoi(so));
+  }
+
+  return gt;
+}
+
+void tag_invoke(const json::value_from_tag&, json::value& jv, TaskGraph const& tg) {
+  std::unordered_map<std::string, Grounded_Task> sGTs;
+  for (auto const& [id,n] : tg.GTs) {
+    sGTs[std::to_string(id)] = n;
+  }
+  jv = {
+      {"GTs",sGTs},
+      {"nextID",std::to_string(tg.nextID)}
+  };
+}
+
+TaskGraph tag_invoke(const json::value_to_tag<TaskGraph>&,json::value const& jv) {
+  TaskGraph tg; 
+  json::object ob = jv.as_object();
+  for (auto const& [id,n] : ob["GTs"].as_object()) {
+    std::string sid {id};
+    tg[std::stoi(sid)] = json::value_to<Grounded_Task>(n);
+  }
+  std::string snextID = json::value_to<std::string>(ob["nextID"]);
+  tg.nextID = std::stoi(snextID);
+  return tg;
+}
+
 struct TaskNode {
   std::string task;
   std::string token;
@@ -139,11 +217,13 @@ struct pNode {
     std::vector<int> addedTIDs;
     std::vector<std::string> plan;
     int depth = 0;
-    double mean = 0.0;
+    double score = 0.0;
     int sims = 0;
     int pred = -1;
+    int time = 0;
     bool deadend = false;
     std::vector<int> successors = {};
+    std::vector<int> unexplored = {};
 };
 
 using pTree = std::unordered_map<int,pNode>;
@@ -160,6 +240,20 @@ struct Results{
     this->end = end;
     this->tasktree = tasktree;
     this->ttRoot = ttRoot;
+  }
+};
+
+struct Time {
+  int hours;
+  int minutes;
+  double seconds;
+  Time () {}
+  Time (std::string ts_) {
+    hours = std::stoi(ts_.substr(0,ts_.find(":")),nullptr);
+    std::string ts1_ = ts_.substr(ts_.find(":") + 1);
+    minutes = std::stoi(ts1_.substr(0,ts1_.find(":")),nullptr);
+    std::string ts2_ = ts1_.substr(ts1_.find(":") + 1);
+    seconds = std::stod(ts2_,nullptr);
   }
 };
 
@@ -563,6 +657,7 @@ struct DomainDef {
   MethodDefs methods;
   Objects constants;
   Scorer scorer;
+  Scorer rec_scorer;
   DomainDef(std::string head,
             TypeTree typetree,
             Predicates predicates,
@@ -580,8 +675,16 @@ struct DomainDef {
     this->scorer = scorer;
   }
 
+  void set_rec_scorer(Scorer scorer) {
+    this->rec_scorer = scorer;
+  }
+
   double score(KnowledgeBase& state, std::vector<std::string>& plan) {
     return this->scorer(state,plan); 
+  }
+
+  double rec_score(KnowledgeBase& state, std::vector<std::string>& plan) {
+    return this->rec_scorer(state,plan);
   }
 };
 
