@@ -359,9 +359,9 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
           act.first = "marker_removed";
           act.second = "(marker_removed medic " + 
-            marker_type.at(1) + 
+            marker_placer + 
             " " +
-            marker_placer +
+            marker_type.at(1) +
             this->medic_current_loc + ")";
           std::string rank = elapsed_ms + "-*";
           this->rc->redis.xadd("actions",rank,{act});
@@ -371,9 +371,9 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
           act.first = "marker_removed";
           act.second = "(marker_removed engineer " + 
-            marker_type.at(1) + 
+            marker_placer + 
             " " +
-            marker_placer +
+            marker_type.at(1) +
             this->engineer_current_loc + ")";
           std::string rank = elapsed_ms + "-*";
           this->rc->redis.xadd("actions",rank,{act});
@@ -383,9 +383,9 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
           act.first = "marker_removed";
           act.second = "(marker_removed transporter " + 
-            marker_type.at(1) + 
+            marker_placer + 
             " " +
-            marker_placer +
+            marker_type.at(1) +
             this->transporter_current_loc + ")";
           std::string rank = elapsed_ms + "-*";
           this->rc->redis.xadd("actions",rank,{act});
@@ -417,8 +417,8 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
               assistant = "transporter";
               this->transporter_assist.erase(vic_id);
             }
-            act.first = "wake_critical_victim";
-            act.second = "(wake_critical_victim medic " +
+            act.first = "wake_critical";
+            act.second = "(wake_critical medic " +
               assistant + " " +
               "vic_" + to_string(vic_id) + 
               " " + this->medic_current_loc +")"; 
@@ -431,8 +431,8 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           if (jv.at_pointer("/data/awake").as_bool()) {
             std::pair<std::string,std::string> act;
             std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
-            act.first = "wake_critical_victim";
-            act.second = "(wake_critical_victim medic engineer vic_" + 
+            act.first = "wake_critical";
+            act.second = "(wake_critical medic engineer vic_" + 
               to_string(vic_id) + 
               " " + this->medic_current_loc +")"; 
             std::string rank = elapsed_ms + "-*";
@@ -455,8 +455,8 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           if (jv.at_pointer("/data/awake").as_bool()) {
             std::pair<std::string,std::string> act;
             std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
-            act.first = "wake_critical_victim";
-            act.second = "(wake_critical_victim medic transporter vic_" + 
+            act.first = "wake_critical";
+            act.second = "(wake_critical medic transporter vic_" + 
               to_string(vic_id) + 
               " " + this->medic_current_loc +")"; 
             std::string rank = elapsed_ms + "-*";
@@ -490,8 +490,8 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           if (player_color == "RED") {
             std::pair<std::string,std::string> act;
             std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
-            act.first = "rescue_victim";
-            act.second = "(rescue_victim medic vic_" + 
+            act.first = "victim_evacuated";
+            act.second = "(victim_evacuated medic vic_" + 
               to_string(int(jv.at_pointer("/data/victim_id").as_int64())) + 
               " " + this->medic_current_loc +")"; 
             std::string rank = elapsed_ms + "-*";
@@ -500,8 +500,8 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           else if (player_color == "BLUE") {
             std::pair<std::string,std::string> act;
             std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
-            act.first = "rescue_victim";
-            act.second = "(rescue_victim engineer vic_" + 
+            act.first = "victim_evacuated";
+            act.second = "(victim_evacuated engineer vic_" + 
               to_string(int(jv.at_pointer("/data/victim_id").as_int64())) + 
               " " + this->engineer_current_loc +")"; 
             std::string rank = elapsed_ms + "-*";
@@ -510,8 +510,8 @@ void PercAgent::process(mqtt::const_message_ptr msg) {
           else {
             std::pair<std::string,std::string> act;
             std::string elapsed_ms = time_diff(msg_time, this->initial_time); 
-            act.first = "rescue_victim";
-            act.second = "(rescue_victim transporter vic_" + 
+            act.first = "victim_evacuated";
+            act.second = "(victim_evacuated transporter vic_" + 
               to_string(int(jv.at_pointer("/data/victim_id").as_int64())) + 
               " " + this->transporter_current_loc +")"; 
             std::string rank = elapsed_ms + "-*";
