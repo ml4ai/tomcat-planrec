@@ -1,4 +1,4 @@
-(define (domain dom_noLang)
+(define (domain sar3)
         (:requirements :negative-preconditions :typing :hierarchy)
         (:types
                 human - object
