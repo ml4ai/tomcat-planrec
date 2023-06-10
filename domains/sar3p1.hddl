@@ -1,0 +1,51 @@
+(define (problem __SAR__)
+    (:domain sar3)
+    (:objects
+        vic1 - victim
+        start - location
+        room_1 - location
+        room_2 - location
+        room_3 - location
+        player_1 - player
+        player_2 - player
+        player_3 - player
+        sickbay_A1 - location
+        sickbay_B1 - location
+        sickbay_C1 - location
+        rocks_1 - rubble
+    )
+
+      (:htn
+          :parameters (?p2 - player)
+          :tasks (gather_wake_evacuate player_1 ?p2 vic1 start start room_3 sickbay_C1)
+          :ordering ()
+      )
+
+      (:init
+          (at player_1 start)
+          (medic player_1)
+          (at player_2 start)
+          (at player_3 start)
+          (engineer player_2)
+          (transporter player_3)
+          (at vic1 room_3)
+          (vic_is_type_C vic1)
+          (sb_is_type_A sickbay_A1)
+          (sb_is_type_B sickbay_B1)
+          (sb_is_type_C sickbay_C1)
+          (present rocks_1 room_2)
+          (unconscious vic1)
+          (adj start sickbay_A1)
+          (adj sickbay_A1 start)
+          (adj sickbay_A1 room_1)
+          (adj room_1 sickbay_A1)
+          (adj room_1 room_2)
+          (adj room_2 room_1)
+          (adj room_1 room_3)
+          (adj room_3 room_1)
+          (adj room_3 sickbay_B1)
+          (adj sickbay_B1 room_3)
+          (adj room_2 sickbay_C1)
+          (adj sickbay_C1 room_2)
+      )
+)
