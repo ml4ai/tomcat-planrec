@@ -10,7 +10,8 @@
         )
 
         (:predicates
-                (rescued ?arg0 - victim)
+                (rescued_r ?arg0 - victim)
+                (rescued_c ?arg0 - victim)
                 (holding ?arg0 - player)
                 (held ?arg0 - player ?arg1 - victim)
                 (healed ?arg0 - victim)
@@ -113,10 +114,11 @@
           :subtasks (and
                       (task0 (location ?p ?old_l ?new_l))
                     )
+          :constraints (not (= ?old_l ?new_l))
         )
 
         (:method m_move_1
-          :parameters (?p - player ?old_l ?new_l sub_l - location)
+          :parameters (?p - player ?old_l ?new_l ?sub_l - location)
           :task (move ?p ?old_l ?new_l)
           :precondition (and (at ?p ?old_l)
                              (adj ?sub_l new_l)
@@ -128,6 +130,9 @@
           :ordering (and
                        (< task0 task1)
                     )
+          :constraints (and (not (= ?old_l ?new_l))
+                            (not (= ?old_l ?sub_l))
+                            (not (= ?new_l ?sub_l)))
         )
 
         (:method m_gather_wake_evacuate_0
@@ -369,7 +374,8 @@
                                    (or (and (vic_is_type_A ?v) (sb_is_type_A ?sb))
                                        (and (vic_is_type_B ?v) (sb_is_type_B ?sb))
                                        (and (vic_is_type_C ?v) (sb_is_type_C ?sb))))
-                :effect (and (rescued ?v)
+                :effect (and (when (vic_is_type_C ?v) (rescued_c ?v))
+                             (when (not (vic_is_type_C ?v)) (rescued_r ?v))
                              (not (held ?p_1 ?v))
                              (not (holding ?p_1)))
         )
