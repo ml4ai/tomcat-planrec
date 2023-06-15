@@ -38,16 +38,11 @@
                 (diagnosed_A ?arg0 - victim)
                 (diagnosed_B ?arg0 - victim)
                 (diagnosed_C ?arg0 - victim)
-                (adj ?arg0 ?arg1 - location)
                 (marker_at ?arg0 - player ?arg1 - marker_type ?arg2 - location)
         )
 
 
 ; ----------------------------------------------------------------------
-        (:task move
-            :parameters (?p - player ?l1 ?l2 - location)
-        )
-
         (:task go_break_rubble
                 :parameters (?p_1 - player
                              ?rocks - rubble
@@ -103,36 +98,7 @@
 
         (:task gather_wake_evacuate
                 :parameters (?p_1 ?p_2 - player ?v - victim
-                              ?pos ?room ?final - location ?sb - sickbay)
-        )
-
-        (:method m_move_0
-          :parameters (?p - player ?old_l ?new_l - location)
-          :task (move ?p ?old_l ?new_l)
-          :precondition (and (at ?p ?old_l)
-                             (adj ?old_l ?new_l))
-          :subtasks (and
-                      (task0 (location ?p ?old_l ?new_l))
-                    )
-          :constraints (not (= ?old_l ?new_l))
-        )
-
-        (:method m_move_1
-          :parameters (?p - player ?old_l ?new_l ?sub_l - location)
-          :task (move ?p ?old_l ?new_l)
-          :precondition (and (at ?p ?old_l)
-                             (adj ?sub_l new_l)
-                             (not (adj ?old_l ?new_l)))
-          :subtasks (and
-                       (task0 (move ?p ?old_l ?sub_l))
-                       (task1 (location ?p ?sub_l ?new_l))
-                     )
-          :ordering (and
-                       (< task0 task1)
-                    )
-          :constraints (and (not (= ?old_l ?new_l))
-                            (not (= ?old_l ?sub_l))
-                            (not (= ?new_l ?sub_l)))
+                              ?pos ?room ?final ?sb - location)
         )
 
         (:method m_gather_wake_evacuate_0
@@ -149,8 +115,8 @@
                                    (sb_is_type_C ?sb))
                 :ordered-subtasks (and
                        (gather_to_wake ?p_1 ?p_2 ?v ?pos ?room ?final)
-                       (wake_triage_critical ?p_1 ?p_2 ?room ?final)
-                       (evacuate_victim ?p_1 ?final ?sb))
+                       (wake_triage_critical ?p_1 ?p_2 ?v ?final)
+                       (evacuate_victim ?p_1 ?v ?final ?sb))
                 :constraints (and (not (= ?p_1 ?p_2))
                                   (not (= ?pos ?final))
                                   (not (= ?room ?final))
@@ -171,8 +137,8 @@
                                    (sb_is_type_C ?sb))
                 :ordered-subtasks (and
                        (gather_to_wake ?p_1 ?p_2 ?v ?pos ?room ?final)
-                       (wake_triage_critical ?p_1 ?p_2 ?room ?final)
-                       (evacuate_victim ?p_2 ?final ?sb))
+                       (wake_triage_critical ?p_1 ?p_2 ?v ?final)
+                       (evacuate_victim ?p_2 ?v ?final ?sb))
                 :constraints (and (not (= ?p_1 ?p_2))
                                   (not (= ?pos ?final))
                                   (not (= ?room ?final))
@@ -188,7 +154,7 @@
              :task (carry_victim ?p_1 ?v ?pos ?room)
              :precondition (and (at ?p_1 ?pos)
                                 (held ?p_1 ?v))
-             :ordered-subtasks (move ?p_1 ?pos ?room)
+             :ordered-subtasks (location ?p_1 ?pos ?room)
              :constraints (not (= ?pos ?room))
         )
 
@@ -210,8 +176,7 @@
                     (pickup_victim ?p_1 ?v ?room)
                     (carry_victim ?p_1 ?v ?room ?sb)
                     (victim_evacuated ?p_1 ?v ?sb))
-                :constraints (and (not (= ?room ?sb))
-                                  (not (= ?p_1 ?p_2)))
+                :constraints (and (not (= ?room ?sb)))
         )
 
         (:method m_wake_triage_critical
@@ -238,9 +203,9 @@
                                    (at ?p_2 ?room)
                                    (at ?v ?final)
                                    (unconscious ?v))
-                :ordered-subtasks (and
-                    (move ?p_1 ?pos ?final)
-                    (move ?p_2 ?room ?final))
+                :subtasks (and
+                    (location ?p_1 ?pos ?final)
+                    (location ?p_2 ?room ?final))
                 :constraints (and (not (= ?pos ?final))
                                   (not (= ?room ?final))
                                   (not (= ?p_1 ?p_2)))    
@@ -296,7 +261,7 @@
                                    (not (holding ?p_1))
                                    (or (not (vic_is_type_C ?v)) (healed ?v)))
                 :ordered-subtasks (and
-                    (move ?p_1 ?pos ?room)
+                    (location ?p_1 ?pos ?room)
                     (pickup_victim ?p_1 ?v ?room))
                 :constraints (not (= ?pos ?room))
         )
@@ -311,7 +276,7 @@
                                    (not (healed ?v))
                                    (not (unconscious ?v)))
                 :ordered-subtasks (and
-                    (move ?p_1 ?pos ?room)
+                    (location ?p_1 ?pos ?room)
                     (triage_victim ?p_1 ?v ?room))
                 :constraints (not (= ?pos ?room))
         )
@@ -323,7 +288,7 @@
                                    (engineer ?p_1)
                                    (present ?rocks ?room))
                 :ordered-subtasks (and
-                   (move ?p_1 ?pos ?room)
+                   (location ?p_1 ?pos ?room)
                    (rubble_destroyed ?p_1 ?rocks ?room))
                 :constraints (not (= ?pos ?room))
         )
@@ -335,10 +300,10 @@
                 :precondition (and (at ?p_1 ?pos1)
                                    (at ?p_2 ?pos2)
                                    (at ?p_3 ?pos3))
-                :ordered-subtasks (and
-                      (move ?p_1 ?pos1 ?room)
-                      (move ?p_2 ?pos2 ?room)
-                      (move ?p_3 ?pos3 ?room))
+                :subtasks (and
+                      (location ?p_1 ?pos1 ?room)
+                      (location ?p_2 ?pos2 ?room)
+                      (location ?p_3 ?pos3 ?room))
                 :constraints (and (not (= ?pos1 ?room))
                                   (not (= ?pos2 ?room))
                                   (not (= ?pos3 ?room))
@@ -426,7 +391,7 @@
                           ?pos - location
                           ?room - location)
              :precondition (and (at ?h ?pos)
-                                (adj ?pos ?room))
+                                (not (at ?h ?room)))
              :effect (and (at ?h ?room)
                           (not (at ?h ?pos)))
         )

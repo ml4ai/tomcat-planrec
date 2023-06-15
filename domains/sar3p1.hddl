@@ -1,4 +1,4 @@
-(define (problem __SAR__)
+(define (problem sar3p1)
     (:domain sar3)
     (:objects
         vic1 - victim
@@ -16,9 +16,8 @@
     )
 
       (:htn
-          :parameters (?p2 - player)
-          :tasks (gather_wake_evacuate player_1 ?p2 vic1 start start room_3 sickbay_C1)
-          :ordering ()
+          :parameters (?p_2 - player)
+          :subtasks (gather_wake_evacuate player_1 ?p_2 vic1 start start room_3 sickbay_C1)
       )
 
       (:init
@@ -35,17 +34,5 @@
           (sb_is_type_C sickbay_C1)
           (present rocks_1 room_2)
           (unconscious vic1)
-          (adj start sickbay_A1)
-          (adj sickbay_A1 start)
-          (adj sickbay_A1 room_1)
-          (adj room_1 sickbay_A1)
-          (adj room_1 room_2)
-          (adj room_2 room_1)
-          (adj room_1 room_3)
-          (adj room_3 room_1)
-          (adj room_3 sickbay_B1)
-          (adj sickbay_B1 room_3)
-          (adj room_2 sickbay_C1)
-          (adj sickbay_C1 room_2)
       )
 )
