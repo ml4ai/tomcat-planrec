@@ -1,0 +1,149 @@
+(define (problem p_noLang)
+    (:domain dom_noLang)
+    (:objects
+        vic1 - victim
+        start_1 - location
+        start_2 - location
+        start_3 - location
+        room_1 - location
+        room_2 - location
+        room_3 - location
+        player_1 - player
+        player_2 - player
+        player_3 - player
+        sickbay_all - sickbay
+        sickbay_A - sickbay
+        sickbay_B - sickbay
+        sickbay_C - sickbay
+        rocks_1 - rubble
+    )
+;-----------------------------------------------------------------
+; base case for new carry_victim, the old action of carry_victim
+;       (:htn
+;           :parameters ()
+;           :tasks (carry_victim player_1 vic1 start_1 room_1)
+;           :ordering ()
+;       )
+;
+;       (:init
+;           (at player_1 start_1)
+;           (at vic1 start_1)
+;           (retrieved vic1)
+;       )
+;-----------------------------------------------------------------
+; works for d17 using 'carry_victim'
+;      (:htn
+;          :parameters ()
+;          :tasks (and 
+;             (gather_to_wake player_1 player_2 vic1 start_1 start_2 room_1)
+;             (wake_triage_critical ?player_1 ?player_2 ?vic1 ?room_1)
+;             (evacuate_victim player_1 vic1 room_1 sickbay_B))
+;          :ordering ()
+;      )
+;
+;      (:init
+;          (at player_1 start_1)
+;          (is_medic player_1)
+;          (at player_2 start_2)
+;          (at vic1 room_1)
+;          (vic_is_type_B vic1)
+;          (sb_is_type_B sickbay_B)
+;      )
+;-----------------------------------------------------------------
+; works for d17 using 'carry_victim'
+      (:htn
+          :parameters ()
+          :tasks (and 
+             (gather_to_wake player_1 player_2 vic1 start_1 start_2 room_1)
+             (wake_triage_critical ?player_1 ?player_2 ?vic1 ?room_1)
+             (evacuate_victim player_1 vic1 room_1 sickbay_A))
+          :ordering ()
+      )
+
+      (:init
+          (at player_1 start_1)
+          (is_medic player_1)
+          (at player_2 start_2)
+          (at vic1 room_1)
+      )
+;-----------------------------------------------------------------
+; works for d17 using 'carry_victim'
+;     (:htn
+;         :parameters ()
+;         :tasks (and
+;             (gather_to_wake player_1 player_2 vic1 start_1 start_2 room_1)
+;             (wake_triage_critical ?player_1 ?player_2 ?vic1 ?room_1))
+;         :ordering ()
+;     )
+;     (:init
+;         (at player_1 start_1)
+;         (is_medic player_1)
+;         (at player_2 start_2)
+;         (at vic1 room_1)
+;     )
+;-----------------------------------------------------------------
+; works with new carry_victim as task
+; works for d17 using 'carry_victim'
+;    (:htn
+;        :parameters ()
+;        :tasks (go_transport_victim player_1 vic1 start_1 room_1 room_2)
+;        :ordering ()
+;    )
+;
+;    (:init
+;        (at player_1 start_1)
+;        (at vic1 room_1)
+;    ) 
+;-----------------------------------------------------------------
+; works for d17 using 'carry_victim'
+; works with new carry_victim as task
+;    (:htn
+;        :parameters ()
+;        :tasks (transport_victim player_1 vic1 start_1 room_1)
+;        :ordering ()
+;    )
+;
+;    (:init
+;        (at player_1 start_1)
+;        (at vic1 start_1)
+;        (retrieved vic1)
+;    )
+;-----------------------------------------------------------------
+; works for d17 using 'carry_victim'
+;    (:htn
+;        :parameters ()
+;        :tasks (go_triage_victim player_1 vic1 start_1 room_1)
+;        :ordering ()
+;    )
+;
+;    (:init
+;        (at vic1 room_1)
+;        (at player_1 start_1)
+;    )
+;-----------------------------------------------------------------
+; works for d17 using 'carry_victim'
+;    (:htn
+;        :parameters ()
+;        :tasks (gather_teammate player_1 player_2 player_3 start_1 start_2 start_3 room_1)
+;        :ordering ()
+;    ); end htn
+;
+;    (:init
+;        (at player_1 start_1)
+;        (at player_2 start_2)
+;        (at player_3 start_3)
+;    ); end init
+;-----------------------------------------------------------------
+; works for d17 using 'carry_victim'
+;    (:htn
+;        :parameters ()
+;        :tasks (go_break_rubble player_1 rocks_1 room_1 room_2)
+;        :ordering ()
+;    )
+;
+;    (:init
+;        (present rocks_1 room_2)
+;        (at player_1 room_1)
+;    )
+;-----------------------------------------------------------------
+); end problem definition

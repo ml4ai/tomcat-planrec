@@ -1,0 +1,424 @@
+(define (domain sar3)
+        (:requirements :negative-preconditions :typing :hierarchy)
+        (:types
+                human - object
+                victim - human
+                location - object
+                player - human
+                rubble - object
+                marker_type - object
+        )
+
+        (:predicates
+                (rescued_r ?arg0 - victim)
+                (rescued_c ?arg0 - victim)
+                (holding ?arg0 - player)
+                (held ?arg0 - player ?arg1 - victim)
+                (healed ?arg0 - victim)
+                (unconscious ?arg0 - victim)
+                (at ?arg0 - human ?arg1 - location)
+                (present ?arg0 - rubble ?arg1 - location)
+                (medic ?arg0 - player)
+                (engineer ?arg0 - player)
+                (transporter ?arg0 - player)
+                (novictim ?arg0 - marker_type)
+                (sos ?arg0 - marker_type)
+                (regularvictim ?arg0 - marker_type)
+                (criticalvictim ?arg0 - marker_type)
+                (abrasion ?arg0 - marker_type)
+                (bonedamage ?arg0 - marker_type)
+                (rubble_marker ?arg0 - marker_type)
+                (threat ?arg0 - marker_type)
+                (vic_is_type_A ?arg0 - victim)
+                (vic_is_type_B ?arg0 - victim)
+                (vic_is_type_C ?arg0 - victim)
+                (sb_is_type_A ?arg0 - location)
+                (sb_is_type_B ?arg0 - location)
+                (sb_is_type_C ?arg0 - location)
+                (diagnosed_A ?arg0 - victim)
+                (diagnosed_B ?arg0 - victim)
+                (diagnosed_C ?arg0 - victim)
+                (marker_at ?arg0 - player ?arg1 - marker_type ?arg2 - location)
+        )
+
+
+; ----------------------------------------------------------------------
+        (:task go_break_rubble
+                :parameters (?p_1 - player
+                             ?rocks - rubble
+                             ?pos ?room - location)
+        )
+     
+        (:task gather_teammate
+                :parameters (?p_1 - player ?p_2 - player ?p_3 - player
+                             ?pos1 ?pos2 ?pos3 ?room - location)
+        )
+
+        (:task go_triage_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+        )
+
+        (:task go_pickup_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+        )
+
+        (:task transport_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+        )
+
+        (:task go_transport_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room ?final - location)
+        )   
+
+        (:task gather_to_wake
+                :parameters (?p_1 ?p_2 - player 
+                             ?v - victim 
+                             ?pos ?room ?final - location)
+        )
+
+        (:task wake_triage_critical
+                :parameters (?p_1 ?p_2 - player 
+                             ?v - victim 
+                             ?final - location)
+        )
+
+        (:task carry_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+        )
+                
+        (:task evacuate_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?room ?sb - location)
+        )
+
+        (:task gather_wake_evacuate
+                :parameters (?p_1 ?p_2 - player ?v - victim
+                              ?pos ?room ?final ?sb - location)
+        )
+
+        (:method m_gather_wake_evacuate_0
+          ;compounded tasks
+                :parameters (?p_1 ?p_2 - player 
+                             ?v - victim
+                             ?pos ?room ?final ?sb - location)
+                :task (gather_wake_evacuate ?p_1 ?p_2 ?v ?pos ?room ?final ?sb)
+                :precondition (and (medic ?p_1)
+                                   (at ?p_1 ?pos)
+                                   (at ?p_2 ?room)
+                                   (at ?v ?final)
+                                   (unconscious ?v)
+                                   (sb_is_type_C ?sb))
+                :ordered-subtasks (and
+                       (gather_to_wake ?p_1 ?p_2 ?v ?pos ?room ?final)
+                       (wake_triage_critical ?p_1 ?p_2 ?v ?final)
+                       (evacuate_victim ?p_1 ?v ?final ?sb))
+                :constraints (and (not (= ?p_1 ?p_2))
+                                  (not (= ?pos ?final))
+                                  (not (= ?room ?final))
+                                  (not (= ?final ?sb)))
+        )
+
+        (:method m_gather_wake_evacuate_1
+          ;compounded tasks
+                :parameters (?p_1 ?p_2 - player 
+                             ?v - victim
+                             ?pos ?room ?final ?sb - location)
+                :task (gather_wake_evacuate ?p_1 ?p_2 ?v ?pos ?room ?final ?sb)
+                :precondition (and (medic ?p_1)
+                                   (at ?p_1 ?pos)
+                                   (at ?p_2 ?room)
+                                   (at ?v ?final)
+                                   (unconscious ?v)
+                                   (sb_is_type_C ?sb))
+                :ordered-subtasks (and
+                       (gather_to_wake ?p_1 ?p_2 ?v ?pos ?room ?final)
+                       (wake_triage_critical ?p_1 ?p_2 ?v ?final)
+                       (evacuate_victim ?p_2 ?v ?final ?sb))
+                :constraints (and (not (= ?p_1 ?p_2))
+                                  (not (= ?pos ?final))
+                                  (not (= ?room ?final))
+                                  (not (= ?final ?sb)))
+        )
+
+        (:method m_carry_victim
+         ;observations/events/player/location
+         ;observations/events/player/victim_placed
+         ;when a player changes room carrying a victim
+             :parameters (?p_1 - player ?v - victim
+                          ?pos ?room - location)
+             :task (carry_victim ?p_1 ?v ?pos ?room)
+             :precondition (and (at ?p_1 ?pos)
+                                (held ?p_1 ?v))
+             :ordered-subtasks (location ?p_1 ?pos ?room)
+             :constraints (not (= ?pos ?room))
+        )
+
+        (:method m_evacuate_victim
+          ;same as carry victim but the victim is required to be typed. This is
+            ;the beginning process of evacating. TODO: picup and evacuate. Type is
+            ;not specified just yet
+                :parameters (?p_1 - player ?v - victim
+                             ?room ?sb - location)
+                :task (evacuate_victim ?p_1 ?v ?room ?sb)
+                :precondition (and (at ?p_1 ?room) 
+                                   (healed ?v)
+                                   (at ?v ?room)
+                                   (not (holding ?p_1))
+                                   (or (and (vic_is_type_A ?v) (sb_is_type_A ?sb))
+                                       (and (vic_is_type_B ?v) (sb_is_type_B ?sb))
+                                       (and (vic_is_type_C ?v) (sb_is_type_C ?sb))))
+                :ordered-subtasks (and
+                    (pickup_victim ?p_1 ?v ?room)
+                    (carry_victim ?p_1 ?v ?room ?sb)
+                    (victim_evacuated ?p_1 ?v ?sb))
+                :constraints (and (not (= ?room ?sb)))
+        )
+
+        (:method m_wake_triage_critical
+                :parameters (?p_1 ?p_2 - player ?v - victim ?final - location)
+                :task (wake_triage_critical ?p_1 ?p_2 ?v ?final)
+                :precondition (and (at ?v ?final)
+                                   (at ?p_1 ?final)
+                                   (at ?p_2 ?final)
+                                   (medic ?p_1)
+                                   (unconscious ?v))
+                :ordered-subtasks (and
+                    (wake_critical ?p_1 ?p_2 ?v ?final)
+                    (triage_victim ?p_1 ?v ?final))
+                :constraints (not (= ?p_1 ?p_2))
+        )
+
+        (:method m_gather_to_wake
+                :parameters (?p_1 ?p_2 - player 
+                             ?v - victim 
+                             ?pos ?room ?final - location)
+                :task (gather_to_wake ?p_1 ?p_2 ?v ?pos ?room ?final)
+                :precondition (and (at ?p_1 ?pos)
+                                   (medic ?p_1)
+                                   (at ?p_2 ?room)
+                                   (at ?v ?final)
+                                   (unconscious ?v))
+                :subtasks (and
+                    (location ?p_1 ?pos ?final)
+                    (location ?p_2 ?room ?final))
+                :constraints (and (not (= ?pos ?final))
+                                  (not (= ?room ?final))
+                                  (not (= ?p_1 ?p_2)))    
+        )
+
+        (:method m_go_transport_victim
+                :parameters ( ?p_1 - player ?v - victim
+                              ?pos ?room ?final - location)
+                :task (go_transport_victim ?p_1 ?v ?pos ?room ?final)
+                :precondition (and (at ?p_1 ?pos)
+                                   (at ?v ?room)
+                                   (not (unconscious ?v))
+                                   (not (holding ?p_1))
+                                   (or (not (vic_is_type_C ?v)) (healed ?v))
+                                   (not 
+                                    (or 
+                                     (and (healed ?v) (vic_is_type_A ?v) (sb_is_type_A ?final))
+                                     (and (healed ?v) (vic_is_type_B ?v) (sb_is_type_B ?final))
+                                     (and (healed ?v) (vic_is_type_C ?v) (sb_is_type_C ?final)))))
+                :ordered-subtasks (and
+                    (go_pickup_victim ?p_1 ?v ?pos ?room)
+                    (transport_victim ?p_1 ?v ?room ?final))
+                :constraints (and (not (= ?pos ?room))
+                                  (not (= ?room ?final)))
+        ) 
+
+        (:method m_transport_victim
+          ;not the same as evacution or rescue.
+          ;not the same as come_transport_victim either.
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+                :task (transport_victim ?p_1 ?v ?pos ?room)
+                :precondition (and (at ?p_1 ?pos) 
+                                   (holding ?p_1 ?v)
+                                   (not 
+                                    (or 
+                                     (and (healed ?v) (vic_is_type_A ?v) (sb_is_type_A ?room))
+                                     (and (healed ?v) (vic_is_type_B ?v) (sb_is_type_B ?room))
+                                     (and (healed ?v) (vic_is_type_C ?v) (sb_is_type_C ?room)))))
+                :ordered-subtasks (and
+                    (carry_victim ?p_1 ?v ?pos ?room)
+                    (place_victim ?p_1 ?v ?room))
+                :constraints (not (= ?pos ?room))
+        )
+
+        (:method m_go_pickup_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+                :task (go_pickup_victim ?p_1 ?v ?pos ?room)
+                :precondition (and (at ?v ?room) 
+                                   (at ?p_1 ?pos)
+                                   (not (unconscious ?v))
+                                   (not (holding ?p_1))
+                                   (or (not (vic_is_type_C ?v)) (healed ?v)))
+                :ordered-subtasks (and
+                    (location ?p_1 ?pos ?room)
+                    (pickup_victim ?p_1 ?v ?room))
+                :constraints (not (= ?pos ?room))
+        )
+
+        (:method m_go_triage_victim
+                :parameters (?p_1 - player ?v - victim
+                             ?pos ?room - location)
+                :task (go_triage_victim ?p_1 ?v ?pos ?room)
+                :precondition (and (medic ?p_1)
+                                   (at ?v ?room)
+                                   (at ?p_1 ?pos)
+                                   (not (healed ?v))
+                                   (not (unconscious ?v)))
+                :ordered-subtasks (and
+                    (location ?p_1 ?pos ?room)
+                    (triage_victim ?p_1 ?v ?room))
+                :constraints (not (= ?pos ?room))
+        )
+
+        (:method m_go_break_rubble
+                :parameters (?p_1 - player ?rocks - rubble ?pos ?room - location)
+                :task (go_break_rubble ?p_1 ?rocks ?pos ?room)
+                :precondition (and (at ?p_1 ?pos)
+                                   (engineer ?p_1)
+                                   (present ?rocks ?room))
+                :ordered-subtasks (and
+                   (location ?p_1 ?pos ?room)
+                   (rubble_destroyed ?p_1 ?rocks ?room))
+                :constraints (not (= ?pos ?room))
+        )
+
+        (:method m_gather_full_team
+                :parameters (?p_1 ?p_2 ?p_3 - player
+                             ?pos1 ?pos2 ?pos3 ?room - location)
+                :task (gather_teammate ?p_1 ?p_2 ?p_3 ?pos1 ?pos2 ?pos3 ?room)
+                :precondition (and (at ?p_1 ?pos1)
+                                   (at ?p_2 ?pos2)
+                                   (at ?p_3 ?pos3))
+                :subtasks (and
+                      (location ?p_1 ?pos1 ?room)
+                      (location ?p_2 ?pos2 ?room)
+                      (location ?p_3 ?pos3 ?room))
+                :constraints (and (not (= ?pos1 ?room))
+                                  (not (= ?pos2 ?room))
+                                  (not (= ?pos3 ?room))
+                                  (not (= ?p_1 ?p_2))
+                                  (not (= ?p_2 ?p_3))
+                                  (not (= ?p_1 ?p_3)))
+       )
+
+;-----------------------------------------------------------------------
+        (:action place_victim
+         ;observations/events/player/victim_placed
+                :parameters (?p_1 - player ?v - victim 
+                             ?room - location)
+                :precondition (and (at ?p_1 ?room)
+                                   (held ?p_1 ?v)
+                                   (not 
+                                    (or 
+                                     (and (healed ?v) (vic_is_type_A ?v) (sb_is_type_A ?room))
+                                     (and (healed ?v) (vic_is_type_B ?v) (sb_is_type_B ?room))
+                                     (and (healed ?v) (vic_is_type_C ?v) (sb_is_type_C ?room)))))
+                :effect (and (at ?v ?room)
+                             (not (held ?p_1 ?v))
+                             (not (holding ?p_1)))
+        )
+
+        (:action victim_evacuated
+         ;observations/events/player/victim_evacuated
+                :parameters (?p_1 - player ?v - victim
+                             ?sb - location)
+                :precondition (and (at ?p_1 ?sb)
+                                   (healed ?v)
+                                   (held ?p_1 ?v)
+                                   (or (and (vic_is_type_A ?v) (sb_is_type_A ?sb))
+                                       (and (vic_is_type_B ?v) (sb_is_type_B ?sb))
+                                       (and (vic_is_type_C ?v) (sb_is_type_C ?sb))))
+                :effect (and (when (vic_is_type_C ?v) (rescued_c ?v))
+                             (when (not (vic_is_type_C ?v)) (rescued_r ?v))
+                             (not (held ?p_1 ?v))
+                             (not (holding ?p_1)))
+        )
+
+        (:action pickup_victim
+         ;observations/events/player/victim_picked_up
+                :parameters (?p_1 - player ?v - victim 
+                             ?room - location)
+                :precondition (and (at ?p_1 ?room)
+                                   (at ?v ?room)
+                                   (not (holding ?p_1))
+                                   (not (unconscious ?v))
+                                   (or (not (vic_is_type_C ?v)) (healed ?v)))
+                :effect (and (held ?p_1 ?v)
+                             (holding ?p_1))
+        )
+
+        (:action triage_victim
+         ;observations/events/player/triage
+                :parameters (?p_1 - player 
+                             ?v - victim
+                             ?room - location)
+                :precondition (and (medic ?p_1)
+                                   (not (healed ?v))
+                                   (not (unconscious ?v))
+                                   (at ?v ?room)
+                                   (at ?p_1 ?room))
+                :effect (and (healed ?v)
+                             (when (vic_is_type_A ?v) (diagnosed_A ?v))
+                             (when (vic_is_type_B ?v) (diagnosed_B ?v)))
+        )
+
+        (:action rubble_destroyed
+         ;observations/events/player/rubble_destroyed
+                :parameters (?p_1 - player
+                             ?rock - rubble
+                             ?room - location)
+                :precondition (and (at ?p_1 ?room)
+                                   (engineer ?p_1)
+                                   (present ?rock ?room))
+                :effect (not (present ?rock ?room))
+        )
+
+        (:action location
+         ;observations/events/player/location
+         ;when a player or retrieved victim changes room
+             :parameters (?h - player
+                          ?pos - location
+                          ?room - location)
+             :precondition (and (at ?h ?pos)
+                                (not (at ?h ?room)))
+             :effect (and (at ?h ?room)
+                          (not (at ?h ?pos)))
+        )
+
+        (:action wake_critical
+        ; Wakes critical victim. Assumes team is already gathered and that the 
+            ;proximity predicate is triggered.
+                :parameters (?p_1 ?p_2 - player ?v - victim ?room - location)
+                :precondition (and (medic ?p_1)
+                                   (at ?p_1 ?room)
+                                   (at ?p_2 ?room)
+                                   (at ?v ?room)
+                                   (unconscious ?v))
+                :effect (and (not (unconscious ?v))
+                             (diagnosed_C ?v))
+        )
+
+        (:action marker_placed 
+          :parameters (?p1 - player ?m - marker_type ?l - location)
+          :precondition (at ?p1 ?l)
+          :effect (marker_at ?p1 ?m ?l)
+        )
+
+        (:action marker_removed
+          :parameters (?p1 ?p2 - player ?m - marker_type ?l - location)
+          :precondition (and (at ?p1 ?l)
+                             (marker_at ?p2 ?m ?l))
+          :effect (not (marker_at ?p2 ?m ?l))
+        )
+); end domain definition
