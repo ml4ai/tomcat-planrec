@@ -83,25 +83,44 @@ double
 simulation(std::vector<std::string>& plan,
            KnowledgeBase state,
            TaskGraph tasks,
-           int cTask,
            int time,
            DomainDef& domain,
            std::mt19937_64& g) {
-  if (tasks.empty() && cTask == -1) {
+  if (tasks.empty()) {
     return domain.score(state,plan);
   }
-  if (cTask != -1) {
+  std::vector<int> u,uc;
+  for (auto &[i,gt] : tasks.GTs) {
+    if (gt.incoming.empty()) {
+      if (domain.actions.contains(tasks[i].head)) {
+        u.push_back(i)
+      }
+      else if (domain.methods.contains(tasks[i].head)) {
+        uc.push_back(i);
+      }
+      else {
+        std::string message = "Invalid task ";
+        message += tasks[i].head;
+        message += " during simulation!";
+        throw std::logic_error(message);
+      }
+    }
+  }
+  int ct = *select_randomly(uc.begin(), uc.end(), g);
+  u.push_back(ct);
+  std::shuffle(u.second.begin(),act.second.end(),g);
+
+  for (auto const& cTask : u) { 
     if (domain.actions.contains(tasks[cTask].head)) {
       auto act = domain.actions.at(tasks[cTask].head).apply(state,tasks[cTask].args);
       if (!act.second.empty()) {
-        std::shuffle(act.second.begin(),act.second.end(),g);
         auto gtasks = tasks;
         gtasks.remove_node(cTask);
         for (auto &ns : act.second) {
           ns.update_state(time+1);
           auto gplan = plan;
           gplan.push_back(act.first+"_"+std::to_string(cTask));
-          double rs = simulation(gplan,ns,gtasks,-1,time + 1,domain,g);
+          double rs = simulation(gplan,ns,gtasks,time + 1,domain,g);
           if (rs > -1.0) {
             return rs;
           }
@@ -111,7 +130,7 @@ simulation(std::vector<std::string>& plan,
         return -1.0;
       }
     }
-    else if (domain.methods.contains(tasks[cTask].head)) {
+    else {
       auto task_methods = domain.methods[tasks[cTask].head];
       std::shuffle(task_methods.begin(),task_methods.end(),g);
       bool not_applicable = true;
@@ -121,7 +140,7 @@ simulation(std::vector<std::string>& plan,
           not_applicable = false;
           std::shuffle(all_gts.begin(),all_gts.end(),g);
           for (auto &gts : all_gts) {
-            double rs = simulation(plan,state,gts.second,-1,time,domain,g);
+            double rs = simulation(plan,state,gts.second,time,domain,g);
             if (rs > -1.0) {
               return rs;
             }
@@ -132,22 +151,6 @@ simulation(std::vector<std::string>& plan,
         return -1.0;
       }
     }
-    else {
-      std::string message = "Invalid task ";
-      message += tasks[cTask].head;
-      message += " during simulation!";
-      throw std::logic_error(message);
-    }
-  }
-  else {
-    for (auto &[i,gt] : tasks.GTs) {
-      if (gt.incoming.empty()) {
-        double rs = simulation(plan,state,tasks,i,time,domain,g);
-        if (rs > -1.0) {
-          return rs;
-        }
-      }
-    }
   }
   return -1.0;
 }
@@ -156,8 +159,28 @@ int expansion(pTree& t,
               int n,
               DomainDef& domain,
               std::mt19937_64& g) {
-    if (t[n].cTask != -1) {
-      int tid = t[n].cTask;
+    std::vector<int> u,uc;
+    for (auto const& [id,gt] : t[n].tasks.GTs) {
+      if (gt.incoming.empty()) {
+        if (domain.actions.contains(t[n].tasks[id].head)) {
+          u.push_back(id);
+        }
+        else if (domain.methods.contains(t[n].tasks[id].head)) {
+          uc.push_back(id);
+        }
+        else {
+          std::string message = "Invalid task ";
+          message += t[n].tasks[id].head;
+          message += " during simulation!";
+          throw std::logic_error(message);
+        }
+      }
+    } 
+    int ct = *select_randomly(uc.begin(), uc.end(), g);
+    u.push_back(ct);
+    std::shuffle(u.second.begin(),act.second.end(),g);
+    
+    for (auto const& tid : u) {
       if (domain.actions.contains(t[n].tasks[tid].head)) {
         auto act = domain.actions.at(t[n].tasks[tid].head).apply(t[n].state,t[n].tasks[tid].args);
         if (!act.second.empty()) {
@@ -215,28 +238,6 @@ int expansion(pTree& t,
         return r;
       }
       throw std::logic_error("Invalid task during expansion!");
-    }
-    else {
-      for (auto const& [id,gt] : t[n].tasks.GTs) {
-        if (gt.incoming.empty()) {
-          pNode v;
-          v.cTask = id;
-          v.state = t[n].state;
-          v.tasks = t[n].tasks;
-          v.depth = t[n].depth + 1;
-          v.plan = t[n].plan;
-          v.time = t[n].time;
-          v.pred = n;
-          int w = t.size();
-          t[w] = v;
-          t[n].unexplored.push_back(w);
-        }
-      }
-      std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
-      int r = t[n].unexplored.back();
-      t[n].successors.push_back(r);
-      t[n].unexplored.pop_back();
-      return r;
     }
     t[n].deadend = true;
     return n;
