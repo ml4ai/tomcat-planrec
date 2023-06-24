@@ -99,7 +99,7 @@ def main():
         print("You need at least one room, one player and one victim.")
         exit(1)
 
-    problem_name = "p-{}-{}-{}".format(n_players, n_victims, n_starts, n_rooms)
+    problem_name = "p-{}-{}-{}-{}".format(n_players, n_victims, n_starts, n_rooms)
 
     print("(define (problem " + problem_name + ")")
     print("(:domain sar3)")
