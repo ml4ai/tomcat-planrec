@@ -1,15 +1,17 @@
 #!/bin/bash
 
 P="1 2 3"
-V="1 2 2"
-S="1 2 3"
-R="1 1 1"
+V="2 3 4"
+M="1 2 2"
+R="1 1 2"
+X="1 1 3"
 
 for i in $(seq 1 3) ; do
 	echo $i
 	PP=$(echo $P | cut -d' ' -f $i)
 	VV=$(echo $V | cut -d' ' -f $i)
-	SS=$(echo $S | cut -d' ' -f $i)
+	MM=$(echo $M | cut -d' ' -f $i)
 	RR=$(echo $R | cut -d' ' -f $i)
-	python sar_generator.py -p $PP -v $VV -s $SS -r $RR> problem$(printf "%02d" $i).hddl
+	XX=$(echo $X | cut -d' ' -f $i)
+    python sar_generator.py -p $PP -v $VV -m $MM -r $RR -x $XX> probs_generated/testProblem$(printf "_%01d-%01d-%01d" $PP $VV $RR).hddl
 done
