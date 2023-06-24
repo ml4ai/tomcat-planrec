@@ -22,6 +22,9 @@ Functions needed for this File:
     get_htn()
 
 Notes:
+    * Right now it initializes with the same number of players, victims and
+    rooms. This is temporary so I can shuffle or randomize the players tending
+    to different victims.
 
 """
 #------------------------------------------------------------------------------
@@ -171,6 +174,8 @@ def get_init(n_players, n_victims, n_markerTypes, n_rooms, n_rubble):
     s = "{}\n\t\t{}".format(s, get_atom_line("unconscious", "victim1"))+ "\n"
 
     # Randomize players, victims and room locations.
+    #TODO: Right now it initializes as the same number of players, victims and
+        # Rooms. This will need to be changed soon.
     players = list(range(1, n_players + 1))
     victims = list(range(1, n_victims + 1))
     rooms = list(range(1, n_rooms + 1))
@@ -181,6 +186,7 @@ def get_init(n_players, n_victims, n_markerTypes, n_rooms, n_rubble):
 
     for i in range(n_victims):
         s += "\t\t" + get_atom_line("at", "victim{}".format(victims[i]), "room{}".format(rooms[i])) + "\n"
+        #s = "{}\t\t{}".format(s, get_atom_line("at", "victim{}".format(victims[i]), "room{}".format(rooms[i])))+ "\n"
 
     for i in range(n_players):
         s += "\t\t" + get_atom_line("at", "player{}".format(players[i]),  "room{}".format(rooms[i])) + "\n"
