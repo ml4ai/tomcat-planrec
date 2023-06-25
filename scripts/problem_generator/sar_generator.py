@@ -22,7 +22,7 @@ Functions needed for this File:
     get_htn()
 
 Notes:
-    TODO: Continue working on htn tasks!
+    TODO: Continue working on htn tasks! See line 240 for details.
 
 """
 #------------------------------------------------------------------------------
@@ -169,7 +169,7 @@ def get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     # Randomize players, victims and location locations.
     players = list(range(1, n_players + 1))
     victims = list(range(1, n_victims + 1))
-    rubbles= list(range(1, n_rubble + 1))
+    rubbles = list(range(1, n_rubble + 1))
     locations = list(range(1, n_locations + 1))
 
     random.shuffle(players)
@@ -224,7 +224,7 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
         )
 
     """
-    s = "\t(:htn\n\t\t:parameters (??????k)"
+    s = "\t(:htn\n\t\t:parameters ()"
     s = s + "\n\t\t:subtasks (and"
 
     players = list(range(1, n_players + 1))
@@ -237,6 +237,9 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     #    s = "{}\n\t\t(salena_task player{} victim{})".format(s, players[i], victims[i])
 
     #print("\nCurrent Victim List:", victims)
+    #TODO: Locations are merely a placeholder for now. I need to talk with the
+       # planning team to discuss how many of these tasks I should code up--STA
+       # 24June2023
     for i in range(n_players):
         v = victims.pop()
         a = random.choice(locations)
