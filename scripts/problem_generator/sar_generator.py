@@ -247,37 +247,84 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     # Randomly select one task for the htn section.
     current_task = random.choice(task_list)
     print("\n CURRENT TASK:", current_task)
-    """
-
-    #--------------------------------------------------------------------------------
-    #------------------------------- NEW IDEAS --------------------------------------
-    #--------------------------------------------------------------------------------
-    taskt = {
-            "go_break_rubble": ['p1', 'rocks', 'pos', 'room'],
-                "evacuate_victim": ['p1', 'v', 'room', 'sb'],
-                "go_triage_victim": ['p1', 'v', 'pos', 'room'],
-                "go_pickup_victim": ['p1', 'v', 'pos', 'room'],
-                "transport_victim": ['p1', 'v', 'pos', 'room'],
-                "carry_victim": ['p1', 'v', 'pos', 'room'],
-                "wake_triage_critical": ['p1', 'p2', 'v', 'final'],
-                "go_tansport_victim": ['p1', 'v', 'pos', 'room', 'final'],
-                "gather_to_wake": ['p1', 'p2', 'v', 'pos', 'room', 'final'],
-                "gather_wake_evacuate": ['p1', 'p2', 'v', 'pos', 'room', 'final', 'sb'],
-                "gather_teammate":['p1', 'p2', 'p3', 'pos1', 'pos2', 'pos3', 'room']
-            }
 
     # Randomly select one task for the htn section.
     current_task = random.choice(task_list)
     print("\n CURRENT TASK:", current_task)
 
-    s = "\t(:htn\n\t\t:parameters ()"
-    s = s + "\n\t\t:subtasks (and"
+
+    """
+
+    #--------------------------------------------------------------------------------
+    #------------------------------- NEW IDEAS --------------------------------------
+    #--------------------------------------------------------------------------------
+    tasksOriginalList = {
+          "go_break_rubble": ['player1', 'rocks', 'pos', 'room'],
+          "evacuate_victim": ['player1', 'victim', 'room', 'sickbay'],
+         "go_triage_victim": ['player1', 'victim', 'pos', 'room'],
+         "go_pickup_victim": ['player1', 'victim', 'pos', 'room'],
+         "transport_victim": ['player1', 'victim', 'pos', 'room'],
+             "carry_victim": ['player1', 'victim', 'pos', 'room'],
+     "wake_triage_critical": ['player1', 'player2', 'victim', 'final'],
+       "go_tansport_victim": ['player1', 'victim', 'pos', 'room', 'final'],
+           "gather_to_wake": ['player1', 'player2', 'victim', 'pos', 'room', 'final'],
+     "gather_wake_evacuate": ['player1', 'player2', 'victim', 'pos', 'room', 'final', 'sickbay'],
+          "gather_teammate": ['player1', 'player2', 'player3', 'pos1', 'pos2', 'pos3', 'room']
+            }
+
+    # Task list with placeholders for arguments
+    tasks = {
+        "go_break_rubble": ['player1', 'rocks', 'pos', 'room'],
+        "evacuate_victim": ['player1', 'victim', 'room', 'sickbay'],
+        "go_triage_victim": ['player1', 'victim', 'pos', 'room'],
+        "go_pickup_victim": ['player1', 'victim', 'pos', 'room'],
+        "transport_victim": ['player1', 'victim', 'pos', 'room'],
+        "carry_victim": ['player1', 'victim', 'pos', 'room'],
+        "wake_triage_critical": ['player1', 'player2', 'victim', 'final'],
+        "go_transport_victim": ['player1', 'victim', 'pos', 'room', 'final'],
+        "gather_to_wake": ['player1', 'player2', 'victim', 'pos', 'room', 'final'],
+        "gather_wake_evacuate": ['player1', 'player2', 'victim', 'pos', 'room', 'final', 'sickbay'],
+        "gather_teammate": ['player1', 'player2', 'player3', 'pos1', 'pos2', 'pos3', 'room']
+    }
 
     players = list(range(1, n_players + 1))
     victims = list(range(1, n_victims + 1))
     locations = list(range(1, n_locations + 1))
     random.shuffle(locations)
     random.shuffle(victims)
+
+    # Randomly choose a task.
+    chosen_task = random.choice(list(tasks.keys()))
+
+    # Randomly assign arguments. Remember that I only want the name of the task
+    # and the value of the argument, not the name of the argument itself.
+    arguments = {}
+    values = {}
+    for arg in tasks[chosen_task]:
+        if 'pos' in arg:
+            value = "location" + str(random.choice(locations))
+            arguments[arg] = value
+        elif 'room' in arg:
+            arguments[arg] = random.choice(locations)
+        elif 'final' in arg:
+            arguments[arg] = random.choice(locations)
+        elif 'player' in arg:
+            arguments[arg] = players.pop()
+        elif 'victim' in arg:
+            arguments[arg] = random.choice(victims)
+        else:
+            arguments[arg] = f"pos{random.randint(1, 3)}"
+
+    # Print the chosen task and its assigned arguments
+    print(f"Chosen Task: {chosen_task}")
+    for arg in arguments.items():
+        print(arg)
+
+
+
+def working_htn():
+    s = "\t(:htn\n\t\t:parameters ()"
+    s = s + "\n\t\t:subtasks (and"
 
     #for i in range(min(n_players, n_victims)):
     #    s = "{}\n\t\t(salena_task player{} victim{})".format(s, players[i], victims[i])
