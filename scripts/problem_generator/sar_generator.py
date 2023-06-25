@@ -305,21 +305,33 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
             value = "location" + str(random.choice(locations))
             arguments[arg] = value
         elif 'room' in arg:
-            arguments[arg] = random.choice(locations)
+            value = "location" + str(random.choice(locations))
+            arguments[arg] = value
         elif 'final' in arg:
-            arguments[arg] = random.choice(locations)
+            value = "location" + str(random.choice(locations))
+            arguments[arg] = value
         elif 'player' in arg:
-            arguments[arg] = players.pop()
+            arguments[arg] = arg
         elif 'victim' in arg:
-            arguments[arg] = random.choice(victims)
+            value = "victim" + str(random.choice(victims))
+            arguments[arg] = value
         else:
             arguments[arg] = f"pos{random.randint(1, 3)}"
 
     # Print the chosen task and its assigned arguments
-    print(f"Chosen Task: {chosen_task}")
+    print(f"Chosen Task printing items: {chosen_task}")
     for arg in arguments.items():
         print(arg)
 
+    print(f"\n\nChosen Task printing values: {chosen_task}")
+    for arg in arguments.values():
+        print(arg)
+
+    s = "\t(:htn\n\t\t:parameters ()"
+    s = s + "\n\t\t:subtasks (and"
+    s = "{}\n\t\t\t(carry_victim player{} victim{} location{} location{})".format(s, players[i], v, a, b)
+
+    return s + "\n\t\t\t)\n\t)"
 
 
 def working_htn():
