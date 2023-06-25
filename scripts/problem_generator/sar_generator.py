@@ -22,9 +22,7 @@ Functions needed for this File:
     get_htn()
 
 Notes:
-    * Right now it initializes with the same number of players, victims and
-    locations. This is temporary so I can shuffle or randomize the players tending
-    to different victims.
+    TODO: Continue working on htn tasks!
 
 """
 #------------------------------------------------------------------------------
@@ -49,14 +47,6 @@ def get_objects(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
 
     Returns:
         A string of objects
-
-    Example of output:
-        (:objects
-            player1 player2 - player
-            victim1 victim2 - victim
-            markerType1 markerType2 - markerType
-            location1 - location
-        )
     """
 
     s = "\t(:objects"
@@ -127,10 +117,6 @@ def get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     Returns:
         A string of initialized states for the predicates.
 
-    Example of output:
-        (:init
-        )
-
     Notes:
         * The following predicates are good for prelimary initialization. As
         this domain develops, this function will increase in complexity:
@@ -160,14 +146,10 @@ def get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
                 (holding ?arg0 - player)
                 (held ?arg0 - player ?arg1 - victim)
                 (healed ?arg0 - victim)
-                (novictim ?arg0 - marker_type)
-                (sos ?arg0 - marker_type)
-                (abrasion ?arg0 - marker_type)
-                (bonedamage ?arg0 - marker_type)
                 (diagnosed_A ?arg0 - victim)
                 (diagnosed_B ?arg0 - victim)
                 (diagnosed_C ?arg0 - victim)
-                (marker_at ?arg0 - player ?arg1 - marker_type ?arg2 -   location)
+                (marker_at ?arg0 - player ?arg1 - marker_type ?arg2 - location)
     """
 
     s = "\t(:init "
@@ -185,8 +167,6 @@ def get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     s = "{}\n\t\t{}".format(s, get_atom_line("unconscious", "victim1")) + "\n"
 
     # Randomize players, victims and location locations.
-    #TODO: Right now it initializes as the same number of players, victims and
-        # Rooms. This will need to be changed soon.
     players = list(range(1, n_players + 1))
     victims = list(range(1, n_victims + 1))
     rubbles= list(range(1, n_rubble + 1))
@@ -219,6 +199,52 @@ def get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
 
     return s + "\n\t)"
 
+#------------------------------------------------------------------------------
+def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
+    """
+    Purpose:
+        Generates the HTN task section of the problem file.
+
+    Arguments:
+        n_players: number of players
+        n_victims: number of victims
+        n_markerTypes: number of markerTyping locations, if they differ from victim
+        n_locations:  number of locations that are a final destination
+        n_rubble: Rubble found in locations. This argument might be temporary.
+
+    Returns:
+        parameters and subtasks string for the htn section of the problem file.
+
+    Example of output:
+        (:htn
+            :parameters ()
+            :subtasks (and
+                (task1 arg0 arg1 arg2)
+                (task2 arg0 arg1))
+        )
+
+    """
+    s = "\t(:htn\n\t\t:parameters (??????k)"
+    s = s + "\n\t\t:subtasks (and"
+
+    players = list(range(1, n_players + 1))
+    victims = list(range(1, n_victims + 1))
+    locations = list(range(1, n_locations + 1))
+    random.shuffle(locations)
+    random.shuffle(victims)
+
+    #for i in range(min(n_players, n_victims)):
+    #    s = "{}\n\t\t(salena_task player{} victim{})".format(s, players[i], victims[i])
+
+    #print("\nCurrent Victim List:", victims)
+    for i in range(n_players):
+        v = victims.pop()
+        a = random.choice(locations)
+        b = random.choice(locations)
+        #print("\n\tAfter 1st pop Current Victim List:", victims)
+        s = "{}\n\t\t\t(carry_victim player{} victim{} location{} location{})".format(s, players[i], v, a, b)
+
+    return s + "\n\t\t\t)\n\t)"
 
 #------------------------------------------------------------------------------
 def main():
@@ -243,6 +269,7 @@ def main():
     parser.add_argument("-m", help="markerTypes", required=False, type=int)
     parser.add_argument("-r", help="locations", required=True, type=int)
     parser.add_argument("-x", help="rubble", required=False, type=int)
+    parser.add_argument("-t", help="totally-ordered", action='store_true')
     args = parser.parse_args()
 
     n_players = args.p
@@ -261,6 +288,7 @@ def main():
     print("\t(:domain sar3)")
     print(get_objects(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
     print(get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
+    print(get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
     print(")")
 
 
