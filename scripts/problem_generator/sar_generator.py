@@ -327,9 +327,15 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     for arg in arguments.values():
         print(arg)
 
+    print("\n", "- -"*20)
+
     s = "\t(:htn\n\t\t:parameters ()"
     s = s + "\n\t\t:subtasks (and"
-    s = "{}\n\t\t\t(carry_victim player{} victim{} location{} location{})".format(s, players[i], v, a, b)
+    s = "{}\n\t\t\t({})".format(s, chosen_task)
+    #print(f"\n\nChosen Task printing values: {chosen_task}")
+    for arg in arguments.values():
+        #s = "{}\n\t\t\t(carry_victim player{} victim{} location{} location{})".format(s, players[i], v, a, b)
+        s = "{}\n\t\t\t({})".format(s, arg)
 
     return s + "\n\t\t\t)\n\t)"
 
