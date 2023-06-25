@@ -9,7 +9,7 @@ Created:
     24 June 2023
 
 Updated:
-    24 June 2023
+    25 June 2023
 
 Functions in this File:
     get_objects()
@@ -222,8 +222,54 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
                 (task1 arg0 arg1 arg2)
                 (task2 arg0 arg1))
         )
+    Notes:
+        * For now: List of possible tasks that can be randomly selected.
 
+
+    --------------------------------------------------------------------------------
+    ------------------------------- OLD IDEAS --------------------------------------
+    --------------------------------------------------------------------------------
+
+    # Create a list of possible tasks. This idea will most likely be
+        # refractored.
+    task_list = ["go_break_rubble",      # args: p1 rocks pos room
+                "evacuate_victim",      # args: p1 v room sb
+                "go_triage_victim",     # args: p1 v pos room
+                "go_pickup_victim",     # args: p1 v pos room
+                "transport_victim",     # args: p1 v pos room
+                "carry_victim",         # args: p1 v pos room
+                "wake_triage_critical", # args: p1 p2 v final
+                "go_tansport_victim",   # args: p1 v pos room final
+                "gather_to_wake",       # args: p1 p2 v pos room final
+                "gather_wake_evacuate", # args: p1 p2 v pos room final sb
+                "gather_teammate"]      # args: p1 p2 p3 pos1 pos2 pos3 room
+
+    # Randomly select one task for the htn section.
+    current_task = random.choice(task_list)
+    print("\n CURRENT TASK:", current_task)
     """
+
+    #--------------------------------------------------------------------------------
+    #------------------------------- NEW IDEAS --------------------------------------
+    #--------------------------------------------------------------------------------
+    taskt = {
+            "go_break_rubble": ['p1', 'rocks', 'pos', 'room'],
+                "evacuate_victim": ['p1', 'v', 'room', 'sb'],
+                "go_triage_victim": ['p1', 'v', 'pos', 'room'],
+                "go_pickup_victim": ['p1', 'v', 'pos', 'room'],
+                "transport_victim": ['p1', 'v', 'pos', 'room'],
+                "carry_victim": ['p1', 'v', 'pos', 'room'],
+                "wake_triage_critical": ['p1', 'p2', 'v', 'final'],
+                "go_tansport_victim": ['p1', 'v', 'pos', 'room', 'final'],
+                "gather_to_wake": ['p1', 'p2', 'v', 'pos', 'room', 'final'],
+                "gather_wake_evacuate": ['p1', 'p2', 'v', 'pos', 'room', 'final', 'sb'],
+                "gather_teammate":['p1', 'p2', 'p3', 'pos1', 'pos2', 'pos3', 'room']
+            }
+
+    # Randomly select one task for the htn section.
+    current_task = random.choice(task_list)
+    print("\n CURRENT TASK:", current_task)
+
     s = "\t(:htn\n\t\t:parameters ()"
     s = s + "\n\t\t:subtasks (and"
 
