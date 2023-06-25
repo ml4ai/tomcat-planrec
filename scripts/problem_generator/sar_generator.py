@@ -210,7 +210,7 @@ def htn_numbers(n_htns):
 
 
 
-def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble, n_htns):
+def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     """
     Purpose:
         Generates the HTN task section of the problem file.
@@ -235,37 +235,14 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble, n_htns):
     Notes:
         * For now: List of possible tasks that can be randomly selected.
 
-
-    --------------------------------------------------------------------------------
-    ------------------------------- OLD IDEAS --------------------------------------
-    --------------------------------------------------------------------------------
-
-    # Create a list of possible tasks. This idea will most likely be
-        # refractored.
-    task_list = ["go_break_rubble",      # args: p1 rocks pos room
-                "evacuate_victim",      # args: p1 v room sb
-                "go_triage_victim",     # args: p1 v pos room
-                "go_pickup_victim",     # args: p1 v pos room
-                "transport_victim",     # args: p1 v pos room
-                "carry_victim",         # args: p1 v pos room
-                "wake_triage_critical", # args: p1 p2 v final
-                "go_tansport_victim",   # args: p1 v pos room final
-                "gather_to_wake",       # args: p1 p2 v pos room final
-                "gather_wake_evacuate", # args: p1 p2 v pos room final sb
-                "gather_teammate"]      # args: p1 p2 p3 pos1 pos2 pos3 room
-
-    # Randomly select one task for the htn section.
-    current_task = random.choice(task_list)
-    print("\n CURRENT TASK:", current_task)
-
-    # Randomly select one task for the htn section.
-    current_task = random.choice(task_list)
-    print("\n CURRENT TASK:", current_task)
-
-
     """
+    ### This is the start of the htn section THAT I DON'T WANT TO REPEAT! ###
+    s = "\t(:htn\n\t\t:parameters ()"
+    s = s + "\n\t\t:subtasks (and"
 
-    # Task list with placeholders for arguments
+
+    ###  THIS IS EVERYTHING THAT I WANT TO REPEAT FOR EACH TASK GENERATED  ###
+
     tasks = {
         "go_break_rubble": ['player1', 'rocks', 'pos', 'room'],
         "evacuate_victim": ['player1', 'victim', 'room', 'sickbay'],
@@ -285,10 +262,6 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble, n_htns):
     locations = list(range(1, n_locations + 1))
     random.shuffle(locations)
     random.shuffle(victims)
-
-    # This is the start of the htn section.
-    s = "\t(:htn\n\t\t:parameters ()"
-    s = s + "\n\t\t:subtasks (and"
 
     # Randomly choose a task.
     chosen_task = random.choice(list(tasks.keys()))
@@ -403,7 +376,16 @@ def main():
     print("\t(:domain sar3)")
     print(get_objects(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
     print(get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
-    print(get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble, n_htns))
+
+    # Repeat htn tasks for every number specified in bash script:
+    htn_time = " "
+    print("\n\n Number of HTNS:", n_htns, "\n")
+    for n in range(n_htns):
+        print("\n\t htn step:", n)
+        temp = get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble)
+        htn_time = "{} \n {}".format(htn_time, temp)
+
+    print(htn_time)
     print(")")
 
 
