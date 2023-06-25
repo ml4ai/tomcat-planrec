@@ -200,7 +200,17 @@ def get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     return s + "\n\t)"
 
 #------------------------------------------------------------------------------
-def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
+def htn_numbers(n_htns):
+    # Now we add tasks according to the number of tasks requested in script:
+    num_htns = int(n_htns)
+
+    for n in num_htns:
+        ss = choose_each_htn(n)
+        s = "{} {}".format(s, ss)
+
+
+
+def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble, n_htns):
     """
     Purpose:
         Generates the HTN task section of the problem file.
@@ -255,23 +265,6 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
 
     """
 
-    #--------------------------------------------------------------------------------
-    #------------------------------- NEW IDEAS --------------------------------------
-    #--------------------------------------------------------------------------------
-    tasksOriginalList = {
-          "go_break_rubble": ['player1', 'rocks', 'pos', 'room'],
-          "evacuate_victim": ['player1', 'victim', 'room', 'sickbay'],
-         "go_triage_victim": ['player1', 'victim', 'pos', 'room'],
-         "go_pickup_victim": ['player1', 'victim', 'pos', 'room'],
-         "transport_victim": ['player1', 'victim', 'pos', 'room'],
-             "carry_victim": ['player1', 'victim', 'pos', 'room'],
-     "wake_triage_critical": ['player1', 'player2', 'victim', 'final'],
-       "go_tansport_victim": ['player1', 'victim', 'pos', 'room', 'final'],
-           "gather_to_wake": ['player1', 'player2', 'victim', 'pos', 'room', 'final'],
-     "gather_wake_evacuate": ['player1', 'player2', 'victim', 'pos', 'room', 'final', 'sickbay'],
-          "gather_teammate": ['player1', 'player2', 'player3', 'pos1', 'pos2', 'pos3', 'room']
-            }
-
     # Task list with placeholders for arguments
     tasks = {
         "go_break_rubble": ['player1', 'rocks', 'pos', 'room'],
@@ -292,6 +285,10 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     locations = list(range(1, n_locations + 1))
     random.shuffle(locations)
     random.shuffle(victims)
+
+    # This is the start of the htn section.
+    s = "\t(:htn\n\t\t:parameters ()"
+    s = s + "\n\t\t:subtasks (and"
 
     # Randomly choose a task.
     chosen_task = random.choice(list(tasks.keys()))
@@ -329,18 +326,18 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
 
     print("\n", "- -"*20)
 
-    s = "\t(:htn\n\t\t:parameters ()"
-    s = s + "\n\t\t:subtasks (and"
-    s = "{}\n\t\t\t({})".format(s, chosen_task)
+    #s = "\t(:htn\n\t\t:parameters ()"
+    #s = s + "\n\t\t:subtasks (and"
+    s = "{}\n\t\t\t({}".format(s, chosen_task)
     #print(f"\n\nChosen Task printing values: {chosen_task}")
     for arg in arguments.values():
         #s = "{}\n\t\t\t(carry_victim player{} victim{} location{} location{})".format(s, players[i], v, a, b)
-        s = "{}\n\t\t\t({})".format(s, arg)
+        s = "{} {}".format(s, arg)
 
-    return s + "\n\t\t\t)\n\t)"
+    return s + ")\n\t\t\t)\n\t)"
+#------------------------------------------------------------------------------
 
-
-def working_htn():
+def hardcoding_htn():
     s = "\t(:htn\n\t\t:parameters ()"
     s = s + "\n\t\t:subtasks (and"
 
@@ -383,7 +380,10 @@ def main():
     parser.add_argument("-m", help="markerTypes", required=False, type=int)
     parser.add_argument("-r", help="locations", required=True, type=int)
     parser.add_argument("-x", help="rubble", required=False, type=int)
-    parser.add_argument("-t", help="totally-ordered", action='store_true')
+
+    # TODO: Now we add the number of HTNs we want to generate.
+            # At this time, ordered HTNS do not make sense. In progress.
+    parser.add_argument("-t", help="htns", required=False, type=int)
     args = parser.parse_args()
 
     n_players = args.p
@@ -391,6 +391,7 @@ def main():
     n_markerTypes = args.m
     n_locations = args.r
     n_rubble = args.x
+    n_htns = args.t
 
     if n_locations < 1 or n_victims < 1 or n_players < 1:
         print("You need at least one location, one player and one victim.")
@@ -402,7 +403,7 @@ def main():
     print("\t(:domain sar3)")
     print(get_objects(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
     print(get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
-    print(get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
+    print(get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble, n_htns))
     print(")")
 
 
