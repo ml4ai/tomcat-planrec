@@ -200,47 +200,10 @@ def get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     return s + "\n\t)"
 
 #------------------------------------------------------------------------------
-def htn_numbers(n_htns):
-    # Now we add tasks according to the number of tasks requested in script:
-    num_htns = int(n_htns)
-
-    for n in num_htns:
-        ss = choose_each_htn(n)
-        s = "{} {}".format(s, ss)
-
-
-
-def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
+def get_task(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
     """
-    Purpose:
-        Generates the HTN task section of the problem file.
-
-    Arguments:
-        n_players: number of players
-        n_victims: number of victims
-        n_markerTypes: number of markerTyping locations, if they differ from victim
-        n_locations:  number of locations that are a final destination
-        n_rubble: Rubble found in locations. This argument might be temporary.
-
-    Returns:
-        parameters and subtasks string for the htn section of the problem file.
-
-    Example of output:
-        (:htn
-            :parameters ()
-            :subtasks (and
-                (task1 arg0 arg1 arg2)
-                (task2 arg0 arg1))
-        )
-    Notes:
-        * For now: List of possible tasks that can be randomly selected.
 
     """
-    ### This is the start of the htn section THAT I DON'T WANT TO REPEAT! ###
-    s = "\t(:htn\n\t\t:parameters ()"
-    s = s + "\n\t\t:subtasks (and"
-
-
     ###  THIS IS EVERYTHING THAT I WANT TO REPEAT FOR EACH TASK GENERATED  ###
 
     tasks = {
@@ -288,26 +251,52 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble):
         else:
             arguments[arg] = f"pos{random.randint(1, 3)}"
 
-    # Print the chosen task and its assigned arguments
-    print(f"Chosen Task printing items: {chosen_task}")
-    for arg in arguments.items():
-        print(arg)
-
-    print(f"\n\nChosen Task printing values: {chosen_task}")
+    s = "\n\t\t\t({}".format(chosen_task)
     for arg in arguments.values():
-        print(arg)
-
-    print("\n", "- -"*20)
-
-    #s = "\t(:htn\n\t\t:parameters ()"
-    #s = s + "\n\t\t:subtasks (and"
-    s = "{}\n\t\t\t({}".format(s, chosen_task)
-    #print(f"\n\nChosen Task printing values: {chosen_task}")
-    for arg in arguments.values():
-        #s = "{}\n\t\t\t(carry_victim player{} victim{} location{} location{})".format(s, players[i], v, a, b)
         s = "{} {}".format(s, arg)
 
-    return s + ")\n\t\t\t)\n\t)"
+    return s + ")\t"
+#------------------------------------------------------------------------------
+
+
+def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble, n_htns):
+    """
+    Purpose:
+        Generates the HTN task section of the problem file.
+
+    Arguments:
+        n_players: number of players
+        n_victims: number of victims
+        n_markerTypes: number of markerTyping locations, if they differ from victim
+        n_locations:  number of locations that are a final destination
+        n_rubble: Rubble found in locations. This argument might be temporary.
+
+    Returns:
+        parameters and subtasks string for the htn section of the problem file.
+
+    Example of output:
+        (:htn
+            :parameters ()
+            :subtasks (and
+                (task1 arg0 arg1 arg2)
+                (task2 arg0 arg1))
+        )
+    Notes:
+        * For now: List of possible tasks that can be randomly selected.
+
+    """
+    ### This is the start of the htn section THAT I DON'T WANT TO REPEAT! ###
+    s = "\t(:htn\n\t\t:parameters ()"
+    s = s + "\n\t\t:subtasks (and"
+
+    # Repeat htn tasks for every number specified in bash script
+    #print("\n\n Number of HTNS:", n_htns, "\n")
+    for n in range(n_htns):
+        #print("\n\t htn step:", n)
+        temp = get_task(n_players, n_victims, n_markerTypes, n_locations, n_rubble)
+        s = "{} {}".format(s, temp)
+
+    return s + "\n\t\t\t)\n\t)"
 #------------------------------------------------------------------------------
 
 def hardcoding_htn():
@@ -375,17 +364,10 @@ def main():
     print("(define (problem " + problem_name + ")")
     print("\t(:domain sar3)")
     print(get_objects(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
+    print()
     print(get_init(n_players, n_victims, n_markerTypes, n_locations, n_rubble))
-
-    # Repeat htn tasks for every number specified in bash script:
-    htn_time = " "
-    print("\n\n Number of HTNS:", n_htns, "\n")
-    for n in range(n_htns):
-        print("\n\t htn step:", n)
-        temp = get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble)
-        htn_time = "{} \n {}".format(htn_time, temp)
-
-    print(htn_time)
+    print()
+    print(get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble, n_htns))
     print(")")
 
 

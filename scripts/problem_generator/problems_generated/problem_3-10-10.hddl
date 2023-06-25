@@ -1,0 +1,63 @@
+(define (problem p-3-10-10)
+	(:domain sar3)
+	(:objects
+		player1 player2 player3 - player
+		victim1 victim2 victim3 victim4 victim5 victim6 victim7 victim8 victim9 victim10 - victim
+		markerType1 markerType2 markerType3 - markerType
+		sickbay_A sickbay_B sickbay_C - location
+		sos novictim regularvictim criticalvictim threat abrasion boneabrasion rubble_marker - marker_type
+		location1 location2 location3 location4 location5 location6 location7 location8 location9 location10 - location
+		rubble1 rubble2 rubble3 rubble4 - rubble
+	)
+
+	(:init 
+		(medic player1)
+		(transporter player2)
+		(engineer player3)
+		(SOS sos)
+		(novictim novictim)
+		(unconscious victim1)
+		(at victim7 location4)
+		(at victim9 location7)
+		(at victim6 location5)
+		(at victim8 location6)
+		(at victim1 location3)
+		(at victim4 location9)
+		(at victim10 location10)
+		(at victim5 location8)
+		(at victim3 location2)
+		(at victim2 location1)
+		(at player2 location4)
+		(at player1 location7)
+		(at player3 location5)
+		(present rubble1 location4)
+		(present rubble2 location7)
+		(present rubble3 location5)
+		(present rubble4 location6)
+		(vic_is_type_B victim7)
+		(vic_is_type_B victim9)
+		(vic_is_type_A victim6)
+		(vic_is_type_C victim8)
+		(vic_is_type_A victim1)
+		(vic_is_type_A victim4)
+		(vic_is_type_A victim10)
+		(vic_is_type_C victim5)
+		(vic_is_type_C victim3)
+		(vic_is_type_C victim2)
+		(sb_is_type_A sickbay_A)
+		(sb_is_type_B sickbay_B)
+		(sb_is_type_C sickbay_C)
+	)
+
+	(:htn
+		:parameters ()
+		:subtasks (and 
+			(go_triage_victim player1 victim9 location6 location6)	 
+			(go_pickup_victim player1 victim3 location6 location1)	 
+			(transport_victim player1 victim4 location9 location5)	 
+			(transport_victim player1 victim4 location5 location9)	 
+			(go_transport_victim player1 victim5 location10 location7 location8)	 
+			(wake_triage_critical player1 player2 victim9 location8)	
+			)
+	)
+)
