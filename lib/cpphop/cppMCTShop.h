@@ -93,7 +93,7 @@ simulation(std::vector<std::string>& plan,
   for (auto &[i,gt] : tasks.GTs) {
     if (gt.incoming.empty()) {
       if (domain.actions.contains(tasks[i].head)) {
-        u.push_back(i)
+        u.push_back(i);
       }
       else if (domain.methods.contains(tasks[i].head)) {
         uc.push_back(i);
@@ -106,9 +106,14 @@ simulation(std::vector<std::string>& plan,
       }
     }
   }
-  int ct = *select_randomly(uc.begin(), uc.end(), g);
-  u.push_back(ct);
-  std::shuffle(u.second.begin(),act.second.end(),g);
+  if (!uc.empty()) {
+    int ct = *select_randomly(uc.begin(), uc.end(), g);
+    u.push_back(ct);
+  }
+  if (u.empty()) {
+    return -1.0;
+  }
+  std::shuffle(u.begin(),u.end(),g);
 
   for (auto const& cTask : u) { 
     if (domain.actions.contains(tasks[cTask].head)) {
@@ -176,9 +181,14 @@ int expansion(pTree& t,
         }
       }
     } 
-    int ct = *select_randomly(uc.begin(), uc.end(), g);
-    u.push_back(ct);
-    std::shuffle(u.second.begin(),act.second.end(),g);
+    if (!uc.empty()) {
+      int ct = *select_randomly(uc.begin(), uc.end(), g);
+      u.push_back(ct);
+    }
+    if (u.empty()) {
+      t[n].deadend = true;
+      return n;
+    }
     
     for (auto const& tid : u) {
       if (domain.actions.contains(t[n].tasks[tid].head)) {
@@ -199,17 +209,9 @@ int expansion(pTree& t,
             t[w] = v;
             t[n].unexplored.push_back(w);
           }
-          std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
-          int r = t[n].unexplored.back();
-          t[n].successors.push_back(r);
-          t[n].unexplored.pop_back();
-          return r;
         }
-        t[n].deadend = true;
-        return n;
       }
-
-      if (domain.methods.contains(t[n].tasks[tid].head)) {
+      else {
         for (auto &m : domain.methods[t[n].tasks[tid].head]) {
           auto gts = m.apply(t[n].state,t[n].tasks[tid].args,t[n].tasks,tid);
           for (auto &g : gts) { 
@@ -227,17 +229,14 @@ int expansion(pTree& t,
             t[n].unexplored.push_back(w);
           }
         }
-        if (t[n].unexplored.empty()) {
-          t[n].deadend = true;
-          return n;
-        }
-        std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
-        int r = t[n].unexplored.back();
-        t[n].successors.push_back(r);
-        t[n].unexplored.pop_back();
-        return r;
       }
-      throw std::logic_error("Invalid task during expansion!");
+    }
+    if (!t[n].unexplored.empty()) {
+      std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
+      int r = t[n].unexplored.back();
+      t[n].successors.push_back(r);
+      t[n].unexplored.pop_back();
+      return r;
     }
     t[n].deadend = true;
     return n;
@@ -259,7 +258,6 @@ seek_planMCTS(pTree& t,
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
-    n_node.cTask = t[v].cTask;
     if (!redis_address.empty()) {
       t[v].state.update_temporal_facts(redis_address);
     }
@@ -275,7 +273,7 @@ seek_planMCTS(pTree& t,
     auto stop = std::chrono::high_resolution_clock::now();
     while (std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() < time_limit) {
       int n = selection(m,w,c,g);
-      if (m[n].tasks.empty() && m[n].cTask == -1) {
+      if (m[n].tasks.empty()) {
           backprop(m,n,domain.score(m[n].state,m[n].plan),1);
       }
       else {
@@ -287,7 +285,6 @@ seek_planMCTS(pTree& t,
             ar += simulation(m[n].plan,
                              m[n].state, 
                              m[n].tasks, 
-                             m[n].cTask,
                              m[n].time,
                              domain,
                              g);
@@ -312,7 +309,6 @@ seek_planMCTS(pTree& t,
             ar += simulation(m[n_p].plan,
                              m[n_p].state, 
                              m[n_p].tasks, 
-                             m[n_p].cTask,
                              m[n_p].time,
                              domain,
                              g);
@@ -377,7 +373,6 @@ seek_planMCTS(pTree& t,
 
     int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
     pNode k;
-    k.cTask = m[arg_max].cTask;
     k.state = m[arg_max].state;
     k.tasks = m[arg_max].tasks;
     k.plan = m[arg_max].plan;
