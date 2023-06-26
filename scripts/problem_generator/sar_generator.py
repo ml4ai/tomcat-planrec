@@ -17,12 +17,11 @@ Functions in this File:
     get_atom_line()
     get_init()
     main()
-
-Functions needed for this File:
+    get_task()
     get_htn()
 
 Notes:
-    TODO: Continue working on htn tasks! See line 240 for details.
+    TODO: parameters for the htn section
 
 """
 #------------------------------------------------------------------------------
@@ -287,16 +286,21 @@ def get_htn(n_players, n_victims, n_markerTypes, n_locations, n_rubble, n_htns):
     """
     ### This is the start of the htn section THAT I DON'T WANT TO REPEAT! ###
     s = "\t(:htn\n\t\t:parameters ()"
-    s = s + "\n\t\t:subtasks (and"
 
-    # Repeat htn tasks for every number specified in bash script
-    #print("\n\n Number of HTNS:", n_htns, "\n")
+    args_list = ""     # to paste for single task problem files only.
     for n in range(n_htns):
-        #print("\n\t htn step:", n)
         temp = get_task(n_players, n_victims, n_markerTypes, n_locations, n_rubble)
-        s = "{} {}".format(s, temp)
+        args_list = "{} {}".format(args_list, temp)
 
-    return s + "\n\t\t\t)\n\t)"
+    if n_htns > 1:
+        s = s + "\n\t\t:subtasks (and"
+        s = "{} {}".format(s, args_list)
+        return s + "\n\t\t\t\t\t)\n\t)"
+    else:
+        a_list = ":subtasks" + args_list
+        s = "{}\n\t\t{}".format(s, a_list)
+        return s + "\n\t)"
+
 #------------------------------------------------------------------------------
 
 def hardcoding_htn():

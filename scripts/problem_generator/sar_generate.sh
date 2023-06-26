@@ -5,7 +5,7 @@ V="3 4 5 10"
 M="1 2 2 3"
 R="3 4 5 10"
 X="1 1 2 4"
-T="1 2 3 6"
+T="1 1 3 6"
 
 for i in $(seq 1 4) ; do
 	echo "problem generated:" $i
