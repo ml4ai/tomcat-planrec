@@ -207,6 +207,7 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
           v.plan.push_back(act.first+"_"+std::to_string(tid));
           if (v.plan.size() < actions.size()) {
             v.state.update_state(actions[v.plan.size()].first);
+            v.time = actions[v.plan.size()].first;
           }
           else {
             v.state.update_state();
@@ -242,6 +243,7 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
             v.addedTIDs = g.first;
             v.prevTID = tid;
             v.pred = n;
+            v.time = t[n].time;
             int w = t.size();
             t[w] = v;
             t[n].unexplored.push_back(w);
@@ -274,7 +276,7 @@ seek_planrecMCTS(pTree& t,
                  std::vector<std::pair<int,std::string>>& actions,
                  std::string const& redis_address) {
   int root = v;
-  t[v].time = actions.back().first;
+  t[v].time = actions.front().first;
   pTree m;
   pNode n_node;
   t[v].state.update_temporal_facts(redis_address);
@@ -283,6 +285,7 @@ seek_planrecMCTS(pTree& t,
   n_node.tasks = t[v].tasks;
   n_node.depth = t[v].depth;
   n_node.plan = t[v].plan;
+  n_node.time = t[v].time;
   int w = m.size();
   m[w] = n_node;
   auto start = std::chrono::high_resolution_clock::now();
@@ -375,6 +378,7 @@ seek_planrecMCTS(pTree& t,
     k.tasks = m[w].tasks;
     k.plan = m[w].plan;
     k.depth = t[v].depth + 1;
+    k.time = t[v].time;
     for (auto& i : m[w].addedTIDs) {
       TaskNode tasknode;
       tasknode.task = k.tasks[i].head;
