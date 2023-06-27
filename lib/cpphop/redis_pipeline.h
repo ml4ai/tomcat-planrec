@@ -50,7 +50,6 @@ void upload_plan_explanation(std::string const& redis_address,
   obj["taskgraph"] = json::value_from(taskgraph);
   obj["state"] = json::value_from(facts);
   std::string s = json::serialize(obj);
-  std::string rank = std::to_string(plan.size()) + "-*";
   Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
-  rc->redis.xadd("explanations",rank,{std::make_pair("explanation",s)});
+  rc->redis.xadd("explanations","*",{std::make_pair("explanation",s)});
 }
