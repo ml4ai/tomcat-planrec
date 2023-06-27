@@ -22,6 +22,7 @@ int main(int argc, char* argv[]) {
   std::string score_fun = "delivery_one";
   std::string r_map = "transport_reach_map";
   std::string redis_address = "";
+  int n = -1;
   try {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -35,6 +36,7 @@ int main(int argc, char* argv[]) {
       ("reach_map,m",po::value<std::string>(),"name of reachability map (string), default = transport_reach_map")
       ("seed,s", po::value<int>(),"Random Seed (int)")
       ("redis_address,a",po::value<std::string>(), "Address to redis server, default = (none, no connection)")
+      ("obs_num,n",po::value<int>(), "Number of observations that are passed to planrec (int), default = -1 (all)")
     ;
 
     po::variables_map vm;        
@@ -82,6 +84,10 @@ int main(int argc, char* argv[]) {
       redis_address = vm["redis_address"].as<std::string>();
     }
 
+    if (vm.count("obs_num")) {
+      n = vm["obs_num"].as<int>();
+    }
+
   }
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << "\n";
@@ -92,7 +98,14 @@ int main(int argc, char* argv[]) {
   }
   auto [domain,problem] = load(dom_file,prob_file);
   std::vector<std::pair<int, std::string>> actions;
-  update_actions(redis_address,actions);
+  std::vector<std::pair<int, std::string>> obs;
+  update_actions(redis_address,obs);
+  if (n > 0 && n <= obs.size()) {
+    actions = {obs.begin(),obs.begin() + n};
+  }
+  else {
+    actions = obs;
+  }
   auto res = cppMCTSplanrec(domain,problem,reach_maps[r_map],scorers[score_fun],actions,time_limit,r,c,seed,redis_address); 
   std::vector<std::string> acts;
   for (auto [a,_] : domain.actions) {
