@@ -1,8 +1,16 @@
-
 """
 --------------------------------------------------------------------------
 Purpose:
     Extract location adjacency from Semantic map "Saturn_2.6_3D_sm_v1.0.json"
+
+Functions used from the Networkx Library:
+    * all_pairs_shortest_path(saturn)
+    * all_pairs_shortest_path_length(saturn)
+    * single_source_shortest_path(graph, node)
+    * all_pairs_dijkstra_path_length(graph, node)       # Adarsh's preference
+    * single_source_dijkstra_path_length(graph, node)
+    * (graph, node)
+    * (graph, node)
 
 Author:
     Salena T. Ashton
@@ -178,15 +186,14 @@ print(hrule, "For ALL PAIRS path length using Dijkstra's Algorithm:")
 adj_room_dict = dict(networkx.all_pairs_dijkstra_path_length(saturn,
                                                              weight = 'weight'))
 
-# Comment out if no printing desired:
+
+# Comment out if no printing desired; limit is only to contrain printed output
 count = 0
 for s,a in adj_room_dict.items():
     print("\n{", s, ":", a, "\n}")
     count += 1
     if count > 10:
         break
-
-
 
 
 # Now save this to a file:
@@ -206,6 +213,7 @@ print(ssd)
 print(hrule, "If we only care about the source {}, here is all_pairs_shortest_paths:".format(source))
 source_path = networkx.single_source_shortest_path(saturn, source)
 count = 0
+# Comment out if no printing desired; limit is only to contrain printed output
 for s in source_path.items():
     print("  ", s)
     count += 1
@@ -214,6 +222,7 @@ for s in source_path.items():
 
 print(hrule, "If we only care about the target {}, here is all_pairs_shortest_paths:".format(target))
 target_path = networkx.single_source_shortest_path(saturn, target)
+# Comment out if no printing desired; limit is only to contrain printed output
 count = 0
 for s in target_path.items():
     print("  ", s)
@@ -229,6 +238,8 @@ with open('saved_all_pairs_shortest_path.json', 'w') as json_file:
 
 
 
-
+# checking something: Does not use Dijkstra's 
+testing = dict(networkx.all_pairs_shortest_path_length(saturn))
+print(hrule, "All pairs shorest path length, but not using Dijkstra's:\n", testing)
 
 
