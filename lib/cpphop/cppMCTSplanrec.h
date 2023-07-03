@@ -44,14 +44,14 @@ simulation_rec(std::vector<std::pair<int,std::string>>& actions,
     return domain.score(state,plan);
   }
   
-  std::vector<int> u,uc;
+  std::vector<int> u;
   for (auto &[i,gt] : tasks.GTs) {
     if(gt.incoming.empty()) {
       if (domain.actions.contains(tasks[i].head)) {
         u.push_back(i);
       }
       else if (domain.methods.contains(tasks[i].head)) {
-        uc.push_back(i);
+        u.push_back(i);
       }
       else {
         std::string message = "Invalid task ";
@@ -60,10 +60,6 @@ simulation_rec(std::vector<std::pair<int,std::string>>& actions,
         throw std::logic_error(message);
       }
     }
-  }
-  if (!uc.empty()) {
-    int ct = *select_randomly(uc.begin(),uc.end(),g);
-    u.push_back(ct);
   }
   if (u.empty()) {
     return -1.0;
@@ -116,14 +112,14 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
                   int n,
                   DomainDef& domain,
                   std::mt19937_64& g) {
-  std::vector<int> u,uc;
+  std::vector<int> u;
   for (auto const& [id,gt] : t[n].tasks.GTs) {
     if (gt.incoming.empty()) {
       if (domain.actions.contains(t[n].tasks[id].head)) {
         u.push_back(id);
       }
       else if (domain.methods.contains(t[n].tasks[id].head)) {
-        uc.push_back(id);
+        u.push_back(id);
       }
       else {
         std::string message = "Invalid task ";
@@ -132,10 +128,6 @@ int expansion_rec(std::vector<std::pair<int,std::string>> actions,
         throw std::logic_error(message);
       }
     }
-  }
-  if (!uc.empty()) {
-    int ct = *select_randomly(uc.begin(), uc.end(), g);
-    u.push_back(ct);
   }
   if (u.empty()) {
     t[n].deadend = true;
