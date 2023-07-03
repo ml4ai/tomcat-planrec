@@ -669,7 +669,12 @@ std::pair<DomainDef,std::pair<Ptypes,Tasktypes>> createDomainDef(Domain dom) {
     if (m.task_network.constraints) {
       std::string cs = decompose_constraints(*m.task_network.constraints);
       if (cs != "__NONE__") {
-        preconditions = "(and "+preconditions+" "+cs+")";
+        if (preconditions != "__NONE__") {
+          preconditions = "(and "+preconditions+" "+cs+")";
+        }
+        else {
+          preconditions = cs;
+        }
       }
     }
      
