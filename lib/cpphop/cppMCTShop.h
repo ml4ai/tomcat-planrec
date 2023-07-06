@@ -187,6 +187,7 @@ int expansion(pTree& t,
             v.depth = t[n].depth + 1;
             v.plan = t[n].plan;
             v.time = t[n].time + 1;
+            v.treeRoots = t[n].treeRoots;
             v.plan.push_back(act.first+"_"+std::to_string(tid));
             v.pred = n;
             int w = t.size();
@@ -207,6 +208,7 @@ int expansion(pTree& t,
             v.addedTIDs = g.first;
             v.prevTID = tid;
             v.time = t[n].time;
+            v.treeRoots = t[n].treeRoots;
             v.pred = n;
             int w = t.size();
             t[w] = v;
@@ -251,6 +253,7 @@ seek_planMCTS(pTree& t,
     n_node.depth = t[v].depth;
     n_node.plan = t[v].plan;
     n_node.time = t[v].time;
+    n_node.treeRoots = t[v].treeRoots;
     int w = m.size();
     m[w] = n_node;
     auto start = std::chrono::high_resolution_clock::now();
@@ -362,6 +365,7 @@ seek_planMCTS(pTree& t,
     k.plan = m[arg_max].plan;
     k.depth = t[v].depth + 1;
     k.time = m[arg_max].time;
+    k.treeRoots = m[arg_max].treeRoots;
     prev_i.clear();
     prev_TID = m[arg_max].prevTID;
     for (auto& i : m[arg_max].addedTIDs) {
@@ -429,5 +433,5 @@ cppMCTShop(DomainDef& domain,
       std::cout << "\n\t " << p;
     }
     std::cout << std::endl;
-    return Results(t,v,end,tasktree,TID);
+    return Results(t,v,end,tasktree);
 }

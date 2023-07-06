@@ -48,7 +48,11 @@ int main(int argc, char* argv[]) {
   
   if (infile != "") {
     json::value j = parse_file(infile.c_str()); 
-    generate_graph_from_json(j.as_object(),j.as_object()["plan"].as_array().size(),j.as_object()["actions"].as_array(),"0",outfile);
+    generate_graph_from_json(j.as_object(),
+                             j.as_object()["plan"].as_array().size(),
+                             j.as_object()["actions"].as_array(),
+                             j.as_object()["treeRoots"].as_array(),
+                             outfile);
   }
   else {
     std::cout << "No json file given." << std::endl;

@@ -186,7 +186,6 @@ seek_evalMCTS(pTree& t,
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
-    n_node.cTask = t[v].cTask;
     if (!redis_address.empty()) {
       t[v].state.update_temporal_facts(redis_address);
     }
@@ -202,7 +201,7 @@ seek_evalMCTS(pTree& t,
     auto stop = std::chrono::high_resolution_clock::now();
     while (std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() < time_limit) {
       int n = selection(m,w,c,g);
-      if (m[n].tasks.empty() && m[n].cTask == -1) {
+      if (m[n].tasks.empty()) {
           backprop(m,n,domain.score(m[n].state,m[n].plan),1);
       }
       else if (m[n].plan.size() >= times.size()) {
@@ -297,7 +296,6 @@ seek_evalMCTS(pTree& t,
 
     int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
     pNode k;
-    k.cTask = m[arg_max].cTask;
     k.state = m[arg_max].state;
     k.tasks = m[arg_max].tasks;
     k.plan = m[arg_max].plan;

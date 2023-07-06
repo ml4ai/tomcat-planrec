@@ -104,6 +104,13 @@ int main(int argc, char* argv[]) {
   for (auto [a,_] : domain.actions) {
     acts.push_back(a);
   }
-  upload_plan_explanation(redis_address,res.tasktree,res.t[res.end].plan,acts,res.t[res.end].tasks,res.t[res.end].state.get_facts());
+  upload_plan_explanation(redis_address,
+                          res.tasktree,
+                          res.t[res.end].treeRoots,
+                          res.t[res.end].plan,
+                          acts,
+                          res.t[res.end].tasks,
+                          res.t[res.end].state.
+                          get_facts());
   return EXIT_SUCCESS;
 }

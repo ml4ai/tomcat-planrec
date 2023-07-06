@@ -238,13 +238,11 @@ struct Results{
   int root;
   int end;
   TaskTree tasktree;
-  int ttRoot;
-  Results(pTree t, int root, int end, TaskTree tasktree, int ttRoot) {
+  Results(pTree t, int root, int end, TaskTree tasktree) {
     this->t = t;
     this->root = root;
     this->end = end;
     this->tasktree = tasktree;
-    this->ttRoot = ttRoot;
   }
 };
 
