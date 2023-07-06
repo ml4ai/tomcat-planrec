@@ -350,6 +350,7 @@ cppMCTSplanrec(DomainDef& domain,
     tasknode.task = init_t.head;
     tasknode.token = init_t.to_string();
     tasktree[TID] = tasknode;
+    root.treeRoots.push_back(TID);
     root.plan = {};
     root.depth = 0;
     int v = t.size();

@@ -66,18 +66,13 @@ simulation_eval(std::vector<std::string>& plan,
           }
         }
       }
-      else {
-        return -1.0;
-      }
     }
     else {
       auto task_methods = domain.methods[tasks[cTask].head];
       std::shuffle(task_methods.begin(),task_methods.end(),g);
-      bool not_applicable = true;
       for (auto &m : task_methods) {
         auto all_gts = m.apply(state,tasks[cTask].args,tasks,cTask);
         if (!all_gts.empty()) {
-          not_applicable = false;
           std::shuffle(all_gts.begin(),all_gts.end(),g);
           for (auto &gts : all_gts) {
             double rs = simulation_eval(plan,state,gts.second,times,domain,g);
@@ -86,9 +81,6 @@ simulation_eval(std::vector<std::string>& plan,
             }
           }
         }
-      }
-      if (not_applicable) {
-        return -1.0;
       }
     }
   }

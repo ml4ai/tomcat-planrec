@@ -127,18 +127,13 @@ simulation(std::vector<std::string>& plan,
           }
         }
       }
-      else {
-        return -1.0;
-      }
     }
     else {
       auto task_methods = domain.methods[tasks[cTask].head];
       std::shuffle(task_methods.begin(),task_methods.end(),g);
-      bool not_applicable = true;
       for (auto &m : task_methods) {
         auto all_gts = m.apply(state,tasks[cTask].args,tasks,cTask);
         if (!all_gts.empty()) {
-          not_applicable = false;
           std::shuffle(all_gts.begin(),all_gts.end(),g);
           for (auto &gts : all_gts) {
             double rs = simulation(plan,state,gts.second,time,domain,g);
@@ -147,9 +142,6 @@ simulation(std::vector<std::string>& plan,
             }
           }
         }
-      }
-      if (not_applicable) {
-        return -1.0;
       }
     }
   }
@@ -421,6 +413,7 @@ cppMCTShop(DomainDef& domain,
     tasknode.task = init_t.head;
     tasknode.token = init_t.to_string();
     tasktree[TID] = tasknode;
+    root.treeRoots.push_back(TID);
     root.plan = {};
     root.depth = 0;
     int v = t.size();
