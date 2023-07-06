@@ -74,14 +74,16 @@ void  build_graph(Agraph_t *g,
   return;
 }
 
-void generate_graph(std::vector<std::string>& plan,DomainDef& domain, TaskTree& t, int root, std::string filename) {
+void generate_graph(std::vector<std::string>& plan,std::vector<int> roots,DomainDef& domain, TaskTree& t, std::string filename) {
   Agraph_t *g;
   Agnode_t *n;
   GVC_t *gvc;
   gvc = gvContext();
   g = agopen(const_cast<char*>("g"), Agdirected,NULL);
   std::unordered_map<std::string,std::string> action_map;
-  build_graph(g,n,domain,t,root,action_map);
+  for (auto const& root : roots) {
+    build_graph(g,n,domain,t,root,action_map);
+  }
   for (int i = 1; i < plan.size(); i++) {
     Agnode_t *v;
     Agnode_t *w;
