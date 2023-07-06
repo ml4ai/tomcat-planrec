@@ -93,16 +93,16 @@ int main(int argc, char* argv[]) {
     std::cerr << "Exception of unknown type!\n";
   }
   auto [domain,problem] = load(dom_file,prob_file);
-  if (problem.initM.get_head() != ":htn" && problem.initM.get_head() != ":htn_task_insert") {
+  if (problem.initM.get_head() != ":htn" && problem.initM.get_head() != ":c") {
     std::cout << "Problem class " << problem.initM.get_head() << " not recognized, defaulting to :htn problem class!" << std::endl;   
   }
 
-  if (problem.initM.get_head() == ":htn_task_insert") {
+  if (problem.initM.get_head() == ":c") {
     if (problem.goal != "") {
       std::cout << "Place Holder" << std::endl;
     }
     else {
-      std::cout << "A goal must be specified for :htn_task_insert problem class, exiting planner!" << std::endl;
+      std::cout << "A goal must be specified for :c problem class, exiting planner!" << std::endl;
     }
   }
   else {
@@ -116,7 +116,11 @@ int main(int argc, char* argv[]) {
       auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
       cout << "Time taken by planner: "
           << duration.count() << " microseconds" << endl;
-      generate_graph(results.t[results.end].plan,domain,results.tasktree,results.ttRoot,graph_file);
+      generate_graph(results.t[results.end].plan,
+                     results.t[results.end].treeRoots,
+                     domain,
+                     results.tasktree,
+                     graph_file);
     }
     else {
       auto start = std::chrono::high_resolution_clock::now();
