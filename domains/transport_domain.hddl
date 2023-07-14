@@ -1,4 +1,4 @@
-(define (domain domain_htn)
+(define (domain domain)
 	(:requirements :negative-preconditions :typing :hierarchy)
 	(:types
 		package - locatable

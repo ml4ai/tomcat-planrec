@@ -1,4 +1,4 @@
-(define (domain domain_c)
+(define (domain domain)
 	(:requirements :negative-preconditions :typing :hierarchy)
 	(:types
 		package - locatable

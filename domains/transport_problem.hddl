@@ -1,6 +1,6 @@
 (define
 	(problem delivery)
-	(:domain  domain_htn)
+	(:domain  domain)
 	(:objects
 		package_0 - package
 		package_1 - package

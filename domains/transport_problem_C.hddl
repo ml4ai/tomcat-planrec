@@ -1,6 +1,6 @@
 (define
 	(problem delivery)
-	(:domain domain_c)
+	(:domain domain)
 	(:objects
 		package_0 - package
 		package_1 - package
@@ -26,4 +26,5 @@
 		(at truck_0 city_loc_2)
 		(capacity truck_0 capacity_2)
 	)
+    (:goal (and (at package_0 city_loc_0) (at package_1 city_loc_2)))
 )
