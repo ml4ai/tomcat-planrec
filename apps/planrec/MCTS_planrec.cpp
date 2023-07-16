@@ -17,6 +17,7 @@ int main(int argc, char* argv[]) {
   double c = sqrt(2.0);
   int seed = 2022;
   std::string dom_file = "../domains/transport_domain.hddl";
+  std::string aux_dom_file = "";
   std::string prob_file = "../domains/transport_problem.hddl";
   std::string score_fun = "delivery_one";
   std::string redis_address = "";
@@ -29,6 +30,7 @@ int main(int argc, char* argv[]) {
       ("simulations,r", po::value<int>(), "Number of simulations per resource cycle (int), default = 5")
       ("exp_param,c",po::value<double>(),"The exploration parameter for the planner (double), default = sqrt(2)")
       ("dom_file,D", po::value<std::string>(),"domain file (string), default = transport_domain.hddl")
+      ("aux_dom_file,x",po::value<std::string>(),"auxillary domain file (string), default = None")
       ("prob_file,P",po::value<std::string>(),"problem file (string), default = transport_problem.hddl")
       ("score_fun,F",po::value<std::string>(),"name of score function for (string), default = delivery_one")
       ("seed,s", po::value<int>(),"Random Seed (int)")
