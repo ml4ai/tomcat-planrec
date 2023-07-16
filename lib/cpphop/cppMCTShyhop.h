@@ -81,7 +81,6 @@ simulationhh(std::vector<std::string>& plan,
            std::string goal,
            std::mt19937_64& g) {
   if (state.ask(goal)) {
-    std::cout << "test1" << std::endl;
     return domain_htn.score(state,plan);
   }
   else if (c_state.ask(goal)) {
@@ -103,7 +102,7 @@ simulationhh(std::vector<std::string>& plan,
       }
     }
     if (u.empty()) {
-      return -1.0;
+      return -0.5;
     }
     auto cTask = *select_randomly(u.begin(),u.end(),g);
     if (domain_htn.actions.contains(tasks[cTask].head)) {
@@ -127,7 +126,7 @@ simulationhh(std::vector<std::string>& plan,
                             g);
       }
       else {
-        return -1.0;
+        return -0.5;
       }
     }
     else {
@@ -148,10 +147,10 @@ simulationhh(std::vector<std::string>& plan,
                             g);
       }
       else {
-        return -1.0;
+        return -0.5;
       }
     }
-    return -1.0;
+    return -0.5;
   }
   else {
     if (tasks.size() == max_depth) {
@@ -187,7 +186,7 @@ simulationhh(std::vector<std::string>& plan,
       return -1.0;
     }
   }
-  return -1.0;
+  return -0.5;
 }
 
 int expansionhh(pTree& t,
@@ -198,7 +197,6 @@ int expansionhh(pTree& t,
               std::string goal,
               std::mt19937_64& g) {
   if (t[n].c_state.ask(goal)) {
-    std::cout << "test2" << std::endl; 
     std::vector<int> u;
     for (auto const& [id,gt] : t[n].tasks.GTs) {
       if (gt.incoming.empty()) {
@@ -236,6 +234,7 @@ int expansionhh(pTree& t,
             v.time = t[n].time + 1;
             v.plan.push_back(act.first+"_"+std::to_string(tid));
             v.pred = n;
+            v.treeRoots = t[n].treeRoots;
             int w = t.size();
             t[w] = v;
             t[n].unexplored.push_back(w);
@@ -256,6 +255,7 @@ int expansionhh(pTree& t,
             v.prevTID = tid;
             v.time = t[n].time;
             v.pred = n;
+            v.treeRoots = t[n].treeRoots;
             int w = t.size();
             t[w] = v;
             t[n].unexplored.push_back(w);
@@ -291,6 +291,7 @@ int expansionhh(pTree& t,
         v.depth = t[n].depth + 1;
         v.addedTIDs.push_back(TID);
         v.prevTID = -1; 
+        v.treeRoots = t[n].treeRoots;
         v.treeRoots.push_back(TID);
         v.time = t[n].time;
         v.pred = n;
@@ -327,7 +328,6 @@ seek_planMCTS(pTree& t,
   int prev_TID = -1;
   std::vector<int> prev_i;
   while (!t[v].state.ask(goal)) {
-    std::cout << t.size() << std::endl;
     pTree m;
     pNode n_node;
     if (!redis_address.empty()) {
@@ -340,6 +340,7 @@ seek_planMCTS(pTree& t,
     n_node.depth = t[v].depth;
     n_node.plan = t[v].plan;
     n_node.time = t[v].time;
+    n_node.treeRoots = t[v].treeRoots;
     int w = m.size();
     m[w] = n_node;
     auto start = std::chrono::high_resolution_clock::now();
@@ -450,6 +451,7 @@ seek_planMCTS(pTree& t,
     k.plan = m[arg_max].plan;
     k.depth = t[v].depth + 1;
     k.time = m[arg_max].time;
+    k.treeRoots = m[arg_max].treeRoots;
     prev_i.clear();
     prev_TID = m[arg_max].prevTID;
     for (auto& i : m[arg_max].addedTIDs) {
