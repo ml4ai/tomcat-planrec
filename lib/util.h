@@ -36,6 +36,15 @@ parse_file( char const* filename )
     return p.release();
 }
 
+bool is_subseq(std::vector<std::string> plan, std::vector<std::pair<int,std::string>> O) {
+  for (int i = 0; i < plan.size(); i++) {
+    if (plan[i].find(O[i].second) == std::string::npos) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Utility method to see if an element is in an associative container
 template <class Element, class AssociativeContainer>
 bool in(Element element, AssociativeContainer container) {

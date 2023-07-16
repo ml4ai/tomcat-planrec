@@ -20,15 +20,6 @@
 
 namespace json = boost::json;
 
-bool is_subseq(std::vector<std::string> plan, std::vector<std::pair<int,std::string>> O) {
-  for (int i = 0; i < plan.size(); i++) {
-    if (plan[i].find(O[i].second) == std::string::npos) {
-      return false;
-    }
-  }
-  return true;
-}
-
 double
 simulation_rec(std::vector<std::pair<int,std::string>>& actions,
                std::vector<std::string> plan,
