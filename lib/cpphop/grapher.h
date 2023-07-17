@@ -152,7 +152,8 @@ void generate_graph_from_json(json::object& t, int O, json::array& acts, json::a
   g = agopen(const_cast<char*>("g"), Agdirected,NULL);
   std::unordered_map<std::string,std::string> action_map;
   for (auto const& r : roots) {
-    std::string root = json::value_to<std::string>(r);
+    int r_num = json::value_to<int>(r);
+    std::string root = std::to_string(r_num);
     build_graph_from_json(g,n,acts,t["tasktree"].as_object(),root,action_map);
   }
   for (int i = 1; i < t["plan"].as_array().size(); i++) {
