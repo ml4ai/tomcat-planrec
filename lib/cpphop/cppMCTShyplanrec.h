@@ -110,11 +110,11 @@ simulationhh_rec(std::vector<std::pair<int,std::string>>& actions,
     return -0.5;
   }
   else {
-    std::vector<std::string> actions;
+    std::vector<std::string> acts;
     for (auto &[act,_] : domain_c.actions) {
-      actions.push_back(act);
+      acts.push_back(act);
     }
-    auto a = *select_randomly(actions.begin(),actions.end(),g);
+    auto a = *select_randomly(acts.begin(),acts.end(),g);
     auto def = domain_c.actions.at(a);
     auto p = def.apply(c_state);
     if (!p.empty()) {
@@ -267,7 +267,7 @@ int expansionhh_rec(std::vector<std::pair<int,std::string>>& actions,
   return n;
 }
 
-int
+Results
 seek_planrecMCTS(pTree& t,
                  TaskTree& tasktree,
                  int v,
@@ -377,21 +377,21 @@ seek_planrecMCTS(pTree& t,
 
     w = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
     pNode k;
-    k.state = m[arg_max].state;
-    k.c_state = m[arg_max].c_state;
-    k.tasks = m[arg_max].tasks;
-    k.plan = m[arg_max].plan;
+    k.state = m[w].state;
+    k.c_state = m[w].c_state;
+    k.tasks = m[w].tasks;
+    k.plan = m[w].plan;
     k.depth = t[v].depth + 1;
-    k.time = m[arg_max].time;
-    k.treeRoots = t[v].treeRoots;
-    for (auto& i : m[arg_max].addedTIDs) {
+    k.time = m[w].time;
+    k.treeRoots = m[w].treeRoots;
+    for (auto& i : m[w].addedTIDs) {
       TaskNode tasknode;
       tasknode.task = k.tasks[i].head;
       tasknode.token = k.tasks[i].to_string();
       tasknode.outgoing = k.tasks[i].outgoing;
       tasktree[i] = tasknode;
-      if (m[arg_max].prevTID != -1) {
-        tasktree[m[arg_max].prevTID].children.push_back(i);
+      if (m[w].prevTID != -1) {
+        tasktree[m[w].prevTID].children.push_back(i);
       }
     }
     k.pred = v;

@@ -5,6 +5,7 @@
 #include <boost/program_options.hpp>
 #include "cpphop/loader.h"
 #include "cpphop/cppMCTSplanrec.h"
+#include "cpphop/cppMCTShyplanrec.h"
 #include "util.h"
 #include <chrono>
 namespace po = boost::program_options;
@@ -63,6 +64,10 @@ int main(int argc, char* argv[]) {
       dom_file = vm["dom_file"].as<std::string>();
     }
 
+    if (vm.count("aux_dom_file")) {
+      aux_dom_file = vm["aux_dom_file"].as<std::string>();
+    }
+
     if (vm.count("prob_file")) {
       prob_file = vm["prob_file"].as<std::string>();
     }
@@ -91,7 +96,7 @@ int main(int argc, char* argv[]) {
   catch(...) {
     std::cerr << "Exception of unknown type!\n";
   }
-  auto [domain,problem] = load(dom_file,prob_file);
+
   std::vector<std::pair<int, std::string>> actions;
   std::vector<std::pair<int, std::string>> obs;
   update_actions(redis_address,obs);
@@ -101,18 +106,65 @@ int main(int argc, char* argv[]) {
   else {
     actions = obs;
   }
-  auto res = cppMCTSplanrec(domain,problem,scorers[score_fun],actions,time_limit,r,c,seed,redis_address); 
+
+  auto [domain,problem] = load(dom_file,prob_file);
   std::vector<std::string> acts;
   for (auto [a,_] : domain.actions) {
     acts.push_back(a);
   }
-  upload_plan_explanation(redis_address,
-                          res.tasktree,
-                          res.t[res.end].treeRoots,
-                          res.t[res.end].plan,
-                          acts,
-                          res.t[res.end].tasks,
-                          res.t[res.end].state.
-                          get_facts());
+  if (problem.initM.get_head() != ":htn" && problem.initM.get_head() != ":c") {
+    std::cout << "Problem class " << problem.initM.get_head() << " not recognized, defaulting to :htn problem class!" << std::endl;
+  }
+
+  if (problem.initM.get_head() == ":c") {
+    if (aux_dom_file != "") {
+      auto [domain_c,_] = load(aux_dom_file,prob_file);
+
+      if (problem.goal != "") {
+        auto res = cppMCTShyplanrec(domain,
+                                    domain_c,
+                                    problem,
+                                    scorers[score_fun],
+                                    actions,
+                                    time_limit,
+                                    r,
+                                    c,
+                                    seed,
+                                    redis_address);
+        upload_plan_explanation(redis_address,
+                                res.tasktree,
+                                res.t[res.end].treeRoots,
+                                res.t[res.end].plan,
+                                acts,
+                                res.t[res.end].tasks,
+                                res.t[res.end].state.get_facts());
+
+      }
+      else {
+        std::cout << "A goal must be specified for :c problem class, exiting planner!" << std::endl;
+      }
+    }
+    else {
+      std::cout << "A auxillary domain file must be loaded for this problem class!" << std::endl;
+    }
+  }
+  else {
+    auto res = cppMCTSplanrec(domain,
+                              problem,
+                              scorers[score_fun],
+                              actions,
+                              time_limit,
+                              r,
+                              c,
+                              seed,
+                              redis_address);
+    upload_plan_explanation(redis_address,
+                            res.tasktree,
+                            res.t[res.end].treeRoots,
+                            res.t[res.end].plan,
+                            acts,
+                            res.t[res.end].tasks,
+                            res.t[res.end].state.get_facts());
+  }
   return EXIT_SUCCESS;
 }
