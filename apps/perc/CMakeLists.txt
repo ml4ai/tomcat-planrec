@@ -3,6 +3,7 @@ find_package(PahoMqttCpp REQUIRED)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_definitions(-DBOOST_LOG_DYN_LINK)
+add_compile_definitions(BOOST_NO_CXX98_FUNCTION_BASE)
 find_package(Z3 REQUIRED)
 find_package(
     Boost 

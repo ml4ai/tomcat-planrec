@@ -97,6 +97,10 @@ struct TaskGraph {
     return this->GTs.empty();
   } 
 
+  int size() {
+    return this->GTs.size();
+  }
+
 };
 
 void tag_invoke(const json::value_from_tag&, json::value& jv, Grounded_Task const& gt) {
@@ -211,10 +215,11 @@ void tag_invoke(const json::value_from_tag&, json::value& jv, TaskTree const& t)
 
 struct pNode {
     KnowledgeBase state;
+    KnowledgeBase c_state;
     TaskGraph tasks;
-    int cTask = -1;
     int prevTID = -1;
     std::vector<int> addedTIDs;
+    std::vector<int> treeRoots;
     std::vector<std::string> plan;
     int depth = 0;
     double score = 0.0;
@@ -233,13 +238,11 @@ struct Results{
   int root;
   int end;
   TaskTree tasktree;
-  int ttRoot;
-  Results(pTree t, int root, int end, TaskTree tasktree, int ttRoot) {
+  Results(pTree t, int root, int end, TaskTree tasktree) {
     this->t = t;
     this->root = root;
     this->end = end;
     this->tasktree = tasktree;
-    this->ttRoot = ttRoot;
   }
 };
 
@@ -506,6 +509,51 @@ class ActionDef {
       }
       return std::make_pair(token,new_states);
     }
+
+    std::vector<std::pair<Args,KnowledgeBase>> apply(KnowledgeBase& kb) {
+      std::vector<std::pair<Args,KnowledgeBase>> new_states = {};
+      if (this->preconditions != "__NONE__") {
+        if (this->parameters.empty()) {
+          auto pass = kb.ask(this->preconditions);
+          if (pass) {
+            Args b = {};
+            std::pair<Args,KnowledgeBase> pr;
+            pr.first = b;
+            pr.second = this->apply_binding(kb,b);
+            new_states.push_back(pr);
+          }
+        }
+        else {
+          auto bindings = kb.ask(this->preconditions,this->parameters);
+          for (auto &b : bindings) {
+            std::pair<Args,KnowledgeBase> pr;
+            pr.first = b;
+            pr.second = this->apply_binding(kb,b);
+            new_states.push_back(pr); 
+          }
+        }
+      }
+      else {
+        if (this->parameters.empty()) {
+          Args b = {};
+          std::pair<Args,KnowledgeBase> pr;
+          pr.first = b;
+          pr.second = this->apply_binding(kb,b);
+          new_states.push_back(pr);
+        }
+        else {
+          auto bindings = kb.ask("",this->parameters);
+          for (auto &b : bindings) {
+            std::pair<Args,KnowledgeBase> pr;
+            pr.first = b;
+            pr.second = this->apply_binding(kb,b);
+            new_states.push_back(pr);
+          }
+        }
+      }
+      return new_states;
+    }
+
 };
 
 class MethodDef {

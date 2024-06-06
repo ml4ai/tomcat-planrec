@@ -74,14 +74,16 @@ void  build_graph(Agraph_t *g,
   return;
 }
 
-void generate_graph(std::vector<std::string>& plan,DomainDef& domain, TaskTree& t, int root, std::string filename) {
+void generate_graph(std::vector<std::string>& plan,std::vector<int> roots,DomainDef& domain, TaskTree& t, std::string filename) {
   Agraph_t *g;
   Agnode_t *n;
   GVC_t *gvc;
   gvc = gvContext();
   g = agopen(const_cast<char*>("g"), Agdirected,NULL);
   std::unordered_map<std::string,std::string> action_map;
-  build_graph(g,n,domain,t,root,action_map);
+  for (auto const& root : roots) {
+    build_graph(g,n,domain,t,root,action_map);
+  }
   for (int i = 1; i < plan.size(); i++) {
     Agnode_t *v;
     Agnode_t *w;
@@ -142,15 +144,18 @@ void  build_graph_from_json(Agraph_t *g,
   return;
 }
 
-void generate_graph_from_json(json::object& t, int O, json::array& acts, std::string root, std::string filename) {
+void generate_graph_from_json(json::object& t, int O, json::array& acts, json::array& roots, std::string filename) {
   Agraph_t *g;
   Agnode_t *n;
   GVC_t *gvc;
   gvc = gvContext();
   g = agopen(const_cast<char*>("g"), Agdirected,NULL);
   std::unordered_map<std::string,std::string> action_map;
-  build_graph_from_json(g,n,acts,t["tasktree"].as_object(),root,action_map);
-
+  for (auto const& r : roots) {
+    int r_num = json::value_to<int>(r);
+    std::string root = std::to_string(r_num);
+    build_graph_from_json(g,n,acts,t["tasktree"].as_object(),root,action_map);
+  }
   for (int i = 1; i < t["plan"].as_array().size(); i++) {
     Agnode_t *v;
     Agnode_t *w;

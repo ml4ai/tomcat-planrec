@@ -669,7 +669,12 @@ std::pair<DomainDef,std::pair<Ptypes,Tasktypes>> createDomainDef(Domain dom) {
     if (m.task_network.constraints) {
       std::string cs = decompose_constraints(*m.task_network.constraints);
       if (cs != "__NONE__") {
-        preconditions = "(and "+preconditions+" "+cs+")";
+        if (preconditions != "__NONE__") {
+          preconditions = "(and "+preconditions+" "+cs+")";
+        }
+        else {
+          preconditions = cs;
+        }
       }
     }
      
@@ -747,57 +752,61 @@ ProblemDef createProblemDef(Problem prob, Ptypes ptypes, Tasktypes ttypes) {
   
   std::string m_name = prob.problem_htn.problem_class;
   TaskDef task;
-  task.first = head;
-  task.second = {};
   Params params;
-  for (auto const& p : prob.problem_htn.parameters.explicitly_typed_lists) {
-    std::string type = boost::get<PrimitiveType>(p.type);
-    for (auto const& e : p.entries) {
-      params.push_back(std::make_pair(e.name,type));
-    }
-  }
-  for (auto const& pt : prob.problem_htn.parameters.implicitly_typed_list) {
-    params.push_back(std::make_pair(pt.name,"__Object__"));
-  }
   Preconds preconditions;
-  if (prob.problem_htn.task_network.constraints) {
-    std::string cs = decompose_constraints(*prob.problem_htn.task_network.constraints);
-    preconditions = cs;
-  }
-  else {
-    preconditions = "__NONE__";
-  }
-
   TaskDefs subtasks;
   std::unordered_map<std::string,std::vector<std::string>> orderings;
-  if (prob.problem_htn.task_network.subtasks) {
-    auto sts = get_subtasks(prob.problem_htn.task_network.subtasks->subtasks,ttypes);    
-    if (prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-tasks" || 
-        prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-subtasks") {
-      subtasks[sts[0].first] = sts[0].second;
-      for (int i = 1; i < sts.size(); i++) {
-        subtasks[sts[i].first] = sts[i].second;
-        orderings[sts[i-1].first].push_back(sts[i].first);
+  if (m_name == "") {
+    m_name = ":c";
+  }
+  else {
+    task.first = head;
+    task.second = {};
+    for (auto const& p : prob.problem_htn.parameters.explicitly_typed_lists) {
+      std::string type = boost::get<PrimitiveType>(p.type);
+      for (auto const& e : p.entries) {
+        params.push_back(std::make_pair(e.name,type));
       }
-      orderings[sts[sts.size()-1].first] = {};
+    }
+    for (auto const& pt : prob.problem_htn.parameters.implicitly_typed_list) {
+      params.push_back(std::make_pair(pt.name,"__Object__"));
+    }
+    if (prob.problem_htn.task_network.constraints) {
+      std::string cs = decompose_constraints(*prob.problem_htn.task_network.constraints);
+      preconditions = cs;
     }
     else {
-      if (!prob.problem_htn.task_network.orderings) {
-        for (auto const &st : sts) {
-          subtasks[st.first] = st.second;
-          orderings[st.first] = {};
+      preconditions = "__NONE__";
+    }
+
+    if (prob.problem_htn.task_network.subtasks) {
+      auto sts = get_subtasks(prob.problem_htn.task_network.subtasks->subtasks,ttypes);    
+      if (prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-tasks" || 
+          prob.problem_htn.task_network.subtasks->ordering_kw == "ordered-subtasks") {
+        subtasks[sts[0].first] = sts[0].second;
+        for (int i = 1; i < sts.size(); i++) {
+          subtasks[sts[i].first] = sts[i].second;
+          orderings[sts[i-1].first].push_back(sts[i].first);
         }
-      } 
+        orderings[sts[sts.size()-1].first] = {};
+      }
       else {
-        for (auto const &st : sts) {
-          subtasks[st.first] = st.second;
-          orderings[st.first] = {};
+        if (!prob.problem_htn.task_network.orderings) {
+          for (auto const &st : sts) {
+            subtasks[st.first] = st.second;
+            orderings[st.first] = {};
+          }
+        } 
+        else {
+          for (auto const &st : sts) {
+            subtasks[st.first] = st.second;
+            orderings[st.first] = {};
+          }
+          get_orderings(*prob.problem_htn.task_network.orderings, orderings); 
         }
-        get_orderings(*prob.problem_htn.task_network.orderings, orderings); 
       }
     }
   }
-
   MethodDef initM = MethodDef(m_name,task,params,preconditions,subtasks,orderings);
 
   std::vector<std::string> initF;

@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(test_domain_parsing) {
     auto dom = parse<Domain>(t_transport);
 
     // Test Domain Name:
-    BOOST_TEST(dom.name == "domain_htn");
+    BOOST_TEST(dom.name == "domain");
 
     // Test requirements
     BOOST_TEST(equals(dom.requirements, {"negative-preconditions", "typing", "hierarchy"}));
@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE(test_problem_parsing) {
     auto prob = parse<Problem>(t_transport);
 
     BOOST_TEST(prob.name == "delivery");
-    BOOST_TEST(prob.domain_name == "domain_htn");
+    BOOST_TEST(prob.domain_name == "domain");
 
     // Test initial state
     BOOST_TEST(prob.init[7].predicate == "road");

@@ -38,19 +38,20 @@ void update_actions(std::string const& redis_address,
 
 void upload_plan_explanation(std::string const& redis_address,
                              TaskTree& tasktree,
+                             std::vector<int> treeRoots,
                              std::vector<std::string>& plan,
                              std::vector<std::string>& acts,
                              TaskGraph& taskgraph,
                              std::unordered_map<std::string, std::unordered_set<std::string>> facts) {
   //Serialize task tree and current plan
   json::object obj;
+  obj["treeRoots"] = json::value_from(treeRoots);
   obj["tasktree"] = json::value_from(tasktree);
   obj["plan"] = json::value_from(plan);
   obj["actions"] = json::value_from(acts);
   obj["taskgraph"] = json::value_from(taskgraph);
   obj["state"] = json::value_from(facts);
   std::string s = json::serialize(obj);
-  std::string rank = std::to_string(plan.size()) + "-*";
   Redis_Connect* rc = Redis_Connect::getInstance(redis_address);
-  rc->redis.xadd("explanations",rank,{std::make_pair("explanation",s)});
+  rc->redis.xadd("explanations","*",{std::make_pair("explanation",s)});
 }

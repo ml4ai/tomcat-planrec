@@ -77,7 +77,11 @@ int main(int argc, char* argv[]) {
         std::string f = save_path + "/" + key + "_" + std::to_string(i) + ".png";
         i++;
         json::value j = json::parse(y.second);
-        generate_graph_from_json(j.as_object(),j.as_object()["plan"].as_array().size(),j.as_object()["actions"].as_array(),"0",f);
+        generate_graph_from_json(j.as_object(),
+                                 j.as_object()["plan"].as_array().size(),
+                                 j.as_object()["actions"].as_array(),
+                                 j.as_object()["treeRoots"].as_array(),
+                                 f);
       }
     }
   }

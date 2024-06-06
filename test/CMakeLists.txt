@@ -2,6 +2,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../apps/cmake")
 
 add_definitions(-DBOOST_LOG_DYN_LINK)
+add_compile_definitions(BOOST_NO_CXX98_FUNCTION_BASE)
 find_package(Boost COMPONENTS log json REQUIRED)
 find_package(Z3 REQUIRED)
 find_path(HIREDIS_HEADER hiredis)

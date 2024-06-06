@@ -83,68 +83,64 @@ double
 simulation(std::vector<std::string>& plan,
            KnowledgeBase state,
            TaskGraph tasks,
-           int cTask,
            int time,
            DomainDef& domain,
            std::mt19937_64& g) {
-  if (tasks.empty() && cTask == -1) {
+  if (tasks.empty()) {
     return domain.score(state,plan);
   }
-  if (cTask != -1) {
+  std::vector<int> u;
+  for (auto &[i,gt] : tasks.GTs) {
+    if (gt.incoming.empty()) {
+      if (domain.actions.contains(tasks[i].head)) {
+        u.push_back(i);
+      }
+      else if (domain.methods.contains(tasks[i].head)) {
+        u.push_back(i);
+      }
+      else {
+        std::string message = "Invalid task ";
+        message += tasks[i].head;
+        message += " during simulation!";
+        throw std::logic_error(message);
+      }
+    }
+  }
+  if (u.empty()) {
+    return -1.0;
+  }
+  std::shuffle(u.begin(),u.end(),g);
+
+  for (auto const& cTask : u) { 
     if (domain.actions.contains(tasks[cTask].head)) {
       auto act = domain.actions.at(tasks[cTask].head).apply(state,tasks[cTask].args);
       if (!act.second.empty()) {
-        std::shuffle(act.second.begin(),act.second.end(),g);
         auto gtasks = tasks;
         gtasks.remove_node(cTask);
         for (auto &ns : act.second) {
           ns.update_state(time+1);
           auto gplan = plan;
           gplan.push_back(act.first+"_"+std::to_string(cTask));
-          double rs = simulation(gplan,ns,gtasks,-1,time + 1,domain,g);
+          double rs = simulation(gplan,ns,gtasks,time + 1,domain,g);
           if (rs > -1.0) {
             return rs;
           }
         }
       }
-      else {
-        return -1.0;
-      }
     }
-    else if (domain.methods.contains(tasks[cTask].head)) {
+    else {
       auto task_methods = domain.methods[tasks[cTask].head];
       std::shuffle(task_methods.begin(),task_methods.end(),g);
-      bool not_applicable = true;
       for (auto &m : task_methods) {
         auto all_gts = m.apply(state,tasks[cTask].args,tasks,cTask);
         if (!all_gts.empty()) {
-          not_applicable = false;
           std::shuffle(all_gts.begin(),all_gts.end(),g);
           for (auto &gts : all_gts) {
-            double rs = simulation(plan,state,gts.second,-1,time,domain,g);
+            double rs = simulation(plan,state,gts.second,time,domain,g);
             if (rs > -1.0) {
               return rs;
             }
           }
-        }
-      }
-      if (not_applicable) {
-        return -1.0;
-      }
-    }
-    else {
-      std::string message = "Invalid task ";
-      message += tasks[cTask].head;
-      message += " during simulation!";
-      throw std::logic_error(message);
-    }
-  }
-  else {
-    for (auto &[i,gt] : tasks.GTs) {
-      if (gt.incoming.empty()) {
-        double rs = simulation(plan,state,tasks,i,time,domain,g);
-        if (rs > -1.0) {
-          return rs;
         }
       }
     }
@@ -156,8 +152,29 @@ int expansion(pTree& t,
               int n,
               DomainDef& domain,
               std::mt19937_64& g) {
-    if (t[n].cTask != -1) {
-      int tid = t[n].cTask;
+    std::vector<int> u;
+    for (auto const& [id,gt] : t[n].tasks.GTs) {
+      if (gt.incoming.empty()) {
+        if (domain.actions.contains(t[n].tasks[id].head)) {
+          u.push_back(id);
+        }
+        else if (domain.methods.contains(t[n].tasks[id].head)) {
+          u.push_back(id);
+        }
+        else {
+          std::string message = "Invalid task ";
+          message += t[n].tasks[id].head;
+          message += " during simulation!";
+          throw std::logic_error(message);
+        }
+      }
+    } 
+    if (u.empty()) {
+      t[n].deadend = true;
+      return n;
+    }
+    
+    for (auto const& tid : u) {
       if (domain.actions.contains(t[n].tasks[tid].head)) {
         auto act = domain.actions.at(t[n].tasks[tid].head).apply(t[n].state,t[n].tasks[tid].args);
         if (!act.second.empty()) {
@@ -170,23 +187,16 @@ int expansion(pTree& t,
             v.depth = t[n].depth + 1;
             v.plan = t[n].plan;
             v.time = t[n].time + 1;
+            v.treeRoots = t[n].treeRoots;
             v.plan.push_back(act.first+"_"+std::to_string(tid));
             v.pred = n;
             int w = t.size();
             t[w] = v;
             t[n].unexplored.push_back(w);
           }
-          std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
-          int r = t[n].unexplored.back();
-          t[n].successors.push_back(r);
-          t[n].unexplored.pop_back();
-          return r;
         }
-        t[n].deadend = true;
-        return n;
       }
-
-      if (domain.methods.contains(t[n].tasks[tid].head)) {
+      else {
         for (auto &m : domain.methods[t[n].tasks[tid].head]) {
           auto gts = m.apply(t[n].state,t[n].tasks[tid].args,t[n].tasks,tid);
           for (auto &g : gts) { 
@@ -198,40 +208,16 @@ int expansion(pTree& t,
             v.addedTIDs = g.first;
             v.prevTID = tid;
             v.time = t[n].time;
+            v.treeRoots = t[n].treeRoots;
             v.pred = n;
             int w = t.size();
             t[w] = v;
             t[n].unexplored.push_back(w);
           }
         }
-        if (t[n].unexplored.empty()) {
-          t[n].deadend = true;
-          return n;
-        }
-        std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
-        int r = t[n].unexplored.back();
-        t[n].successors.push_back(r);
-        t[n].unexplored.pop_back();
-        return r;
       }
-      throw std::logic_error("Invalid task during expansion!");
     }
-    else {
-      for (auto const& [id,gt] : t[n].tasks.GTs) {
-        if (gt.incoming.empty()) {
-          pNode v;
-          v.cTask = id;
-          v.state = t[n].state;
-          v.tasks = t[n].tasks;
-          v.depth = t[n].depth + 1;
-          v.plan = t[n].plan;
-          v.time = t[n].time;
-          v.pred = n;
-          int w = t.size();
-          t[w] = v;
-          t[n].unexplored.push_back(w);
-        }
-      }
+    if (!t[n].unexplored.empty()) {
       std::shuffle(t[n].unexplored.begin(),t[n].unexplored.end(),g);
       int r = t[n].unexplored.back();
       t[n].successors.push_back(r);
@@ -258,7 +244,6 @@ seek_planMCTS(pTree& t,
   while (!t[v].tasks.empty()) {
     pTree m;
     pNode n_node;
-    n_node.cTask = t[v].cTask;
     if (!redis_address.empty()) {
       t[v].state.update_temporal_facts(redis_address);
     }
@@ -268,13 +253,14 @@ seek_planMCTS(pTree& t,
     n_node.depth = t[v].depth;
     n_node.plan = t[v].plan;
     n_node.time = t[v].time;
+    n_node.treeRoots = t[v].treeRoots;
     int w = m.size();
     m[w] = n_node;
     auto start = std::chrono::high_resolution_clock::now();
     auto stop = std::chrono::high_resolution_clock::now();
     while (std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() < time_limit) {
       int n = selection(m,w,c,g);
-      if (m[n].tasks.empty() && m[n].cTask == -1) {
+      if (m[n].tasks.empty()) {
           backprop(m,n,domain.score(m[n].state,m[n].plan),1);
       }
       else {
@@ -286,7 +272,6 @@ seek_planMCTS(pTree& t,
             ar += simulation(m[n].plan,
                              m[n].state, 
                              m[n].tasks, 
-                             m[n].cTask,
                              m[n].time,
                              domain,
                              g);
@@ -311,7 +296,6 @@ seek_planMCTS(pTree& t,
             ar += simulation(m[n_p].plan,
                              m[n_p].state, 
                              m[n_p].tasks, 
-                             m[n_p].cTask,
                              m[n_p].time,
                              domain,
                              g);
@@ -376,12 +360,12 @@ seek_planMCTS(pTree& t,
 
     int arg_max = *select_randomly(arg_maxes.begin(), arg_maxes.end(), g); 
     pNode k;
-    k.cTask = m[arg_max].cTask;
     k.state = m[arg_max].state;
     k.tasks = m[arg_max].tasks;
     k.plan = m[arg_max].plan;
     k.depth = t[v].depth + 1;
     k.time = m[arg_max].time;
+    k.treeRoots = m[arg_max].treeRoots;
     prev_i.clear();
     prev_TID = m[arg_max].prevTID;
     for (auto& i : m[arg_max].addedTIDs) {
@@ -433,6 +417,7 @@ cppMCTShop(DomainDef& domain,
     tasknode.task = init_t.head;
     tasknode.token = init_t.to_string();
     tasktree[TID] = tasknode;
+    root.treeRoots.push_back(TID);
     root.plan = {};
     root.depth = 0;
     int v = t.size();
@@ -448,5 +433,5 @@ cppMCTShop(DomainDef& domain,
       std::cout << "\n\t " << p;
     }
     std::cout << std::endl;
-    return Results(t,v,end,tasktree,TID);
+    return Results(t,v,end,tasktree);
 }
