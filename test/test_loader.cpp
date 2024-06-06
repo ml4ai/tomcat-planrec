@@ -8,7 +8,7 @@ BOOST_AUTO_TEST_CASE(test_domain_loading) {
     auto [transport_domain,transport_problem] = load("../../domains/transport_domain.hddl",
                                             "../../domains/transport_problem.hddl");
 
-    BOOST_TEST(transport_domain.head == "domain_htn");
+    BOOST_TEST(transport_domain.head == "domain");
 
     BOOST_TEST(transport_domain.typetree.types.size() == 8);
     for (auto const& [id, t] : transport_domain.typetree.types) {
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(test_problem_loading) {
                                             "../../domains/transport_problem.hddl");
 
     BOOST_TEST(transport_problem.head == "__delivery__");
-    BOOST_TEST(transport_problem.domain_name == "domain_htn");
+    BOOST_TEST(transport_problem.domain_name == "domain");
     
     BOOST_TEST(transport_problem.initF[7] == "(road city_loc_2 city_loc_0)");
 
