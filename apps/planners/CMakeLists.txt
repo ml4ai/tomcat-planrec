@@ -7,6 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 #set(CMAKE_CXX_FLAGS "-ggdb")
 #set(CMAKE_CXX_FLAGS "-glldb")
 
+add_compile_definitions(BOOST_NO_CXX98_FUNCTION_BASE)
 find_package(Boost COMPONENTS program_options json REQUIRED)
 find_package(Graphviz REQUIRED)
 find_package(Z3 REQUIRED)
