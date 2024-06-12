@@ -7,7 +7,8 @@ Code for the plan recognition and planning effort in ToMCAT.
 3. [HDDL Domain and Problem Definition
    Loaders](#hddl-domain-and-problem-definition-loaders)
 4. [MCTS Hierarchical Planners](#mcts-hierarchical-planners)
-5. [MCTS Hierarchical Plan Recognizer](#mcts-hierarchical-plan-recognizer)
+    1. [MCTS HTN Planner](##mcts-htn-planner) 
+5. [MCTS Hierarchical Plan Recognizers](#mcts-hierarchical-plan-recognizers)
 
 # Build Requirements
 - cmake (Minimum requirement is version 3.16, https://cmake.org/)
