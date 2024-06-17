@@ -27,3 +27,6 @@ add_executable(redis_grapher redis_grapher.cpp)
 target_include_directories(redis_grapher PRIVATE ${Boost_INCLUDE_DIR} ${GRAPHVIZ_INCLUDE_DIRS} ${HIREDIS_HEADER} ${REDIS_PLUS_PLUS_HEADER} ../../lib)
 target_link_libraries(redis_grapher PRIVATE ${Boost_LIBRARIES} ${GRAPHVIZ_LIBS} ${HIREDIS_LIB} ${REDIS_PLUS_PLUS_LIB})
 
+add_executable(pr_samples_to_redis pr_samples_to_redis.cpp)
+target_include_directories(pr_samples_to_redis PRIVATE ${Boost_INCLUDE_DIR} ${HIREDIS_HEADER} ${REDIS_PLUS_PLUS_HEADER} ../../lib)
+target_link_libraries(pr_samples_to_redis PRIVATE ${Boost_LIBRARIES} ${HIREDIS_LIB} ${REDIS_PLUS_PLUS_LIB})
