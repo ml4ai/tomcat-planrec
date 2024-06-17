@@ -8,18 +8,25 @@ Code for the plan recognition and planning effort in ToMCAT.
    Loaders](#hddl-domain-and-problem-definition-loaders)
 4. [MCTS Hierarchical Planners](#mcts-hierarchical-planners)
     1. [MCTS HTN Planner](#mcts-htn-planner) 
+    2. [MCTS Hybrid Planner](#mcts-hybrid-planner)
 5. [MCTS Hierarchical Plan Recognizers](#mcts-hierarchical-plan-recognizers)
+    1. [Setting Up Redis Server](#setting-up-redis-server)
+    2. [Running the Plan Recognizers](#running-the-plan-recognizers)
+    3. [Data Tools For Plan Recognizer Results](#data-tools-for-plan-recognizer-results)
+6. [SAR Perceptual System](#sar-perceptual-system)
+7. [Evaluation Procedure for MCTS HTN Plan
+   Recognizer](#evaluation-procedure-for-mcts-htn-plan-recognizer)
 
 # Build Requirements
 - cmake (Minimum requirement is version 3.16, https://cmake.org/)
 - Boost (Minimum requirement is version 1.79, https://www.boost.org/)
   - Specific Boost Libraries to build: filesystem, log, date\_time, chrono, program\_options, coroutine, json
-- Z3 (Minimum requirement is version 4.8.17, specifically the libraries for c++, https://github.com/Z3Prover/z3)
-- Graphviz (Tested on version 8.0.5, https://graphviz.org/)
-- OpenSLL (Tested on version 3.1.1, https://www.openssl.org/) 
-- Paho MQTT (Tested on version 1.3.9)
-- Hiredis (Tested on version 0.14.1, https://redis.io/lp/hiredis/)
-- Redis-Plus-Plus (Tested on version 1.3.5, https://github.com/sewenew/redis-plus-plus)
+- Z3 (c++ Library) (Minimum requirement is version 4.8.17, https://github.com/Z3Prover/z3)
+- Graphviz (c Library) (Tested on version 8.0.5, https://graphviz.org/)
+- OpenSLL (c++ Library) (Tested on version 3.1.1, https://www.openssl.org/) 
+- Paho MQTT (c++ Library) (Tested on version 1.3.9)
+- Hiredis (c Library) (Tested on version 0.14.1, https://redis.io/lp/hiredis/)
+- Redis-Plus-Plus (c++ Library) (Tested on version 1.3.5, https://github.com/sewenew/redis-plus-plus)
 - Tested on Apple clang version 15.0.0.15000309 (It may also work using GNU 11.4.0)
 - Redis (This refers to actual client and server software, different than
   the required C and C++ libraries. Only the machine hosting the redis
@@ -97,11 +104,13 @@ After building, you can run:
     ./apps/planners/MCTS_planner
 
 This will run the planner on default settings, which are the same as
-test\_MCTS\_planner ran by the ctest command. 
+[test\_MCTS\_planner](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/test/test_MCTS_planner.cpp) 
+ran by the ctest command. 
 
-The default domain and problem definitions are at domains/transport\_domain.hddl 
-and domains/transport\_problem.hddl. The default score function is "delivery\_one" defined 
-in domains/score\_functions.h. 
+The default domain and problem definitions are the [transport
+domain](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/domains/transport_domain.hddl) 
+and a sample [transport problem](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/domains/transport_problem.hddl). 
+The default score function is "delivery\_one" as defined in [score\_functions.h](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/domains/score_functions.h). 
 
 Run with the help flag,
 
@@ -109,8 +118,8 @@ Run with the help flag,
 
 To see what options are available including how to run the planner with
 different domain and problem definitions and score functions. Score functions
-must be predefined in domains/score\_functions.h. There are also options to run
-the hybrid planner (discussed below).
+must be predefined in a similar way to the "delivery\_one" function mentioned above. 
+There are also options to run the hybrid planner (discussed below).
 
 ## MCTS Hybrid Planner
 Most of the internal mechanisms such as the use of time-limited MCTS are the
@@ -142,31 +151,175 @@ E.g.,
     ./apps/planners/MCTS_planner -x transport_domain_C.hddl -P transport_problem_C.hddl
 
 # MCTS Hierarchical Plan Recognizer
-After building, you can run: 
+Our code-base contains two different Plan Recognition algorithms that mirror
+the functionality of the two planner types detailed above. These take as input
+a sequence of observed grounded actions (and other required planning elements)
+and output a solution in the form of a (partial) task hierarchy that best 
+estimates an explanation for the observations given a limited inference time.
+Running the Plan Recognizers requires setting up a Redis server. The inputted
+observations must be uploaded to this Redis server. Likewise, the outputted
+solution from the Plan Recognizers are also uploaded back to this server in the
+form of a json message. 
+
+## Setting Up Redis Server
+You will first need to install the Redis client and server software by
+following the install instructions appriopriate for your machine (the one you
+intend to host the server) found at [https://redis.io/docs/latest/get-started/](https://redis.io/docs/latest/get-started/)
+
+Once installed, you can start the Redis server under default settings by doing,
+
+    redis-server
+
+in a terminal. The default port used is 6379. This can be changed using
+`--port` or in a .conf file passed to the server on start-up. Use the `-h` or
+go to the website to learn about other settings.
+
+The connection to the server can be checked by running,
+
+    redis-cli
+
+in a seperate terminal (or machine with appriopriate hostname and port
+settings). This will open up the Redis REPL to communicate directly with the
+server. By default it connects to "tcp://127.0.0.1:6379", which is the local
+host (i.e., same machine) through port 6379.
+
+The server can be terminated with `control-c`. By default, it saves its database
+to a file called `dump.rdb` when closed and automatically loads this file on start-up.
+
+## Running the Plan Recognizers
+To successfully run the plan recognizer, a redis server must be set-up with
+observations loaded into its database under the `actions` key. This can be done
+using the redis-cli REPL using the `XADD` command (see Redis documentation for
+full usage) or by using our supplied
+[pr\_samples\_to\_redis.cpp](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/apps/data_tools/pr_samples_to_redis.cpp) 
+script.
+
+Using the above script at this time requires you to manually hardcode a set of
+observations into the
+[pr_samples.h](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/domains/pr_samples.h) file.
+A default set of observations are already hardcoded into this file for the
+transport domain as an example. These will be loaded into the redis database by
+default by running, 
+
+    ./apps/data_tools/pr_samples_to_redis
+
+Like other terminal command calls, use the `-h` flag to see other settings.
+
+After having loaded observations into the redis database, you can run the
+[MCTS\_planrec.cpp](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/apps/planrec/MCTS_planrec.cpp) 
+script. Below is an example on how to run the default settings assuming that
+server is located locally and is using port 6379. 
     
-    ./apps/planrec/MCTS_planrec -g
+    ./apps/planrec/MCTS_planrec -a tcp://127.0.0.1:6379
 
-This will run the planner on default settings. The `-g` flag has the plan
-recognizer generate a png file containing a visual of the inferred plan
-structure. By default the file name will be `__<problem_head>__.png`.  
+The results will be automatically loaded onto the redis database on the server
+with the same supplied address above under the "explanations" key. As mentioned
+before, the output is a json message. It can be interacted with using the
+redis-cli REPL, but we recommend using one of our supplied scripts discussed
+below. Finally, the `-h` flag will reveal other plan recognition settings
+including those for the hybrid planning version of the algorithm. 
 
-The default domain and problem definitions are at domains/transport\_domain.hddl 
-and domains/transport\_problem.hddl. The default score function is "delivery\_one" defined 
-in domains/score\_functions.h. The default observation set is "delivery\_sample" with a sample size of 2 (i.e., the first two actions). 
+## Data Tools For Plan Recognizer Results 
+For convenience, we supply 3 different scripts for processing results from the
+plan recognizers. 
 
-Run with the help flag,
+The first is
+[redis\_to\_json.cpp](https://github.com/ml4ai/tomcat-planrec/blob/main/apps/data_tools/redis_to_json.cpp) 
+which by default accesses the redis database for the given redis server address
+(using the `-a` flag) and looks for entries under the "explanations" key. Each
+entry is converted into its own json file. The naming convention for these json
+files are "explanations\_1.json", "explanations\_2.json", etc. Use the `-h` to
+see other options. 
 
-    ./apps/planrec/MCTS_planrec -h
+The second script is
+[redis\_grapher.cpp](https://github.com/ml4ai/tomcat-planrec/blob/main/apps/data_tools/redis_grapher.cpp)
+which works in a similar fashion to previously mentioned script except it
+generates a visual representation (i.e., a graph) of the inferred partial task hierarchy for
+each entry found under the "explanations" key. These graphs are saved as .png
+files and use the same naming conventions as the first script. 
 
-To see what options are available including how to run the plan recognizer with
-different domain and problem definitions and score functions. Score functions
-must be predefined in domains/score\_functions.h. The script
-domains/pr\_samples.h provides a convenient way to provide artificial
-observation sets.   
+Finally,
+[json\_grapher.cpp](https://github.com/ml4ai/tomcat-planrec/blob/main/apps/data_tools/json_grapher.cpp) 
+does the same thing as the redis grapher, except it takes in a json file that
+was outputted from the redis to json script mentioned above. 
 
-# Acknowledgments
+# SAR Perceptual System
+We also developed a perceptual system for the [ASIST Study 3
+Testbed](https://artificialsocialintelligence.org/testbed/), 
+a Minecraft Search and Rescue (SAR) mission. It uses the Paho MQTT c++ library
+to subscribe to json messages from the testbed's message bus. The message bus
+can be simulated by running an apprioriate Study 3 metadata file through the
+[elkless-replayer](https://github.com/ml4ai/tomcat/blob/d2b4ac940b5e33a37cc503c27551e7e77cbedbce/tools/elkless_replayer#L4)
+python script. 
 
-The C++ implementation of the
-[PyHOP](https://bitbucket.org/dananau/pyhop/src/master/) planning algorithm
-borrows from
-[PCfVW/Simple-HTN-Planner](https://github.com/PCfVW/Simple-HTN-Planner).
+## Actions Parsed
+- (location ?agent ?current\_location ?new\_location) (An agent has moved
+  locations)
+- (place\_victim ?agent ?vic\_id ?location) (An agent has placed a victim at a
+  location)
+- (pickup\_victim ?agent ?vic\_id ?location) (An agent has picked up a victim
+  at a location)
+- (triage\_victim ?agent ?vic\_id ?location) (The medic has triaged a victim at
+  a location)
+- (rubble\_destroyed ?agent ?location) (The engineer has destroyed rubble at a
+  location)
+- (marker\_placed ?agent ?marker\_type ?location) (An agent has placed a marker
+  at a location)
+- (marker\_removed ?agent\_a ?agent\_b ?marker\_type ?location) (An agent a has
+  removed agent b's marker at a location)
+- (wake\_critical ?agent\_a ?agent\_b ?vic\_id ?location) (The medic and an
+  assisting agent have woken a critical victim at a location)
+- (victim\_evactuated ?agent ?vic\_id location) (An agent has evacuated a
+  victim at a evacuation location)
+
+## Field of View Percepts
+These are percepts that are saved under the "fov" key in the redis database.
+Both the planner and plan recoginizers regularly check for field of view (fov) percepts and try
+to update the state according to timestamps that match their internal planning
+times. 
+
+- (fov\_victim\_regular ?agent ?vic\_id) (An agent currently sees a regular
+  victim)
+- (fov\_victim\_critical ?agent ?vic\_id) (An agent currently sees a critical
+  victim)
+- (fov\_victim\_saved ?agent ?vic\_id) (An agent currently sees a triaged
+  victim)
+- (fov\_gravel ?agent) (An agent currently sees gravel)
+- (fov\_marker ?agent\_a ?marker\_type ?agent\_b) (An agent a currently sees a
+  marker left by agent b)
+
+## Running the Perceptual System
+The perceptual system script needs to be started before the message bus (or
+simulated message bus) starts publishing. Below is the default command for
+doing so,
+
+    ./apps/perc/main
+
+By default it connects to a MQTT host locally and tries to use port 1883. 
+
+# Evaluation Procedure for MCTS HTN Plan Recognizer
+Finally, we developed a [evaluation
+procedure](https://github.com/ml4ai/tomcat-planrec/blob/main/apps/eval/MCTS_planrec_eval.cpp) 
+for the MCTS HTN Plan Recognizer. It does evaluation by prediction. 
+Given the apprioriate redis address, it extracts the inferred task 
+hierarchies (under the "explanations" key) from the database at the 
+address and inputs them into our MCTS HTN Planner. It also extracts the
+true grounded plan from the "actions" key. 
+
+The planner attempts to plan from a state
+initialized from the endpoint of a given task hierarchy up to some incremented
+plan horizon over multiple trials. For example, if its set to do 10 trials and
+the true grounded plan has a length of 5, then it will do 10 trials of planning
+up to a horizon of 1, 10 trials of a planning horizon of 2, etc. up until 10
+trials of a horizon of 5. In this case, the planner is ran 50 times overall.
+Each trial for each horizon is matched to the corresponding subsequence within
+the true grounded plan (e.g., partial plans of horizon 3 are matched to the first 3
+actions in the true plan). A average accuracy over the number of trials is
+computed for each planning horizon. In this way, we can see how the average
+prediction accuracy decays for a given plan explanation (i.e., inferred task
+hierarchy) over increasing prediction horizons. 
+
+Running the evaluation procedure is similar to running the planning and plan
+recognizer scripts. As before, there is a `-h` flag that explains the different
+settings of the evaluation procedure. All results are saved to a csv file. 
+
