@@ -104,13 +104,13 @@ After building, you can run:
     ./apps/planners/MCTS_planner
 
 This will run the planner on default settings, which are the same as
-[test\_MCTS\_planner](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/test/test_MCTS_planner.cpp) 
+[test\_MCTS\_planner](https://github.com/ml4ai/tomcat-planrec/blob/main/test/test_MCTS_planner.cpp) 
 ran by the ctest command. 
 
 The default domain and problem definitions are the [transport
 domain](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/domains/transport_domain.hddl) 
-and a sample [transport problem](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/domains/transport_problem.hddl). 
-The default score function is "delivery\_one" as defined in [score\_functions.h](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/domains/score_functions.h). 
+and a sample [transport problem](https://github.com/ml4ai/tomcat-planrec/blob/main/domains/transport_problem.hddl). 
+The default score function is "delivery\_one" as defined in [score\_functions.h](https://github.com/ml4ai/tomcat-planrec/blob/main/domains/score_functions.h). 
 
 Run with the help flag,
 
@@ -191,12 +191,12 @@ To successfully run the plan recognizer, a redis server must be set-up with
 observations loaded into its database under the `actions` key. This can be done
 using the redis-cli REPL using the `XADD` command (see Redis documentation for
 full usage) or by using our supplied
-[pr\_samples\_to\_redis.cpp](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/apps/data_tools/pr_samples_to_redis.cpp) 
+[pr\_samples\_to\_redis.cpp](https://github.com/ml4ai/tomcat-planrec/blob/main/apps/data_tools/pr_samples_to_redis.cpp) 
 script.
 
 Using the above script at this time requires you to manually hardcode a set of
 observations into the
-[pr_samples.h](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/domains/pr_samples.h) file.
+[pr_samples.h](https://github.com/ml4ai/tomcat-planrec/blob/main/domains/pr_samples.h) file.
 A default set of observations are already hardcoded into this file for the
 transport domain as an example. These will be loaded into the redis database by
 default by running, 
@@ -206,7 +206,7 @@ default by running,
 Like other terminal command calls, use the `-h` flag to see other settings.
 
 After having loaded observations into the redis database, you can run the
-[MCTS\_planrec.cpp](https://github.com/ml4ai/tomcat-planrec/blob/document_updating/apps/planrec/MCTS_planrec.cpp) 
+[MCTS\_planrec.cpp](https://github.com/ml4ai/tomcat-planrec/blob/main/apps/planrec/MCTS_planrec.cpp) 
 script. Below is an example on how to run the default settings assuming that
 server is located locally and is using port 6379. 
     
